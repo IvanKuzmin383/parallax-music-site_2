@@ -1,0 +1,215 @@
+import crypto from "crypto"
+import fs from "fs"
+import path from "path"
+import type { NextRequest } from "next/server"
+import type Database from "better-sqlite3"
+
+export const DOCUMENT_KEY_PUBLIC_OFFER = "public_offer"
+export const EVENT_LICENSE_TRACK_UPLOAD = "license_track_upload"
+export const RESOURCE_TYPE_TRACK = "track"
+
+const OFFER_FILE = path.join("data", "public-offer.md")
+
+export function getPublicOfferAbsolutePath(): string {
+  return path.join(process.cwd(), OFFER_FILE)
+}
+
+export function sha256Buffer(buf: Buffer): string {
+  return crypto.createHash("sha256").update(buf).digest("hex")
+}
+
+/** Дата из строки «Последняя редакция: …» в шапке md, если есть */
+export function extractRevisionLabelFromMarkdown(content: string): string | null {
+  const m = content.match(/Последняя редакция:\s*(.+)/i)
+  return m ? m[1].trim() : null
+}
+
+/**
+ * Возвращает id строки в legal_document_versions для текущего файла оферты.
+ * При новом хэше содержимого создаёт новую версию.
+ */
+export function getOrCreateDocumentVersionId(db: Database.Database): string {
+  const fullPath = getPublicOfferAbsolutePath()
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`Legal document not found: ${OFFER_FILE}`)
+  }
+  const buf = fs.readFileSync(fullPath)
+  const contentSha256 = sha256Buffer(buf)
+  const row = db
+    .prepare(
+      `SELECT id FROM legal_document_versions WHERE document_key = ? AND content_sha256 = ?`
+    )
+    .get(DOCUMENT_KEY_PUBLIC_OFFER, contentSha256) as { id: string } | undefined
+  if (row) return row.id
+
+  const id = crypto.randomUUID()
+  const revisionLabel =
+    extractRevisionLabelFromMarkdown(buf.toString("utf-8")) ?? contentSha256.slice(0, 16)
+  const now = new Date().toISOString()
+  db.prepare(
+    `INSERT INTO legal_document_versions (id, document_key, revision_label, content_sha256, source_path, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, DOCUMENT_KEY_PUBLIC_OFFER, revisionLabel, contentSha256, OFFER_FILE, now)
+  return id
+}
+
+export function getClientIp(request: NextRequest): string | null {
+  const forwarded = request.headers.get("x-forwarded-for")
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim()
+    if (first) return first
+  }
+  const realIp = request.headers.get("x-real-ip")?.trim()
+  if (realIp) return realIp
+  return null
+}
+
+export function getUserAgent(request: NextRequest): string | null {
+  return request.headers.get("user-agent")?.slice(0, 2000) ?? null
+}
+
+export type RecordLicenseTrackParams = {
+  userEmail: string
+  trackId: string
+  occurredAtIso: string
+  clientIp: string | null
+  userAgent: string | null
+  backfilled?: boolean
+}
+
+export function recordLicenseAcceptanceForTrack(
+  db: Database.Database,
+  params: RecordLicenseTrackParams
+): void {
+  const documentVersionId = getOrCreateDocumentVersionId(db)
+  const eventId = crypto.randomUUID()
+  const metadataJson =
+    params.backfilled === true ? JSON.stringify({ backfilled: true }) : null
+  db.prepare(
+    `INSERT INTO legal_acceptance_events (
+      id, user_email, document_version_id, event_type, resource_type, resource_id,
+      occurred_at, client_ip, user_agent, metadata_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    eventId,
+    params.userEmail,
+    documentVersionId,
+    EVENT_LICENSE_TRACK_UPLOAD,
+    RESOURCE_TYPE_TRACK,
+    params.trackId,
+    params.occurredAtIso,
+    params.clientIp,
+    params.userAgent,
+    metadataJson
+  )
+}
+
+/**
+ * Одна попытка записи; при дубликате (UNIQUE) — игнорировать (идемпотентность).
+ */
+export function tryRecordLicenseAcceptanceForTrack(
+  db: Database.Database,
+  params: RecordLicenseTrackParams
+): void {
+  try {
+    recordLicenseAcceptanceForTrack(db, params)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes("UNIQUE") || msg.includes("unique")) {
+      return
+    }
+    throw e
+  }
+}
+
+type TrackRow = { id: string; user_id: string; created_at: string }
+
+/**
+ * Для треков, созданных до внедрения журнала: событие с текущей редакцией оферты,
+ * occurred_at = дата создания трека, metadata backfilled.
+ */
+export function backfillTrackAcceptancesWithCurrentOffer(db: Database.Database): number {
+  const versionId = getOrCreateDocumentVersionId(db)
+  const tracks = db
+    .prepare(`SELECT id, user_id, created_at FROM tracks`)
+    .all() as TrackRow[]
+
+  const existsStmt = db.prepare(
+    `SELECT 1 FROM legal_acceptance_events
+     WHERE resource_type = ? AND resource_id = ? AND event_type = ? LIMIT 1`
+  )
+  const insertStmt = db.prepare(
+    `INSERT INTO legal_acceptance_events (
+      id, user_email, document_version_id, event_type, resource_type, resource_id,
+      occurred_at, client_ip, user_agent, metadata_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+
+  let n = 0
+  const meta = JSON.stringify({ backfilled: true })
+  for (const t of tracks) {
+    if (existsStmt.get(RESOURCE_TYPE_TRACK, t.id, EVENT_LICENSE_TRACK_UPLOAD)) continue
+    insertStmt.run(
+      crypto.randomUUID(),
+      t.user_id,
+      versionId,
+      EVENT_LICENSE_TRACK_UPLOAD,
+      RESOURCE_TYPE_TRACK,
+      t.id,
+      t.created_at,
+      null,
+      null,
+      meta
+    )
+    n += 1
+  }
+  return n
+}
+
+export type LegalAcceptanceRow = {
+  id: string
+  userEmail: string
+  documentVersionId: string
+  revisionLabel: string
+  contentSha256: string
+  eventType: string
+  resourceType: string
+  resourceId: string
+  occurredAt: string
+  clientIp: string | null
+  userAgent: string | null
+  metadataJson: string | null
+  trackName: string | null
+}
+
+export function getLegalAcceptancesByUserEmail(
+  db: Database.Database,
+  userEmail: string
+): LegalAcceptanceRow[] {
+  const emailNorm = userEmail.trim()
+  const rows = db
+    .prepare(
+      `SELECT
+        e.id,
+        e.user_email AS userEmail,
+        e.document_version_id AS documentVersionId,
+        v.revision_label AS revisionLabel,
+        v.content_sha256 AS contentSha256,
+        e.event_type AS eventType,
+        e.resource_type AS resourceType,
+        e.resource_id AS resourceId,
+        e.occurred_at AS occurredAt,
+        e.client_ip AS clientIp,
+        e.user_agent AS userAgent,
+        e.metadata_json AS metadataJson,
+        tr.track_name AS trackName
+      FROM legal_acceptance_events e
+      JOIN legal_document_versions v ON v.id = e.document_version_id
+      LEFT JOIN tracks tr ON tr.id = e.resource_id AND e.resource_type = 'track'
+      WHERE LOWER(e.user_email) = LOWER(?)
+      ORDER BY e.occurred_at DESC`
+    )
+    .all(emailNorm) as LegalAcceptanceRow[]
+
+  return rows
+}

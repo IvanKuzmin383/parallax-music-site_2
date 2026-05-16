@@ -1,0 +1,2 @@
+export const YANDEX_VIDEOSHOT_PRICE_RUB = 900
+

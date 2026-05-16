@@ -1,0 +1,2 @@
+export const YANDEX_VIDEOAVATAR_PRICE_RUB = 3000
+

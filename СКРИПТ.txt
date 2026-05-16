@@ -1,0 +1,340 @@
+(async () => {
+  const ROWS = "#tracksList tr";
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+  // --- Автозагрузка в проект (API: app/api/admin/music-stats/import/route.ts) ---
+  // На сервере в .env: MUSIC_STATS_IMPORT_TOKEN=длинная_случайная_строка
+  // Для проверки с localhost смените SITE_ORIGIN на "http://localhost:3000"
+  const SITE_ORIGIN = "https://parallaxmusic.ru";
+  const UPLOAD = {
+    url: `${SITE_ORIGIN}/api/admin/music-stats/import`,
+    /** Вставьте тот же секрет, что MUSIC_STATS_IMPORT_TOKEN в .env. Не публикуйте скрипт с токеном. */
+    token: "nDRqkR88jXrT4vt1O4cAhBUo5bwERM9zCVO9u4QC6ut",
+  };
+
+  /** Сводка по отправке на сайт (см. финальный блок в конце). */
+  const uploadReport = { platforms: 0, httpOk: 0, importOk: 0, importFail: 0 };
+
+  const SOURCE = location.hostname;
+
+  if (!UPLOAD.token?.trim()) {
+    console.warn(
+      "%c[Сайт] Автозагрузка выключена: в UPLOAD.token пусто — вставьте MUSIC_STATS_IMPORT_TOKEN из .env сервера.",
+      "color:#b45309;font-weight:bold"
+    );
+  } else {
+    console.log(
+      `%c[Сайт] Загрузка включена → ${UPLOAD.url}`,
+      "color:#15803d;font-weight:bold"
+    );
+  }
+
+  /** Подписи как на странице; если вкладки нет — пропуск (см. цикл `NOT FOUND`). */
+  const PLATFORM_TABS = [
+    "Apple Music",
+    "Pandora",
+    "Shazam",
+    "Spotify",
+    "VK / OK / BOOM",
+    "Yandex Music",
+    "YouTube Music",
+    "amazon",
+    "iTunes Store",
+  ];
+
+  const EXPORT_DATE = new Date().toISOString().slice(0, 10);
+
+  const slugify = (s) =>
+    (s || "")
+      .toString()
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/[\\/:*?"<>|]+/g, "_")
+      .replace(/\s/g, "_")
+      .replace(/_+/g, "_");
+
+  function clickLikeUser(el) {
+    const target = el.closest("a,button,[role='button'],.btn,.button") || el;
+    if (!target) return;
+    target.scrollIntoView({ block: "center" });
+
+    const opts = { bubbles: true, cancelable: true, view: window };
+    target.dispatchEvent(new MouseEvent("pointerdown", opts));
+    target.dispatchEvent(new MouseEvent("mousedown", opts));
+    target.dispatchEvent(new MouseEvent("pointerup", opts));
+    target.dispatchEvent(new MouseEvent("mouseup", opts));
+    target.dispatchEvent(new MouseEvent("click", opts));
+  }
+
+  function getMoreElement() {
+    const all = [...document.querySelectorAll("a,button,div,span,p")];
+
+    const exact = all.filter((el) => {
+      const t = norm(el.textContent);
+      return (t === "ещё треки" || t === "еще треки") && el.offsetParent !== null;
+    });
+    if (exact.length) return exact[exact.length - 1];
+
+    const partial = all.filter((el) => {
+      const t = norm(el.textContent);
+      return (
+        (t.includes("ещё треки") || t.includes("еще треки")) && el.offsetParent !== null
+      );
+    });
+    return partial.length ? partial[partial.length - 1] : null;
+  }
+
+  function getPlatformTab(label) {
+    const candidates = [...document.querySelectorAll("a,button,[role='tab'],[role='button'],div,span,p")].filter(
+      (el) => el && el.offsetParent !== null
+    );
+
+    const nLabel = norm(label);
+
+    const exact = candidates.filter((el) => norm(el.textContent) === nLabel);
+    if (exact.length) return exact[exact.length - 1];
+
+    const partial = candidates.filter((el) => norm(el.textContent).includes(nLabel));
+    return partial.length ? partial[partial.length - 1] : null;
+  }
+
+  function getFirstRowSignature() {
+    const tr = document.querySelector(`${ROWS}`);
+    if (!tr) return null;
+
+    const date = tr.querySelector("td.w120")?.textContent?.trim() || "";
+    const titleEl = tr.querySelector("a.track-title");
+    const authorEl = tr.querySelector(".track-author");
+    const countEl = tr.querySelector(".stats-number.dark");
+
+    const title =
+      titleEl?.dataset?.stt_title?.trim() ||
+      titleEl?.textContent?.trim() ||
+      "";
+    const author =
+      authorEl?.dataset?.stt_author?.trim() ||
+      authorEl?.textContent?.trim() ||
+      "";
+
+    const countRaw =
+      countEl?.dataset?.stt_count?.trim() ||
+      countEl?.textContent?.trim() ||
+      "";
+
+    const count = Number((countRaw || "").replace(/[^\d.-]/g, "")) || 0;
+
+    const href = titleEl?.getAttribute("href") || "";
+    const trackId = (href.match(/\/song\/(\d+)/) || [, ""])[1] || "";
+
+    return `${date}|${trackId}|${title}|${author}|${count}`;
+  }
+
+  async function waitForUpdate({ rowCountBefore, sigBefore, timeoutMs = 15000 } = {}) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const rowCountNow = document.querySelectorAll(ROWS).length;
+      const sigNow = getFirstRowSignature();
+
+      if (sigNow && (rowCountNow !== rowCountBefore || sigNow !== sigBefore)) {
+        return { ok: true, rowCountNow, sigNow };
+      }
+      await sleep(400);
+    }
+    return {
+      ok: false,
+      rowCountNow: document.querySelectorAll(ROWS).length,
+      sigNow: getFirstRowSignature(),
+    };
+  }
+
+  function parseRows() {
+    return [...document.querySelectorAll(ROWS)].map((tr) => {
+      const date = tr.querySelector("td.w120")?.textContent?.trim() || "";
+      const titleEl = tr.querySelector("a.track-title");
+      const authorEl = tr.querySelector(".track-author");
+      const countEl = tr.querySelector(".stats-number.dark");
+      const countryTd = tr.querySelector("td.w388");
+
+      const title =
+        titleEl?.dataset?.stt_title?.trim() ||
+        titleEl?.textContent?.trim() ||
+        "";
+      const author =
+        authorEl?.dataset?.stt_author?.trim() ||
+        authorEl?.textContent?.trim() ||
+        "";
+      const href = titleEl?.getAttribute("href") || "";
+      const trackId = (href.match(/\/song\/(\d+)/) || [, ""])[1];
+      const countryRaw = countryTd?.textContent?.trim() || "";
+      const country = countryRaw === "N/D" ? null : countryRaw;
+
+      const countRaw =
+        countEl?.dataset?.stt_count?.trim() ||
+        countEl?.textContent?.trim() ||
+        "0";
+
+      const count = Number(countRaw.replace(/[^\d.-]/g, "")) || 0;
+
+      return { date, trackId, title, author, country, count, href };
+    });
+  }
+
+  async function loadAll(maxSteps = 300) {
+    let clicks = 0;
+    for (let i = 0; i < maxSteps; i++) {
+      const before = document.querySelectorAll(ROWS).length;
+
+      const more = getMoreElement();
+      if (!more) {
+        console.log('Кнопка "ЕЩЁ ТРЕКИ" не найдена — похоже, конец.');
+        break;
+      }
+
+      clickLikeUser(more);
+
+      let grew = false;
+      for (let t = 0; t < 80; t++) {
+        await sleep(250);
+        const now = document.querySelectorAll(ROWS).length;
+        if (now > before) {
+          console.log(`  +${now - before} строк, всего ${now}`);
+          grew = true;
+          clicks++;
+          break;
+        }
+      }
+
+      if (!grew) {
+        console.log("  Новых строк после клика нет — стоп.");
+        break;
+      }
+
+      await sleep(400);
+    }
+    console.log(`Кликов: ${clicks}`);
+  }
+
+  for (const PLATFORM of PLATFORM_TABS) {
+    const tab = getPlatformTab(PLATFORM);
+    if (!tab) {
+      console.log(`NOT FOUND: ${PLATFORM}`);
+      continue;
+    }
+
+    const rowCountBefore = document.querySelectorAll(ROWS).length;
+    const sigBefore = getFirstRowSignature();
+
+    console.log(`\n=== Платформа: ${PLATFORM} ===`);
+    clickLikeUser(tab);
+
+    const upd = await waitForUpdate({ rowCountBefore, sigBefore });
+    console.log(`Switch: ${upd.ok ? "OK" : "TIMEOUT"} | rows=${upd.rowCountNow} | sig=${upd.sigNow}`);
+
+    await sleep(1000);
+    await loadAll();
+
+    const rows = parseRows();
+    const tracksMap = new Map();
+
+    for (const r of rows) {
+      const key = `${r.trackId}|${r.title}|${r.author}`;
+      if (!tracksMap.has(key)) {
+        tracksMap.set(key, {
+          trackId: r.trackId || null,
+          title: r.title,
+          author: r.author,
+          href: r.href,
+          platform: PLATFORM,
+          points: [],
+        });
+      }
+      tracksMap.get(key).points.push({
+        date: r.date,
+        count: r.count,
+        country: r.country,
+      });
+    }
+
+    const tracks = [...tracksMap.values()].map((t) => ({
+      ...t,
+      points: t.points.sort((a, b) => String(a.date).localeCompare(String(b.date))),
+    }));
+
+    const payload = {
+      source: SOURCE,
+      exportedAt: new Date().toISOString(),
+      platform: PLATFORM,
+      totalRows: rows.length,
+      totalTracks: tracks.length,
+      tracks,
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+
+    const filePlatform = slugify(PLATFORM);
+    const fileName = `tracks_full_${filePlatform}_${EXPORT_DATE}.json`;
+
+    if (UPLOAD.url && UPLOAD.token?.trim()) {
+      uploadReport.platforms++;
+      const fd = new FormData();
+      fd.append("files", blob, fileName);
+
+      try {
+        const res = await fetch(UPLOAD.url, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${UPLOAD.token.trim()}` },
+          body: fd,
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          console.error(`[Сайт] ${PLATFORM}: HTTP ${res.status}`, data);
+        } else {
+          uploadReport.httpOk++;
+          const r = data?.results?.[0];
+          if (r?.ok) {
+            uploadReport.importOk++;
+            console.log(
+              `%c[Сайт] ${PLATFORM} — импорт OK`,
+              "color:#15803d;font-weight:bold",
+              `дней: ${r?.daysCount ?? "—"}, прослушиваний: ${r?.totalPlays ?? "—"}`
+            );
+          } else {
+            uploadReport.importFail++;
+            console.error(`[Сайт] ${PLATFORM}: ответ 200, но импорт не прошёл —`, r?.error ?? data);
+          }
+        }
+      } catch (e) {
+        console.error(`[Сайт] ${PLATFORM}: сеть / CORS —`, e);
+      }
+    } else {
+      console.warn(`[Сайт] ${PLATFORM}: UPLOAD.url или token не задан(ы), отправка пропущена.`);
+    }
+
+    await sleep(1200);
+  }
+
+  console.log("\n%cALL PLATFORMS DONE.", "font-weight:bold");
+
+  if (UPLOAD.token?.trim()) {
+    const { platforms, httpOk, importOk, importFail } = uploadReport;
+    const line =
+      importFail === 0 && importOk === platforms && platforms > 0
+        ? `%c[Сайт] Готово: отправлено платформ ${platforms}, импорт успешен по всем.`
+        : `%c[Сайт] Итог: попыток ${platforms}, HTTP OK: ${httpOk}, импорт OK: ${importOk}, ошибок импорта: ${importFail}`;
+    const style =
+      importFail === 0 && importOk === platforms && platforms > 0
+        ? "color:#15803d;font-weight:bold"
+        : "color:#b45309;font-weight:bold";
+    console.log(line, style);
+
+    if (platforms === 0) {
+      console.warn(
+        "%c[Сайт] Запросов на импорт не было — проверьте UPLOAD.url и что цикл дошёл до загрузки.",
+        "color:#b45309"
+      );
+    }
+  }
+})();

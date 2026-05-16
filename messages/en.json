@@ -1,0 +1,720 @@
+{
+  "header": {
+    "services": "Services",
+    "process": "Process",
+    "blog": "Blog",
+    "aiMusic": "AI Music",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "login": "Sign in"
+  },
+  "hero": {
+    "title": "Amplify Your Sound",
+    "description": "Premier music label and promotion agency dedicated to elevating artists and creating cultural impact through innovative strategies and industry expertise.",
+    "workWithUs": "Work With Us",
+    "partnerLogoAlt": "Parallax Music partner"
+  },
+  "services": {
+    "title": "Our",
+    "titleHighlight": "Services",
+    "description": "Comprehensive music industry solutions designed to elevate your career and maximize your impact in the competitive music landscape.",
+    "labelServices": {
+      "title": "Label Services",
+      "description": "Full-service label support including A&R, production, and release management for your music career."
+    },
+    "digitalMarketing": {
+      "title": "Digital Marketing",
+      "description": "Strategic digital campaigns across all platforms to maximize your reach and engagement."
+    },
+    "radioPromotion": {
+      "title": "Promotion",
+      "description": "Dedicated radio promotion team with connections to major stations and playlist curators worldwide."
+    },
+    "brandPartnerships": {
+      "title": "Brand Partnerships",
+      "description": "Connect with brands and sponsors that align with your artistic vision and amplify your message."
+    }
+  },
+  "process": {
+    "title": "Our",
+    "titleHighlight": "Process",
+    "description": "A proven four-step methodology that transforms emerging artists into established names in the music industry.",
+    "steps": {
+      "discovery": {
+        "title": "Discovery",
+        "description": "We evaluate your music, vision, and goals to create a tailored strategy for your success."
+      },
+      "strategy": {
+        "title": "Strategy",
+        "description": "Our team develops a comprehensive plan covering all aspects of promotion and distribution."
+      },
+      "execution": {
+        "title": "Execution",
+        "description": "We implement campaigns across digital platforms, radio, and strategic partnerships."
+      },
+      "growth": {
+        "title": "Growth",
+        "description": "Continuous optimization and scaling based on data-driven insights and market response."
+      }
+    }
+  },
+  "advantages": {
+    "title": "Our",
+    "titleHighlight": "Advantages",
+    "highlightText": "We deliver tracks to more than 50 streaming platforms: Yandex Music, VK Music, SberZvuk, KION, Apple Music, Spotify, TikTok, YouTube, and more.",
+    "items": [
+      "Personal and fast support without long waiting times",
+      "Flexible moderation and fast processing for AI releases",
+      "Releases remain available even after subscription ends",
+      "Full analytics from all platforms in one personal dashboard",
+      "Promotion, pitching, monetization, and additional services",
+      "Fast royalty payouts in a way that suits you"
+    ]
+  },
+  "pricing": {
+    "title": "Our",
+    "titleHighlight": "Pricing",
+    "description": "Choose the pricing plan that suits your music project",
+    "periodMonth": "Month",
+    "periodYear": "Year",
+    "perMonth": "₽/mo",
+    "discount": "-40%",
+    "popularBadge": "Popular",
+    "royaltyTitle": "100% Royalties",
+    "royaltyDescription": "All royalties remain with the artist. We take zero commission from your earnings.",
+    "paymentTitle": "Support",
+    "paymentDescription": "Full release cycle support: distribution and oversight, consulting support, playlist pitching and analytics.",
+    "ctaButton": "Get Started",
+    "plans": [
+      {
+        "id": "start",
+        "title": "Start",
+        "subtitle": "For first releases.",
+        "releasesLimit": "Up to 3 active releases. Track uploads are limited to one artist per plan",
+        "discount": "-25%",
+        "priceMonth": 350,
+        "priceYear": 250
+      },
+      {
+        "id": "medium",
+        "title": "Medium",
+        "subtitle": "For developing artists.",
+        "releasesLimit": "Up to 6 active releases. Track uploads are limited to one artist per plan",
+        "discount": "-30%",
+        "priceMonth": 490,
+        "priceYear": 350
+      },
+      {
+        "id": "pro",
+        "title": "Pro",
+        "subtitle": "For creative freedom.",
+        "popular": true,
+        "releasesLimit": "Unlimited active releases. Track uploads are limited to one artist per plan",
+        "discount": "-30%",
+        "priceMonth": 770,
+        "priceYear": 550
+      },
+      {
+        "id": "label",
+        "title": "Label",
+        "subtitle": "For labels and teams.",
+        "releasesLimit": "Unlimited active releases + unlimited artists and the ability to specify your own label",
+        "discount": "-35%",
+        "priceMonth": 2999,
+        "priceYear": 1999
+      }
+    ]
+  },
+  "pay": {
+  "title": "Checkout",
+  "description": "Fill in the form to complete your subscription payment. After successful payment, you will get access to your personal dashboard where you can upload releases.",
+    "backToPricing": "Back to pricing",
+    "planInfo": "Plan details",
+    "yourData": "Contact details",
+    "email": "Email",
+    "emailPlaceholder": "example@mail.com",
+    "telegram": "Telegram",
+    "telegramPlaceholder": "@username or profile link",
+    "period": "Billing period",
+    "periodMonth": "Month",
+    "periodYear": "Year",
+    "periodsCount": "Number of periods",
+    "total": "Total amount",
+    "agreeOffer": "I agree with the",
+    "offerLink": "public offer and license terms",
+    "agreeTerms": "I agree with the",
+    "termsLink": "terms of service",
+    "agreePersonalData": "I agree to the processing of my personal data in accordance with the",
+    "personalDataConsentLink": "Personal data processing consent",
+    "agreePrivacy": "I have read the",
+    "privacyPolicyLink": "Privacy policy",
+    "payButton": "Pay",
+    "loading": "Creating payment...",
+    "errorCreate": "Failed to create payment. Please try again or contact us.",
+    "planNotFound": "Plan not found",
+    "validationEmail": "Enter a valid email",
+    "validationTelegram": "Enter your Telegram",
+    "validationAgree": "You must agree to the offer (license), terms, personal data processing, and privacy policy",
+    "consentOfferLicenseIntro": "I have read and agree to the",
+    "validationConsentOfferLicense": "Please confirm that you have read and agree to the public offer and license terms"
+  },
+  "contact": {
+    "title": "Ready to",
+    "titleHighlight": "Elevate?",
+    "description": "Let's discuss how Parallax Music can amplify your sound and accelerate your career.",
+    "telegramCta": "For initial contact and release-related questions, you can reach our team via the Telegram channel- Parallax Music- Release Team.",
+    "form": {
+      "name": "Your Name",
+      "email": "Email Address",
+      "projectType": "Project Type",
+      "projectTypePlaceholder": "Label, Promotion, etc.",
+      "message": "Message",
+      "messagePlaceholder": "Tell us about your project and goals...",
+      "sendMessage": "Send Message",
+      "sending": "Sending...",
+      "required": "required"
+    },
+    "success": "Thank you for your message! We will get back to you soon.",
+    "error": "Failed to send message. Please try again.",
+    "errorGeneric": "An error occurred. Please try again later."
+  },
+  "footer": {
+    "tagline": "Amplifying artists, creating culture.",
+    "services": "Services",
+    "company": "Company",
+    "followUs": "Follow Us",
+    "aboutUs": "About Us",
+    "careers": "Careers",
+    "copyright": "© 2026 Parallax Music. All rights reserved.",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "publicOffer": "Offer & license",
+    "personalDataConsent": "Personal data consent"
+  },
+  "demo": {
+    "title": "Submit Your Demo",
+    "description": "Share your music with us. We're always looking for fresh talent to work with.",
+    "form": {
+      "artistName": "Artist Name",
+      "email": "Email Address",
+      "trackName": "Track Name",
+      "genre": "Genre",
+      "selectGenre": "Select genre",
+      "demoLink": "Demo Link",
+      "demoLinkPlaceholder": "https://soundcloud.com/your-track or https://youtube.com/watch?v=...",
+      "demoLinkDescription": "Share a link to your demo on SoundCloud, YouTube, Dropbox, Google Drive, or any other platform.",
+      "description": "Description",
+      "descriptionPlaceholder": "Tell us about your track, your musical style, or anything else you'd like us to know...",
+      "descriptionHint": "Optional. Maximum 500 characters.",
+      "cancel": "Cancel",
+      "submit": "Submit Demo",
+      "submitting": "Submitting..."
+    },
+    "genres": {
+      "hipHop": "Hip-Hop",
+      "rnb": "R&B",
+      "pop": "Pop",
+      "electronic": "Electronic",
+      "indieRock": "Indie Rock",
+      "alternativeRock": "Alternative Rock",
+      "other": "Other"
+    },
+    "success": "Thank you for submitting your demo! We will review it and get back to you soon.",
+    "error": "Failed to submit demo. Please try again.",
+    "errorGeneric": "An error occurred. Please try again later."
+  },
+  "stats": {
+    "streams": "Streams",
+    "artists": "Artists",
+    "countries": "Countries",
+    "years": "Years"
+  },
+  "common": {
+    "skipToContent": "Skip to main content"
+  },
+  "platforms": {
+    "title": "150+ Digital",
+    "titleHighlight": "Stores",
+    "description": "Parallax Music partners with 150+ digital music services and more, and is available in 200 countries and territories worldwide. Sell your music in all major digital stores, such as iTunes, Spotify, Apple Music, Deezer, Amazon, and others.",
+    "viewAllButton": "VIEW ALL 150+ STORES"
+  },
+  "aiLanding": {
+    "hero": {
+      "title": "Want to release your AI music to platforms? We’ll help.",
+      "subtitle": "Parallax Music is focused on AI music distribution and promotion. Legal, royalty-based releases with minimized blocking risk.",
+      "bullets": [
+        "Distribution through AI-friendly partners",
+        "Playlist pitching for AI releases",
+        "Consulting on rights and clearances"
+      ],
+      "cta": "Release your track",
+      "imageAlt": "Music producer working on AI-generated music in a studio"
+    },
+    "aiServices": {
+      "title": "Our",
+      "titleHighlight": "Services",
+      "description": "Comprehensive solutions for AI music distribution and promotion",
+      "distribution": {
+        "title": "Distribution through AI-friendly partners",
+        "description": "We work with distributors who understand AI content specifics and help avoid platform blocks"
+      },
+      "playlistPitching": {
+        "title": "Playlist pitching",
+        "description": "We promote your AI releases to streaming platform playlists, taking into account each platform's moderation specifics"
+      },
+      "consulting": {
+        "title": "Consulting on rights and clearances",
+        "description": "We help properly format releases, assess risks, and prepare materials for successful moderation"
+      }
+    },
+    "steps": {
+      "title": "How an AI music release works",
+      "description": "We guide you from first files to royalties, taking into account the specifics of AI-generated content.",
+      "items": [
+        {
+          "id": "upload",
+          "title": "Upload",
+          "description": "Upload your music in the personal dashboard and choose your release date."
+        },
+        {
+          "id": "moderation",
+          "title": "Moderation",
+          "description": "Make sure the uploaded content does not infringe copyright."
+        },
+        {
+          "id": "release",
+          "title": "Release",
+          "description": "Your release goes live on streaming platforms on the selected date."
+        },
+        {
+          "id": "analytics",
+          "title": "Analytics",
+          "description": "Analyze streaming stats in the personal dashboards of major platforms. No dashboard? We'll help you get access."
+        },
+        {
+          "id": "royalties",
+          "title": "Royalties",
+          "description": "Royalty payouts every quarter. Minimum payout amount from ₽1,000."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "description": "Answers to the questions we get most often",
+      "items": [
+        {
+          "id": "how-to-release",
+          "question": "How can I release music on Spotify, Yandex Music, and other platforms?",
+          "answer": "You register on our platform and upload tracks through your personal dashboard. We review them and then deliver to major streaming services like Apple Music, Spotify, YouTube Music, Yandex Music, and others. After release, you start earning from streams."
+        },
+        {
+          "id": "upload-ai",
+          "question": "Do you distribute AI-generated music?",
+          "answer": "Yes, we deliver AI tracks to all major platforms, including international ones."
+        },
+        {
+          "id": "subscription-expired",
+          "question": "Will my tracks be removed if I stop paying the subscription?",
+          "answer": "No, tracks already delivered to platforms remain live and are not removed."
+        },
+        {
+          "id": "platforms",
+          "question": "Which platforms do you deliver tracks to?",
+          "answer": "We distribute to 50+ streaming platforms, including Yandex Music, VK, SberZvuk, KION, Apple Music, Spotify, TikTok, and YouTube."
+        },
+        {
+          "id": "monetization",
+          "question": "Can neural-network music be monetized and earn royalties?",
+          "answer": "Yes, in most cases AI music can be monetized if source-material rights are not violated: samples, voices, melodies, and lyrics. We help assess risks and structure your release to comply with platform rules."
+        },
+        {
+          "id": "analytics",
+          "question": "How do I track streams for my tracks?",
+          "answer": "Detailed analytics from major platforms is available in your personal dashboard."
+        },
+        {
+          "id": "promotion",
+          "question": "Do you provide promotion services?",
+          "answer": "Yes, in your dashboard you will find a dedicated section with services for comprehensive promotion."
+        },
+        {
+          "id": "blocking",
+          "question": "Will my AI tracks get blocked after release?",
+          "answer": "The risk can’t be removed completely because platform policies may change, but it can be significantly reduced. We review your materials, suggest edits to artwork, descriptions, and metadata, and work through partners that are more AI-friendly."
+        }
+      ]
+    }
+  },
+  "validation": {
+    "nameMin": "Name must be at least 2 characters",
+    "nameMax": "Name must be less than 100 characters",
+    "emailInvalid": "Invalid email address",
+    "projectTypeMin": "Project type must be at least 2 characters",
+    "projectTypeMax": "Project type must be less than 100 characters",
+    "messageMin": "Message must be at least 10 characters",
+    "messageMax": "Message must be less than 1000 characters",
+    "artistNameMin": "Artist name must be at least 2 characters",
+    "artistNameMax": "Artist name must be less than 100 characters",
+    "trackNameMin": "Track name must be at least 2 characters",
+    "trackNameMax": "Track name must be less than 100 characters",
+    "genreInvalid": "Please select a valid genre",
+    "urlInvalid": "Please provide a valid URL",
+    "descriptionMax": "Description must be less than 500 characters",
+    "fieldRequired": "This field is required"
+  },
+  "errors": {
+    "validationFailed": "Validation failed",
+    "tooManyRequests": "Too many requests. Please wait a moment and try again.",
+    "notificationFailed": "Failed to send notification. Please try again later.",
+    "processingError": "An error occurred while processing your request. Please try again later.",
+    "demoProcessingError": "An error occurred while processing your demo submission. Please try again later."
+  },
+  "api": {
+    "contact": {
+      "success": "Thank you for your message! We have received it."
+    },
+    "demo": {
+      "success": "Thank you for submitting your demo! We received your submission."
+    }
+  },
+  "cabinet": {
+    "uploadAlbum": {
+      "audioValidation": {
+        "invalidSmallFile": "Invalid WAV file: file is too small.",
+        "invalidHeader": "Missing a valid RIFF/WAVE header: this is not a WAV file or the file is corrupted.",
+        "invalidPcm": "The file is not PCM (format code {code}). Uncompressed WAV (PCM) is required.",
+        "invalidParams": "File parameters are not supported. In file: {actual}. Required: {expected}.",
+        "failedToFetch": "Could not validate the audio file on the server. Ensure the WAV meets requirements: 44.1 kHz, 16/24 bit, stereo."
+      }
+    },
+    "purchaseTracks": {
+      "title": "Track limit reached",
+      "description": "To upload more tracks, pay for additional ones. Price per track is 400 ₽.",
+      "tracksCountLabel": "Number of tracks",
+      "tracksCountHint": "1 to 50",
+      "total": "Total",
+      "cancel": "Cancel",
+      "pay": "Pay",
+      "payLoading": "Creating payment…",
+      "errorCreate": "Failed to create payment, please try again",
+      "errorNetwork": "Network error, please try again"
+    },
+    "promotion": {
+      "title": "Services",
+      "description": "Extra tools to promote your music effectively",
+      "backToCabinet": "Back to dashboard",
+      "backToServices": "Back to services",
+      "goToServices": "Go to services",
+      "verticalVideo": {
+        "title": "Vertical videos",
+        "description": "Vertical videos for TikTok, Reels and Shorts",
+        "price": "from 99₽/ea",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "We create professional vertical videos for your tracks using modern visuals, typography and animation.",
+        "processFlowTitle": "How it works",
+        "processStep1": "Choose a track, number of videos, and pay",
+        "processStep2": "After payment, a manager contacts you to clarify and align your video requirements",
+        "processStep3": "We create one sample video, apply edits if needed, and approve the format",
+        "processStep4": "We produce the remaining videos using the approved template",
+        "priceTitle": "Pricing",
+        "priceRange1": "up to 10 videos",
+        "priceRange2": "up to 50 videos",
+        "priceRange3": "Over 50 videos",
+        "examplesTitle": "Examples",
+        "moreDetails": "Learn more",
+        "videoError": "Video unavailable",
+        "watchInVk": "Watch on VK",
+        "orderButton": "Order",
+        "orderDialogTitle": "Place an order",
+        "orderDialogDescription": "Fill in order details. After payment, our manager will contact you.",
+        "videosCountLabel": "Number of videos",
+        "videosCountHint": "1 to 500",
+        "trackTitleLabel": "Track for video",
+        "trackTitlePlaceholder": "Enter track title",
+        "trackSelectLoading": "Loading tracks...",
+        "trackSelectEmpty": "No uploaded tracks",
+        "commentLabel": "Requests / comments",
+        "commentPlaceholder": "Add details, references and requests",
+        "contactTypeLabel": "Preferred contact",
+        "contactTypeTelegram": "Telegram",
+        "contactTypeVk": "VK",
+        "contactTypeMax": "Max",
+        "contactValueLabel": "Contact",
+        "contactValuePlaceholder": "@username, link or number",
+        "totalLabel": "Total",
+        "currencySuffix": "₽",
+        "cancel": "Cancel",
+        "pay": "Pay",
+        "payLoading": "Creating payment…",
+        "errorCreate": "Could not create payment, please try again",
+        "errorNetwork": "Network error, please try again",
+        "validationTrackTitle": "Enter track title",
+        "validationNoTracks": "Upload at least one track first",
+        "validationContact": "Enter contact details",
+        "paymentSuccessTitle": "Order placed",
+        "paymentSuccessToast": "Your order has been placed. Our manager will contact you shortly.",
+        "paymentSuccessOk": "OK"
+      },
+      "trackCover": {
+        "title": "Track cover art",
+        "description": "Unique cover art tailored to your track",
+        "price": "500₽",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "We design a unique cover for your track and release: visual concept, typography, and a final master ready for streaming platforms.",
+        "priceTitle": "Pricing",
+        "orderButton": "Order",
+        "moreDetails": "Learn more",
+        "orderDialogTitle": "Place an order",
+        "orderDialogDescription": "Enter a track (or place the order without selecting one) and your contact details. After payment, our manager will reach out.",
+        "orderWithoutTrackSelectionLabel": "Order without selecting a track from cabinet",
+        "orderWithoutTrackSelectionHint": "After payment, our specialist will contact you to collect cover requirements.",
+        "trackTitleLabel": "Track for the cover",
+        "trackTitlePlaceholder": "Enter track title",
+        "trackSelectLoading": "Loading tracks...",
+        "trackSelectEmpty": "No uploaded tracks",
+        "commentLabel": "Requests / comments",
+        "commentPlaceholder": "Style, references, colors, text on the cover",
+        "commentRequiredHint": "This field is required.",
+        "contactTypeLabel": "Preferred contact",
+        "contactTypeTelegram": "Telegram",
+        "contactTypeVk": "VK",
+        "contactTypeMax": "Max",
+        "contactValueLabel": "Contact",
+        "contactValuePlaceholder": "@username, link or number",
+        "totalLabel": "Total",
+        "currencySuffix": "₽",
+        "cancel": "Cancel",
+        "pay": "Pay",
+        "payLoading": "Creating payment…",
+        "errorCreate": "Could not create payment, please try again",
+        "errorNetwork": "Network error, please try again",
+        "validationTrackTitle": "Enter track title",
+        "validationNoTracks": "Upload at least one track first",
+        "validationComment": "Fill in the requests / comments field",
+        "validationContact": "Enter contact details",
+        "paymentSuccessTitle": "Order placed",
+        "paymentSuccessToast": "Your order has been placed. Our manager will contact you shortly.",
+        "paymentSuccessOk": "OK"
+      },
+      "aiCover": {
+        "title": "AI track cover",
+        "description": "We create an AI cover for your release and align the final version with you",
+        "price": "500₽/ea",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "You upload a track without artwork, and our team prepares visuals and separately aligns the final version with you.",
+        "examplesTitle": "Examples:",
+        "exampleImages": [
+          {
+            "src": "/aicover/example1.png",
+            "alt": "AI cover example 1"
+          },
+          {
+            "src": "/aicover/example2.png",
+            "alt": "AI cover example 2"
+          },
+          {
+            "src": "/aicover/example3.png",
+            "alt": "AI cover example 3"
+          }
+        ],
+        "priceTitle": "Pricing",
+        "moreDetails": "Learn more"
+      },
+      "aiMastering": {
+        "title": "AI mastering",
+        "description": "Automatic track mastering with AI trained on top engineers' work",
+        "price": "100₽/track",
+        "serviceDescriptionTitle": "Description",
+        "priceTitle": "Pricing",
+        "serviceDescription": "AI mastering analyzes spectrum and dynamics, then applies EQ, compression and limiting. You get a release-ready loudness level for streaming platforms.",
+        "orderButton": "Order",
+        "moreDetails": "Learn more",
+        "orderDialogTitle": "Order AI mastering",
+        "orderDialogDescription": "Enter how many tracks you need, attach a WAV from your computer for each slot, and your contact details.",
+        "tracksCountLabel": "Number of tracks",
+        "tracksCountHint": "1 to 50",
+        "tracksPickLabel": "WAV audio",
+        "tracksPickHint": "For each slot, choose a file from your computer (up to 80 MB). Mono files are not accepted.",
+        "audioFileLabel": "File",
+        "audioFileSelected": "Selected",
+        "contactEmailLabel": "Email for contact",
+        "contactEmailPlaceholder": "example@mail.com",
+        "contactTelegramLabel": "Telegram for contact",
+        "contactTelegramPlaceholder": "@username or link",
+        "contactHint": "Provide at least email or Telegram",
+        "totalLabel": "Total",
+        "currencySuffix": "₽",
+        "cancel": "Cancel",
+        "pay": "Pay",
+        "payLoading": "Creating payment…",
+        "paymentSuccessToast": "Your order is confirmed. Our specialist will contact you shortly.",
+        "paymentSuccessTitle": "Done",
+        "paymentSuccessOk": "OK",
+        "errorCreate": "Could not create payment, please try again",
+        "errorNetwork": "Network error, please try again",
+        "validationContact": "Enter email or Telegram for contact",
+        "validationAudioSlots": "Attach a valid WAV for each slot",
+        "validationAudioWav": "File must be in WAV format",
+        "validationAudioSize": "File size must be at most 80 MB"
+      },
+      "yandexVideoshot": {
+        "title": "Upload videoshot to Yandex Music",
+        "description": "We upload your ready-made videoshot to your release in Yandex Music",
+        "price": "900₽/ea",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "A Yandex Music videoshot is a looping vertical video (5-15 seconds) that improves listener engagement. We check platform requirements and upload the asset to your release.",
+        "examplesTitle": "Examples:",
+        "examplesUsageTitle": "You can use as a videoshot:",
+        "examplesUsageItems": [
+          "footage shot specifically for Yandex Music;",
+          "clips from your music video, backstage scenes, or motion design."
+        ],
+        "examplesRecommendationsTitle": "Recommendations:",
+        "examplesRecommendationsItems": [
+          "avoid singing/lip-sync shots;",
+          "avoid very short abrupt cuts;",
+          "keep key objects centered;",
+          "build a short complete storyline."
+        ],
+        "videosTitle": "Video examples",
+        "exampleVideos": [
+          {
+            "src": "/videoshot/example1.MOV",
+            "title": "Videoshot example 1"
+          },
+          {
+            "src": "/videoshot/example2.MOV",
+            "title": "Videoshot example 2"
+          },
+          {
+            "src": "/videoshot/example3.MOV",
+            "title": "Videoshot example 3"
+          }
+        ],
+        "priceTitle": "Pricing",
+        "moreDetails": "Learn more"
+      },
+      "yandexVideoshotCreation": {
+        "title": "Yandex Music videoshot creation",
+        "description": "We create a videoshot for your track and publish it to Yandex Music",
+        "price": "3000₽/ea",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "Our team creates a unique video sequence for your track.",
+        "examplesTitle": "Examples:",
+        "examples": [
+          "What we offer: edits from your existing music video or backstage footage, plus motion design and abstract graphics.",
+          "A Yandex Music videoshot is a looping vertical video (5-15 seconds, MP4, H.264, 404x720 px) that boosts listener engagement. It must be high quality, keep key objects centered, and avoid visible lip-sync movement because the audio loops independently.",
+          "Videoshots can increase likes and shares by 25-26%.",
+          "You can use footage shot specifically for Yandex Music, clips from a music video, backstage footage, or motion design.",
+          "Videoshots can be added both to already released tracks and upcoming releases."
+        ],
+        "videosTitle": "Video examples",
+        "exampleVideos": [
+          {
+            "src": "/videoshot/example1.MOV",
+            "title": "Videoshot example 1"
+          },
+          {
+            "src": "/videoshot/example2.MOV",
+            "title": "Videoshot example 2"
+          },
+          {
+            "src": "/videoshot/example3.MOV",
+            "title": "Videoshot example 3"
+          }
+        ],
+        "priceTitle": "Pricing",
+        "moreDetails": "Learn more"
+      },
+      "yandexVideoavatar": {
+        "title": "Yandex Music video avatar creation",
+        "description": "We prepare a video avatar for your Yandex Music artist profile",
+        "price": "3000₽/ea",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "A video avatar is a short looping background clip shown instead of a static photo in the artist card.",
+        "examplesTitle": "Helpful notes:",
+        "examples": [
+          "You can upload it via BandLink support (Yandex Music).",
+          "Format requirements: you must own rights to the video; resolution 1000x1345 px; size up to 5 MB; the frame must include the artist or band members only, without unrelated people.",
+          "Avoid placing the face in the bottom third of the frame, as this area is covered by the artist name and playback controls.",
+          "There is no strict duration limit, but 5-7 seconds is recommended.",
+          "Do not include offensive or prohibited content, smoking/alcohol/drugs, explicit/violent scenes, brand/album/concert ads, text overlays, watermarks, or badges of other services.",
+          "The first frame (as an image) is displayed until the video avatar starts playing."
+        ],
+        "priceTitle": "Pricing",
+        "moreDetails": "Learn more"
+      },
+      "spotifyVideoshot": {
+        "title": "Spotify videoshot",
+        "description": "We create a Spotify Canvas-style loop (3-8 seconds)",
+        "price": "3000₽/ea",
+        "serviceDescriptionTitle": "Description",
+        "serviceDescription": "Our team creates a unique video sequence for your track.",
+        "warningTitle": "Attention",
+        "warningText": "To upload videoshots to Spotify, you need access to Spotify for Artists. This is a dedicated platform for musicians to manage profiles, track stats, and engage with fans. After registration and profile verification, you can add videoshots to tracks using the Canvas feature.",
+        "examplesTitle": "Examples:",
+        "examples": [
+          "What we offer: edits from your existing music video or backstage footage, plus motion design and abstract graphics.",
+          "A Spotify videoshot is a looping vertical video (3-8 seconds, MP4, H.264, 404x720 px) that improves listener engagement. It should be high quality, keep key objects centered, and avoid visible lip-sync motion due to looping.",
+          "Videoshots can increase likes and shares by 25-26%. You can use clips from a music video, backstage footage, or motion design.",
+          "Videoshots can be added both to already released tracks and upcoming releases."
+        ],
+        "videosTitle": "Video examples",
+        "exampleVideos": [
+          {
+            "src": "/videoshot/example1.MOV",
+            "title": "Spotify videoshot example 1"
+          },
+          {
+            "src": "/videoshot/example2.MOV",
+            "title": "Spotify videoshot example 2"
+          },
+          {
+            "src": "/videoshot/example3.MOV",
+            "title": "Spotify videoshot example 3"
+          }
+        ],
+        "priceTitle": "Pricing",
+        "moreDetails": "Learn more"
+      }
+    },
+    "myServices": {
+      "pageTitle": "My services",
+      "pageDescription": "Paid services and fulfillment status",
+      "filterAll": "All",
+      "filterInWork": "In progress",
+      "filterDone": "Completed",
+      "empty": "You have no service orders yet",
+      "loadError": "Failed to load the list",
+      "orderLabel": "Order",
+      "createdLabel": "Created",
+      "paidLabel": "Paid",
+      "amountLabel": "Amount",
+      "tracksCountLabel": "Tracks count",
+      "contactEmailLabel": "Contact email",
+      "contactTelegramLabel": "Contact Telegram",
+      "paymentStatusLabel": "Payment status",
+      "paymentIdLabel": "Payment ID",
+      "aiMasteringAudioLabel": "AI mastering audio files",
+      "aiMasteringAudioMissing": "Audio files were not found",
+      "paymentBadge": "Paid",
+      "fulfillmentInWork": "In progress",
+      "fulfillmentDone": "Completed",
+      "myOrdersLink": "My service orders",
+      "uploadAddonBundle": "Upload add-ons bundle",
+      "uploadAddonBundleComposition": "Order contents",
+      "uploadAddonBundleCompositionUnavailable": "Composition unavailable (draft missing or empty)",
+      "adminPageTitle": "Service orders",
+      "adminPageDescription": "Fulfillment status for paid services",
+      "adminEmpty": "No service orders yet",
+      "adminUser": "User",
+      "adminPaymentId": "Payment",
+      "adminStatusLabel": "Fulfillment status",
+      "adminStatusNew": "New",
+      "adminStatusInProgress": "In progress",
+      "adminStatusDone": "Completed",
+      "adminUpdateError": "Failed to update status",
+      "adminUpdateOk": "Status updated"
+    }
+  }
+}

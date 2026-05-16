@@ -1,0 +1,1 @@
+export const TRACK_COVER_PRICE_RUB = 500

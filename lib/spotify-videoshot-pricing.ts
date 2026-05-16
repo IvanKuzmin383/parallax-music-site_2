@@ -1,0 +1,2 @@
+export const SPOTIFY_VIDEOSHOT_PRICE_RUB = 3000
+
