@@ -181,7 +181,7 @@ du -sh /data/uploads
 ```bash
 mkdir -p /var/www
 cd /var/www
-git clone https://github.com/IvanKuzmin383/parallax-music-site.git parallaxmusic
+git clone https://github.com/IvanKuzmin383/parallax-music-site_2.git parallaxmusic
 cd parallaxmusic
 ```
 
