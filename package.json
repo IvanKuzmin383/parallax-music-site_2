@@ -8,10 +8,10 @@
   },
   "engines": {
     "node": ">=20.9.0",
-    "pnpm": ">=8.0.0"
+    "pnpm": ">=9.15.9 <10"
   },
   "scripts": {
-    "preinstall": "corepack enable && corepack prepare pnpm@latest --activate",
+    "preinstall": "corepack enable && corepack prepare pnpm@9.15.9 --activate",
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
