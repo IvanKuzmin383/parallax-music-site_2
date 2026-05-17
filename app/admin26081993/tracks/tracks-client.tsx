@@ -135,6 +135,10 @@ const UPLOAD_DRAFT_STATUS_OPTIONS: { value: UploadDraftStatus; label: string }[]
 /** Сколько строк показывать в «Простом списке» до нажатия «Еще». */
 const SIMPLE_LIST_PAGE_SIZE = 15
 
+function uploadDraftMediaEditable(d: UploadDraft): boolean {
+  return d.status === "collecting" || d.status === "awaiting_payment" || d.status === "paid"
+}
+
 function transferDistributorValidationError(d: TrackDraft): string | null {
   if (!d.transferFromOtherDistributor) return null
   if (!d.upc.trim() || !d.isrc.trim()) {
@@ -334,7 +338,11 @@ export default function TracksPageClient() {
   const [trackEditBundleAddons, setTrackEditBundleAddons] = useState<UploadAddonBundleItem[]>([])
   const [trackEditBundleAddonsFetched, setTrackEditBundleAddonsFetched] = useState(false)
   const [uploadingCoverId, setUploadingCoverId] = useState<string | null>(null)
+  const [uploadingDraftCoverId, setUploadingDraftCoverId] = useState<string | null>(null)
+  const [uploadingDraftAudioId, setUploadingDraftAudioId] = useState<string | null>(null)
   const [coverFileInputKey, setCoverFileInputKey] = useState(0)
+  const [draftCoverFileInputKey, setDraftCoverFileInputKey] = useState(0)
+  const [draftAudioFileInputKey, setDraftAudioFileInputKey] = useState(0)
   const [coverRefreshKey, setCoverRefreshKey] = useState<Record<string, number>>({})
   const [upcomingExpanded, setUpcomingExpanded] = useState(false)
   const [uploadDraftsSectionExpanded, setUploadDraftsSectionExpanded] = useState(false)
@@ -1125,6 +1133,99 @@ export default function TracksPageClient() {
     }
 
     handleCoverUpload(trackId, file)
+  }
+
+  const handleUploadDraftCoverUpload = async (draftId: string, file: File) => {
+    setUploadingDraftCoverId(draftId)
+    try {
+      const formData = new FormData()
+      formData.append("cover", file)
+      const response = await fetch(
+        `/api/admin/upload-drafts/${encodeURIComponent(draftId)}/cover`,
+        { method: "POST", body: formData, credentials: "include" }
+      )
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        toast.error((error as { error?: string }).error || "Не удалось загрузить обложку")
+        return
+      }
+      const data = (await response.json()) as { draft?: UploadDraft }
+      toast.success("Обложка черновика сохранена")
+      if (data.draft && selectedUploadDraft?.id === draftId) {
+        setSelectedUploadDraft(data.draft)
+      }
+      loadTracks()
+      setCoverRefreshKey((prev) => ({ ...prev, [draftId]: Date.now() }))
+      setDraftCoverFileInputKey((prev) => prev + 1)
+    } catch {
+      toast.error("Ошибка при загрузке обложки")
+    } finally {
+      setUploadingDraftCoverId(null)
+    }
+  }
+
+  const handleUploadDraftCoverFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    draftId: string
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const ext = file.name.toLowerCase().split(".").pop()
+    if (!["jpg", "jpeg", "png"].includes(ext ?? "")) {
+      toast.error("Обложка должна быть в формате JPEG или PNG")
+      return
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Размер обложки не должен превышать 20 MB")
+      return
+    }
+    void handleUploadDraftCoverUpload(draftId, file)
+  }
+
+  const handleUploadDraftAudioUpload = async (draftId: string, file: File) => {
+    setUploadingDraftAudioId(draftId)
+    try {
+      const formData = new FormData()
+      formData.append("audio", file)
+      const response = await fetch(
+        `/api/admin/upload-drafts/${encodeURIComponent(draftId)}/audio`,
+        { method: "POST", body: formData, credentials: "include" }
+      )
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        toast.error((error as { error?: string }).error || "Не удалось загрузить WAV")
+        return
+      }
+      const data = (await response.json()) as { draft?: UploadDraft }
+      toast.success("WAV сохранён в черновик")
+      if (data.draft && selectedUploadDraft?.id === draftId) {
+        setSelectedUploadDraft(data.draft)
+      }
+      loadTracks()
+      setDraftAudioFileInputKey((prev) => prev + 1)
+    } catch {
+      toast.error("Ошибка при загрузке WAV")
+    } finally {
+      setUploadingDraftAudioId(null)
+    }
+  }
+
+  const handleUploadDraftAudioFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    draftId: string
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const ext = file.name.toLowerCase().split(".").pop()
+    if (ext !== "wav") {
+      toast.error("Аудио должно быть в формате WAV")
+      return
+    }
+    if (file.size > 80 * 1024 * 1024) {
+      toast.error("Размер аудиофайла не должен превышать 80 MB")
+      return
+    }
+    void handleUploadDraftAudioUpload(draftId, file)
   }
 
   const handleDeleteClick = (track: Track) => {
@@ -2523,7 +2624,10 @@ export default function TracksPageClient() {
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <Label>Обложка{selectedTrack ? " (заменить файл)" : ""}</Label>
+                      <Label>
+                        Обложка
+                        {selectedTrack || selectedUploadDraft ? " (заменить файл)" : ""}
+                      </Label>
                       {selectedTrack ? (
                         selectedTrack.needsAiCover && !selectedTrack.coverPath?.trim() ? (
                           <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -2582,13 +2686,66 @@ export default function TracksPageClient() {
                             <p className="text-xs text-muted-foreground">Загрузка...</p>
                           )}
                         </>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Замену файла обложки в черновике выполняйте из кабинета пользователя или через отдельный
-                          инструмент — здесь только просмотр и скачивание.
-                        </p>
-                      )}
+                      ) : selectedUploadDraft ? (
+                        uploadDraftMediaEditable(selectedUploadDraft) ? (
+                          <>
+                            <Input
+                              key={draftCoverFileInputKey}
+                              type="file"
+                              accept="image/jpeg,image/jpg,image/png"
+                              onChange={(e) =>
+                                handleUploadDraftCoverFileChange(e, selectedUploadDraft.id)
+                              }
+                              disabled={uploadingDraftCoverId === selectedUploadDraft.id}
+                              className="cursor-pointer max-w-md"
+                            />
+                            {uploadingDraftCoverId === selectedUploadDraft.id && (
+                              <p className="text-xs text-muted-foreground">Загрузка...</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Файл обложки нельзя изменить: черновик финализирован, истёк или отменён.
+                          </p>
+                        )
+                      ) : null}
                     </div>
+
+                    {selectedUploadDraft?.kind === "single" ? (
+                      <div className="md:col-span-2 space-y-2">
+                        <Label>WAV (загрузить или заменить)</Label>
+                        {selectedUploadDraft.audioRelPath ? (
+                          <p className="text-xs text-muted-foreground">WAV уже есть в черновике</p>
+                        ) : (
+                          <p className="text-xs text-amber-700 dark:text-amber-300">WAV в черновике не загружен</p>
+                        )}
+                        {uploadDraftMediaEditable(selectedUploadDraft) ? (
+                          <>
+                            <Input
+                              key={draftAudioFileInputKey}
+                              type="file"
+                              accept=".wav,audio/wav,audio/x-wav"
+                              onChange={(e) =>
+                                handleUploadDraftAudioFileChange(e, selectedUploadDraft.id)
+                              }
+                              disabled={uploadingDraftAudioId === selectedUploadDraft.id}
+                              className="cursor-pointer max-w-md"
+                            />
+                            {uploadingDraftAudioId === selectedUploadDraft.id && (
+                              <p className="text-xs text-muted-foreground">Загрузка...</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            WAV нельзя изменить: черновик финализирован, истёк или отменён.
+                          </p>
+                        )}
+                      </div>
+                    ) : selectedUploadDraft?.kind === "album" ? (
+                      <p className="md:col-span-2 text-xs text-muted-foreground">
+                        Для черновика альбома WAV загружается отдельно по каждому треку в кабинете пользователя.
+                      </p>
+                    ) : null}
 
                 <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
                   <div className="space-y-2">
@@ -2716,7 +2873,9 @@ export default function TracksPageClient() {
                     onClick={selectedTrack ? handleSaveTrackCard : handleSaveUploadDraft}
                     disabled={
                       savingTrackId === (selectedTrack?.id ?? selectedUploadDraft?.id ?? "") ||
-                      finalizingDraftId === selectedUploadDraft?.id
+                      finalizingDraftId === selectedUploadDraft?.id ||
+                      uploadingDraftCoverId === selectedUploadDraft?.id ||
+                      uploadingDraftAudioId === selectedUploadDraft?.id
                     }
                   >
                     <Save className="h-4 w-4 mr-2" />
