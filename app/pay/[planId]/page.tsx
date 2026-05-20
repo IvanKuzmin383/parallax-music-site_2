@@ -242,7 +242,13 @@ export default function PayPage() {
                     className="text-sm leading-none cursor-pointer"
                   >
                     {t.pay.agreeOffer}{" "}
-                    <Link href="/offer" className="text-primary hover:underline">
+                    <Link
+                      href="/offer"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {t.pay.offerLink}
                     </Link>
                   </label>
@@ -259,7 +265,13 @@ export default function PayPage() {
                     className="text-sm leading-none cursor-pointer"
                   >
                     {t.pay.agreeTerms}{" "}
-                    <Link href="/terms" className="text-primary hover:underline">
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {t.pay.termsLink}
                     </Link>
                   </label>
@@ -276,7 +288,13 @@ export default function PayPage() {
                     className="text-sm leading-snug cursor-pointer"
                   >
                     {t.pay.agreePersonalData}{" "}
-                    <Link href="/personal-data-consent" className="text-primary hover:underline">
+                    <Link
+                      href="/personal-data-consent"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {t.pay.personalDataConsentLink}
                     </Link>
                   </label>
@@ -290,7 +308,13 @@ export default function PayPage() {
                   />
                   <label htmlFor="agree-privacy" className="text-sm leading-snug cursor-pointer">
                     {t.pay.agreePrivacy}{" "}
-                    <Link href="/privacy" className="text-primary hover:underline">
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {t.pay.privacyPolicyLink}
                     </Link>
                   </label>
