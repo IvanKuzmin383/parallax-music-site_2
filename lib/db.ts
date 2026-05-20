@@ -7,7 +7,7 @@ const DB_FILE_NAME = "app.db"
 let dbInstance: Database.Database | null = null
 
 /**
- * Путь к файлу БД. На Amvera — /data/app.db, локально — data/app.db.
+ * Путь к файлу БД. На Amvera - /data/app.db, локально - data/app.db.
  */
 export function getDbPath(): string {
   if (process.env.AMVERA_DATA_PATH === "true" || process.env.USE_AMVERA_DATA === "true") {
@@ -510,7 +510,7 @@ function runMigrations(db: Database.Database): void {
 
   try {
     const n = backfillTrackAcceptancesWithCurrentOffer(db)
-    if (n > 0 && process.env.NODE_ENV === "development") {
+    if (n > 0) {
       console.log("[db] Backfilled legal acceptance events for tracks:", n)
     }
   } catch (e) {

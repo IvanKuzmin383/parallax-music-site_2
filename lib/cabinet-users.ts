@@ -108,7 +108,7 @@ interface CabinetUserDeletionRow {
   deleted_at: string
 }
 
-/** SQLite/драйверы могут отдать флаг не только как число 1 — иначе блокировка не распознаётся при логине. */
+/** SQLite/драйверы могут отдать флаг не только как число 1 - иначе блокировка не распознаётся при логине. */
 function cabinetUserRowIsDisabled(row: Pick<CabinetUserRow, "is_disabled"> | undefined): boolean {
   if (!row || row.is_disabled == null) return false
   const n = Number(row.is_disabled)

@@ -200,7 +200,7 @@
   }
 }
 
-/* Markdown/Prose styles — шрифт Inter для текста статей */
+/* Markdown/Prose styles - шрифт Inter для текста статей */
 .prose {
   font-family: var(--font-article);
 }

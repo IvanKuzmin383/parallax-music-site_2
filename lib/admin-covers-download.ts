@@ -2,7 +2,7 @@ import path from "path"
 import { promises as fs } from "fs"
 import { getCoversDir } from "@/lib/tracks"
 
-/** Имена обложек в корне uploads/covers — без каталогов и служебных файлов */
+/** Имена обложек в корне uploads/covers - без каталогов и служебных файлов */
 export function isAllowedAdminCoverFileName(name: string): boolean {
   if (!name || name.length > 220) return false
   if (name.includes("..") || name.includes("/") || name.includes("\\")) return false

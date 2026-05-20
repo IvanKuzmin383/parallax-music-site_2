@@ -20,7 +20,7 @@ export function planIdToSubscriptionName(planId: PlanId): SubscriptionPlan {
   return map[planId]
 }
 
-/** Для ссылки оплаты /pay/[planId]; для Fix и неизвестных имён — null */
+/** Для ссылки оплаты /pay/[planId]; для Fix и неизвестных имён - null */
 export function subscriptionNameToPlanId(name: string | undefined | null): PlanId | null {
   if (!name) return null
   const map: Partial<Record<SubscriptionPlan, PlanId>> = {

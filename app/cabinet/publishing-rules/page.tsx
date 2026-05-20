@@ -35,7 +35,7 @@ export default function PublishingRulesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Чек-лист подготовки релиза — Parallax Music</CardTitle>
+            <CardTitle className="text-xl">Чек-лист подготовки релиза - Parallax Music</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-muted-foreground">
@@ -56,7 +56,7 @@ export default function PublishingRulesPage() {
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>3000×3000 px, JPG или PNG;</li>
                   <li>без логотипов стримингов и посторонних надписей;</li>
-                  <li>если требуется помощь с оформлением — сообщите отдельно.</li>
+                  <li>если требуется помощь с оформлением - сообщите отдельно.</li>
                 </ul>
               </section>
 
@@ -91,9 +91,9 @@ export default function PublishingRulesPage() {
             <div className="pt-4 border-t">
               <p className="font-semibold mb-2">После получения всех пунктов мы:</p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                <li>— проверяем материалы;</li>
-                <li>— согласовываем релизную дату;</li>
-                <li>— запускаем подготовку к публикации.</li>
+                <li>- проверяем материалы;</li>
+                <li>- согласовываем релизную дату;</li>
+                <li>- запускаем подготовку к публикации.</li>
               </ul>
             </div>
           </CardContent>

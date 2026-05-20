@@ -381,7 +381,7 @@
     "uploadAlbum": {
       "audioValidation": {
         "invalidSmallFile": "Некорректный WAV-файл: слишком маленький размер.",
-        "invalidHeader": "В файле нет корректного заголовка RIFF/WAVE — это не WAV или файл повреждён.",
+        "invalidHeader": "В файле нет корректного заголовка RIFF/WAVE - это не WAV или файл повреждён.",
         "invalidPcm": "В файле не PCM, а другой формат (код {code}). Нужен несжатый WAV (PCM).",
         "invalidParams": "Параметры файла не подходят. В файле: {actual}. Нужно: {expected}.",
         "failedToFetch": "Не удалось проверить аудиофайл на сервере. Проверьте, что WAV соответствует требованиям: 44.1 kHz, 16/24 bit, stereo."

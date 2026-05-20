@@ -254,7 +254,7 @@ export default function AdminServiceFulfillmentsPage() {
                       <div className="grid md:grid-cols-2 gap-3 text-sm">
                         <div>
                           <p className="text-muted-foreground">{mt.adminUser}</p>
-                          <p className="font-medium break-all">{item.userEmail ?? item.userId ?? "—"}</p>
+                          <p className="font-medium break-all">{item.userEmail ?? item.userId ?? "-"}</p>
                         </div>
                         {created ? (
                           <div>
@@ -333,7 +333,7 @@ export default function AdminServiceFulfillmentsPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">{mt.adminUser}</p>
-                  <p className="font-medium break-all">{detailsItem.userEmail ?? detailsItem.userId ?? "—"}</p>
+                  <p className="font-medium break-all">{detailsItem.userEmail ?? detailsItem.userId ?? "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">{mt.paymentStatusLabel}</p>

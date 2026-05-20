@@ -5,7 +5,7 @@ import { readFilePrefix } from "@/lib/node-streaming-multipart"
 const DEFAULT_PREFIX_STEPS = [512 * 1024, 2 * 1024 * 1024, 8 * 1024 * 1024] as const
 
 const INVALID_WAV_ERROR =
-  "В файле нет корректного заголовка RIFF/WAVE — это не WAV или файл повреждён. Нужен несжатый WAV (PCM), 44.1 kHz (44100 Hz), 16 или 24 bit."
+  "В файле нет корректного заголовка RIFF/WAVE - это не WAV или файл повреждён. Нужен несжатый WAV (PCM), 44.1 kHz (44100 Hz), 16 или 24 bit."
 
 function hasRiffWaveHeader(buf: Buffer): boolean {
   if (buf.length < 12) return false

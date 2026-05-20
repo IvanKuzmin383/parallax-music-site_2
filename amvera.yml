@@ -4,7 +4,7 @@ meta:
     name: npm
     version: "20.9.0"
 
-# Сборка на этапе deploy (раньше делал postinstall — убрали из-за пиков CPU при install).
+# Сборка на этапе deploy (раньше делал postinstall - убрали из-за пиков CPU при install).
 # Без этого next start падает: «Could not find a production build in the '.next' directory».
 build:
   additionalCommands: npm run build

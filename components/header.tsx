@@ -35,7 +35,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
           <span className="text-primary ml-1">MUSIC</span>
         </Link>
 
-        {/* Desktop Navigation — средняя колонка растягивается (не 1/3 экрана), иначе пункты наезжают на блок справа и теряют клики */}
+        {/* Desktop Navigation - средняя колонка растягивается (не 1/3 экрана), иначе пункты наезжают на блок справа и теряют клики */}
         <nav className="hidden md:flex min-w-0 items-center justify-center gap-x-4 gap-y-2 lg:gap-x-8 flex-wrap">
           <Link href="/#services" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.services}

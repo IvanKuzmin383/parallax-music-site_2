@@ -1,32 +1,18 @@
 import { notFound } from "next/navigation"
 import { Metadata } from "next"
-import { getTrackBySmartlinkSlug } from "@/lib/tracks"
 import { SMARTLINK_PLATFORMS } from "@/lib/smartlink-platforms"
 import type { PlatformLinks } from "@/lib/smartlink-platforms"
-
-const SLUG_REGEX = /^[a-zA-Z0-9_-]{6,20}$/
+import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
 
 interface SmartlinkPageProps {
   params: Promise<{ slug: string }>
 }
 
-async function getSmartlinkData(slug: string) {
-  if (!SLUG_REGEX.test(slug)) return null
-  try {
-    const track = await getTrackBySmartlinkSlug(slug)
-    if (!track || track.status !== "released") return null
-    return track
-  } catch (error) {
-    console.error("[smartlink] getSmartlinkData error:", error)
-    return null
-  }
-}
-
 export async function generateMetadata({ params }: SmartlinkPageProps): Promise<Metadata> {
   const { slug } = await params
-  let track: Awaited<ReturnType<typeof getSmartlinkData>> = null
+  let track: Awaited<ReturnType<typeof getReleasedSmartlinkTrack>> = null
   try {
-    track = await getSmartlinkData(slug)
+    track = await getReleasedSmartlinkTrack(slug)
   } catch (error) {
     console.error("[smartlink] generateMetadata error:", error)
   }
@@ -34,9 +20,8 @@ export async function generateMetadata({ params }: SmartlinkPageProps): Promise<
     return { title: "Не найдено" }
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-  const coverUrl = `${siteUrl}/api/smartlink/${slug}/cover`
-  const title = `${track.trackName} — ${track.artistName} | Parallax Music`
+  const coverPath = smartlinkOgImagePath(slug)
+  const title = `${track.trackName} - ${track.artistName} | Parallax Music`
   const description = `Слушайте «${track.trackName}» от ${track.artistName} на всех платформах`
 
   return {
@@ -45,14 +30,14 @@ export async function generateMetadata({ params }: SmartlinkPageProps): Promise<
     openGraph: {
       title,
       description,
-      images: [{ url: coverUrl, width: 1200, height: 1200, alt: track.trackName }],
+      images: [{ url: coverPath, width: 1200, height: 1200, alt: track.trackName }],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [coverUrl],
+      images: [coverPath],
     },
   }
 }
@@ -67,11 +52,10 @@ function getLinksList(links: PlatformLinks | undefined) {
 
 export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
   const { slug } = await params
-  const track = await getSmartlinkData(slug)
+  const track = await getReleasedSmartlinkTrack(slug)
   if (!track) notFound()
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-  const coverUrl = `${siteUrl}/api/smartlink/${slug}/cover`
+  const coverUrl = smartlinkOgImagePath(slug)
   const linksList = getLinksList(track.platformLinks)
 
   return (

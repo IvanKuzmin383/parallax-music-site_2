@@ -19,13 +19,13 @@ export function validateWavFormat(audioBuffer: Buffer): string | null {
   const u8 = new Uint8Array(audioBuffer.buffer, audioBuffer.byteOffset, audioBuffer.byteLength)
   const parsed = parseWavFmtChunk(u8)
   if (!parsed) {
-    return "В файле нет корректного заголовка RIFF/WAVE — это не WAV или файл повреждён. Нужен несжатый WAV (PCM), 44.1 kHz (44100 Hz), 16 или 24 bit."
+    return "В файле нет корректного заголовка RIFF/WAVE - это не WAV или файл повреждён. Нужен несжатый WAV (PCM), 44.1 kHz (44100 Hz), 16 или 24 bit."
   }
 
   const { audioFormat, numChannels, sampleRate, bitsPerSample } = parsed
 
   if (audioFormat !== 1) {
-    return `В файле не PCM, а другой формат (код ${audioFormat}, ожидается 1 — несжатый PCM). Нужен WAV PCM, 44.1 kHz (44100 Hz), 16 или 24 bit.`
+    return `В файле не PCM, а другой формат (код ${audioFormat}, ожидается 1 - несжатый PCM). Нужен WAV PCM, 44.1 kHz (44100 Hz), 16 или 24 bit.`
   }
 
   const channelError = validateWavChannels(numChannels)

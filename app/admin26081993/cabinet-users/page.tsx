@@ -708,7 +708,7 @@ function AdminCabinetUsersPageInner() {
   const toRows = (value: unknown): Record<string, unknown>[] =>
     Array.isArray(value) ? (value as Record<string, unknown>[]) : []
   const renderValue = (value: unknown) => {
-    if (value == null || value === "") return "—"
+    if (value == null || value === "") return "-"
     if (typeof value === "boolean") return value ? "Да" : "Нет"
     if (typeof value === "number") return value.toLocaleString("ru-RU")
     if (typeof value === "string") return value
@@ -977,7 +977,7 @@ function AdminCabinetUsersPageInner() {
                 {userIdFilterRaw}
               </span>
               <span className="block sm:inline text-foreground sm:ml-2">
-                — найдено: {filteredUsers.length}
+                - найдено: {filteredUsers.length}
               </span>
             </p>
             <Button
@@ -1316,7 +1316,7 @@ function AdminCabinetUsersPageInner() {
                   </label>
                   <Input
                     type="text"
-                    value={subscriptionExpiresAt ? format(new Date(subscriptionExpiresAt), "d MMMM yyyy", { locale: ru }) : "—"}
+                    value={subscriptionExpiresAt ? format(new Date(subscriptionExpiresAt), "d MMMM yyyy", { locale: ru }) : "-"}
                     readOnly
                     className="bg-muted"
                   />
@@ -1612,7 +1612,7 @@ function AdminCabinetUsersPageInner() {
           <DialogHeader>
             <DialogTitle>Полная информация о пользователе</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Пользователь: {userFullTitle || "—"}</p>
+          <p className="text-sm text-muted-foreground">Пользователь: {userFullTitle || "-"}</p>
           {userFullLoading ? (
             <p className="text-sm text-muted-foreground">Загрузка данных...</p>
           ) : userFullData ? (
@@ -1684,7 +1684,7 @@ function AdminCabinetUsersPageInner() {
                     <div className="space-y-2">
                       {toRows(toRecord(userFullSections.content).tracks).slice(0, 30).map((track, idx) => (
                         <div key={String(track.id ?? idx)} className="rounded border bg-muted/30 px-3 py-2 text-sm">
-                          <p>{renderValue(track.artist_name ?? track.artistName)} — {renderValue(track.track_name ?? track.trackName)}</p>
+                          <p>{renderValue(track.artist_name ?? track.artistName)} - {renderValue(track.track_name ?? track.trackName)}</p>
                           <p className="text-muted-foreground">Статус: {renderValue(track.status)} · Дата: {renderValue(track.release_date ?? track.releaseDate)}</p>
                         </div>
                       ))}
@@ -1695,7 +1695,7 @@ function AdminCabinetUsersPageInner() {
                     <div className="space-y-2">
                       {toRows(toRecord(userFullSections.content).albums).slice(0, 20).map((album, idx) => (
                         <div key={String(album.id ?? idx)} className="rounded border bg-muted/30 px-3 py-2 text-sm">
-                          <p>{renderValue(album.artist_name ?? album.artistName)} — {renderValue(album.title)}</p>
+                          <p>{renderValue(album.artist_name ?? album.artistName)} - {renderValue(album.title)}</p>
                         </div>
                       ))}
                     </div>

@@ -1,3 +1,5 @@
+import { WAV_FILE_READ_ERROR } from "@/lib/cabinet-upload-client"
+
 /** Mono (1 канал) не принимается; стерео и многоканальные WAV (2+) разрешены */
 export const WAV_MONO_NOT_ALLOWED_ERROR =
   "Аудиофайл монофонический (mono, 1 канал). Загружайте WAV со стерео или многоканальной разводкой (от 2 каналов: стерео, 5.1 и т.д.)."
@@ -78,14 +80,17 @@ const DEFAULT_PREFIX_BYTES = 512 * 1024
 
 /** Асинхронная проверка выбранного пользователем WAV (читается только начало файла). */
 export async function checkWavFileIsStereo(file: File, prefixBytes = DEFAULT_PREFIX_BYTES): Promise<string | null> {
-  if (!file.name.toLowerCase().endsWith(".wav")) {
-    return null
-  }
   const n = Math.min(prefixBytes, file.size)
   if (n < 12) {
     return null
   }
-  const slice = file.slice(0, n)
-  const buf = await slice.arrayBuffer()
-  return validateWavStereoFromPrefix(new Uint8Array(buf))
+  try {
+    const buf = await file.slice(0, n).arrayBuffer()
+    return validateWavStereoFromPrefix(new Uint8Array(buf))
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "NotReadableError") {
+      return WAV_FILE_READ_ERROR
+    }
+    throw err
+  }
 }

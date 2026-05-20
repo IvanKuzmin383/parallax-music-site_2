@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminSectionNav } from "@/components/admin-section-nav"
 import { Download, Search } from "lucide-react"
+
+const PAGE_SIZE = 15
 
 type LegalEvent = {
   id: string
@@ -28,65 +30,107 @@ type LegalEvent = {
 export default function AdminLegalAcceptancePage() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [email, setEmail] = useState("")
+  const [emailFilter, setEmailFilter] = useState("")
+  const [appliedEmailFilter, setAppliedEmailFilter] = useState<string | null>(null)
   const [events, setEvents] = useState<LegalEvent[]>([])
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [loadedForEmail, setLoadedForEmail] = useState<string | null>(null)
+  const [total, setTotal] = useState(0)
+  const [listLoading, setListLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+
+  const fetchPage = useCallback(
+    async (opts: { offset: number; append: boolean; email?: string | null }) => {
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(opts.offset),
+      })
+      const email = opts.email?.trim()
+      if (email) params.set("email", email)
+
+      const res = await fetch(`/api/admin/legal-acceptance?${params}`, {
+        credentials: "include",
+      })
+      if (res.status === 401) {
+        setIsAuthenticated(false)
+        toast.error("Нет доступа")
+        return null
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error((err as { error?: string }).error || "Ошибка загрузки")
+        return null
+      }
+      const data = await res.json()
+      setIsAuthenticated(true)
+      const batch = (data.events || []) as LegalEvent[]
+      setEvents((prev) => (opts.append ? [...prev, ...batch] : batch))
+      setTotal(typeof data.total === "number" ? data.total : batch.length)
+      setHasMore(Boolean(data.hasMore))
+      return data
+    },
+    []
+  )
+
+  const loadFirstPage = useCallback(
+    async (email?: string | null) => {
+      setListLoading(true)
+      try {
+        await fetchPage({ offset: 0, append: false, email })
+      } catch {
+        toast.error("Ошибка сети")
+      } finally {
+        setListLoading(false)
+      }
+    },
+    [fetchPage]
+  )
 
   useEffect(() => {
     fetch("/api/admin/cabinet-users", { credentials: "include" })
       .then((res) => {
         if (res.status === 401) setIsAuthenticated(false)
-        else setIsAuthenticated(true)
+        else {
+          setIsAuthenticated(true)
+          return loadFirstPage(null)
+        }
       })
       .catch(() => setIsAuthenticated(false))
       .finally(() => setLoading(false))
-  }, [])
+  }, [loadFirstPage])
 
-  const loadEvents = async (q: string) => {
-    const trimmed = q.trim()
-    if (!trimmed) {
-      toast.error("Введите email пользователя ЛК")
-      return
-    }
-    setSearchLoading(true)
+  const applyEmailFilter = () => {
+    const trimmed = emailFilter.trim()
+    setAppliedEmailFilter(trimmed || null)
+    void loadFirstPage(trimmed || null)
+  }
+
+  const clearEmailFilter = () => {
+    setEmailFilter("")
+    setAppliedEmailFilter(null)
+    void loadFirstPage(null)
+  }
+
+  const loadMore = async () => {
+    setListLoading(true)
     try {
-      const res = await fetch(
-        `/api/admin/legal-acceptance?email=${encodeURIComponent(trimmed)}`,
-        { credentials: "include" }
-      )
-      if (res.status === 401) {
-        setIsAuthenticated(false)
-        toast.error("Нет доступа")
-        return
-      }
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        toast.error(err.error || "Ошибка загрузки")
-        return
-      }
-      const data = await res.json()
-      setEvents(data.events || [])
-      setLoadedForEmail(trimmed)
-      setIsAuthenticated(true)
+      await fetchPage({
+        offset: events.length,
+        append: true,
+        email: appliedEmailFilter,
+      })
     } catch {
       toast.error("Ошибка сети")
     } finally {
-      setSearchLoading(false)
+      setListLoading(false)
     }
   }
 
   const downloadCsv = async () => {
-    const trimmed = email.trim()
-    if (!trimmed) {
-      toast.error("Введите email")
-      return
-    }
     try {
-      const res = await fetch(
-        `/api/admin/legal-acceptance?email=${encodeURIComponent(trimmed)}&format=csv`,
-        { credentials: "include" }
-      )
+      const params = new URLSearchParams({ format: "csv" })
+      if (appliedEmailFilter) params.set("email", appliedEmailFilter)
+      const res = await fetch(`/api/admin/legal-acceptance?${params}`, {
+        credentials: "include",
+      })
       if (!res.ok) {
         toast.error("Не удалось скачать CSV")
         return
@@ -95,7 +139,9 @@ export default function AdminLegalAcceptancePage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `legal-acceptance-${trimmed.replace(/@/g, "_at_")}.csv`
+      a.download = appliedEmailFilter
+        ? `legal-acceptance-${appliedEmailFilter.replace(/@/g, "_at_")}.csv`
+        : "legal-acceptance-all.csv"
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -128,47 +174,49 @@ export default function AdminLegalAcceptancePage() {
             <CardTitle>Акцепты оферты / лицензии по трекам</CardTitle>
             <p className="text-sm text-muted-foreground">
               Журнал: какая редакция публичной оферты привязана к загрузке трека (включая backfill для старых
-              релизов).
+              релизов). Показано {events.length} из {total}.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-3 items-end">
               <div className="space-y-2 flex-1 min-w-[200px]">
-                <Label htmlFor="legal-email">Email пользователя ЛК</Label>
+                <Label htmlFor="legal-email">Фильтр по email (необязательно)</Label>
                 <Input
                   id="legal-email"
                   type="email"
                   placeholder="user@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && loadEvents(email)}
+                  value={emailFilter}
+                  onChange={(e) => setEmailFilter(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && applyEmailFilter()}
                 />
               </div>
-              <Button
-                type="button"
-                disabled={searchLoading}
-                onClick={() => loadEvents(email)}
-              >
+              <Button type="button" disabled={listLoading} onClick={applyEmailFilter}>
                 <Search className="h-4 w-4 mr-2" />
-                {searchLoading ? "Загрузка…" : "Показать"}
+                {listLoading ? "Загрузка…" : "Фильтр"}
               </Button>
-              <Button type="button" variant="outline" onClick={downloadCsv} disabled={!email.trim()}>
+              {appliedEmailFilter ? (
+                <Button type="button" variant="ghost" disabled={listLoading} onClick={clearEmailFilter}>
+                  Сбросить фильтр
+                </Button>
+              ) : null}
+              <Button type="button" variant="outline" onClick={downloadCsv}>
                 <Download className="h-4 w-4 mr-2" />
                 Скачать CSV
               </Button>
             </div>
 
-            {loadedForEmail && (
+            {appliedEmailFilter ? (
               <p className="text-sm text-muted-foreground">
-                Найдено записей: {events.length} для <span className="font-medium text-foreground">{loadedForEmail}</span>
+                Фильтр: <span className="font-medium text-foreground">{appliedEmailFilter}</span>
               </p>
-            )}
+            ) : null}
 
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50 text-left">
                     <th className="p-2 font-medium">Время (UTC)</th>
+                    <th className="p-2 font-medium">Email</th>
                     <th className="p-2 font-medium">Трек</th>
                     <th className="p-2 font-medium">ID трека</th>
                     <th className="p-2 font-medium">Редакция оферты</th>
@@ -178,9 +226,9 @@ export default function AdminLegalAcceptancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {events.length === 0 && loadedForEmail && (
+                  {events.length === 0 && !listLoading && (
                     <tr>
-                      <td colSpan={7} className="p-4 text-muted-foreground text-center">
+                      <td colSpan={8} className="p-4 text-muted-foreground text-center">
                         Нет записей
                       </td>
                     </tr>
@@ -188,21 +236,30 @@ export default function AdminLegalAcceptancePage() {
                   {events.map((ev) => (
                     <tr key={ev.id} className="border-b border-border/60">
                       <td className="p-2 whitespace-nowrap align-top">{ev.occurredAt}</td>
-                      <td className="p-2 align-top max-w-[180px]">{ev.trackName ?? "—"}</td>
+                      <td className="p-2 align-top max-w-[160px] break-all">{ev.userEmail}</td>
+                      <td className="p-2 align-top max-w-[180px]">{ev.trackName ?? "-"}</td>
                       <td className="p-2 align-top font-mono text-xs break-all">{ev.resourceId}</td>
                       <td className="p-2 align-top">{ev.revisionLabel}</td>
                       <td className="p-2 align-top font-mono text-xs break-all max-w-[120px]">
                         {ev.contentSha256.slice(0, 16)}…
                       </td>
-                      <td className="p-2 align-top whitespace-nowrap">{ev.clientIp ?? "—"}</td>
+                      <td className="p-2 align-top whitespace-nowrap">{ev.clientIp ?? "-"}</td>
                       <td className="p-2 align-top text-xs text-muted-foreground max-w-[200px] break-words">
-                        {ev.metadataJson ?? "—"}
+                        {ev.metadataJson ?? "-"}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+
+            {hasMore ? (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <Button type="button" variant="outline" disabled={listLoading} onClick={() => void loadMore()}>
+                  {listLoading ? "Загрузка…" : `Еще (+${PAGE_SIZE})`}
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>

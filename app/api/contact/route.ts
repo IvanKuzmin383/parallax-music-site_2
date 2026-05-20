@@ -3,6 +3,11 @@ import { z } from 'zod'
 import ruMessages from '@/messages/ru.json'
 import enMessages from '@/messages/en.json'
 import { verifyTurnstileToken } from '@/lib/turnstile'
+import { escapeHtml } from '@/lib/telegram'
+import {
+  deliverFormNotification,
+  isFormNotificationConfigured,
+} from '@/lib/form-notifications'
 
 type Locale = 'ru' | 'en'
 type Messages = typeof ruMessages
@@ -19,8 +24,6 @@ function getMessages(locale: string): Messages {
 const rateLimitMap = new Map<string, number>()
 const RATE_LIMIT_MS = 15_000
 
-import { escapeHtml, sendTelegramMessage } from '@/lib/telegram'
-
 function getContactSchema(t: Messages) {
   return z.object({
     name: z.string().min(2, t.validation.nameMin).max(100, t.validation.nameMax),
@@ -31,10 +34,18 @@ function getContactSchema(t: Messages) {
   })
 }
 
+function escapeHtmlText(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 export async function POST(request: NextRequest) {
   const locale = (request.headers.get('x-locale') || 'ru') as Locale
   const t = getMessages(locale)
-  
+
   try {
     // Basic rate limit for dev
     if (process.env.NODE_ENV !== 'production') {
@@ -51,6 +62,14 @@ export async function POST(request: NextRequest) {
       rateLimitMap.set(clientIp, now)
     }
 
+    if (!isFormNotificationConfigured()) {
+      console.error('[contact] No notification channel configured (Telegram or Resend)')
+      return NextResponse.json(
+        { success: false, error: t.errors.notificationFailed },
+        { status: 503 },
+      )
+    }
+
     const ipHeader = request.headers.get('x-forwarded-for') || ''
     const clientIp = ipHeader.split(',')[0]?.trim() || null
 
@@ -64,13 +83,12 @@ export async function POST(request: NextRequest) {
         { status: 429 },
       )
     }
-    
+
     // Валидация данных
     const contactSchema = getContactSchema(t)
     const { captchaToken: _ignoredCaptcha, ...validatedData } = contactSchema.parse(body)
-    
-    // Build Telegram message
-    const message =
+
+    const telegramMessage =
       `<b>New Contact Message</b>\n` +
       `<b>Name:</b> ${escapeHtml(validatedData.name)}\n` +
       `<b>Email:</b> ${escapeHtml(validatedData.email)}\n` +
@@ -78,61 +96,56 @@ export async function POST(request: NextRequest) {
       `<b>Message:</b> ${escapeHtml(validatedData.message)}\n\n` +
       `#контакт`
 
-    // Send with one retry on 5xx/network error
-    let telegramRes: Response | null = null
-    try {
-      telegramRes = await sendTelegramMessage(message)
-      if (!telegramRes.ok && telegramRes.status >= 500) {
-        telegramRes = await sendTelegramMessage(message)
-      }
-    } catch (err) {
-      console.error('Telegram send error (network):', err)
-    }
+    const emailHtml = `
+      <h2>Новое сообщение с формы контакта</h2>
+      <p><b>Имя:</b> ${escapeHtmlText(validatedData.name)}</p>
+      <p><b>Email:</b> ${escapeHtmlText(validatedData.email)}</p>
+      <p><b>Тип проекта:</b> ${escapeHtmlText(validatedData.projectType)}</p>
+      <p><b>Сообщение:</b></p>
+      <p>${escapeHtmlText(validatedData.message).replace(/\n/g, '<br/>')}</p>
+      <p><i>#контакт</i></p>
+    `
 
-    if (!telegramRes || !telegramRes.ok) {
-      let detail: unknown = undefined
-      try {
-        detail = telegramRes ? await telegramRes.json() : null
-      } catch {}
-      console.error('Telegram send failed', {
-        status: telegramRes?.status,
-        statusText: telegramRes?.statusText,
-        detail,
-      })
+    const delivered = await deliverFormNotification({
+      telegramMessage,
+      emailSubject: `[Parallax] Контакт: ${validatedData.name}`,
+      emailHtml,
+    })
+
+    if (!delivered.ok) {
       return NextResponse.json(
         { success: false, error: t.errors.notificationFailed },
         { status: 502 },
       )
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         success: true,
-        message: t.api.contact.success
+        message: t.api.contact.success,
       },
-      { status: 200 }
+      { status: 200 },
     )
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: t.errors.validationFailed,
-          errors: error.errors 
+          errors: error.errors,
         },
-        { status: 400 }
+        { status: 400 },
       )
     }
-    
+
     console.error('Contact form error:', error)
-    
+
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: t.errors.processingError
+        error: t.errors.processingError,
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
-

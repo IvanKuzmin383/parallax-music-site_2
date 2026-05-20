@@ -15,7 +15,7 @@ type SubscriptionLimitDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   limit?: number | null
-  /** limit — исчерпан лимит релизов; expired — закончился срок подписки */
+  /** limit - исчерпан лимит релизов; expired - закончился срок подписки */
   reason?: "limit" | "expired"
 }
 

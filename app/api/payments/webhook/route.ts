@@ -10,8 +10,9 @@ import {
   updateCabinetUserSubscription,
 } from "@/lib/cabinet-users"
 import { planIdToSubscriptionName, isPlanId, type PlanId } from "@/lib/plan-pricing"
-import { escapeHtml, isTelegramConfigured, sendTelegramMessage } from "@/lib/telegram"
+import { escapeHtml } from "@/lib/telegram"
 import { isEmailConfigured, sendSubscriptionRegistrationEmail } from "@/lib/email"
+import { isStaffNotificationConfigured, notifyStaff } from "@/lib/form-notifications"
 import { fetchYooKassaPayment, type YooKassaPaymentObject } from "@/lib/yookassa-subscription"
 import { upsertPendingSubscriptionAutopay } from "@/lib/pending-subscription-autopay"
 import { createCabinetArtistSubscriptionSlot } from "@/lib/cabinet-artist-subscriptions"
@@ -41,6 +42,19 @@ function getClientIp(request: NextRequest): string | null {
     return forwarded.split(",")[0]?.trim() || null
   }
   return request.headers.get("x-real-ip")
+}
+
+async function notifyPaymentStaff(
+  telegramMessage: string,
+  emailSubject: string,
+  logContext: string
+): Promise<void> {
+  if (!isStaffNotificationConfigured()) return
+  try {
+    await notifyStaff({ telegramMessage, emailSubject, logContext: `payments/webhook ${logContext}` })
+  } catch (err) {
+    console.error(`[payments/webhook] ${logContext} notification error`, err)
+  }
 }
 
 function isIpAllowed(ip: string | null): boolean {
@@ -137,49 +151,30 @@ export async function POST(request: NextRequest) {
     }
     await updateOrderStatus(orderId, "paid", { paidAt })
 
-    if (isTelegramConfigured()) {
-      try {
-        const user = updatedUser ?? (await getCabinetUserById(order.userId))
-        const email = user?.email ?? `userId=${order.userId}`
-        const amount = amountValue ?? order.totalAmount
+    try {
+      const user = updatedUser ?? (await getCabinetUserById(order.userId))
+      const email = user?.email ?? `userId=${order.userId}`
+      const amount = amountValue ?? order.totalAmount
 
-        const messageLines = [
-          "<b>Выполнена оплата (тариф Fix)</b>",
-          "",
-          `<b>Пользователь:</b> ${escapeHtml(email)}`,
-          `<b>Количество треков:</b> ${order.tracksCount}`,
-          `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-          `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-          obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-          "",
-          "#оплата #кабинет",
-        ].filter(Boolean) as string[]
+      const messageLines = [
+        "<b>Выполнена оплата (тариф Fix)</b>",
+        "",
+        `<b>Пользователь:</b> ${escapeHtml(email)}`,
+        `<b>Количество треков:</b> ${order.tracksCount}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
+        "",
+        "#оплата #кабинет",
+      ].filter(Boolean) as string[]
 
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[payments/webhook] Telegram send failed for tracks_topup", {
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[payments/webhook] Telegram notification error for tracks_topup", err)
-      }
+      await notifyPaymentStaff(
+        messageLines.join("\n"),
+        `[Parallax] Оплата Fix: ${email}`,
+        "tracks_topup"
+      )
+    } catch (err) {
+      console.error("[payments/webhook] Notification error for tracks_topup", err)
     }
 
     return NextResponse.json({ received: true })
@@ -189,65 +184,46 @@ export async function POST(request: NextRequest) {
     await updateOrderStatus(orderId, "paid", { paidAt })
     tryRecordServiceFulfillment(orderId, order.orderType)
 
-    if (isTelegramConfigured()) {
-      try {
-        const user = await getCabinetUserById(order.userId)
-        const accountEmail = user?.email ?? `userId=${order.userId}`
-        const amount = amountValue ?? order.totalAmount
-        const metadata = obj?.metadata ?? {}
-        const trackTitles = metadata.trackTitles || "—"
-        const filesPath = metadata.aiMasteringFilesPath
-          ? String(metadata.aiMasteringFilesPath)
-          : `ai-mastering-orders/${orderId}`
+    try {
+      const user = await getCabinetUserById(order.userId)
+      const accountEmail = user?.email ?? `userId=${order.userId}`
+      const amount = amountValue ?? order.totalAmount
+      const metadata = obj?.metadata ?? {}
+      const trackTitles = metadata.trackTitles || "-"
+      const filesPath = metadata.aiMasteringFilesPath
+        ? String(metadata.aiMasteringFilesPath)
+        : `ai-mastering-orders/${orderId}`
 
-        const contactLines: string[] = []
-        if (order.contactEmail) {
-          contactLines.push(`<b>Контакт (email):</b> ${escapeHtml(order.contactEmail)}`)
-        }
-        if (order.contactTelegram) {
-          contactLines.push(`<b>Контакт (Telegram):</b> ${escapeHtml(order.contactTelegram)}`)
-        }
-
-        const messageLines = [
-          "<b>Оплата: AI мастеринг</b>",
-          "",
-          `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-          ...contactLines,
-          `<b>Файлы (каталог):</b> ${escapeHtml(filesPath)}`,
-          `<b>Имена файлов:</b> ${escapeHtml(String(trackTitles))}`,
-          `<b>Количество треков:</b> ${order.tracksCount}`,
-          `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-          `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-          obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-          "",
-          "#ai_mastering #оплата",
-        ].filter(Boolean) as string[]
-
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[payments/webhook] Telegram send failed for ai_mastering", {
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[payments/webhook] Telegram notification error for ai_mastering", err)
+      const contactLines: string[] = []
+      if (order.contactEmail) {
+        contactLines.push(`<b>Контакт (email):</b> ${escapeHtml(order.contactEmail)}`)
       }
+      if (order.contactTelegram) {
+        contactLines.push(`<b>Контакт (Telegram):</b> ${escapeHtml(order.contactTelegram)}`)
+      }
+
+      const messageLines = [
+        "<b>Оплата: AI мастеринг</b>",
+        "",
+        `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
+        ...contactLines,
+        `<b>Файлы (каталог):</b> ${escapeHtml(filesPath)}`,
+        `<b>Имена файлов:</b> ${escapeHtml(String(trackTitles))}`,
+        `<b>Количество треков:</b> ${order.tracksCount}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
+        "",
+        "#ai_mastering #оплата",
+      ].filter(Boolean) as string[]
+
+      await notifyPaymentStaff(
+        messageLines.join("\n"),
+        `[Parallax] Оплата AI мастеринг: ${accountEmail}`,
+        "ai_mastering"
+      )
+    } catch (err) {
+      console.error("[payments/webhook] Notification error for ai_mastering", err)
     }
 
     return NextResponse.json({ received: true })
@@ -257,59 +233,40 @@ export async function POST(request: NextRequest) {
     await updateOrderStatus(orderId, "paid", { paidAt })
     tryRecordServiceFulfillment(orderId, order.orderType)
 
-    if (isTelegramConfigured()) {
-      try {
-        const user = await getCabinetUserById(order.userId)
-        const accountEmail = user?.email ?? `userId=${order.userId}`
-        const amount = amountValue ?? order.totalAmount
-        const metadata = obj?.metadata ?? {}
-        const contactType = metadata.contactType || "—"
-        const contactValue = metadata.contactValue || "—"
-        const trackTitle = metadata.trackTitle || "—"
-        const comment = metadata.comment || "—"
-        const unitPrice = metadata.unitPrice || "—"
+    try {
+      const user = await getCabinetUserById(order.userId)
+      const accountEmail = user?.email ?? `userId=${order.userId}`
+      const amount = amountValue ?? order.totalAmount
+      const metadata = obj?.metadata ?? {}
+      const contactType = metadata.contactType || "-"
+      const contactValue = metadata.contactValue || "-"
+      const trackTitle = metadata.trackTitle || "-"
+      const comment = metadata.comment || "-"
+      const unitPrice = metadata.unitPrice || "-"
 
-        const messageLines = [
-          "<b>Оплата: вертикальные видео</b>",
-          "",
-          `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-          `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
-          `<b>Количество видео:</b> ${order.tracksCount}`,
-          `<b>Цена за 1 видео:</b> ${escapeHtml(String(unitPrice))} RUB`,
-          `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-          `<b>Контакт:</b> ${escapeHtml(String(contactType))} — ${escapeHtml(String(contactValue))}`,
-          `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,
-          `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-          obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-          "",
-          "#vertical_video #оплата",
-        ].filter(Boolean) as string[]
+      const messageLines = [
+        "<b>Оплата: вертикальные видео</b>",
+        "",
+        `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
+        `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
+        `<b>Количество видео:</b> ${order.tracksCount}`,
+        `<b>Цена за 1 видео:</b> ${escapeHtml(String(unitPrice))} RUB`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>Контакт:</b> ${escapeHtml(String(contactType))} - ${escapeHtml(String(contactValue))}`,
+        `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
+        "",
+        "#vertical_video #оплата",
+      ].filter(Boolean) as string[]
 
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[payments/webhook] Telegram send failed for vertical_video", {
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[payments/webhook] Telegram notification error for vertical_video", err)
-      }
+      await notifyPaymentStaff(
+        messageLines.join("\n"),
+        `[Parallax] Оплата вертикальные видео: ${accountEmail}`,
+        "vertical_video"
+      )
+    } catch (err) {
+      console.error("[payments/webhook] Notification error for vertical_video", err)
     }
 
     return NextResponse.json({ received: true })
@@ -319,56 +276,37 @@ export async function POST(request: NextRequest) {
     await updateOrderStatus(orderId, "paid", { paidAt })
     tryRecordServiceFulfillment(orderId, order.orderType)
 
-    if (isTelegramConfigured()) {
-      try {
-        const user = await getCabinetUserById(order.userId)
-        const accountEmail = user?.email ?? `userId=${order.userId}`
-        const amount = amountValue ?? order.totalAmount
-        const metadata = obj?.metadata ?? {}
-        const contactType = metadata.contactType || "—"
-        const contactValue = metadata.contactValue || "—"
-        const trackTitle = metadata.trackTitle || "—"
-        const comment = metadata.comment || "—"
+    try {
+      const user = await getCabinetUserById(order.userId)
+      const accountEmail = user?.email ?? `userId=${order.userId}`
+      const amount = amountValue ?? order.totalAmount
+      const metadata = obj?.metadata ?? {}
+      const contactType = metadata.contactType || "-"
+      const contactValue = metadata.contactValue || "-"
+      const trackTitle = metadata.trackTitle || "-"
+      const comment = metadata.comment || "-"
 
-        const messageLines = [
-          "<b>Оплата: обложка для трека</b>",
-          "",
-          `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-          `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
-          `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-          `<b>Контакт:</b> ${escapeHtml(String(contactType))} — ${escapeHtml(String(contactValue))}`,
-          `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,
-          `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-          obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-          "",
-          "#track_cover #оплата",
-        ].filter(Boolean) as string[]
+      const messageLines = [
+        "<b>Оплата: обложка для трека</b>",
+        "",
+        `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
+        `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>Контакт:</b> ${escapeHtml(String(contactType))} - ${escapeHtml(String(contactValue))}`,
+        `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
+        "",
+        "#track_cover #оплата",
+      ].filter(Boolean) as string[]
 
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[payments/webhook] Telegram send failed for track_cover", {
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[payments/webhook] Telegram notification error for track_cover", err)
-      }
+      await notifyPaymentStaff(
+        messageLines.join("\n"),
+        `[Parallax] Оплата обложка: ${accountEmail}`,
+        "track_cover"
+      )
+    } catch (err) {
+      console.error("[payments/webhook] Notification error for track_cover", err)
     }
 
     return NextResponse.json({ received: true })
@@ -384,74 +322,54 @@ export async function POST(request: NextRequest) {
     await updateOrderStatus(orderId, "paid", { paidAt })
     tryRecordServiceFulfillment(orderId, order.orderType)
 
-    if (isTelegramConfigured()) {
-      try {
-        const user = await getCabinetUserById(order.userId)
-        const accountEmail = user?.email ?? `userId=${order.userId}`
-        const amount = amountValue ?? order.totalAmount
-        const metadata = obj?.metadata ?? {}
-        const contactType = metadata.contactType || "—"
-        const contactValue = metadata.contactValue || "—"
-        const trackTitle = metadata.trackTitle || "—"
-        const comment = metadata.comment || "—"
+    try {
+      const user = await getCabinetUserById(order.userId)
+      const accountEmail = user?.email ?? `userId=${order.userId}`
+      const amount = amountValue ?? order.totalAmount
+      const metadata = obj?.metadata ?? {}
+      const contactType = metadata.contactType || "-"
+      const contactValue = metadata.contactValue || "-"
+      const trackTitle = metadata.trackTitle || "-"
+      const comment = metadata.comment || "-"
 
-        const config = {
-          ai_cover: { title: "AI обложка для трека", hashtag: "#ai_cover" },
-          yandex_videoshot: { title: "Загрузка видеошота в Яндекс Музыку", hashtag: "#yandex_videoshot" },
-          yandex_videoshot_creation: {
-            title: "Создание видеошота для Яндекс Музыки",
-            hashtag: "#yandex_videoshot_creation",
-          },
-          yandex_videoavatar: {
-            title: "Создание видеоаватара для Яндекс Музыки",
-            hashtag: "#yandex_videoavatar",
-          },
-          spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
-        }[order.orderType]
+      const config = {
+        ai_cover: { title: "AI обложка для трека", hashtag: "#ai_cover" },
+        yandex_videoshot: { title: "Загрузка видеошота в Яндекс Музыку", hashtag: "#yandex_videoshot" },
+        yandex_videoshot_creation: {
+          title: "Создание видеошота для Яндекс Музыки",
+          hashtag: "#yandex_videoshot_creation",
+        },
+        yandex_videoavatar: {
+          title: "Создание видеоаватара для Яндекс Музыки",
+          hashtag: "#yandex_videoavatar",
+        },
+        spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
+      }[order.orderType]
 
-        const messageLines = [
-          `<b>Оплата: ${config.title}</b>`,
-          "",
-          `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-          `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
-          `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-          `<b>Контакт:</b> ${escapeHtml(String(contactType))} — ${escapeHtml(String(contactValue))}`,
-          `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,
-          `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-          obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-          "",
-          `${config.hashtag} #оплата`,
-        ].filter(Boolean) as string[]
+      const messageLines = [
+        `<b>Оплата: ${config.title}</b>`,
+        "",
+        `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
+        `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>Контакт:</b> ${escapeHtml(String(contactType))} - ${escapeHtml(String(contactValue))}`,
+        `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
+        "",
+        `${config.hashtag} #оплата`,
+      ].filter(Boolean) as string[]
 
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[payments/webhook] Telegram send failed for promotion service", {
-            orderType: order.orderType,
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[payments/webhook] Telegram notification error for promotion service", {
-          orderType: order.orderType,
-          err,
-        })
-      }
+      await notifyPaymentStaff(
+        messageLines.join("\n"),
+        `[Parallax] Оплата ${config.title}: ${accountEmail}`,
+        order.orderType
+      )
+    } catch (err) {
+      console.error("[payments/webhook] Notification error for promotion service", {
+        orderType: order.orderType,
+        err,
+      })
     }
 
     return NextResponse.json({ received: true })
@@ -550,64 +468,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (isTelegramConfigured()) {
-      try {
-        const amount = amountValue ?? order.totalAmount
-        const periodLabel = periodMeta === "year" ? "год" : "месяц"
-        const isRenewalTg = isRenewal || Boolean(user && currentExpires && currentExpires > now)
-        const title = user
-          ? isRenewalTg
-            ? "Продление подписки / тарифа"
-            : "Выполнена оплата подписки"
-          : "Выполнена оплата подписки (пользователь ещё не зарегистрирован)"
-        const autopayLine = savedPaymentMethod
-          ? user
-            ? "<b>Автосписание:</b> подключено"
-            : "<b>Автосписание:</b> включается при регистрации в кабинете с этим email — привязка сохранена в системе, зарегистрироваться можно в любой момент"
-          : "<b>Автосписание:</b> не подключено (способ оплаты не сохранён в ЮKassa)"
-        const messageLines = [
-          `<b>${title}</b>`,
-          "",
-          `<b>Тариф:</b> ${escapeHtml(subscriptionName)}`,
-          `<b>Email:</b> ${escapeHtml(email)}`,
-          ...(newExpiresAt
-            ? [`<b>Действует до:</b> ${format(new Date(newExpiresAt), "d MMM yyyy", { locale: ru })}`]
-            : []),
-          `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-          obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-          `<b>Периодичность:</b> ${periodLabel}`,
-          `<b>Количество периодов:</b> ${periodsCount}`,
-          `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-          autopayLine,
-          "",
-          "#подписка #оплата",
-        ].filter(Boolean) as string[]
+    try {
+      const amount = amountValue ?? order.totalAmount
+      const periodLabel = periodMeta === "year" ? "год" : "месяц"
+      const isRenewalTg = isRenewal || Boolean(user && currentExpires && currentExpires > now)
+      const title = user
+        ? isRenewalTg
+          ? "Продление подписки / тарифа"
+          : "Выполнена оплата подписки"
+        : "Выполнена оплата подписки (пользователь ещё не зарегистрирован)"
+      const autopayLine = savedPaymentMethod
+        ? user
+          ? "<b>Автосписание:</b> подключено"
+          : "<b>Автосписание:</b> включается при регистрации в кабинете с этим email - привязка сохранена в системе, зарегистрироваться можно в любой момент"
+        : "<b>Автосписание:</b> не подключено (способ оплаты не сохранён в ЮKassa)"
+      const messageLines = [
+        `<b>${title}</b>`,
+        "",
+        `<b>Тариф:</b> ${escapeHtml(subscriptionName)}`,
+        `<b>Email:</b> ${escapeHtml(email)}`,
+        ...(newExpiresAt
+          ? [`<b>Действует до:</b> ${format(new Date(newExpiresAt), "d MMM yyyy", { locale: ru })}`]
+          : []),
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
+        `<b>Периодичность:</b> ${periodLabel}`,
+        `<b>Количество периодов:</b> ${periodsCount}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        autopayLine,
+        "",
+        "#подписка #оплата",
+      ].filter(Boolean) as string[]
 
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[payments/webhook] Telegram send failed for subscription", {
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[payments/webhook] Telegram notification error for subscription", err)
-      }
+      await notifyPaymentStaff(
+        messageLines.join("\n"),
+        `[Parallax] Оплата подписки ${subscriptionName}: ${email}`,
+        "subscription"
+      )
+    } catch (err) {
+      console.error("[payments/webhook] Notification error for subscription", err)
     }
 
     return NextResponse.json({ received: true })

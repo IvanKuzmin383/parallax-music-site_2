@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getUploadDraftById } from "@/lib/upload-drafts"
+import { getClientIp, getUserAgent } from "@/lib/legal-acceptance"
 import { finalizeUploadDraftCore } from "@/lib/upload-draft-finalize"
 
 export async function POST(
@@ -16,7 +17,10 @@ export async function POST(
     return NextResponse.json({ error: "Черновик не найден" }, { status: 404 })
   }
 
-  const result = await finalizeUploadDraftCore(draft)
+  const result = await finalizeUploadDraftCore(draft, {
+    clientIp: getClientIp(request),
+    userAgent: getUserAgent(request),
+  })
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }

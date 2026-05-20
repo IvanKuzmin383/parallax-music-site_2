@@ -100,7 +100,7 @@ export default function MusicStatsImportPage() {
 
         <div>
           <h1 className="text-2xl font-bold">Импорт статистики (все платформы)</h1>
-          <p className="text-sm text-muted-foreground">Загрузите несколько JSON-файлов — система сама определит платформу и заменит данные по пересекающимся датам.</p>
+          <p className="text-sm text-muted-foreground">Загрузите несколько JSON-файлов - система сама определит платформу и заменит данные по пересекающимся датам.</p>
         </div>
 
         <Card>

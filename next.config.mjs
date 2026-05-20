@@ -7,7 +7,7 @@ if (typeof process !== "undefined") {
 }
 
 // CSP: allow Yandex Metrica + Mail.Ru + Cloudflare Turnstile (loads Google closure / bubble_compiled).
-// trusted-types * allow-duplicates — Metrika registers a random policy name; Turnstile needs goog#html.
+// trusted-types * allow-duplicates - Metrika registers a random policy name; Turnstile needs goog#html.
 // If the host (e.g. Cloudflare) adds a second CSP header with its own trusted-types, relax it there too
 // or only one combined policy applies per directive depending on the proxy.
 const cspDirectives = [

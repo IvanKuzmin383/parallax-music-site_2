@@ -4,7 +4,8 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { createPasswordResetToken, deleteExpiredTokens } from "@/lib/password-reset-tokens"
 import { isEmailConfigured, sendPasswordResetEmail } from "@/lib/email"
 import { verifyTurnstileToken } from "@/lib/turnstile"
-import { escapeHtml, isTelegramConfigured, sendTelegramMessage } from "@/lib/telegram"
+import { escapeHtml } from "@/lib/telegram"
+import { notifyStaff } from "@/lib/form-notifications"
 
 const forgotSchema = z.object({
   email: z.string().email("Неверный формат email"),
@@ -75,29 +76,23 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (isTelegramConfigured()) {
-    try {
-      const messageLines = [
-        "<b>Запрос сброса пароля</b>",
-        "",
-        `<b>Email:</b> ${escapeHtml(user.email)}`,
-        user.artistName ? `<b>Артист:</b> ${escapeHtml(user.artistName)}` : null,
-        "",
-        "#сброс_пароля #кабинет",
-      ].filter(Boolean) as string[]
-      const message = messageLines.join("\n")
-      const sendWithRetry = async (fn: () => Promise<Response>) => {
-        let res = await fn()
-        if (!res.ok && res.status >= 500) res = await fn()
-        return res
-      }
-      const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-      if (!tgRes.ok) {
-        console.error("[cabinet/forgot-password] Telegram notification failed", tgRes.status, await tgRes.text())
-      }
-    } catch (err) {
-      console.error("[cabinet/forgot-password] Telegram notification error", err)
-    }
+  try {
+    const messageLines = [
+      "<b>Запрос сброса пароля</b>",
+      "",
+      `<b>Email:</b> ${escapeHtml(user.email)}`,
+      user.artistName ? `<b>Артист:</b> ${escapeHtml(user.artistName)}` : null,
+      "",
+      "#сброс_пароля #кабинет",
+    ].filter(Boolean) as string[]
+
+    await notifyStaff({
+      telegramMessage: messageLines.join("\n"),
+      emailSubject: `[Parallax] Сброс пароля: ${user.email}`,
+      logContext: "cabinet/forgot-password",
+    })
+  } catch (err) {
+    console.error("[cabinet/forgot-password] Staff notification error", err)
   }
 
   return NextResponse.json({

@@ -66,7 +66,7 @@ const getSubscriptionLimitMessage = (limit: number) =>
 const UPLOAD_DRAFT_STATUS_LABELS: Record<UploadDraftStatus, string> = {
   collecting: "Черновик",
   awaiting_payment: "Ожидает оплаты услуг",
-  paid: "Оплачен — завершите отправку",
+  paid: "Оплачен - завершите отправку",
   finalized: "Отправлен",
   expired: "Истёк",
   cancelled: "Отменён",
@@ -86,7 +86,7 @@ function getUploadDraftDisplayTitle(draft: UploadDraft): string {
   }
   const tn = `${draft.payload.trackName ?? ""}`.trim()
   const an = `${draft.payload.artistName ?? ""}`.trim()
-  if (tn && an) return `${tn} — ${an}`
+  if (tn && an) return `${tn} - ${an}`
   if (tn) return tn
   if (an) return an
   return "Сингл (черновик)"
@@ -113,7 +113,7 @@ const PRICING_PAGE_URL = "https://parallaxmusic.ru/#pricing"
 const SUBSCRIPTION_REQUIRED_REGISTER_MESSAGE =
   "Сначала оплатите тариф на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться."
 
-/** Иконка Telegram как на главной (контакт / футер) — «бумажный самолётик» */
+/** Иконка Telegram как на главной (контакт / футер) - «бумажный самолётик» */
 function TelegramSupportIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -830,7 +830,7 @@ export default function CabinetPage() {
             <h1 className="text-2xl font-bold">Личный кабинет</h1>
             {authTab === "register" ?
               <p className="text-muted-foreground">
-                Регистрация доступна после оплаты тарифа — сначала{" "}
+                Регистрация доступна после оплаты тарифа - сначала{" "}
                 <Link
                   href="https://parallaxmusic.ru/#pricing"
                   className="text-primary underline underline-offset-2 hover:no-underline"
@@ -1252,7 +1252,7 @@ export default function CabinetPage() {
                     <Music className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-4">
                       {uploadDrafts.length > 0
-                        ? "Готовых релизов в списке пока нет — выше есть черновики загрузки."
+                        ? "Готовых релизов в списке пока нет - выше есть черновики загрузки."
                         : "Треков пока нет"}
                     </p>
                     <Button onClick={handleUploadClick}>
@@ -1333,7 +1333,7 @@ export default function CabinetPage() {
                                           Дата публикации:{" "}
                                           {track.releaseDate
                                             ? format(new Date(track.releaseDate), "d MMM yyyy", { locale: ru })
-                                            : "—"}
+                                            : "-"}
                                         </p>
                                         {track.upc && track.upc.trim() && (
                                           <p>UPC: {track.upc}</p>
@@ -1458,7 +1458,7 @@ export default function CabinetPage() {
                                       Дата публикации:{" "}
                                       {track.releaseDate
                                         ? format(new Date(track.releaseDate), "d MMM yyyy", { locale: ru })
-                                        : "—"}
+                                        : "-"}
                                     </p>
                                     {track.upc && track.upc.trim() && (
                                       <p>UPC: {track.upc}</p>
@@ -1738,7 +1738,7 @@ export default function CabinetPage() {
                             <Input
                               readOnly
                               value={selectedTrack.upc ?? ""}
-                              placeholder="—"
+                              placeholder="-"
                               className="font-mono text-sm flex-1"
                             />
                             <Button
@@ -1973,7 +1973,7 @@ export default function CabinetPage() {
             <DialogHeader>
               <DialogTitle>Написать в поддержку</DialogTitle>
               <DialogDescription>
-                Выберите способ связи — откроется чат в новой вкладке.
+                Выберите способ связи - откроется чат в новой вкладке.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-2 py-1">

@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
   /**
    * Рекурренты / сохранение карты: только если ЮKassa включила магазину автоплатежи.
-   * По умолчанию false — иначе API вернёт 403. Включить: YOOKASSA_SAVE_PAYMENT_METHOD=true в .env
+   * По умолчанию false - иначе API вернёт 403. Включить: YOOKASSA_SAVE_PAYMENT_METHOD=true в .env
    */
   const savePaymentMethod = process.env.YOOKASSA_SAVE_PAYMENT_METHOD === "true"
 

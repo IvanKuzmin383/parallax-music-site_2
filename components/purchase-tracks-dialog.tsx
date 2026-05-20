@@ -45,7 +45,7 @@ export function PurchaseTracksDialog({
   const validCount = tracksCount >= TRACKS_MIN && tracksCount <= MAX_TRACKS_TOPUP
   const resolvedDescription =
     description ??
-    `Чтобы загрузить больше треков, оплатите дополнительные. Цена за один трек — ${trackPriceRub} ₽.`
+    `Чтобы загрузить больше треков, оплатите дополнительные. Цена за один трек - ${trackPriceRub} ₽.`
 
   useEffect(() => {
     if (!open) {

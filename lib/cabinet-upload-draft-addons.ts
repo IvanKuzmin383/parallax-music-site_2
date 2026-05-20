@@ -1,7 +1,7 @@
 import type { UploadDraftPayload } from "./upload-drafts"
 import { calculateUploadAddonBundleAmount, type UploadAddonBundleItem } from "./orders"
 
-/** Платные услуги из payload черновика (без AI-обложки — она считается на клиенте). */
+/** Платные услуги из payload черновика (без AI-обложки - она считается на клиенте). */
 export function addonBundleItemsFromUploadDraftPayload(payload: UploadDraftPayload): UploadAddonBundleItem[] {
   const items: UploadAddonBundleItem[] = []
   if (payload.addons?.trackCover?.enabled) items.push({ type: "track_cover", quantity: 1 })

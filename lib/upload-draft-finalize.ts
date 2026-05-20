@@ -19,6 +19,47 @@ import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
 import { createAlbum, type Album } from "@/lib/albums"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
+import { getDb } from "@/lib/db"
+import {
+  backfillMissingTrackAcceptancesForUser,
+  tryRecordLicenseAcceptanceForTrack,
+} from "@/lib/legal-acceptance"
+
+export type FinalizeUploadDraftContext = {
+  clientIp?: string | null
+  userAgent?: string | null
+}
+
+function logLicenseAcceptancesForTracks(
+  tracks: Track[],
+  context?: FinalizeUploadDraftContext,
+  options?: { occurredAtIso?: string }
+): void {
+  if (tracks.length === 0) return
+  try {
+    const db = getDb()
+    for (const t of tracks) {
+      tryRecordLicenseAcceptanceForTrack(db, {
+        userEmail: t.userId,
+        trackId: t.id,
+        occurredAtIso: options?.occurredAtIso ?? t.createdAt,
+        clientIp: context?.clientIp ?? null,
+        userAgent: context?.userAgent ?? null,
+      })
+    }
+  } catch (legalErr) {
+    console.error("[upload-draft-finalize] legal acceptance log failed:", legalErr)
+  }
+}
+
+function ensureUserTrackAcceptancesInJournal(ownerEmail: string): void {
+  try {
+    const db = getDb()
+    backfillMissingTrackAcceptancesForUser(db, ownerEmail)
+  } catch (legalErr) {
+    console.error("[upload-draft-finalize] legal acceptance backfill failed:", legalErr)
+  }
+}
 
 function readSingleTrackTransferFromPayload(payload: {
   transferFromOtherDistributor?: unknown
@@ -74,10 +115,13 @@ export type FinalizeUploadDraftResult =
   | { ok: false; error: string; status: number }
 
 /**
- * Создаёт трек(и) из черновика и переводит черновик в finalized — та же логика, что POST finalize в кабинете.
- * Владелец треков — `draft.userId` (email кабинета).
+ * Создаёт трек(и) из черновика и переводит черновик в finalized - та же логика, что POST finalize в кабинете.
+ * Владелец треков - `draft.userId` (email кабинета).
  */
-export async function finalizeUploadDraftCore(draft: UploadDraft): Promise<FinalizeUploadDraftResult> {
+export async function finalizeUploadDraftCore(
+  draft: UploadDraft,
+  context?: FinalizeUploadDraftContext
+): Promise<FinalizeUploadDraftResult> {
   if (draft.status === "finalized") {
     const current = await getUploadDraftById(draft.id)
     return { ok: true, draft: current ?? draft }
@@ -123,6 +167,8 @@ export async function finalizeUploadDraftCore(draft: UploadDraft): Promise<Final
           await updateTrack(t.id, { status: "on_moderation" })
         }
       }
+      logLicenseAcceptancesForTracks(tracks, context, { occurredAtIso: new Date().toISOString() })
+      ensureUserTrackAcceptancesInJournal(ownerEmail)
       await removeUploadDraftFiles(draft)
       const updated = await markUploadDraftFinalized(draft.id)
       if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
@@ -301,6 +347,8 @@ export async function finalizeUploadDraftCore(draft: UploadDraft): Promise<Final
       createdTracks.push(track)
     }
 
+    logLicenseAcceptancesForTracks(createdTracks, context)
+    ensureUserTrackAcceptancesInJournal(ownerEmail)
     await removeUploadDraftFiles(draft)
     const updated = await updateUploadDraft(draft.id, { status: "finalized", albumId: album.id })
     if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
@@ -477,6 +525,8 @@ export async function finalizeUploadDraftCore(draft: UploadDraft): Promise<Final
     transferFromOtherDistributor: xferNew.transfer,
   })
 
+  logLicenseAcceptancesForTracks([track], context)
+  ensureUserTrackAcceptancesInJournal(ownerEmail)
   await removeUploadDraftFiles(draft)
   const updated = await markUploadDraftFinalized(draft.id)
   if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }

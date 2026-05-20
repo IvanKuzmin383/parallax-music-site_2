@@ -1080,7 +1080,7 @@ export default function MusicStatsPage() {
                       </div>
                       {countryUnknownPlays > 0 ? (
                         <p className="w-full text-center text-xs text-muted-foreground">
-                          Справочно: Unknown — {countryUnknownPlays.toLocaleString("ru-RU")} прослушиваний
+                          Справочно: Unknown - {countryUnknownPlays.toLocaleString("ru-RU")} прослушиваний
                           {countryGeoTotalPlays > 0
                             ? ` (${((countryUnknownPlays / countryGeoTotalPlays) * 100).toFixed(1)}% от общего числа прослушиваний по странам за период)`
                             : null}
@@ -1091,11 +1091,11 @@ export default function MusicStatsPage() {
                 ) : countryUnknownPlays > 0 ? (
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex h-[220px] w-full max-w-[320px] items-center justify-center rounded-md border text-center text-sm text-muted-foreground px-3">
-                      В диаграмме только страны с известным кодом; прослушивания без страны (Unknown) — справочно
+                      В диаграмме только страны с известным кодом; прослушивания без страны (Unknown) - справочно
                       ниже.
                     </div>
                     <p className="w-full text-center text-xs text-muted-foreground">
-                      Справочно: Unknown — {countryUnknownPlays.toLocaleString("ru-RU")} прослушиваний
+                      Справочно: Unknown - {countryUnknownPlays.toLocaleString("ru-RU")} прослушиваний
                       {countryGeoTotalPlays > 0
                         ? ` (${((countryUnknownPlays / countryGeoTotalPlays) * 100).toFixed(1)}% от общего числа прослушиваний по странам за период)`
                         : null}

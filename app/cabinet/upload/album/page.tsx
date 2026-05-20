@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,7 +35,12 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "sonner"
-import { GENRES, TRACK_MOODS, musicRightsRequiresAiService } from "@/lib/track-constants"
+import {
+  GENRES,
+  LYRICS_TEXT_UPLOAD_HINT,
+  TRACK_MOODS,
+  musicRightsRequiresAiService,
+} from "@/lib/track-constants"
 import { getEffectiveTrackLimit, isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { SubscriptionLimitDialog } from "@/components/subscription-limit-dialog"
@@ -51,7 +57,7 @@ import { CabinetUploadAdditionalServicesSection } from "@/components/cabinet-upl
 import { useI18n } from "@/lib/i18n-context"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
 
-/** Параллельная загрузка WAV; раньше файлы шли строго по одному — поздние треки ждали очередь всех предыдущих. */
+/** Параллельная загрузка WAV; раньше файлы шли строго по одному - поздние треки ждали очередь всех предыдущих. */
 const ALBUM_AUDIO_UPLOAD_CONCURRENCY = 4
 const ALBUM_AUDIO_SYNC_TIMEOUT_MS = 180_000
 
@@ -1547,6 +1553,7 @@ export default function CabinetUploadAlbumPage() {
                                 {...field}
                               />
                             </FormControl>
+                            <FormDescription>{LYRICS_TEXT_UPLOAD_HINT}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

@@ -18,7 +18,7 @@ function mergeBundleItems(items: UploadAddonBundleItem[]): UploadAddonBundleItem
 
 /**
  * Какие позиции оплаченного пакета допов из черновика относятся к конкретному треку
- * (альбом: обложка/вертикалка на релиз; мастеринг — по индексу в альбоме).
+ * (альбом: обложка/вертикалка на релиз; мастеринг - по индексу в альбоме).
  */
 export function uploadAddonBundleItemsApplyingToTrack(
   track: Pick<Track, "id" | "trackName" | "artistName" | "albumId">,

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getTrackBySmartlinkSlug } from "@/lib/tracks"
-
-const SLUG_REGEX = /^[a-zA-Z0-9_-]{6,20}$/
+import { getReleasedSmartlinkTrack, SMARTLINK_SLUG_REGEX, smartlinkOgImagePath } from "@/lib/smartlink"
 
 export async function GET(
   _request: NextRequest,
@@ -9,17 +7,17 @@ export async function GET(
 ) {
   const { slug } = await params
 
-  if (!SLUG_REGEX.test(slug)) {
+  if (!SMARTLINK_SLUG_REGEX.test(slug)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const track = await getTrackBySmartlinkSlug(slug)
-  if (!track || track.status !== "released") {
+  const track = await getReleasedSmartlinkTrack(slug)
+  if (!track) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-  const coverUrl = `${baseUrl}/api/smartlink/${slug}/cover`
+  const coverUrl = `${baseUrl}${smartlinkOgImagePath(slug)}`
 
   return NextResponse.json({
     trackName: track.trackName,

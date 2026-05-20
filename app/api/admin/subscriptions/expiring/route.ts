@@ -3,7 +3,11 @@ import { format, differenceInCalendarDays } from "date-fns"
 import { ru } from "date-fns/locale"
 import { getAdminToken, verifySession } from "@/lib/auth"
 import { getAllCabinetUsers } from "@/lib/cabinet-users"
-import { escapeHtml, isTelegramConfigured, sendTelegramMessage } from "@/lib/telegram"
+import { escapeHtml } from "@/lib/telegram"
+import {
+  isStaffNotificationConfigured,
+  notifyStaff,
+} from "@/lib/form-notifications"
 
 const DEFAULT_DAYS_AHEAD = 3
 
@@ -32,9 +36,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  if (!isTelegramConfigured()) {
+  if (!isStaffNotificationConfigured()) {
     return NextResponse.json(
-      { error: "Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)" },
+      {
+        error:
+          "Уведомления не настроены (Telegram или RESEND_API_KEY + RESEND_NOTIFY_EMAIL)",
+      },
       { status: 500 }
     )
   }
@@ -91,7 +98,7 @@ export async function GET(request: NextRequest) {
       for (const user of expired) {
         const expiresStr = format(new Date(user.subscriptionExpiresAt!), "d MMM yyyy", { locale: ru })
         const autopayStatus = getAutopayStatusLabel(user)
-        message += `• ${escapeHtml(user.email)} — до ${escapeHtml(expiresStr)} | автосписание: ${escapeHtml(
+        message += `• ${escapeHtml(user.email)} - до ${escapeHtml(expiresStr)} | автосписание: ${escapeHtml(
           autopayStatus
         )}\n`
       }
@@ -105,39 +112,24 @@ export async function GET(request: NextRequest) {
         const diff = differenceInCalendarDays(expires, today)
         const expiresStr = format(expires, "d MMM yyyy", { locale: ru })
         const autopayStatus = getAutopayStatusLabel(user)
-        message += `• ${escapeHtml(user.email)} — до ${escapeHtml(
+        message += `• ${escapeHtml(user.email)} - до ${escapeHtml(
           expiresStr
         )} (осталось ${diff} дн.) | автосписание: ${escapeHtml(autopayStatus)}\n`
       }
       message += "\n#подписки"
     }
 
-    let telegramRes: Response | null = null
-    try {
-      telegramRes = await sendTelegramMessage(message)
-      if (!telegramRes.ok && telegramRes.status >= 500) {
-        telegramRes = await sendTelegramMessage(message)
-      }
-    } catch (err) {
-      console.error("Subscription reminder: Telegram send error (network):", err)
-    }
+    const delivered = await notifyStaff({
+      telegramMessage: message,
+      emailSubject: `[Parallax] Подписки: ${expired.length} истекли, ${expiringSoon.length} скоро`,
+      logContext: "subscriptions/expiring",
+    })
 
-    if (!telegramRes || !telegramRes.ok) {
-      let detail: unknown = undefined
-      try {
-        detail = telegramRes ? await telegramRes.json() : null
-      } catch {
-        // ignore body
-      }
-      console.error("Subscription reminder: Telegram send failed", {
-        status: telegramRes?.status,
-        statusText: telegramRes?.statusText,
-        detail,
-      })
+    if (!delivered.ok) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Не удалось отправить уведомление в Telegram",
+          error: "Не удалось отправить уведомление (Telegram и email)",
           expired: expired.length,
           expiringSoon: expiringSoon.length,
         },
@@ -150,6 +142,10 @@ export async function GET(request: NextRequest) {
         ok: true,
         expired: expired.length,
         expiringSoon: expiringSoon.length,
+        notifiedVia: {
+          telegram: delivered.telegram,
+          email: delivered.email,
+        },
       },
       { status: 200 }
     )
@@ -164,4 +160,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

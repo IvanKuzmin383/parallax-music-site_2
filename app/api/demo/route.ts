@@ -3,6 +3,11 @@ import { z } from 'zod'
 import ruMessages from '@/messages/ru.json'
 import enMessages from '@/messages/en.json'
 import { verifyTurnstileToken } from '@/lib/turnstile'
+import { escapeHtml } from '@/lib/telegram'
+import {
+  deliverFormNotification,
+  isFormNotificationConfigured,
+} from '@/lib/form-notifications'
 
 type Locale = 'ru' | 'en'
 type Messages = typeof ruMessages
@@ -19,8 +24,6 @@ function getMessages(locale: string): Messages {
 const rateLimitMap = new Map<string, number>()
 const RATE_LIMIT_MS = 15_000
 
-import { escapeHtml, sendTelegramMessage } from '@/lib/telegram'
-
 function getDemoSubmissionSchema(t: Messages) {
   return z.object({
     artistName: z.string().min(2, t.validation.artistNameMin).max(100, t.validation.artistNameMax),
@@ -35,10 +38,18 @@ function getDemoSubmissionSchema(t: Messages) {
   })
 }
 
+function escapeHtmlText(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 export async function POST(request: NextRequest) {
   const locale = (request.headers.get('x-locale') || 'ru') as Locale
   const t = getMessages(locale)
-  
+
   try {
     // Basic dev-only rate limiting per IP
     if (process.env.NODE_ENV !== 'production') {
@@ -55,6 +66,14 @@ export async function POST(request: NextRequest) {
       rateLimitMap.set(clientIp, now)
     }
 
+    if (!isFormNotificationConfigured()) {
+      console.error('[demo] No notification channel configured (Telegram or Resend)')
+      return NextResponse.json(
+        { success: false, error: t.errors.notificationFailed },
+        { status: 503 },
+      )
+    }
+
     const ipHeader = request.headers.get('x-forwarded-for') || ''
     const clientIp = ipHeader.split(',')[0]?.trim() || null
 
@@ -68,80 +87,80 @@ export async function POST(request: NextRequest) {
         { status: 429 },
       )
     }
-    
+
     // Валидация данных
     const demoSubmissionSchema = getDemoSubmissionSchema(t)
     const { captchaToken: _ignoredCaptcha, ...validatedData } = demoSubmissionSchema.parse(body)
-    
-    // Prepare Telegram message with HTML escaping
-    const message =
+
+    const telegramMessage =
       `<b>New Demo Submission</b>\n` +
       `<b>Artist:</b> ${escapeHtml(validatedData.artistName)}\n` +
       `<b>Email:</b> ${escapeHtml(validatedData.email)}\n` +
       `<b>Track:</b> ${escapeHtml(validatedData.trackName)}\n` +
       `<b>Genre:</b> ${escapeHtml(validatedData.genre)}\n` +
       `<b>Link:</b> ${escapeHtml(validatedData.demoLink)}\n` +
-      (validatedData.description ? `<b>Description:</b> ${escapeHtml(validatedData.description)}` : '') +
+      (validatedData.description
+        ? `<b>Description:</b> ${escapeHtml(validatedData.description)}`
+        : '') +
       `\n\n#демо`
 
-    // Attempt send, with one retry on 5xx/network failures
-    let telegramRes: Response | null = null
-    try {
-      telegramRes = await sendTelegramMessage(message)
-      if (!telegramRes.ok && telegramRes.status >= 500) {
-        // retry once
-        telegramRes = await sendTelegramMessage(message)
+    const hrefAttr = validatedData.demoLink.replace(/"/g, '&quot;')
+    const safeLink = escapeHtmlText(validatedData.demoLink)
+    const emailHtml = `
+      <h2>Новая демо-заявка</h2>
+      <p><b>Артист:</b> ${escapeHtmlText(validatedData.artistName)}</p>
+      <p><b>Email:</b> ${escapeHtmlText(validatedData.email)}</p>
+      <p><b>Трек:</b> ${escapeHtmlText(validatedData.trackName)}</p>
+      <p><b>Жанр:</b> ${escapeHtmlText(validatedData.genre)}</p>
+      <p><b>Ссылка:</b> <a href="${hrefAttr}">${safeLink}</a></p>
+      ${
+        validatedData.description
+          ? `<p><b>Описание:</b></p><p>${escapeHtmlText(validatedData.description).replace(/\n/g, '<br/>')}</p>`
+          : ''
       }
-    } catch (err) {
-      console.error('Telegram send error (network):', err)
-    }
+      <p><i>#демо</i></p>
+    `
 
-    if (!telegramRes || !telegramRes.ok) {
-      let detail: unknown = undefined
-      try {
-        detail = telegramRes ? await telegramRes.json() : null
-      } catch {
-        // ignore body parse
-      }
-      console.error('Telegram send failed', {
-        status: telegramRes?.status,
-        statusText: telegramRes?.statusText,
-        detail,
-      })
+    const delivered = await deliverFormNotification({
+      telegramMessage,
+      emailSubject: `[Parallax] Демо: ${validatedData.artistName} - ${validatedData.trackName}`,
+      emailHtml,
+    })
+
+    if (!delivered.ok) {
       return NextResponse.json(
         { success: false, error: t.errors.notificationFailed },
         { status: 502 },
       )
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         success: true,
-        message: t.api.demo.success
+        message: t.api.demo.success,
       },
-      { status: 200 }
+      { status: 200 },
     )
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: t.errors.validationFailed,
-          errors: error.errors 
+          errors: error.errors,
         },
-        { status: 400 }
+        { status: 400 },
       )
     }
-    
+
     console.error('Demo submission error:', error)
-    
+
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: t.errors.demoProcessingError
+        error: t.errors.demoProcessingError,
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
-

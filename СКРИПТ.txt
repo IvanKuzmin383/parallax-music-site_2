@@ -20,7 +20,7 @@
 
   if (!UPLOAD.token?.trim()) {
     console.warn(
-      "%c[Сайт] Автозагрузка выключена: в UPLOAD.token пусто — вставьте MUSIC_STATS_IMPORT_TOKEN из .env сервера.",
+      "%c[Сайт] Автозагрузка выключена: в UPLOAD.token пусто - вставьте MUSIC_STATS_IMPORT_TOKEN из .env сервера.",
       "color:#b45309;font-weight:bold"
     );
   } else {
@@ -30,7 +30,7 @@
     );
   }
 
-  /** Подписи как на странице; если вкладки нет — пропуск (см. цикл `NOT FOUND`). */
+  /** Подписи как на странице; если вкладки нет - пропуск (см. цикл `NOT FOUND`). */
   const PLATFORM_TABS = [
     "Apple Music",
     "Pandora",
@@ -187,7 +187,7 @@
 
       const more = getMoreElement();
       if (!more) {
-        console.log('Кнопка "ЕЩЁ ТРЕКИ" не найдена — похоже, конец.');
+        console.log('Кнопка "ЕЩЁ ТРЕКИ" не найдена - похоже, конец.');
         break;
       }
 
@@ -206,7 +206,7 @@
       }
 
       if (!grew) {
-        console.log("  Новых строк после клика нет — стоп.");
+        console.log("  Новых строк после клика нет - стоп.");
         break;
       }
 
@@ -297,17 +297,17 @@
           if (r?.ok) {
             uploadReport.importOk++;
             console.log(
-              `%c[Сайт] ${PLATFORM} — импорт OK`,
+              `%c[Сайт] ${PLATFORM} - импорт OK`,
               "color:#15803d;font-weight:bold",
-              `дней: ${r?.daysCount ?? "—"}, прослушиваний: ${r?.totalPlays ?? "—"}`
+              `дней: ${r?.daysCount ?? "-"}, прослушиваний: ${r?.totalPlays ?? "-"}`
             );
           } else {
             uploadReport.importFail++;
-            console.error(`[Сайт] ${PLATFORM}: ответ 200, но импорт не прошёл —`, r?.error ?? data);
+            console.error(`[Сайт] ${PLATFORM}: ответ 200, но импорт не прошёл -`, r?.error ?? data);
           }
         }
       } catch (e) {
-        console.error(`[Сайт] ${PLATFORM}: сеть / CORS —`, e);
+        console.error(`[Сайт] ${PLATFORM}: сеть / CORS -`, e);
       }
     } else {
       console.warn(`[Сайт] ${PLATFORM}: UPLOAD.url или token не задан(ы), отправка пропущена.`);
@@ -332,7 +332,7 @@
 
     if (platforms === 0) {
       console.warn(
-        "%c[Сайт] Запросов на импорт не было — проверьте UPLOAD.url и что цикл дошёл до загрузки.",
+        "%c[Сайт] Запросов на импорт не было - проверьте UPLOAD.url и что цикл дошёл до загрузки.",
         "color:#b45309"
       );
     }

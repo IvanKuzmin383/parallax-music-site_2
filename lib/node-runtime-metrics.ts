@@ -10,7 +10,7 @@ function toMiB(bytes: number): number {
  * Периодический stdout-лог для сопоставления дашборда контейнера (cgroup) с процессом Node.
  * Amvera: вкладка «Лог приложения».
  *
- * DIAGNOSTIC_MEMORY_INTERVAL_MS — интервал в мс (по умолчанию 60000). 0 — выключить.
+ * DIAGNOSTIC_MEMORY_INTERVAL_MS - интервал в мс (по умолчанию 60000). 0 - выключить.
  */
 export function startNodeRuntimeMetrics(): void {
   if (started) return

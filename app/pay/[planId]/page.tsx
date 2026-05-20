@@ -137,7 +137,7 @@ export default function PayPage() {
             <CardHeader>
               <CardTitle>{t.pay.planInfo}</CardTitle>
               <CardDescription>
-                {plan.title} — {plan.subtitle}
+                {plan.title} - {plan.subtitle}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">

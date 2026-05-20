@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
 import { getUploadDraftById, updateUploadDraft, type UploadDraftPayload } from "@/lib/upload-drafts"
+import { getClientIp, getUserAgent } from "@/lib/legal-acceptance"
 import { finalizeUploadDraftCore } from "@/lib/upload-draft-finalize"
 
 export async function POST(
@@ -30,11 +31,14 @@ export async function POST(
         draft = updated
       }
     } catch {
-      // пустое тело — финализируем текущее состояние черновика в БД
+      // пустое тело - финализируем текущее состояние черновика в БД
     }
   }
 
-  const result = await finalizeUploadDraftCore(draft)
+  const result = await finalizeUploadDraftCore(draft, {
+    clientIp: getClientIp(request),
+    userAgent: getUserAgent(request),
+  })
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }

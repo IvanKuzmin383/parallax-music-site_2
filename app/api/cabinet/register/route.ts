@@ -8,7 +8,8 @@ import {
   setCabinetUserAutopay,
   updateCabinetUserSubscription,
 } from "@/lib/cabinet-users"
-import { escapeHtml, isTelegramConfigured, sendTelegramMessage } from "@/lib/telegram"
+import { escapeHtml } from "@/lib/telegram"
+import { notifyStaff } from "@/lib/form-notifications"
 import { getPaidOrdersByEmail } from "@/lib/orders"
 import { isPlanId, planIdToSubscriptionName, type PlanId } from "@/lib/plan-pricing"
 import { createCabinetSession, CABINET_SESSION_COOKIE } from "@/lib/cabinet-auth"
@@ -173,43 +174,24 @@ export async function POST(request: NextRequest) {
 
     const userOut = (await getCabinetUserByEmail(parsed.data.email, { includeDisabled: true })) ?? user
 
-    if (isTelegramConfigured()) {
-      try {
-        const messageLines = [
-          "<b>Новая регистрация в кабинете</b>",
-          "",
-          `<b>Email:</b> ${escapeHtml(user.email)}`,
-          user.artistName ? `<b>Артист:</b> ${escapeHtml(user.artistName)}` : null,
-          user.telegram ? `<b>Telegram:</b> ${escapeHtml(user.telegram)}` : null,
-          "",
-          "#регистрация #кабинет",
-        ].filter(Boolean) as string[]
+    try {
+      const messageLines = [
+        "<b>Новая регистрация в кабинете</b>",
+        "",
+        `<b>Email:</b> ${escapeHtml(user.email)}`,
+        user.artistName ? `<b>Артист:</b> ${escapeHtml(user.artistName)}` : null,
+        user.telegram ? `<b>Telegram:</b> ${escapeHtml(user.telegram)}` : null,
+        "",
+        "#регистрация #кабинет",
+      ].filter(Boolean) as string[]
 
-        const message = messageLines.join("\n")
-
-        const sendWithRetry = async (fn: () => Promise<Response>) => {
-          let res = await fn()
-          if (!res.ok && res.status >= 500) res = await fn()
-          return res
-        }
-
-        const tgRes = await sendWithRetry(() => sendTelegramMessage(message))
-        if (!tgRes.ok) {
-          let detail: unknown = undefined
-          try {
-            detail = await tgRes.json()
-          } catch {
-            // ignore
-          }
-          console.error("[cabinet/register] Telegram send failed for registration", {
-            status: tgRes.status,
-            statusText: tgRes.statusText,
-            detail,
-          })
-        }
-      } catch (err) {
-        console.error("[cabinet/register] Telegram notification error for registration", err)
-      }
+      await notifyStaff({
+        telegramMessage: messageLines.join("\n"),
+        emailSubject: `[Parallax] Регистрация: ${user.email}`,
+        logContext: "cabinet/register",
+      })
+    } catch (err) {
+      console.error("[cabinet/register] Staff notification error for registration", err)
     }
 
     const response = NextResponse.json(

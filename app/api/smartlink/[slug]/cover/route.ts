@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getTrackBySmartlinkSlug } from "@/lib/tracks"
-import { readFile } from "fs/promises"
-import path from "path"
-
-const SLUG_REGEX = /^[a-zA-Z0-9_-]{6,20}$/
+import {
+  renderSmartlinkOgCoverBuffer,
+  SMARTLINK_COVER_CACHE_CONTROL,
+} from "@/lib/smartlink-cover"
+import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
 
 export async function GET(
   _request: NextRequest,
@@ -11,31 +11,20 @@ export async function GET(
 ) {
   const { slug } = await params
 
-  if (!SLUG_REGEX.test(slug)) {
+  if (!SMARTLINK_SLUG_REGEX.test(slug)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const track = await getTrackBySmartlinkSlug(slug)
-  if (!track || track.status !== "released") {
+  const buffer = await renderSmartlinkOgCoverBuffer(slug)
+  if (!buffer) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  try {
-    const fileBuffer = await readFile(track.coverPath)
-    const ext = path.extname(track.coverPath).toLowerCase()
-    const contentType =
-      ext === ".png" ? "image/png" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/jpeg"
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": contentType,
-      },
-    })
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return NextResponse.json({ error: "Not found" }, { status: 404 })
-    }
-    console.error("Error serving smartlink cover:", error)
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
-  }
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "image/jpeg",
+      "Content-Length": String(buffer.byteLength),
+      "Cache-Control": SMARTLINK_COVER_CACHE_CONTROL,
+    },
+  })
 }

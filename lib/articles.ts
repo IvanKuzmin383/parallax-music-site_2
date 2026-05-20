@@ -13,7 +13,7 @@ export interface Article {
   category: string
   tags: string[]
   published: boolean
-  /** Дата публикации (отображается пользователям). Если не задана — используется createdAt. */
+  /** Дата публикации (отображается пользователям). Если не задана - используется createdAt. */
   publishedAt?: string
   createdAt: string
   updatedAt: string

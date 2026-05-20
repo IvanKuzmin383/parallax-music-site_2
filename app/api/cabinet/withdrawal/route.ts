@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { escapeHtml, sendTelegramMessage } from '@/lib/telegram'
+import { escapeHtml } from '@/lib/telegram'
+import { notifyStaff } from '@/lib/form-notifications'
 import { getCabinetToken, getCabinetSession } from '@/lib/cabinet-auth'
 import { getCabinetUserByEmail } from '@/lib/cabinet-users'
 import { createWithdrawalRequest } from '@/lib/withdrawal-requests'
@@ -98,31 +99,15 @@ export async function POST(request: NextRequest) {
     }
     message += `\n#вывод`
 
-    // Отправка в Telegram с одной попыткой повтора при ошибке
-    let telegramRes: Response | null = null
     try {
-      telegramRes = await sendTelegramMessage(message)
-      if (!telegramRes.ok && telegramRes.status >= 500) {
-        // Повторная попытка при ошибке сервера
-        telegramRes = await sendTelegramMessage(message)
-      }
-    } catch (err) {
-      console.error('Telegram send error (network):', err)
-    }
-
-    if (!telegramRes || !telegramRes.ok) {
-      let detail: unknown = undefined
-      try {
-        detail = telegramRes ? await telegramRes.json() : null
-      } catch {
-        // ignore body parse
-      }
-      console.error('Telegram send failed', {
-        status: telegramRes?.status,
-        statusText: telegramRes?.statusText,
-        detail,
+      await notifyStaff({
+        telegramMessage: message,
+        emailSubject: `[Parallax] Вывод ${validatedData.amount.toLocaleString('ru-RU')} ₽: ${user.email}`,
+        logContext: 'cabinet/withdrawal',
       })
-      // Не возвращаем ошибку, так как заявка уже создана в БД
+    } catch (err) {
+      console.error('Withdrawal staff notification error:', err)
+      // Не возвращаем ошибку - заявка уже создана в БД
     }
     
     return NextResponse.json(

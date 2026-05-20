@@ -302,7 +302,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
                   <Input type="date" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormDescription>
-                  Дата, которая отображается в блоге. Пусто — используется дата создания статьи.
+                  Дата, которая отображается в блоге. Пусто - используется дата создания статьи.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

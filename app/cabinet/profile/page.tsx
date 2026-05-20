@@ -271,7 +271,7 @@ export default function CabinetProfilePage() {
                             const data = await res.json().catch(() => ({}))
                             if (res.ok) {
                               toast.success(
-                                "Проверьте почту — ссылка для подтверждения отключения",
+                                "Проверьте почту - ссылка для подтверждения отключения",
                               )
                             } else {
                               toast.error(
@@ -292,7 +292,7 @@ export default function CabinetProfilePage() {
                       {autopayInfo.manualDisableEmail ? (
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           Либо напишите на {autopayInfo.manualDisableEmail} с того же email, что указан
-                          в аккаунте или при оплате — см. п. 5.5 оферты.
+                          в аккаунте или при оплате - см. п. 5.5 оферты.
                         </p>
                       ) : null}
                     </>

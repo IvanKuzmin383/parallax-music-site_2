@@ -24,7 +24,7 @@
 - **Маркетплейс:** не установлен
 - **DDoS L7+CDN:** не подключено
 - **Тариф:** Start (4 CPU / 8 GB / 80 GB NVMe)
-- **Бэкапы:** еженедельный (бесплатно) — дополнение, не замена ручного бэкапа `/data`
+- **Бэкапы:** еженедельный (бесплатно) - дополнение, не замена ручного бэкапа `/data`
 
 ---
 
@@ -32,7 +32,7 @@
 
 ### 0.1. Запиши всё с Amvera
 
-В панели Amvera: проект → **переменные окружения** — скопируй все в блокнот.
+В панели Amvera: проект → **переменные окружения** - скопируй все в блокнот.
 
 Типичный список для этого проекта:
 
@@ -54,6 +54,8 @@ YOOKASSA_SKIP_RECEIPT=...
 
 RESEND_API_KEY=...
 RESEND_FROM_EMAIL=...
+# Почта для форм контакта и демо (если Telegram с VPS недоступен)
+RESEND_NOTIFY_EMAIL=you@example.com
 
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
@@ -67,7 +69,7 @@ NEXT_PUBLIC_YANDEX_METRIKA_ID=...
 MUSIC_STATS_IMPORT_TOKEN=...
 ```
 
-На VPS можно **не** ставить `AMVERA_DATA_PATH` — достаточно папки `/data` (код в `lib/db.ts` и `lib/tracks.ts` подхватит её автоматически, если каталог существует).
+На VPS можно **не** ставить `AMVERA_DATA_PATH` - достаточно папки `/data` (код в `lib/db.ts` и `lib/tracks.ts` подхватит её автоматически, если каталог существует).
 
 ### 0.2. Скачай данные с Amvera
 
@@ -185,7 +187,7 @@ git clone https://github.com/IvanKuzmin383/parallax-music-site_2.git parallaxmus
 cd parallaxmusic
 ```
 
-Если репозиторий приватный — настрой SSH-ключ на GitHub или deploy token.
+Если репозиторий приватный - настрой SSH-ключ на GitHub или deploy token.
 
 ### Файл `.env`
 
@@ -226,7 +228,7 @@ curl -I http://ТВОЙ_IP:3000
 
 Остановить тест: `Ctrl+C`.
 
-### PM2 — постоянный запуск
+### PM2 - постоянный запуск
 
 ```bash
 cd /var/www/parallaxmusic
@@ -235,7 +237,7 @@ pm2 save
 pm2 startup
 ```
 
-Команда `pm2 startup` выведет строку вида `sudo env PATH=...` — **скопируй и выполни её**.
+Команда `pm2 startup` выведет строку вида `sudo env PATH=...` - **скопируй и выполни её**.
 
 ```bash
 pm2 status
@@ -272,7 +274,7 @@ server {
 }
 ```
 
-`client_max_body_size 100M` — под загрузки до **80 MB** аудио в API.
+`client_max_body_size 100M` - под загрузки до **80 MB** аудио в API.
 
 Активация:
 
@@ -282,7 +284,7 @@ nginx -t
 systemctl reload nginx
 ```
 
-SSL (домен должен уже указывать на IP VPS — см. этап 7):
+SSL (домен должен уже указывать на IP VPS - см. этап 7):
 
 ```bash
 certbot --nginx -d parallaxmusic.ru -d www.parallaxmusic.ru
@@ -312,7 +314,7 @@ nslookup parallaxmusic.ru
 ### ЮKassa
 
 1. **Webhook URL** → `https://parallaxmusic.ru/api/payments/webhook`
-2. Если включён whitelist IP (`YOOKASSA_WEBHOOK_IP_WHITELIST`) — добавь IP VPS:
+2. Если включён whitelist IP (`YOOKASSA_WEBHOOK_IP_WHITELIST`) - добавь IP VPS:
 
 ```bash
 curl -4 ifconfig.me
@@ -320,8 +322,11 @@ curl -4 ifconfig.me
 
 ### Остальное
 
-- **Cloudflare Turnstile** — ключи обычно без изменений
-- **Resend / Telegram** — те же ключи из `.env`
+- **Cloudflare Turnstile** - ключи обычно без изменений
+- **Resend / Telegram** - те же ключи из `.env`
+- **Формы контакта и демо** - уведомление в Telegram и дубль на `RESEND_NOTIFY_EMAIL`.
+- **Cron подписок** (`/api/admin/subscriptions/expiring`), **оплаты** (webhook), **регистрация**, **сброс пароля**, **вывод** - то же: Telegram, при недоступности - email на `RESEND_NOTIFY_EMAIL`.
+- Если с VPS `curl https://api.telegram.org` даёт timeout, письма уйдут при `RESEND_API_KEY` + `RESEND_NOTIFY_EMAIL`.
 
 ---
 
@@ -331,16 +336,16 @@ curl -4 ifconfig.me
 crontab -e
 ```
 
-Пример (подставь свои секреты; время UTC — подстрой под Москву):
+Пример (подставь свои секреты; время UTC - подстрой под Москву):
 
 ```cron
-# Очистка черновиков — каждый час
+# Очистка черновиков - каждый час
 0 * * * * curl -fsS "https://parallaxmusic.ru/api/cron/upload-drafts-cleanup?secret=CRON_SECRET" >/dev/null
 
-# Списание подписок — раз в сутки
+# Списание подписок - раз в сутки
 0 3 * * * curl -fsS -X POST -H "Authorization: Bearer CRON_SECRET" "https://parallaxmusic.ru/api/cron/subscription-billing" >/dev/null
 
-# Напоминания о подписке — раз в день (если использовал на Amvera)
+# Напоминания о подписке - раз в день (если использовал на Amvera)
 0 7 * * * curl -fsS "https://parallaxmusic.ru/api/admin/subscriptions/expiring?secret=SUBSCRIPTION_REMINDER_SECRET" >/dev/null
 ```
 
@@ -363,7 +368,7 @@ curl "https://parallaxmusic.ru/api/cron/upload-drafts-cleanup?secret=CRON_SECRET
 - [ ] Оплата и webhook (статус заказа меняется)
 - [ ] Письма (сброс пароля)
 - [ ] Админка
-- [ ] `pm2 status` — `online`
+- [ ] `pm2 status` - `online`
 - [ ] После `reboot` сайт поднимается (`pm2 startup` выполнен)
 
 ---
@@ -393,7 +398,7 @@ pm2 restart parallaxmusic
 
 | Симптом | Что проверить |
 |---------|----------------|
-| 502 Bad Gateway | `pm2 status`, `pm2 logs` — упал Node |
+| 502 Bad Gateway | `pm2 status`, `pm2 logs` - упал Node |
 | Сайт без стилей | `NEXT_PUBLIC_SITE_URL`, нужен `pnpm build` после смены env |
 | Пустая БД / нет треков | нет `/data/app.db` или права доступа |
 | 413 при загрузке | в nginx `client_max_body_size 100M` |

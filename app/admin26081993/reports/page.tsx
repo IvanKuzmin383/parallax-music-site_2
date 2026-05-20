@@ -39,7 +39,7 @@ interface StreamingReport {
   id: string
   userId: string
   userEmail: string
-  /** С сервера с GET /api/admin/reports; при отсутствии — как без имени артиста */
+  /** С сервера с GET /api/admin/reports; при отсутствии - как без имени артиста */
   artistName?: string | null
   amount: number
   fileName: string
@@ -470,7 +470,7 @@ export default function AdminReportsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить отчет?</AlertDialogTitle>
             <AlertDialogDescription>
-              Отчёт для артиста «{selectedReport ? reportArtistLine(selectedReport.artistName) : "—"}» (
+              Отчёт для артиста «{selectedReport ? reportArtistLine(selectedReport.artistName) : "-"}» (
               {selectedReport?.userEmail}) будет удалён. Баланс пользователя будет уменьшен на сумму отчёта. Это действие
               нельзя отменить.
             </AlertDialogDescription>

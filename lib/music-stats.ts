@@ -50,19 +50,19 @@ function getLatestMusicImportMeta(platformKey: MusicPlatformKey): {
   }
 }
 
-/** unicode_lower — UDF из lib/db.ts (SQLite LOWER() не трогает кириллицу). */
+/** unicode_lower - UDF из lib/db.ts (SQLite LOWER() не трогает кириллицу). */
 const TITLE_NORM_SQL =
-  "REPLACE(REPLACE(REPLACE(REPLACE(unicode_lower(t.title), ' ', ''), '-', ''), '–', ''), '—', '')"
+  "REPLACE(REPLACE(REPLACE(REPLACE(unicode_lower(t.title), ' ', ''), '-', ''), '–', ''), '-', '')"
 
 /** Нормализация названия для сравнения (пробелы и дефисы убраны). */
 function titleNormSql(columnRef: string): string {
-  return `REPLACE(REPLACE(REPLACE(REPLACE(unicode_lower(${columnRef}), ' ', ''), '-', ''), '–', ''), '—', '')`
+  return `REPLACE(REPLACE(REPLACE(REPLACE(unicode_lower(${columnRef}), ' ', ''), '-', ''), '–', ''), '-', '')`
 }
 
 function normalizeTrackTitleForMatch(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[\s\-–—]+/g, "")
+    .replace(/[\s\-–-]+/g, "")
     .trim()
 }
 
@@ -313,7 +313,7 @@ export function getMusicStatsByPlatformKeyWithArtist(
     const normalizedTrackTitle = normalizeTrackTitleForMatch(trackTitle)
 
     // Normalize both DB value and filter value so variants like
-    // "Любовь-боль", "Любовь - боль", "Любовь—боль" match each other.
+    // "Любовь-боль", "Любовь - боль", "Любовь-боль" match each other.
     whereParts.push(`${TITLE_NORM_SQL} LIKE ?`)
     params.push(`%${normalizedTrackTitle}%`)
   } else if (trackId) {

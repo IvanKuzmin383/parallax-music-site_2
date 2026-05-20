@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   GENRES,
+  LYRICS_TEXT_UPLOAD_HINT,
   TRACK_MOODS,
   musicRightsRequiresAiService,
 } from "@/lib/track-constants"
@@ -65,6 +66,16 @@ import { isReleaseDateWeekend } from "@/lib/release-date-validation"
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
 import { PROFILE_INCOMPLETE_UPLOAD_ERROR_CODE } from "@/lib/cabinet-upload-profile-gate"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
+import {
+  COVER_HEIC_ERROR,
+  formatCabinetUploadFailure,
+  isCabinetCoverValidationMessage,
+  isHeicCoverFile,
+  isLikelyCoverImage,
+  isLikelyWavFile,
+  parseCabinetApiJson,
+  validateCoverFileClient,
+} from "@/lib/cabinet-upload-client"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import type { UploadDraftPayload, UploadDraftStatus } from "@/lib/upload-drafts"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
@@ -156,7 +167,7 @@ const uploadSchema = z.object({
   }
   if (hasAudioFile) {
     const file = data.audio![0] as File
-    if (!file.name.toLowerCase().endsWith(".wav")) {
+    if (!isLikelyWavFile(file)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["audio"],
@@ -249,12 +260,17 @@ const uploadSchema = z.object({
       })
     } else if (hasCoverFile) {
       const file = data.cover![0] as File
-      const ext = file.name.toLowerCase().split(".").pop()
-      if (!["jpg", "jpeg", "png"].includes(ext ?? "")) {
+      if (isHeicCoverFile(file)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["cover"],
-          message: "Обложка должна быть JPEG или PNG",
+          message: COVER_HEIC_ERROR,
+        })
+      } else if (!isLikelyCoverImage(file)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["cover"],
+          message: "Обложка должна быть в формате JPEG или PNG",
         })
       }
       if (file.size > 20 * 1024 * 1024) {
@@ -320,6 +336,11 @@ export default function CabinetUploadPage() {
   const [subscriptionLimitDialogOpen, setSubscriptionLimitDialogOpen] = useState(false)
   const [audioFormatError, setAudioFormatError] = useState<string | null>(null)
   const [coverFormatError, setCoverFormatError] = useState<string | null>(null)
+
+  const showCoverValidationError = (message: string) => {
+    setCoverFormatError(message)
+    form.setError("cover", { type: "manual", message })
+  }
   const [profileCompleteForUpload, setProfileCompleteForUpload] = useState<boolean | null>(null)
   const [userTrackPriceRub, setUserTrackPriceRub] = useState(TRACK_PRICE_RUB)
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
@@ -378,7 +399,7 @@ export default function CabinetUploadPage() {
     const list = watchedAudioFiles
     if (!list || list.length !== 1) return undefined
     const f = list[0] as File
-    if (!f?.name?.toLowerCase().endsWith(".wav")) return undefined
+    if (!isLikelyWavFile(f)) return undefined
     return f
   }, [watchedAudioFiles])
 
@@ -608,12 +629,17 @@ export default function CabinetUploadPage() {
       })()
 
       if (!response) return false
-      const data = (await response.json().catch(() => ({}))) as {
+      const data = await parseCabinetApiJson<{
         error?: string
         draft?: { id?: string; status?: UploadDraftStatus; audioRelPath?: string; coverRelPath?: string }
-      }
+      }>(response)
       if (!response.ok || !data.draft?.id) {
-        toast.error(data.error || "Не удалось сохранить черновик")
+        const errMsg = data.error || "Не удалось сохранить черновик"
+        if (isCabinetCoverValidationMessage(errMsg)) {
+          showCoverValidationError(errMsg)
+        } else {
+          toast.error(errMsg)
+        }
         return false
       }
 
@@ -628,7 +654,7 @@ export default function CabinetUploadPage() {
       return true
     } catch (error) {
       console.error("draft save failed:", error)
-      toast.error("Ошибка при сохранении черновика")
+      toast.error(formatCabinetUploadFailure(error, "Ошибка при сохранении черновика"))
       return false
     } finally {
       setIsSavingDraft(false)
@@ -730,18 +756,15 @@ export default function CabinetUploadPage() {
         { method, body: fd, credentials: "include" },
         TRACK_UPLOAD_TIMEOUT_MS
       )
-      const resBody = await res.json().catch(() => ({}))
+      const resBody = await parseCabinetApiJson<{
+        error?: string
+        draft?: { id: string; status?: UploadDraftStatus; audioRelPath?: string; coverRelPath?: string }
+      }>(res)
       if (!res.ok) {
-        const msg =
-          typeof (resBody as { error?: string }).error === "string"
-            ? (resBody as { error: string }).error
-            : "Не удалось сохранить аудио в черновик"
-        toast.error(msg)
+        toast.error(resBody.error || "Не удалось сохранить аудио в черновик")
         return
       }
-      const draft = (resBody as {
-        draft?: { id: string; status?: UploadDraftStatus; audioRelPath?: string; coverRelPath?: string }
-      }).draft
+      const draft = resBody.draft
       if (!draft?.id) {
         toast.error("Черновик не создан")
         return
@@ -756,11 +779,7 @@ export default function CabinetUploadPage() {
       toast.success("Аудио сохранено в черновик на сервере")
     } catch (e) {
       console.error(e)
-      if (e instanceof DOMException && e.name === "AbortError") {
-        toast.error("Сохранение аудио заняло слишком много времени. Проверьте соединение.")
-      } else {
-        toast.error("Ошибка при сохранении аудио")
-      }
+      toast.error(formatCabinetUploadFailure(e, "Ошибка при сохранении аудио"))
     } finally {
       audioSyncInFlight.current = false
       setIsSyncingAudio(false)
@@ -775,6 +794,11 @@ export default function CabinetUploadPage() {
     if (profileCompleteForUpload === false) return
     setIsSyncingCover(true)
     try {
+      const clientErr = await validateCoverFileClient(file)
+      if (clientErr) {
+        showCoverValidationError(clientErr)
+        return
+      }
       const fd = new FormData()
       fd.append("payload", JSON.stringify(buildUploadDraftJsonPayload()))
       fd.append("cover", file)
@@ -783,20 +807,27 @@ export default function CabinetUploadPage() {
         { method: "PATCH", body: fd, credentials: "include" },
         TRACK_UPLOAD_TIMEOUT_MS
       )
-      const resBody = await res.json().catch(() => ({}))
+      const resBody = await parseCabinetApiJson<{ error?: string }>(res)
       if (!res.ok) {
-        const msg =
-          typeof (resBody as { error?: string }).error === "string"
-            ? (resBody as { error: string }).error
-            : "Не удалось сохранить обложку"
-        toast.error(msg)
+        const msg = resBody.error || "Не удалось сохранить обложку"
+        if (isCabinetCoverValidationMessage(msg)) {
+          showCoverValidationError(msg)
+        } else {
+          toast.error(msg)
+        }
         return
       }
       form.setValue("serverDraftHasCover", true)
+      form.clearErrors("cover")
       toast.success("Обложка сохранена в черновик")
     } catch (e) {
       console.error(e)
-      toast.error("Ошибка при сохранении обложки")
+      const msg = formatCabinetUploadFailure(e, "Ошибка при сохранении обложки", "cover")
+      if (isCabinetCoverValidationMessage(msg)) {
+        showCoverValidationError(msg)
+      } else {
+        toast.error(msg)
+      }
     } finally {
       setIsSyncingCover(false)
     }
@@ -985,13 +1016,34 @@ export default function CabinetUploadPage() {
     }
     const hasLocalAudio = Boolean(data.audio && data.audio[0])
     if (hasLocalAudio) {
-      const stereoErr = await checkWavFileIsStereo(data.audio![0] as File)
-      if (stereoErr) {
-        form.setError("audio", { type: "manual", message: stereoErr })
-        toast.error(stereoErr)
+      try {
+        const stereoErr = await checkWavFileIsStereo(data.audio![0] as File)
+        if (stereoErr) {
+          form.setError("audio", { type: "manual", message: stereoErr })
+          toast.error(stereoErr)
+          return
+        }
+      } catch (e) {
+        const msg = formatCabinetUploadFailure(e, "Не удалось проверить аудиофайл")
+        form.setError("audio", { type: "manual", message: msg })
+        toast.error(msg)
         return
       }
     }
+    if (!data.requestAiCover && data.cover?.[0]) {
+      try {
+        const coverErr = await validateCoverFileClient(data.cover[0] as File)
+        if (coverErr) {
+          showCoverValidationError(coverErr)
+          return
+        }
+      } catch (e) {
+        const msg = formatCabinetUploadFailure(e, "Не удалось проверить обложку", "cover")
+        showCoverValidationError(msg)
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       const payload = buildUploadDraftJsonPayload()
@@ -1023,8 +1075,11 @@ export default function CabinetUploadPage() {
       )
 
       if (response.ok) {
-        const created = await response.json()
-        const draftId = (created?.draft?.id as string | undefined) ?? activeDraftId ?? undefined
+        const created = await parseCabinetApiJson<{
+          draft?: { id?: string; status?: UploadDraftStatus }
+          requiresPayment?: boolean
+        }>(response)
+        const draftId = created?.draft?.id ?? activeDraftId ?? undefined
         if (!draftId) {
           toast.error("Черновик не создан")
           return
@@ -1045,7 +1100,9 @@ export default function CabinetUploadPage() {
             method: "POST",
             credentials: "include",
           })
-          const paymentData = await paymentRes.json()
+          const paymentData = await parseCabinetApiJson<{ error?: string; paymentUrl?: string; skippedPayment?: boolean }>(
+            paymentRes
+          )
           if (!paymentRes.ok) {
             toast.error(paymentData.error || "Не удалось создать оплату")
             return
@@ -1060,7 +1117,7 @@ export default function CabinetUploadPage() {
               credentials: "include",
             })
             if (!finalizeRes.ok) {
-              const finalizeData = await finalizeRes.json().catch(() => ({}))
+              const finalizeData = await parseCabinetApiJson<{ error?: string }>(finalizeRes)
               toast.error(finalizeData.error || "Не удалось завершить отправку")
               return
             }
@@ -1076,7 +1133,7 @@ export default function CabinetUploadPage() {
           credentials: "include",
         })
         if (!finalizeRes.ok) {
-          const finalizeData = await finalizeRes.json()
+          const finalizeData = await parseCabinetApiJson<{ error?: string }>(finalizeRes)
           toast.error(finalizeData.error || "Не удалось завершить отправку")
           return
         }
@@ -1085,7 +1142,7 @@ export default function CabinetUploadPage() {
       } else if (response.status === 401) {
         router.replace("/cabinet")
       } else if (response.status === 403) {
-        const err = await response.json()
+        const err = await parseCabinetApiJson<{ error?: string; errorCode?: string }>(response)
         if (err.errorCode === PROFILE_INCOMPLETE_UPLOAD_ERROR_CODE) {
           setProfileCompleteForUpload(false)
           toast.error(err.error || "Заполните профиль")
@@ -1098,7 +1155,7 @@ export default function CabinetUploadPage() {
           )
         }
       } else {
-        const err = await response.json()
+        const err = await parseCabinetApiJson<{ error?: string }>(response)
         const message = err.error || "Не удалось загрузить трек"
         const isWavValidationMessage =
           typeof message === "string" &&
@@ -1115,30 +1172,15 @@ export default function CabinetUploadPage() {
             message.toLowerCase().includes("44.1 khz"))
         if (isWavValidationMessage) {
           setAudioFormatError(message)
-        } else if (
-          typeof message === "string" &&
-          (
-            message.includes("Обложка должна быть в формате JPEG или PNG") ||
-            message.includes("Обложка должна быть строго 3000×3000 пикселей") ||
-            message.includes("Не удалось определить размеры обложки") ||
-            message.toLowerCase().includes("обложка должна быть") ||
-            message.toLowerCase().includes("обложка")
-          )
-        ) {
-          setCoverFormatError(message)
+        } else if (typeof message === "string" && isCabinetCoverValidationMessage(message)) {
+          showCoverValidationError(message)
         } else {
           toast.error(message)
         }
       }
     } catch (error) {
       console.error("Upload error:", error)
-      if (error instanceof DOMException && error.name === "AbortError") {
-        toast.error(
-          "Загрузка заняла слишком много времени. Проверьте интернет-соединение и попробуйте снова."
-        )
-      } else {
-        toast.error("Ошибка при загрузке")
-      }
+      toast.error(formatCabinetUploadFailure(error, "Ошибка при загрузке"))
     } finally {
       setIsSubmitting(false)
     }
@@ -1420,6 +1462,7 @@ export default function CabinetUploadPage() {
                           {...field}
                         />
                       </FormControl>
+                      <FormDescription>{LYRICS_TEXT_UPLOAD_HINT}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1743,8 +1786,21 @@ export default function CabinetUploadPage() {
                           const files = e.target.files
                           onChange(files)
                           form.clearErrors("cover")
+                          setCoverFormatError(null)
                           const f = files?.[0]
                           if (!f || form.watch("requestAiCover")) return
+                          try {
+                            const coverErr = await validateCoverFileClient(f)
+                            if (coverErr) {
+                              showCoverValidationError(coverErr)
+                              return
+                            }
+                          } catch (err) {
+                            showCoverValidationError(
+                              formatCabinetUploadFailure(err, "Не удалось проверить обложку", "cover")
+                            )
+                            return
+                          }
                           if (activeDraftId) {
                             void syncCoverFileToDraftServer(f)
                           }
@@ -1774,7 +1830,7 @@ export default function CabinetUploadPage() {
                       <FormControl>
                         <input
                           type="file"
-                          accept=".wav,audio/wav"
+                          accept=".wav,audio/wav,audio/wave,audio/x-wav,audio/vnd.wave"
                           disabled={formDisabled}
                           className="sr-only"
                           onChange={async (e) => {
@@ -1782,10 +1838,25 @@ export default function CabinetUploadPage() {
                             onChange(files)
                             form.clearErrors("audio")
                             const f = files?.[0]
-                            if (!f?.name.toLowerCase().endsWith(".wav")) return
-                            const stereoError = await checkWavFileIsStereo(f)
-                            if (stereoError) {
-                              form.setError("audio", { type: "manual", message: stereoError })
+                            if (!f) return
+                            if (!isLikelyWavFile(f)) {
+                              form.setError("audio", {
+                                type: "manual",
+                                message: "Аудио должно быть в формате WAV",
+                              })
+                              toast.error("Аудио должно быть в формате WAV")
+                              return
+                            }
+                            try {
+                              const stereoError = await checkWavFileIsStereo(f)
+                              if (stereoError) {
+                                form.setError("audio", { type: "manual", message: stereoError })
+                                return
+                              }
+                            } catch (err) {
+                              const msg = formatCabinetUploadFailure(err, "Не удалось проверить аудиофайл")
+                              form.setError("audio", { type: "manual", message: msg })
+                              toast.error(msg)
                               return
                             }
                             void syncAudioFileToDraftServer(f)
@@ -1990,10 +2061,11 @@ export default function CabinetUploadPage() {
         <Dialog open={!!coverFormatError} onOpenChange={(open) => !open && setCoverFormatError(null)}>
           <DialogContent showCloseButton={false}>
             <DialogHeader>
-              <DialogTitle>Неверный формат обложки</DialogTitle>
+              <DialogTitle>Обложка не соответствует требованиям</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              {coverFormatError ?? "Обложка должна быть в формате JPEG или PNG."}
+              {coverFormatError ??
+                "Нужна обложка JPEG или PNG, строго 3000×3000 пикселей, до 20 MB."}
             </p>
             <DialogFooter className="mt-4">
               <Button

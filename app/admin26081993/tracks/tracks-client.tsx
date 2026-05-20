@@ -217,7 +217,7 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
   }
 }
 
-/** Порядок загрузки: раньше создан — выше в списке. */
+/** Порядок загрузки: раньше создан - выше в списке. */
 function sortTracksByUploadOrder(tracks: Track[]): Track[] {
   return [...tracks].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -355,7 +355,7 @@ export default function TracksPageClient() {
   const [albumModOpen, setAlbumModOpen] = useState(false)
   const [albumModAlbumId, setAlbumModAlbumId] = useState<string | null>(null)
   const [albumModTrackCount, setAlbumModTrackCount] = useState(0)
-  /** "__keep__" — не менять статус */
+  /** "__keep__" - не менять статус */
   const [albumModStatus, setAlbumModStatus] = useState<string>("__keep__")
   const [albumModNote, setAlbumModNote] = useState("")
   const [albumModSaving, setAlbumModSaving] = useState(false)
@@ -1353,7 +1353,7 @@ export default function TracksPageClient() {
                 {userIdFilterRaw}
               </span>
               <span className="block sm:inline text-foreground sm:ml-2">
-                — треков: {statusFilteredTracks.length}
+                - треков: {statusFilteredTracks.length}
                 {showUploadDraftsInModeration && displayUploadDrafts.length > 0
                   ? ` · черновиков: ${displayUploadDrafts.length}`
                   : ""}
@@ -1426,7 +1426,7 @@ export default function TracksPageClient() {
                             })}
                           </span>
                           <span className="text-sm">
-                            {track.artistName} —{" "}
+                            {track.artistName} -{" "}
                             <span className="font-medium">{track.trackName}</span>
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -1511,7 +1511,7 @@ export default function TracksPageClient() {
                     />
                   </PopoverContent>
                 </Popover>
-                <span className="text-sm text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">-</span>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1607,8 +1607,8 @@ export default function TracksPageClient() {
                     <div>
                       <CardTitle className="text-lg">Черновики загрузки</CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые — можно открыть,
-                        поправить статус и при необходимости нажать «Создать трек на модерации». Статус и поля — как в
+                        Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно открыть,
+                        поправить статус и при необходимости нажать «Создать трек на модерации». Статус и поля - как в
                         карточке трека на модерации.
                       </p>
                     </div>
@@ -1621,7 +1621,7 @@ export default function TracksPageClient() {
                 <CardContent className="space-y-2 pt-0">
                   {displayUploadDrafts.map((d) => {
                     const title = `${d.payload.trackName ?? ""}`.trim() || "Без названия"
-                    const artist = `${d.payload.artistName ?? ""}`.trim() || "—"
+                    const artist = `${d.payload.artistName ?? ""}`.trim() || "-"
                     return (
                       <div
                         key={d.id}
@@ -1984,7 +1984,7 @@ export default function TracksPageClient() {
                               {track.trackName}
                             </TableCell>
                             <TableCell>
-                              {track.albumId ? trackAlbumTitleById[track.albumId] ?? "—" : "Сингл"}
+                              {track.albumId ? trackAlbumTitleById[track.albumId] ?? "-" : "Сингл"}
                             </TableCell>
                             <TableCell className="max-w-[260px] whitespace-normal break-all text-sm">
                               {track.userId}
@@ -1995,9 +1995,9 @@ export default function TracksPageClient() {
                             <TableCell>
                               {track.releaseDate
                                 ? format(new Date(track.releaseDate), "d MMM yyyy", { locale: ru })
-                                : "—"}
+                                : "-"}
                             </TableCell>
-                            <TableCell>{track.upc?.trim() ? track.upc : "—"}</TableCell>
+                            <TableCell>{track.upc?.trim() ? track.upc : "-"}</TableCell>
                             <TableCell>
                               <Select
                                 value={track.status}
@@ -2496,7 +2496,7 @@ export default function TracksPageClient() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={RIGHTS_EMPTY}>—</SelectItem>
+                            <SelectItem value={RIGHTS_EMPTY}>-</SelectItem>
                             {MUSIC_RIGHTS_OPTIONS.map((opt) => (
                               <SelectItem key={opt} value={opt}>
                                 {opt}
@@ -2557,7 +2557,7 @@ export default function TracksPageClient() {
                                 <SelectValue placeholder="Выберите вариант" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value={RIGHTS_EMPTY}>—</SelectItem>
+                                <SelectItem value={RIGHTS_EMPTY}>-</SelectItem>
                                 {LYRICS_RIGHTS_OPTIONS.map((opt) => (
                                   <SelectItem key={opt} value={opt}>
                                     {opt}
@@ -2602,7 +2602,7 @@ export default function TracksPageClient() {
                                 <SelectValue placeholder="Выберите вариант" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value={RIGHTS_EMPTY}>—</SelectItem>
+                                <SelectItem value={RIGHTS_EMPTY}>-</SelectItem>
                                 {PERFORMANCE_RIGHTS_OPTIONS.map((opt) => (
                                   <SelectItem key={opt} value={opt}>
                                     {opt}
@@ -2631,12 +2631,12 @@ export default function TracksPageClient() {
                       {selectedTrack ? (
                         selectedTrack.needsAiCover && !selectedTrack.coverPath?.trim() ? (
                           <p className="text-sm text-amber-700 dark:text-amber-300">
-                            Пользователь заказал ИИ-обложку ({AI_COVER_REQUEST_PRICE_RUB} руб.) — файла ещё нет.
+                            Пользователь заказал ИИ-обложку ({AI_COVER_REQUEST_PRICE_RUB} руб.) - файла ещё нет.
                           </p>
                         ) : null
                       ) : selectedUploadDraft?.payload.requestAiCover && !selectedUploadDraft.coverRelPath ? (
                         <p className="text-sm text-amber-700 dark:text-amber-300">
-                          Заказ ИИ-обложки ({AI_COVER_REQUEST_PRICE_RUB} руб.) — файла в черновике ещё нет.
+                          Заказ ИИ-обложки ({AI_COVER_REQUEST_PRICE_RUB} руб.) - файла в черновике ещё нет.
                         </p>
                       ) : null}
                       <div className="rounded-lg border overflow-hidden max-w-xs min-h-[120px] bg-muted">
@@ -3022,7 +3022,7 @@ export default function TracksPageClient() {
                   onChange={(e) => setAlbumModNote(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Пустое поле — не менять комментарий у треков.
+                  Пустое поле - не менять комментарий у треков.
                 </p>
                 <Button
                   type="button"

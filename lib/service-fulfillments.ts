@@ -53,7 +53,7 @@ export function upsertNewFulfillmentIfMissing(orderId: string): void {
 
 const placeholders = SERVICE_ORDER_TYPES.map(() => "?").join(", ")
 
-/** Для всех оплаченных заказов услуг без строки исполнения — вставить `new`. */
+/** Для всех оплаченных заказов услуг без строки исполнения - вставить `new`. */
 export function ensureMissingFulfillmentRowsForPaidOrders(options?: { userId?: string }): void {
   const db = getDb()
   const t = nowIso()

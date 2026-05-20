@@ -12,7 +12,7 @@ export function CabinetUploadProfileGateBanner() {
       </AlertTitle>
       <AlertDescription className="space-y-3">
         <p className="text-foreground/90 text-sm leading-relaxed">
-          Укажите фамилию, имя, отчество, адрес регистрации и контактный телефон — без этого отправка релиза
+          Укажите фамилию, имя, отчество, адрес регистрации и контактный телефон - без этого отправка релиза
           недоступна. Подробности и правовые основания приведены в разделе «Профиль».
         </p>
         <Button asChild size="sm" variant="default">

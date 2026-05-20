@@ -6,7 +6,7 @@ export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number]
 
 /**
  * Эффективный лимит треков: для Fix = subscriptionTrackLimit + purchasedTracksBalance,
- * для остальных планов — как getTrackLimit (Start/Medium/Pro).
+ * для остальных планов - как getTrackLimit (Start/Medium/Pro).
  */
 export function getEffectiveTrackLimit(user: Pick<CabinetUser, "subscriptionName" | "subscriptionTrackLimit" | "purchasedTracksBalance">): number | null {
   const plan = user.subscriptionName
