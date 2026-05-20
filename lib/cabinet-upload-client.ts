@@ -18,21 +18,26 @@ export function isLikelyWavFile(file: File): boolean {
   return false
 }
 
-export async function parseCabinetApiJson<T extends { error?: string }>(
+export type CabinetApiJsonBody = { error?: string }
+
+/** Парсит JSON ответа API кабинета; при ошибке парсинга возвращает `{ error }`. */
+export async function parseCabinetApiJson<T = CabinetApiJsonBody>(
   response: Response
-): Promise<T> {
+): Promise<T & CabinetApiJsonBody> {
   try {
-    return (await response.json()) as T
+    return (await response.json()) as T & CabinetApiJsonBody
   } catch {
+    const fallback = (message: string): T & CabinetApiJsonBody =>
+      ({ error: message }) as T & CabinetApiJsonBody
     if (response.status === 413) {
-      return { error: "Файл слишком большой (макс. 80 MB для аудио, 20 MB для обложки)." } as T
+      return fallback("Файл слишком большой (макс. 80 MB для аудио, 20 MB для обложки).")
     }
     if (response.status >= 500) {
-      return { error: `Ошибка сервера (${response.status}). Попробуйте позже или через Wi‑Fi.` } as T
+      return fallback(`Ошибка сервера (${response.status}). Попробуйте позже или через Wi‑Fi.`)
     }
-    return {
-      error: `Не удалось разобрать ответ сервера (${response.status}). Проверьте интернет и попробуйте снова.`,
-    } as T
+    return fallback(
+      `Не удалось разобрать ответ сервера (${response.status}). Проверьте интернет и попробуйте снова.`
+    )
   }
 }
 
