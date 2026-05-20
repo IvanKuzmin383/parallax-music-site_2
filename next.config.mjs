@@ -22,9 +22,9 @@ const cspDirectives = [
     'https://www.google.com',
     'https://www.gstatic.com',
   ].join(' '),
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https: https://mc.yandex.ru",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "font-src 'self' data:",
   [
     "connect-src 'self'",
     'https://mc.yandex.ru',
@@ -33,6 +33,7 @@ const cspDirectives = [
     'wss://mc.yandex.ru',
     'wss://mc.yandex.com',
     'https://challenges.cloudflare.com',
+    'https://top-fwz1.mail.ru',
   ].join(' '),
   [
     "frame-src 'self'",
@@ -89,6 +90,24 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: securityHeaders,
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/svg logo partners/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400',
+          },
+        ],
       },
     ]
   },

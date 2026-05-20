@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import Image from "next/image"
 import { useI18n } from "@/lib/i18n-context"
 
 const PARTNER_LOGOS = [
@@ -76,12 +75,15 @@ export function PartnerMarquee() {
     <div className="mt-20 px-2 overflow-hidden">
       <div ref={marqueeRef} className="flex items-center gap-12 md:gap-16 will-change-transform">
         {doubled.map((src, index) => (
-          <div key={index} className="flex-shrink-0">
-            <Image
+          <div key={`${src}-${index}`} className="flex-shrink-0">
+            <img
               src={src}
               alt={t.hero.partnerLogoAlt}
               width={260}
               height={120}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
               className="h-16 md:h-20 w-auto opacity-90"
             />
           </div>

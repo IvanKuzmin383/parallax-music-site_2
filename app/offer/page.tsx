@@ -1,9 +1,7 @@
 import { readFile } from "fs/promises"
 import { join } from "path"
 import { Metadata } from "next"
-import Link from "next/link"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { LegalDocumentPage } from "@/components/legal-document-page"
 
 export const metadata: Metadata = {
   title: "Публичная оферта и лицензионные условия",
@@ -18,26 +16,5 @@ async function getOfferContent(): Promise<string> {
 
 export default async function OfferPage() {
   const content = await getOfferContent()
-
-  return (
-    <main className="min-h-screen bg-background pt-20">
-      <article className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
-            >
-              <span aria-hidden="true">←</span>
-              <span>На главную</span>
-            </Link>
-          </div>
-
-          <div className="prose prose-lg dark:prose-invert max-w-none [&_ul]:list-disc [&_ol]:list-decimal [&_li]:my-1">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-          </div>
-        </div>
-      </article>
-    </main>
-  )
+  return <LegalDocumentPage content={content} />
 }

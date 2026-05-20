@@ -96,7 +96,7 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <Link href="/review" className="hover:text-primary transition-colors">
+                <Link href="/review" prefetch={false} className="hover:text-primary transition-colors">
                   Оставить отзыв
                 </Link>
               </li>
@@ -138,19 +138,19 @@ export function Footer() {
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">{t.footer.copyright}</p>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link href="/privacy" className="hover:text-primary transition-colors">
+            <Link href="/privacy" prefetch={false} className="hover:text-primary transition-colors">
               {t.footer.privacyPolicy}
             </Link>
-            <Link href="/cookies" className="hover:text-primary transition-colors">
+            <Link href="/cookies" prefetch={false} className="hover:text-primary transition-colors">
               Политика cookie
             </Link>
-            <Link href="/terms" className="hover:text-primary transition-colors">
+            <Link href="/terms" prefetch={false} className="hover:text-primary transition-colors">
               {t.footer.termsOfService}
             </Link>
-            <Link href="/offer" className="hover:text-primary transition-colors">
+            <Link href="/offer" prefetch={false} className="hover:text-primary transition-colors">
               {t.footer.publicOffer}
             </Link>
-            <Link href="/personal-data-consent" className="hover:text-primary transition-colors">
+            <Link href="/personal-data-consent" prefetch={false} className="hover:text-primary transition-colors">
               {t.footer.personalDataConsent}
             </Link>
           </div>

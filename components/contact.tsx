@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -32,9 +32,29 @@ type ContactFormValues = {
 export function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [showCaptcha, setShowCaptcha] = useState(false)
+  const captchaMountRef = useRef<HTMLDivElement>(null)
   const { t, locale } = useI18n()
   const turnstileEnabled = isTurnstileEnabledClient()
   const turnstileSiteKey = getTurnstileSiteKeyClient()
+
+  useEffect(() => {
+    if (!turnstileEnabled || !turnstileSiteKey) return
+    const el = captchaMountRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShowCaptcha(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "200px" }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [turnstileEnabled, turnstileSiteKey])
 
   const contactFormSchema = useMemo(
     () =>
@@ -260,16 +280,18 @@ export function Contact() {
                 )}
               />
               {turnstileEnabled && turnstileSiteKey ? (
-                <div className="flex justify-center">
-                  <Turnstile
-                    siteKey={turnstileSiteKey}
-                    onSuccess={(token) => setCaptchaToken(token)}
-                    onError={() => setCaptchaToken(null)}
-                    onExpire={() => setCaptchaToken(null)}
-                    options={{
-                      theme: "dark",
-                    }}
-                  />
+                <div ref={captchaMountRef} className="flex justify-center min-h-[65px]">
+                  {showCaptcha ? (
+                    <Turnstile
+                      siteKey={turnstileSiteKey}
+                      onSuccess={(token) => setCaptchaToken(token)}
+                      onError={() => setCaptchaToken(null)}
+                      onExpire={() => setCaptchaToken(null)}
+                      options={{
+                        theme: "dark",
+                      }}
+                    />
+                  ) : null}
                 </div>
               ) : null}
               <div className="flex flex-col items-center justify-center gap-4 text-center md:flex-row md:gap-6">

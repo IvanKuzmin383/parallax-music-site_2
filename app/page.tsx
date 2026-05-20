@@ -1,13 +1,14 @@
+import dynamic from "next/dynamic"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { Hero } from "@/components/hero"
 import { Services } from "@/components/services"
 import { Process } from "@/components/process"
 import { Advantages } from "@/components/advantages"
-// import { Platforms } from "@/components/platforms"
-import { Pricing } from "@/components/pricing"
-import { FaqSection } from "@/components/faq-section"
-import { Contact } from "@/components/contact"
-import { Reviews } from "@/components/reviews"
+
+const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Pricing))
+const FaqSection = dynamic(() => import("@/components/faq-section").then((m) => m.FaqSection))
+const Reviews = dynamic(() => import("@/components/reviews").then((m) => m.Reviews))
+const Contact = dynamic(() => import("@/components/contact").then((m) => m.Contact))
 
 export default function HomePage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parallaxmusic.ru'

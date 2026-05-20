@@ -43,10 +43,10 @@ import { LanguageSwitcher } from "@/components/language-switcher"
           <Link href="/#reviews" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             Отзывы
           </Link>
-          <Link href="/blog" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+          <Link href="/blog" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.blog}
           </Link>
-          <Link href="/ai" className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
+          <Link href="/ai" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
             {t.header.aiMusic}
           </Link>
           <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
@@ -64,7 +64,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
             className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
             asChild
           >
-            <Link href="/cabinet">{t.header.login}</Link>
+            <Link href="/cabinet" prefetch={false}>{t.header.login}</Link>
           </Button>
         </div>
 
@@ -101,6 +101,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
             </Link>
             <Link
               href="/blog"
+              prefetch={false}
               className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
@@ -108,6 +109,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
             </Link>
             <Link
               href="/ai"
+              prefetch={false}
               className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
               onClick={() => setIsMobileMenuOpen(false)}
             >
@@ -134,7 +136,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
                 className="uppercase tracking-wider bg-primary text-primary-foreground flex-1"
                 asChild
               >
-                <Link href="/cabinet" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href="/cabinet" prefetch={false} onClick={() => setIsMobileMenuOpen(false)}>
                   {t.header.login}
                 </Link>
               </Button>

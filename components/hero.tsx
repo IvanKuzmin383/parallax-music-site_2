@@ -1,10 +1,15 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useI18n } from "@/lib/i18n-context"
-import { PartnerMarquee } from "@/components/partner-marquee"
+
+const PartnerMarquee = dynamic(
+  () => import("@/components/partner-marquee").then((m) => m.PartnerMarquee),
+  { ssr: false, loading: () => <div className="mt-20 h-20" aria-hidden /> }
+)
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -24,7 +29,7 @@ export function Hero() {
       })
     }
 
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 

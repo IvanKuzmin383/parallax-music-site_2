@@ -1076,6 +1076,7 @@ export default function CabinetUploadPage() {
 
       if (response.ok) {
         const created = await parseCabinetApiJson<{
+          error?: string
           draft?: { id?: string; status?: UploadDraftStatus }
           requiresPayment?: boolean
         }>(response)
