@@ -20,6 +20,13 @@ yarn-error.log*
 # env files
 .env*
 
+# SQLite (локальная dev-БД; на VPS — /data/app.db, не в репозитории)
+data/app.db
+/data/app.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # vercel
 .vercel
 

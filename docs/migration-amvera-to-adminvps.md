@@ -392,6 +392,8 @@ pnpm build
 pm2 restart parallaxmusic
 ```
 
+**Не коммитьте в Git:** `/data/app.db`, `data/app.db`, `.env`, бэкапы архивов с БД. Бэкап продакшена — `scp` / tar на ПК (см. раздел про `/data/app.db` выше).
+
 ---
 
 ## Частые проблемы
