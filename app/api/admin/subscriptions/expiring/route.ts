@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { format, differenceInCalendarDays } from "date-fns"
 import { ru } from "date-fns/locale"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { getAllCabinetUsers } from "@/lib/cabinet-users"
+import { getAllCabinetUsers, type CabinetUser } from "@/lib/cabinet-users"
+import {
+  calculateTotalAmount,
+  isPlanId,
+  subscriptionNameToPlanId,
+} from "@/lib/plan-pricing"
 import { escapeHtml } from "@/lib/telegram"
 import {
   isStaffNotificationConfigured,
@@ -16,6 +21,44 @@ function getAutopayStatusLabel(user: {
   yookassaPaymentMethodId?: string
 }): string {
   return user.autopayEnabled && user.yookassaPaymentMethodId ? "✅ подключено" : "❌ не подключено"
+}
+
+function formatAmountRub(amount: number): string {
+  return `${Math.round(amount).toLocaleString("ru-RU")} ₽`
+}
+
+/** Сумма продления: из автоплатежа или оценка 1 мес. по текущему тарифу. */
+function getSubscriptionAmountLabel(user: CabinetUser): string {
+  if (
+    user.autopayPlanId &&
+    isPlanId(user.autopayPlanId) &&
+    user.autopayPeriod &&
+    user.autopayPeriodsCount != null
+  ) {
+    const total = calculateTotalAmount(user.autopayPlanId, user.autopayPeriod, user.autopayPeriodsCount)
+    const periodWord = user.autopayPeriod === "year" ? "год" : "мес."
+    return `${formatAmountRub(total)} (${user.autopayPeriodsCount} ${periodWord}.)`
+  }
+
+  const planId = subscriptionNameToPlanId(user.subscriptionName)
+  if (planId) {
+    const total = calculateTotalAmount(planId, "month", 1)
+    return `~${formatAmountRub(total)} (1 мес.)`
+  }
+
+  return "—"
+}
+
+function appendSubscriptionUserLine(message: string, user: CabinetUser, suffix: string): string {
+  const tariff = user.subscriptionName ?? "—"
+  const amount = getSubscriptionAmountLabel(user)
+  const autopayStatus = getAutopayStatusLabel(user)
+  return (
+    message +
+    `• ${escapeHtml(user.email)} | тариф: ${escapeHtml(tariff)} | сумма: ${escapeHtml(amount)} | ${suffix} | автосписание: ${escapeHtml(
+      autopayStatus
+    )}\n`
+  )
 }
 
 function isAuthorized(request: NextRequest): boolean {
@@ -97,10 +140,7 @@ export async function GET(request: NextRequest) {
       message += "<b>❌ Уже истекли:</b>\n"
       for (const user of expired) {
         const expiresStr = format(new Date(user.subscriptionExpiresAt!), "d MMM yyyy", { locale: ru })
-        const autopayStatus = getAutopayStatusLabel(user)
-        message += `• ${escapeHtml(user.email)} - до ${escapeHtml(expiresStr)} | автосписание: ${escapeHtml(
-          autopayStatus
-        )}\n`
+        message = appendSubscriptionUserLine(message, user, `до ${expiresStr}`)
       }
       message += "\n"
     }
@@ -111,10 +151,11 @@ export async function GET(request: NextRequest) {
         const expires = new Date(user.subscriptionExpiresAt!)
         const diff = differenceInCalendarDays(expires, today)
         const expiresStr = format(expires, "d MMM yyyy", { locale: ru })
-        const autopayStatus = getAutopayStatusLabel(user)
-        message += `• ${escapeHtml(user.email)} - до ${escapeHtml(
-          expiresStr
-        )} (осталось ${diff} дн.) | автосписание: ${escapeHtml(autopayStatus)}\n`
+        message = appendSubscriptionUserLine(
+          message,
+          user,
+          `до ${expiresStr} (осталось ${diff} дн.)`
+        )
       }
       message += "\n#подписки"
     }

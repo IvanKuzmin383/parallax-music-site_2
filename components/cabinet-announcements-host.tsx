@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { AnnouncementBody } from "@/components/announcement-body"
 import {
   Dialog,
   DialogContent,
@@ -85,8 +86,11 @@ export function CabinetAnnouncementsHost() {
       >
         <DialogHeader>
           <DialogTitle>{current.title}</DialogTitle>
-          <DialogDescription className="text-left whitespace-pre-wrap pt-2 text-foreground">
-            {current.body}
+          <DialogDescription asChild>
+            <AnnouncementBody
+              body={current.body}
+              className="text-left pt-2 text-sm text-foreground"
+            />
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
