@@ -7,7 +7,6 @@ const updateReviewSchema = z.object({
   authorName: z.string().trim().min(2).max(80).optional(),
   text: z.string().trim().min(20).max(3000).optional(),
   rating: z.number().int().min(1).max(5).optional(),
-  isPublished: z.boolean().optional(),
 })
 
 export async function PATCH(

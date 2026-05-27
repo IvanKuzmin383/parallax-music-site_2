@@ -11,27 +11,23 @@ import { AdminSectionNav } from "@/components/admin-section-nav"
 
 type Review = {
   id: string
-  userId?: string
   authorName: string
   rating: number
   text: string
-  isPublished: boolean
-  createdByAdmin: boolean
   createdAt: string
+  updatedAt: string
 }
 
 type ReviewFormState = {
   authorName: string
   rating: number
   text: string
-  isPublished: boolean
 }
 
 const defaultForm: ReviewFormState = {
   authorName: "",
   rating: 5,
   text: "",
-  isPublished: false,
 }
 
 export default function AdminReviewsPage() {
@@ -92,7 +88,7 @@ export default function AdminReviewsPage() {
         toast.error(data.error || "Не удалось создать отзыв")
         return
       }
-      toast.success("Отзыв создан")
+      toast.success("Отзыв добавлен на главную")
       setCreateForm(defaultForm)
       await loadReviews()
     } catch {
@@ -108,7 +104,6 @@ export default function AdminReviewsPage() {
       authorName: review.authorName,
       rating: review.rating,
       text: review.text,
-      isPublished: review.isPublished,
     })
   }
 
@@ -187,7 +182,8 @@ export default function AdminReviewsPage() {
         <div>
           <h1 className="text-2xl font-bold">Отзывы</h1>
           <p className="text-muted-foreground text-sm">
-            Модерация и ручное добавление отзывов
+            Отзывы на главной хранятся в JSON ({`data/reviews.json`} или `/data/reviews.json` на сервере).
+            После сохранения главная обновляется сразу (сброс кэша страницы).
           </p>
         </div>
 
@@ -240,19 +236,8 @@ export default function AdminReviewsPage() {
                   disabled={creating}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={createForm.isPublished}
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({ ...prev, isPublished: e.target.checked }))
-                  }
-                  disabled={creating}
-                />
-                Опубликовать сразу
-              </label>
               <Button type="submit" disabled={creating}>
-                {creating ? "Сохранение..." : "Создать отзыв"}
+                {creating ? "Сохранение..." : "Добавить на главную"}
               </Button>
             </form>
           </CardContent>
@@ -301,16 +286,6 @@ export default function AdminReviewsPage() {
                           }
                           maxLength={3000}
                         />
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={editForm.isPublished}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({ ...prev, isPublished: e.target.checked }))
-                            }
-                          />
-                          Опубликовать
-                        </label>
                         <div className="flex gap-2">
                           <Button
                             size="sm"
@@ -319,11 +294,7 @@ export default function AdminReviewsPage() {
                           >
                             {savingId === review.id ? "Сохранение..." : "Сохранить"}
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingId(null)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
                             Отмена
                           </Button>
                         </div>
@@ -335,17 +306,8 @@ export default function AdminReviewsPage() {
                           <span className="text-sm text-muted-foreground">
                             Оценка: {review.rating}/5
                           </span>
-                          <span className="text-sm text-muted-foreground">
-                            Источник: {review.createdByAdmin ? "Админ" : "Пользователь"}
-                          </span>
-                          <span
-                            className={
-                              review.isPublished
-                                ? "text-xs px-2 py-1 rounded bg-green-100 text-green-700"
-                                : "text-xs px-2 py-1 rounded bg-muted text-muted-foreground"
-                            }
-                          >
-                            {review.isPublished ? "Опубликован" : "Скрыт"}
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(review.createdAt).toLocaleString("ru-RU")}
                           </span>
                         </div>
                         <p className="whitespace-pre-wrap text-sm">{review.text}</p>

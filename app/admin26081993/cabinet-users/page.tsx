@@ -696,7 +696,6 @@ function AdminCabinetUsersPageInner() {
         deletedHistory: related.deletedHistory ?? [],
       },
       interactions: {
-        reviews: related.reviews ?? [],
         announcementDismissals: related.announcementDismissals ?? [],
       },
       raw: payload ?? {},
@@ -1764,17 +1763,6 @@ function AdminCabinetUsersPageInner() {
 
               <TabsContent value="interactions" className="mt-3">
                 <div className="space-y-3">
-                  <div className="rounded border p-3">
-                    <p className="font-medium mb-2">Отзывы ({toRows(toRecord(userFullSections.interactions).reviews).length})</p>
-                    <div className="space-y-2">
-                      {toRows(toRecord(userFullSections.interactions).reviews).slice(0, 20).map((review, idx) => (
-                        <div key={String(review.id ?? idx)} className="rounded border bg-muted/30 px-3 py-2 text-sm">
-                          <p>Оценка: {renderValue(review.rating)} · {renderValue(review.author_name ?? review.authorName)}</p>
-                          <p className="text-muted-foreground">{renderValue(review.text)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                   <div className="rounded border p-3">
                     <p className="font-medium mb-2">Скрытые объявления ({toRows(toRecord(userFullSections.interactions).announcementDismissals).length})</p>
                     <div className="space-y-2">

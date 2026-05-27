@@ -95,11 +95,6 @@ export function Footer() {
                   {t.header.contact}
                 </a>
               </li>
-              <li>
-                <Link href="/review" prefetch={false} className="hover:text-primary transition-colors">
-                  Оставить отзыв
-                </Link>
-              </li>
             </ul>
           </div>
 

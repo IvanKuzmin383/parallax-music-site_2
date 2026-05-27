@@ -23,6 +23,7 @@ yarn-error.log*
 # SQLite (локальная dev-БД; на VPS — /data/app.db, не в репозитории)
 data/app.db
 /data/app.db
+/data/reviews.json
 *.db-journal
 *.db-wal
 *.db-shm

@@ -9,6 +9,7 @@
 | Что | Где на Amvera | Где на VPS |
 |-----|---------------|------------|
 | База | `/data/app.db` | `/data/app.db` |
+| Отзывы на главной | SQLite `reviews` | `/data/reviews.json` (редактирование в админке) |
 | Загрузки (аудио, обложки) | `/data/uploads/` | `/data/uploads/` |
 | Код | Git / деплой Amvera | `/var/www/parallaxmusic` |
 | Секреты | переменные в панели Amvera | файл `.env` на VPS |
@@ -137,6 +138,10 @@ ufw status
 ```bash
 mkdir -p /data/uploads
 chmod 755 /data
+# Отзывы на главной (если ещё нет — создастся при первом сохранении в админке)
+touch /data/reviews.json
+echo '{"reviews":[]}' > /data/reviews.json
+chmod 644 /data/reviews.json
 ```
 
 ---

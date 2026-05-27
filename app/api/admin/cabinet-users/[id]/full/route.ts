@@ -90,16 +90,6 @@ export async function GET(
     )
     .all(id, email) as Record<string, unknown>[]
 
-  const reviews = db
-    .prepare(
-      `
-      SELECT * FROM reviews
-      WHERE user_id = ? OR LOWER(COALESCE(user_id, '')) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
-
   const artistSubscriptions = db
     .prepare(
       `
@@ -197,7 +187,7 @@ export async function GET(
       uploadDraftsCount: uploadDrafts.length,
       withdrawalRequestsCount: withdrawalRequests.length,
       streamingReportsCount: streamingReports.length,
-      reviewsCount: reviews.length,
+      reviewsCount: 0,
       artistSubscriptionsCount: artistSubscriptions.length,
       legalAcceptanceEventsCount: legalAcceptanceEvents.length,
     },
@@ -208,7 +198,7 @@ export async function GET(
       uploadDrafts: preparedUploadDrafts,
       withdrawalRequests,
       streamingReports,
-      reviews,
+      reviews: [],
       artistSubscriptions,
       announcementDismissals,
       legalAcceptanceEvents: preparedLegalEvents,

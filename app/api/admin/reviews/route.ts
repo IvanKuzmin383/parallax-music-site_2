@@ -7,7 +7,6 @@ const createAdminReviewSchema = z.object({
   authorName: z.string().trim().min(2).max(80),
   text: z.string().trim().min(20).max(3000),
   rating: z.number().int().min(1).max(5),
-  isPublished: z.boolean().optional().default(false),
 })
 
 export async function GET(request: NextRequest) {
