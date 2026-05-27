@@ -2,9 +2,8 @@ import crypto from "crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { uploadDraftAddonBundleTotalRub } from "@/lib/cabinet-upload-draft-addons"
+import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
 import { createOrder, updateOrderStatus } from "@/lib/orders"
-import { AI_COVER_REQUEST_PRICE_RUB } from "@/lib/track-constants"
 import { getUploadDraftById, updateUploadDraft } from "@/lib/upload-drafts"
 
 const YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
@@ -27,8 +26,7 @@ export async function POST(
   const user = await getCabinetUserByEmail(session.email)
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
 
-  const aiCoverRub = Boolean(draft.payload.requestAiCover) ? AI_COVER_REQUEST_PRICE_RUB : 0
-  const totalRub = uploadDraftAddonBundleTotalRub(draft.payload) + aiCoverRub
+  const totalRub = uploadDraftRequiredPaymentRub(draft.payload)
   if (totalRub <= 0) {
     await updateUploadDraft(draft.id, { status: "paid", bundleOrderId: null })
     return NextResponse.json({ ok: true, skippedPayment: true })

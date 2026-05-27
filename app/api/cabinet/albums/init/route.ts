@@ -113,8 +113,17 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    if (!usePaidTrackCover && (!coverFile || coverFile.size === 0)) {
-      return NextResponse.json({ error: "Загрузите обложку или включите платную услугу обложки" }, { status: 400 })
+    if (usePaidTrackCover) {
+      return NextResponse.json(
+        {
+          error:
+            "Заказ обложки доступен через форму загрузки альбома в кабинете с оплатой услуги",
+        },
+        { status: 400 }
+      )
+    }
+    if (!coverFile || coverFile.size === 0) {
+      return NextResponse.json({ error: "Загрузите обложку альбома" }, { status: 400 })
     }
 
     let tracksMeta: AlbumTrackMeta[]

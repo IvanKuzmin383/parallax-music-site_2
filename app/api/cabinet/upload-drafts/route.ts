@@ -6,7 +6,7 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
 import { getUploadDraftsDir, createUploadDraft, listUploadDrafts, type UploadDraftPayload } from "@/lib/upload-drafts"
-import { uploadDraftAddonBundleTotalRub } from "@/lib/cabinet-upload-draft-addons"
+import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
 import {
   MAX_CABINET_COVER_BYTES,
   validateCabinetCoverImageFromFilePath,
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         await copyFileToPathAtomic(cover.tempFilePath, path.join(await ensureDraftsDir(), coverRelPath))
       }
 
-      const totalRub = uploadDraftAddonBundleTotalRub(payload)
+      const totalRub = uploadDraftRequiredPaymentRub(payload)
 
       const draft = await createUploadDraft({
         userId: session.email,

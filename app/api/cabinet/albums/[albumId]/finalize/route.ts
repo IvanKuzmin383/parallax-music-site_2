@@ -6,8 +6,7 @@ import { getTracksByAlbumId } from "@/lib/tracks"
 import { updateTrack } from "@/lib/tracks"
 import { getAlbumById } from "@/lib/albums"
 import { getUploadDraftByAlbumId, markUploadDraftFinalized, removeUploadDraftFiles } from "@/lib/upload-drafts"
-import { getOrderById } from "@/lib/orders"
-import { uploadDraftAddonBundleTotalRub } from "@/lib/cabinet-upload-draft-addons"
+import { assertUploadDraftBundlePayment } from "@/lib/cabinet-upload-draft-addons"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 
 /**
@@ -58,11 +57,13 @@ export async function POST(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     )
     const albumDraft = await getUploadDraftByAlbumId(albumId)
-    const albumAddonTotalRub = albumDraft ? uploadDraftAddonBundleTotalRub(albumDraft.payload) : 0
-    if (albumAddonTotalRub > 0 && albumDraft?.bundleOrderId) {
-      const order = await getOrderById(albumDraft.bundleOrderId)
-      if (!order || order.status !== "paid") {
-        return NextResponse.json({ error: "Сначала оплатите выбранные услуги" }, { status: 400 })
+    if (albumDraft) {
+      const paymentGate = await assertUploadDraftBundlePayment(
+        albumDraft.payload,
+        albumDraft.bundleOrderId
+      )
+      if (!paymentGate.ok) {
+        return NextResponse.json({ error: paymentGate.error }, { status: 400 })
       }
     }
 

@@ -13,7 +13,10 @@ import {
   type UploadDraft,
   type UploadDraftPayload,
 } from "@/lib/upload-drafts"
-import { uploadDraftAddonBundleTotalRub } from "@/lib/cabinet-upload-draft-addons"
+import {
+  bundleOrderIdIfStillCoversPayload,
+  uploadDraftRequiredPaymentRub,
+} from "@/lib/cabinet-upload-draft-addons"
 import { getOrderById } from "@/lib/orders"
 import {
   MAX_CABINET_COVER_BYTES,
@@ -169,16 +172,15 @@ export async function PATCH(
           }
         }
 
-        const totalRub = uploadDraftAddonBundleTotalRub(nextPayload)
-        let bundleOrderIdForStatus: string | null | undefined = undefined
-        if (totalRub === 0 && draft.bundleOrderId) {
-          const order = await getOrderById(draft.bundleOrderId)
-          if (!order || order.status !== "paid") {
-            partial.bundleOrderId = null
-            bundleOrderIdForStatus = null
-          }
+        const totalRub = uploadDraftRequiredPaymentRub(nextPayload)
+        const nextBundleOrderId = await bundleOrderIdIfStillCoversPayload(
+          draft.bundleOrderId,
+          nextPayload
+        )
+        if ((draft.bundleOrderId ?? null) !== nextBundleOrderId) {
+          partial.bundleOrderId = nextBundleOrderId
         }
-        partial.status = await resolveDraftStatusAfterChange(draft, totalRub, bundleOrderIdForStatus)
+        partial.status = await resolveDraftStatusAfterChange(draft, totalRub, nextBundleOrderId)
 
         const updated = await updateUploadDraft(id, partial)
         return NextResponse.json({ draft: updated })
@@ -214,16 +216,12 @@ export async function PATCH(
     partial.coverRelPath = null
   }
 
-  const totalRub = uploadDraftAddonBundleTotalRub(nextPayload)
-  let bundleOrderIdForStatus: string | null | undefined = undefined
-  if (totalRub === 0 && draft.bundleOrderId) {
-    const order = await getOrderById(draft.bundleOrderId)
-    if (!order || order.status !== "paid") {
-      partial.bundleOrderId = null
-      bundleOrderIdForStatus = null
-    }
+  const totalRub = uploadDraftRequiredPaymentRub(nextPayload)
+  const nextBundleOrderId = await bundleOrderIdIfStillCoversPayload(draft.bundleOrderId, nextPayload)
+  if ((draft.bundleOrderId ?? null) !== nextBundleOrderId) {
+    partial.bundleOrderId = nextBundleOrderId
   }
-  partial.status = await resolveDraftStatusAfterChange(draft, totalRub, bundleOrderIdForStatus)
+  partial.status = await resolveDraftStatusAfterChange(draft, totalRub, nextBundleOrderId)
 
   const updated = await updateUploadDraft(id, partial)
   return NextResponse.json({ draft: updated })

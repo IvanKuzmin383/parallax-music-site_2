@@ -1092,10 +1092,11 @@ export default function CabinetUploadPage() {
           setActiveDraftId(created.draft.id as string)
           rememberDraftIdInUrl(created.draft.id as string)
         }
+        const draftStatusAfterSave = created?.draft?.status
         const requiresPayment =
-          typeof created?.requiresPayment === "boolean"
-            ? created.requiresPayment
-            : selectedAddonsTotal > 0
+          draftStatusAfterSave !== "paid" &&
+          (selectedAddonsTotal > 0 ||
+            (typeof created?.requiresPayment === "boolean" && created.requiresPayment))
         if (requiresPayment) {
           const paymentRes = await fetch(`/api/cabinet/upload-drafts/${encodeURIComponent(draftId)}/payment/create`, {
             method: "POST",

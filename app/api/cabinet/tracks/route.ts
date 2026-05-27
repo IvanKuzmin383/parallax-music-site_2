@@ -124,6 +124,16 @@ export async function POST(request: NextRequest) {
       const requestAiCover = multipart.getField("requestAiCover") === "true"
       const labelName = getEffectiveReleaseLabelName(labelNameRaw, user.subscriptionName)
 
+      if (requestAiCover) {
+        return NextResponse.json(
+          {
+            error:
+              "Заказ ИИ-обложки доступен только через форму загрузки в кабинете с оплатой услуги",
+          },
+          { status: 400 }
+        )
+      }
+
       if (!trackName || !artistName || !genre || !audioFile || !releaseDateStr) {
         return NextResponse.json(
           {

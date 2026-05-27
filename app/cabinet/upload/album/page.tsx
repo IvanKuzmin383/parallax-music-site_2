@@ -53,7 +53,10 @@ import { PROFILE_INCOMPLETE_UPLOAD_ERROR_CODE } from "@/lib/cabinet-upload-profi
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
 import { checkWavFileIsStereo, parseWavFmtChunk } from "@/lib/wav-parse-stereo"
 import type { UploadDraftStatus } from "@/lib/upload-drafts"
-import { CabinetUploadAdditionalServicesSection } from "@/components/cabinet-upload-additional-services-section"
+import {
+  CabinetUploadAdditionalServicesSection,
+  computeSelectedUploadAddonsTotalRub,
+} from "@/components/cabinet-upload-additional-services-section"
 import { useI18n } from "@/lib/i18n-context"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
 
@@ -416,6 +419,17 @@ export default function CabinetUploadAlbumPage() {
   })
   const watchedCoverFiles = useWatch({ control: form.control, name: "cover" }) as FileList | undefined
   const watchedRequestAiCover = useWatch({ control: form.control, name: "requestAiCover" }) ?? false
+  const selectedAddonsTotal = computeSelectedUploadAddonsTotalRub({
+    requestAiCover: watchedRequestAiCover,
+    addonVerticalVideo,
+    addonVerticalVideoCount,
+    addonAiMastering,
+    addonAiMasteringCount,
+    addonYandexVideoshot,
+    addonYandexVideoshotCreation,
+    addonYandexVideoavatar,
+    addonSpotifyVideoshot,
+  })
   const watchedTracks = useWatch({ control: form.control, name: "tracks" }) as UploadAlbumFormValues["tracks"]
   const isFormDirty = form.formState.isDirty
   const hasLocalUnsyncedMedia =
@@ -929,7 +943,7 @@ export default function CabinetUploadAlbumPage() {
       if (!persisted) return
       const { draftId, draftStatus } = persisted
       const currentStatus = `${draftStatus ?? ""}`
-      if (currentStatus === "awaiting_payment") {
+      if (selectedAddonsTotal > 0 && currentStatus !== "paid") {
         setActiveDraftStatus("awaiting_payment")
         const paymentRes = await fetch(`/api/cabinet/upload-drafts/${encodeURIComponent(draftId)}/payment/create`, {
           method: "POST",

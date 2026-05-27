@@ -3,8 +3,7 @@ import { promises as fs } from "fs"
 import crypto from "crypto"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
-import { getOrderById } from "@/lib/orders"
-import { uploadDraftAddonBundleTotalRub } from "@/lib/cabinet-upload-draft-addons"
+import { assertUploadDraftBundlePayment } from "@/lib/cabinet-upload-draft-addons"
 import {
   getUploadDraftById,
   getUploadDraftsDir,
@@ -129,15 +128,9 @@ export async function finalizeUploadDraftCore(
 
   const ownerEmail = draft.userId
 
-  const addonBundleTotalRub = uploadDraftAddonBundleTotalRub(draft.payload)
-  if (addonBundleTotalRub > 0) {
-    if (!draft.bundleOrderId) {
-      return { ok: false, error: "Сначала оплатите выбранные услуги", status: 400 }
-    }
-    const order = await getOrderById(draft.bundleOrderId)
-    if (!order || order.status !== "paid") {
-      return { ok: false, error: "Сначала оплатите выбранные услуги", status: 400 }
-    }
+  const paymentGate = await assertUploadDraftBundlePayment(draft.payload, draft.bundleOrderId)
+  if (!paymentGate.ok) {
+    return { ok: false, error: paymentGate.error, status: 400 }
   }
 
   const audioDir = await getAudioDir()
