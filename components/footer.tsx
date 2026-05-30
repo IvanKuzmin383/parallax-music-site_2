@@ -131,15 +131,15 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center md:items-start gap-4">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <p className="text-sm text-muted-foreground text-center md:text-left">{t.footer.copyright}</p>
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-foreground/90">
+            <p className="text-sm text-muted-foreground text-center md:text-left leading-none">{t.footer.copyright}</p>
+            <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Image src="/rkn-logo.png" alt="Логотип Роскомнадзора" width={20} height={20} />
               <span>Реестр Роскомнадзора</span>
             </div>
           </div>
-          <div className="flex gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 text-sm text-muted-foreground leading-none">
             <Link href="/privacy" prefetch={false} className="hover:text-primary transition-colors">
               {t.footer.privacyPolicy}
             </Link>
