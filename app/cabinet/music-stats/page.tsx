@@ -224,14 +224,12 @@ type CabinetMusicStatsBatchPayload = {
 async function fetchMusicStatsBatch(options: {
   platformKeys: MusicPlatformKey[]
   chartTrackIds: string[] | null
-  compareTrackIds: string[]
 }): Promise<CabinetMusicStatsBatchPayload> {
   const params = new URLSearchParams()
   params.set("platforms", options.platformKeys.join(","))
   if (options.chartTrackIds?.length) {
     for (const id of options.chartTrackIds) params.append("trackId", id)
   }
-  for (const id of options.compareTrackIds) params.append("compareTrackId", id)
 
   const response = await fetch(`/api/cabinet/music-stats/batch?${params}`, {
     credentials: "include",
@@ -543,17 +541,12 @@ export default function CabinetMusicStatsPage() {
         const batch = await fetchMusicStatsBatch({
           platformKeys: platformKeysForChart,
           chartTrackIds,
-          compareTrackIds: trackIdsForCompareChart,
         })
 
         if (cancelled) return
 
         setStats(buildAllPlatformsChartStats(batch.chart))
-        setPerTrackPlatformResponses(
-          trackIdsForCompareChart.length ?
-            batch.compare.map((row) => row.platforms)
-          : null,
-        )
+        setPerTrackPlatformResponses(null)
       } catch (e) {
         if (cancelled) return
         const message = e instanceof Error ? e.message : "Неизвестная ошибка загрузки"
@@ -577,7 +570,7 @@ export default function CabinetMusicStatsPage() {
     return () => {
       cancelled = true
     }
-  }, [platformKeysForChart, selectedTrackIds, trackIdsForCompareChart, router])
+  }, [platformKeysForChart, selectedTrackIds, router])
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -1181,219 +1174,22 @@ export default function CabinetMusicStatsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Сравнение треков по площадкам</CardTitle>
-                {compareTracksTruncated ? (
-                  <p className="text-xs text-muted-foreground">
-                    Показано не более {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} треков. Выберите до{" "}
-                    {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} в фильтре для другого набора.
-                  </p>
-                ) : null}
               </CardHeader>
               <CardContent>
-                {!trackIdsForCompareChart.length && loadingMeta ? (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border text-sm text-muted-foreground">
-                    Загрузка каталога треков…
-                  </div>
-                ) : !trackIdsForCompareChart.length ? (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border border-dashed px-4 text-center text-sm text-muted-foreground">
-                    Нет треков в каталоге - добавьте релизы в кабинете.
-                  </div>
-                ) : compareLoading ? (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border text-sm text-muted-foreground">
-                    Загрузка сравнения по трекам…
-                  </div>
-                ) : trackCompareBarData.length ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="w-full overflow-x-auto">
-                    <ChartContainer
-                      config={chartConfigDynamic}
-                      className="h-[min(420px,60vh)] w-full"
-                      style={{
-                        minWidth: `${Math.max(480, trackCompareBarData.length * 72)}px`,
-                      }}
-                    >
-                      <BarChart
-                        data={trackCompareBarData}
-                        margin={{ left: 4, right: 4, top: 8, bottom: 4 }}
-                      >
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="name"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          interval={0}
-                          height={trackCompareBarData.length > 3 ? 80 : 56}
-                          tick={{ fontSize: 11 }}
-                        />
-                        <YAxis tickLine={false} axisLine={false} tickMargin={8} width={48} />
-                        <ChartTooltip
-                          cursor={{ fill: "hsl(var(--muted))", opacity: 0.25 }}
-                          content={
-                            <ChartTooltipContent
-                              labelFormatter={(_, payload) => {
-                                const pl = payload?.[0]?.payload as
-                                  | { fullLabel?: string; name?: string }
-                                  | undefined
-                                return pl?.fullLabel ?? pl?.name ?? ""
-                              }}
-                              labelClassName="font-bold max-w-[min(100vw-2rem,24rem)] whitespace-normal"
-                              formatter={(value, name) => {
-                                const key = name as MusicPlatformKey
-                                const platformLabel = MUSIC_PLATFORM_LABELS[key] ?? String(name)
-                                const color = PLATFORM_COLORS[key] ?? "#6b7280"
-                                return (
-                                  <span className="inline-flex items-center gap-2">
-                                    <span className="font-mono font-medium tabular-nums">
-                                      {Number(value).toLocaleString("ru-RU")}
-                                    </span>
-                                    <span style={{ color }} className="font-medium">
-                                      {platformLabel}
-                                    </span>
-                                  </span>
-                                )
-                              }}
-                            />
-                          }
-                        />
-                        {platformKeysForChart.map((k) => (
-                          <Bar
-                            key={k}
-                            dataKey={k}
-                            fill={`var(--color-${k})`}
-                            radius={[4, 4, 0, 0]}
-                            maxBarSize={48}
-                            isAnimationActive={false}
-                          />
-                        ))}
-                      </BarChart>
-                    </ChartContainer>
-                    </div>
-                    <div className="flex w-full flex-wrap justify-center gap-1.5">
-                      {platformKeysForChart.map((k) => (
-                        <div
-                          key={k}
-                          className="inline-flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1 text-xs"
-                        >
-                          <span
-                            className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: PLATFORM_COLORS[k] }}
-                          />
-                          <span className="max-w-[160px] truncate">{MUSIC_PLATFORM_LABELS[k]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border text-sm text-muted-foreground">
-                    Нет данных для сравнения за выбранный период.
-                  </div>
-                )}
+                <div className="flex min-h-[200px] items-center justify-center rounded-md border border-dashed px-4 text-center text-sm text-muted-foreground">
+                  Сравнение треков по площадкам временно отключено для снижения нагрузки на сервер.
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Сравнение треков по дням</CardTitle>
-                {compareTracksTruncated ? (
-                  <p className="text-xs text-muted-foreground">
-                    Показано не более {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} треков. Выберите до{" "}
-                    {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} в фильтре для другого набора.
-                  </p>
-                ) : null}
               </CardHeader>
               <CardContent>
-                {!trackIdsForCompareChart.length && loadingMeta ? (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border text-sm text-muted-foreground">
-                    Загрузка каталога треков…
-                  </div>
-                ) : !trackIdsForCompareChart.length ? (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border border-dashed px-4 text-center text-sm text-muted-foreground">
-                    Нет треков в каталоге - добавьте релизы в кабинете.
-                  </div>
-                ) : compareLoading ? (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border text-sm text-muted-foreground">
-                    Загрузка сравнения по трекам…
-                  </div>
-                ) : trackDailyCompareChartData.length ? (
-                  <ChartContainer config={trackCompareLineChartConfig} className="h-[320px] w-full">
-                    <LineChart data={trackDailyCompareChartData} margin={{ left: 8, right: 8 }}>
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="shortDate"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        minTickGap={18}
-                      />
-                      <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                      <ChartTooltip
-                        cursor={false}
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null
-
-                          const filteredPayload = payload.filter((item) => {
-                            const n = Number(item.value)
-                            return Number.isFinite(n) && n > 0
-                          })
-
-                          const dateValue = payload[0]?.payload?.date
-                          const dateLabel =
-                            dateValue ? format(new Date(String(dateValue)), "dd.MM.yyyy") : ""
-
-                          if (!filteredPayload.length) {
-                            return (
-                              <div className="border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl">
-                                {dateLabel ? <div className="font-bold">{dateLabel}</div> : null}
-                                <span className="text-muted-foreground">Нет прослушиваний за этот день</span>
-                              </div>
-                            )
-                          }
-
-                          return (
-                            <ChartTooltipContent
-                              active={active}
-                              payload={filteredPayload}
-                              labelFormatter={() => dateLabel}
-                              labelClassName="font-bold"
-                              formatter={(value, name) => {
-                                const idx = Number(String(name).replace(/^t/, ""))
-                                const color =
-                                  TRACK_DAILY_LINE_COLORS[idx % TRACK_DAILY_LINE_COLORS.length]
-                                const trackLabel =
-                                  trackCompareLineChartConfig[String(name)]?.label ?? String(name)
-                                return (
-                                  <span className="inline-flex items-center gap-2">
-                                    <span className="font-mono font-medium tabular-nums">
-                                      {Number(value).toLocaleString("ru-RU")}
-                                    </span>
-                                    <span style={{ color }} className="font-medium">
-                                      {trackLabel}
-                                    </span>
-                                  </span>
-                                )
-                              }}
-                            />
-                          )
-                        }}
-                      />
-                      {trackIdsForCompareChart.map((_, i) => (
-                        <Line
-                          key={`t${i}`}
-                          type="monotone"
-                          dataKey={`t${i}`}
-                          stroke={`var(--color-t${i})`}
-                          strokeWidth={2}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                      ))}
-                    </LineChart>
-                  </ChartContainer>
-                ) : (
-                  <div className="flex min-h-[200px] items-center justify-center rounded-md border text-sm text-muted-foreground">
-                    Нет данных за выбранный период.
-                  </div>
-                )}
+                <div className="flex min-h-[200px] items-center justify-center rounded-md border border-dashed px-4 text-center text-sm text-muted-foreground">
+                  Сравнение треков по дням временно отключено для снижения нагрузки на сервер.
+                </div>
               </CardContent>
             </Card>
 
