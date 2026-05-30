@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { CountryPlaysByDate, MusicPlatformKey, MusicStatsResponse } from "@/lib/music-stats-shared"
+import { CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS } from "@/lib/music-stats-shared"
 import {
   getRangeByPreset,
   getYesterdayIsoLocal,
@@ -215,24 +216,30 @@ function buildSinglePlatformChartStats(res: MusicStatsResponse): AggregatedStats
   }
 }
 
-async function fetchPlatformStats(
-  platformKey: MusicPlatformKey,
-  options?: { trackIds?: string[] | null },
-): Promise<MusicStatsResponse> {
-  const trackParams =
-    options?.trackIds?.length ?
-      options.trackIds.map((id) => `&trackId=${encodeURIComponent(id)}`).join("")
-    : ""
-  const response = await fetch(
-    `/api/cabinet/music-stats?platform=${encodeURIComponent(platformKey)}${trackParams}`,
-    {
-      credentials: "include",
-    },
-  )
+type CabinetMusicStatsBatchPayload = {
+  chart: MusicStatsResponse[]
+  compare: Array<{ trackId: string; platforms: MusicStatsResponse[] }>
+}
+
+async function fetchMusicStatsBatch(options: {
+  platformKeys: MusicPlatformKey[]
+  chartTrackIds: string[] | null
+  compareTrackIds: string[]
+}): Promise<CabinetMusicStatsBatchPayload> {
+  const params = new URLSearchParams()
+  params.set("platforms", options.platformKeys.join(","))
+  if (options.chartTrackIds?.length) {
+    for (const id of options.chartTrackIds) params.append("trackId", id)
+  }
+  for (const id of options.compareTrackIds) params.append("compareTrackId", id)
+
+  const response = await fetch(`/api/cabinet/music-stats/batch?${params}`, {
+    credentials: "include",
+  })
 
   if (response.status === 401) {
     const err = new Error("Unauthorized")
-    ;(err as any).status = 401
+    ;(err as { status?: number }).status = 401
     throw err
   }
 
@@ -241,7 +248,7 @@ async function fetchPlatformStats(
     throw new Error(data?.error || "Не удалось загрузить статистику")
   }
 
-  return (await response.json()) as MusicStatsResponse
+  return (await response.json()) as CabinetMusicStatsBatchPayload
 }
 
 export default function CabinetMusicStatsPage() {
@@ -271,11 +278,17 @@ export default function CabinetMusicStatsPage() {
   const isAllPlatformsSelected = selectedPlatformKeys.length === PLATFORM_KEYS.length
   const platformKeysForChart = isAllPlatformsSelected ? PLATFORM_KEYS : selectedPlatformKeys
 
-  /** Треки для диаграммы сравнения: выбранные в фильтре или все из каталога при «Все треки». */
+  /** До 5 треков для сравнения: выбранные в фильтре или первые из каталога (не весь каталог). */
   const trackIdsForCompareChart = useMemo(() => {
-    if (selectedTrackIds.length > 0) return selectedTrackIds
-    return tracksMeta.map((t) => t.id)
+    const source =
+      selectedTrackIds.length > 0 ? selectedTrackIds : tracksMeta.map((t) => t.id)
+    return source.slice(0, CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS)
   }, [selectedTrackIds, tracksMeta])
+
+  const compareTracksTruncated = useMemo(() => {
+    if (selectedTrackIds.length > CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS) return true
+    return selectedTrackIds.length === 0 && tracksMeta.length > CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS
+  }, [selectedTrackIds.length, tracksMeta.length])
 
   const chartConfigDynamic = useMemo(() => {
     return Object.fromEntries(
@@ -518,21 +531,33 @@ export default function CabinetMusicStatsPage() {
   }, [topTracksForTable])
 
   useEffect(() => {
+    let cancelled = false
+
     const load = async () => {
       setLoading(true)
+      setCompareLoading(true)
       setError(null)
 
       try {
-        const trackIdsForFilter = selectedTrackIds.length > 0 ? selectedTrackIds : null
+        const chartTrackIds = selectedTrackIds.length > 0 ? selectedTrackIds : null
+        const batch = await fetchMusicStatsBatch({
+          platformKeys: platformKeysForChart,
+          chartTrackIds,
+          compareTrackIds: trackIdsForCompareChart,
+        })
 
-        const list = await Promise.all(
-          platformKeysForChart.map((k) => fetchPlatformStats(k, { trackIds: trackIdsForFilter })),
+        if (cancelled) return
+
+        setStats(buildAllPlatformsChartStats(batch.chart))
+        setPerTrackPlatformResponses(
+          trackIdsForCompareChart.length ?
+            batch.compare.map((row) => row.platforms)
+          : null,
         )
-
-        setStats(buildAllPlatformsChartStats(list))
       } catch (e) {
+        if (cancelled) return
         const message = e instanceof Error ? e.message : "Неизвестная ошибка загрузки"
-        const status = (e as any)?.status
+        const status = (e as { status?: number }).status
         if (status === 401) {
           router.replace("/cabinet")
           return
@@ -541,46 +566,18 @@ export default function CabinetMusicStatsPage() {
         setStats(null)
         setPerTrackPlatformResponses(null)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          setCompareLoading(false)
+        }
       }
     }
 
     void load()
-  }, [platformKeysForChart, selectedTrackIds, router])
-
-  useEffect(() => {
-    const ids = trackIdsForCompareChart
-    if (!ids.length) {
-      setPerTrackPlatformResponses(null)
-      setCompareLoading(false)
-      return
-    }
-
-    let cancelled = false
-
-    const loadCompare = async () => {
-      setCompareLoading(true)
-      try {
-        const perTrack = await Promise.all(
-          ids.map((trackId) =>
-            Promise.all(
-              platformKeysForChart.map((k) => fetchPlatformStats(k, { trackIds: [trackId] })),
-            ),
-          ),
-        )
-        if (!cancelled) setPerTrackPlatformResponses(perTrack)
-      } catch {
-        if (!cancelled) setPerTrackPlatformResponses(null)
-      } finally {
-        if (!cancelled) setCompareLoading(false)
-      }
-    }
-
-    void loadCompare()
     return () => {
       cancelled = true
     }
-  }, [platformKeysForChart, trackIdsForCompareChart, router])
+  }, [platformKeysForChart, selectedTrackIds, trackIdsForCompareChart, router])
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -1184,6 +1181,12 @@ export default function CabinetMusicStatsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Сравнение треков по площадкам</CardTitle>
+                {compareTracksTruncated ? (
+                  <p className="text-xs text-muted-foreground">
+                    Показано не более {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} треков. Выберите до{" "}
+                    {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} в фильтре для другого набора.
+                  </p>
+                ) : null}
               </CardHeader>
               <CardContent>
                 {!trackIdsForCompareChart.length && loadingMeta ? (
@@ -1291,6 +1294,12 @@ export default function CabinetMusicStatsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Сравнение треков по дням</CardTitle>
+                {compareTracksTruncated ? (
+                  <p className="text-xs text-muted-foreground">
+                    Показано не более {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} треков. Выберите до{" "}
+                    {CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS} в фильтре для другого набора.
+                  </p>
+                ) : null}
               </CardHeader>
               <CardContent>
                 {!trackIdsForCompareChart.length && loadingMeta ? (

@@ -49,6 +49,9 @@ export interface CountryPlaysByDate {
   plays: number
 }
 
+/** Лимит треков в блоке «сравнение» на /cabinet/music-stats (один batch-запрос). */
+export const CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS = 5
+
 export interface MusicStatsResponse {
   source: string | null
   platformKey: MusicPlatformKey
