@@ -3,6 +3,7 @@
 import { Instagram, Youtube } from "lucide-react"
 import { useI18n } from "@/lib/i18n-context"
 import Link from "next/link"
+import Image from "next/image"
 
 // Custom TikTok icon SVG
 const TiktokIcon = ({ size = 20 }: { size?: number }) => (
@@ -131,7 +132,13 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">{t.footer.copyright}</p>
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <p className="text-sm text-muted-foreground text-center md:text-left">{t.footer.copyright}</p>
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-foreground/90">
+              <Image src="/rkn-logo.png" alt="Логотип Роскомнадзора" width={20} height={20} />
+              <span>Реестр Роскомнадзора</span>
+            </div>
+          </div>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <Link href="/privacy" prefetch={false} className="hover:text-primary transition-colors">
               {t.footer.privacyPolicy}
