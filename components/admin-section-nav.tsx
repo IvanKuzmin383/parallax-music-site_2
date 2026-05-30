@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   BarChart3,
+  Database,
   FileText,
   LineChart,
   LogOut,
@@ -29,6 +30,7 @@ export type AdminSectionNavActive =
   | "service-fulfillments"
   | "reviews"
   | "legal-acceptance"
+  | "music-track-map"
 
 interface AdminSectionNavProps {
   active: AdminSectionNavActive
@@ -78,6 +80,12 @@ export function AdminSectionNav({ active }: AdminSectionNavProps) {
           <Link href="/admin26081993/music-stats" prefetch={false}>
             <LineChart className="h-4 w-4 mr-1" />
             Статистика
+          </Link>
+        </Button>
+        <Button variant={navVariant(active === "music-track-map")} size="sm" asChild>
+          <Link href="/admin26081993/music-track-map" prefetch={false}>
+            <Database className="h-4 w-4 mr-1" />
+            Маппинг треков stats
           </Link>
         </Button>
         <Button variant={navVariant(active === "withdrawals")} size="sm" asChild>

@@ -66,6 +66,239 @@ function normalizeTrackTitleForMatch(title: string): string {
     .trim()
 }
 
+const rebuiltCabinetTrackMapPlatforms = new Set<MusicPlatformKey>()
+
+export const ADMIN_CABINET_MUSIC_TRACK_MAP_PAGE_SIZE = 15
+export const ADMIN_CABINET_MUSIC_TRACK_MAP_MAX_LIMIT = 100
+
+export type AdminCabinetMusicTrackMapRow = {
+  userId: string
+  platformKey: MusicPlatformKey
+  trackKey: string
+  cabinetTrackId: string
+  matchedAt: string
+  importTrackTitle: string | null
+  importTrackAuthor: string | null
+  cabinetTrackName: string | null
+  cabinetArtistName: string | null
+}
+
+export function listCabinetMusicTrackMapPage(args: {
+  platformKey?: MusicPlatformKey | null
+  userId?: string | null
+  trackKey?: string | null
+  cabinetTrackId?: string | null
+  limit?: number
+  offset?: number
+}): { rows: AdminCabinetMusicTrackMapRow[]; total: number; limit: number; offset: number; hasMore: boolean } {
+  const db = getDb()
+  const limit = Math.min(
+    Math.max(1, Math.floor(args.limit ?? ADMIN_CABINET_MUSIC_TRACK_MAP_PAGE_SIZE)),
+    ADMIN_CABINET_MUSIC_TRACK_MAP_MAX_LIMIT,
+  )
+  const offset = Math.max(0, Math.floor(args.offset ?? 0))
+
+  const whereParts: string[] = []
+  const params: string[] = []
+
+  const platformKey = args.platformKey?.trim()
+  if (platformKey && platformKey in MUSIC_PLATFORM_LABELS) {
+    whereParts.push("m.platform_key = ?")
+    params.push(platformKey)
+  }
+
+  const userIdFilter = args.userId?.trim().toLowerCase()
+  if (userIdFilter) {
+    whereParts.push("LOWER(m.user_id) LIKE ?")
+    params.push(`%${userIdFilter}%`)
+  }
+
+  const trackKeyFilter = args.trackKey?.trim()
+  if (trackKeyFilter) {
+    whereParts.push("m.track_key LIKE ?")
+    params.push(`%${trackKeyFilter}%`)
+  }
+
+  const cabinetTrackIdFilter = args.cabinetTrackId?.trim()
+  if (cabinetTrackIdFilter) {
+    whereParts.push("m.cabinet_track_id LIKE ?")
+    params.push(`%${cabinetTrackIdFilter}%`)
+  }
+
+  const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : ""
+
+  const totalRow = db
+    .prepare(
+      `
+        SELECT COUNT(*) AS total
+        FROM cabinet_music_track_map m
+        ${whereSql}
+      `,
+    )
+    .get(...params) as { total?: number } | undefined
+  const total = totalRow?.total ?? 0
+
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          m.user_id AS userId,
+          m.platform_key AS platformKey,
+          m.track_key AS trackKey,
+          m.cabinet_track_id AS cabinetTrackId,
+          m.matched_at AS matchedAt,
+          p.title AS importTrackTitle,
+          p.author AS importTrackAuthor,
+          c.track_name AS cabinetTrackName,
+          c.artist_name AS cabinetArtistName
+        FROM cabinet_music_track_map m
+        LEFT JOIN music_platform_tracks p
+          ON p.platform_key = m.platform_key AND p.track_key = m.track_key
+        LEFT JOIN tracks c
+          ON c.id = m.cabinet_track_id
+        ${whereSql}
+        ORDER BY m.matched_at DESC, m.user_id ASC, m.platform_key ASC, m.track_key ASC
+        LIMIT ?
+        OFFSET ?
+      `,
+    )
+    .all(...params, limit, offset) as AdminCabinetMusicTrackMapRow[]
+
+  return {
+    rows,
+    total,
+    limit,
+    offset,
+    hasMore: offset + rows.length < total,
+  }
+}
+
+export function updateCabinetMusicTrackMapEntry(args: {
+  userId: string
+  platformKey: MusicPlatformKey
+  trackKey: string
+  cabinetTrackId: string
+}): void {
+  const db = getDb()
+  const userId = args.userId.trim().toLowerCase()
+  const platformKey = args.platformKey
+  const trackKey = args.trackKey.trim()
+  const cabinetTrackId = args.cabinetTrackId.trim()
+
+  if (!userId || !trackKey || !cabinetTrackId) {
+    throw new Error("missing_required_fields")
+  }
+  if (!(platformKey in MUSIC_PLATFORM_LABELS)) {
+    throw new Error("invalid_platform_key")
+  }
+
+  const exists = db
+    .prepare(
+      `
+        SELECT 1
+        FROM cabinet_music_track_map
+        WHERE user_id = ?
+          AND platform_key = ?
+          AND track_key = ?
+        LIMIT 1
+      `,
+    )
+    .get(userId, platformKey, trackKey) as { 1?: number } | undefined
+
+  if (!exists) {
+    throw new Error("map_entry_not_found")
+  }
+
+  const ownerTrack = db
+    .prepare(
+      `
+        SELECT id
+        FROM tracks
+        WHERE id = ?
+          AND LOWER(user_id) = ?
+        LIMIT 1
+      `,
+    )
+    .get(cabinetTrackId, userId) as { id: string } | undefined
+
+  if (!ownerTrack) {
+    throw new Error("cabinet_track_not_found_for_user")
+  }
+
+  db.prepare(
+    `
+      UPDATE cabinet_music_track_map
+      SET cabinet_track_id = ?,
+          matched_at = ?
+      WHERE user_id = ?
+        AND platform_key = ?
+        AND track_key = ?
+    `,
+  ).run(cabinetTrackId, new Date().toISOString(), userId, platformKey, trackKey)
+}
+
+function rebuildCabinetMusicTrackMapForPlatformWithDb(
+  db: ReturnType<typeof getDb>,
+  platformKey: MusicPlatformKey,
+  matchedAtIso: string,
+): void {
+  const tn = titleNormSql
+  db.prepare(`DELETE FROM cabinet_music_track_map WHERE platform_key = ?`).run(platformKey)
+  db.prepare(
+    `
+      INSERT INTO cabinet_music_track_map (
+        user_id,
+        platform_key,
+        track_key,
+        cabinet_track_id,
+        matched_at
+      )
+      SELECT
+        LOWER(TRIM(c.user_id)) AS user_id,
+        p.platform_key,
+        p.track_key,
+        MIN(c.id) AS cabinet_track_id,
+        ? AS matched_at
+      FROM music_platform_tracks p
+      JOIN tracks c
+        ON unicode_lower(c.artist_name) = unicode_lower(p.author)
+       AND ${tn("c.track_name")} = ${tn("p.title")}
+      WHERE p.platform_key = ?
+        AND c.user_id IS NOT NULL
+        AND TRIM(c.user_id) <> ''
+      GROUP BY LOWER(TRIM(c.user_id)), p.platform_key, p.track_key
+    `,
+  ).run(matchedAtIso, platformKey)
+}
+
+export function rebuildCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformKey): void {
+  const db = getDb()
+  const nowIso = new Date().toISOString()
+  db.transaction(() => {
+    rebuildCabinetMusicTrackMapForPlatformWithDb(db, platformKey, nowIso)
+  })()
+  rebuiltCabinetTrackMapPlatforms.add(platformKey)
+}
+
+function ensureCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformKey): void {
+  if (rebuiltCabinetTrackMapPlatforms.has(platformKey)) return
+  const db = getDb()
+  const row = db
+    .prepare(
+      `
+        SELECT COUNT(*) AS total
+        FROM cabinet_music_track_map
+        WHERE platform_key = ?
+      `,
+    )
+    .get(platformKey) as { total?: number } | undefined
+
+  if ((row?.total ?? 0) === 0) {
+    rebuildCabinetMusicTrackMapForPlatformWithDb(db, platformKey, new Date().toISOString())
+  }
+  rebuiltCabinetTrackMapPlatforms.add(platformKey)
+}
+
 /**
  * Пагинация рейтинга треков для админки: из `music_platform_track_daily_plays`, а не из урезанной `music_platform_top_tracks`.
  */
@@ -409,9 +642,9 @@ export function getMusicStatsByPlatformKeyWithArtist(
 }
 
 /**
- * Статистика только по трекам кабинета. Строка импорта (`music_platform_tracks`) сопоставляется
- * с `tracks` того же пользователя по паре: author из импорта ≈ `tracks.artist_name`, нормализованное
- * title из импорта ≈ нормализованному `tracks.track_name`. Ключ `track_key` в БД статистики не связываем с UUID трека.
+ * Статистика только по трекам кабинета.
+ * Использует готовую таблицу соответствий `cabinet_music_track_map` (user+platform+track_key -> cabinet_track_id),
+ * чтобы не делать дорогой матчинг по строкам author/title в каждом запросе.
  */
 export function getMusicStatsForCabinetUser(
   platformKey: MusicPlatformKey,
@@ -437,23 +670,21 @@ export function getMusicStatsForCabinetUser(
     }
   }
 
+  ensureCabinetMusicTrackMapForPlatform(platformKey)
+
   const albumId = filters?.albumId?.trim() ? filters.albumId.trim() : null
   const trackIds = (filters?.trackIds ?? []).map((id) => id.trim()).filter((id) => id.length > 0)
-
-  const tn = titleNormSql
+  const userId = email.toLowerCase()
   const cabinetTrackJoin = `
-    JOIN tracks c ON c.id = (
-      SELECT c2.id FROM tracks c2
-      WHERE LOWER(c2.user_id) = LOWER(?)
-        AND unicode_lower(c2.artist_name) = unicode_lower(t.author)
-        AND ${tn("c2.track_name")} = ${tn("t.title")}
-      ORDER BY c2.id
-      LIMIT 1
-    )
+    JOIN cabinet_music_track_map m
+      ON m.platform_key = d.platform_key
+     AND m.track_key = d.track_key
+    JOIN tracks c
+      ON c.id = m.cabinet_track_id
   `
 
-  const whereParts: string[] = ["d.platform_key = ?"]
-  const params: string[] = [email, platformKey]
+  const whereParts: string[] = ["d.platform_key = ?", "m.user_id = ?"]
+  const params: string[] = [platformKey, userId]
 
   if (trackIds.length > 0) {
     whereParts.push(`c.id IN (${trackIds.map(() => "?").join(",")})`)
@@ -472,10 +703,8 @@ export function getMusicStatsForCabinetUser(
         SELECT
           d.stat_date,
           COALESCE(SUM(d.plays), 0) AS total_plays,
-          COUNT(DISTINCT d.track_key) AS tracks_with_plays
+          COUNT(DISTINCT m.cabinet_track_id) AS tracks_with_plays
         FROM music_platform_track_daily_plays d
-        JOIN music_platform_tracks t
-          ON t.platform_key = d.platform_key AND t.track_key = d.track_key
         ${cabinetTrackJoin}
         WHERE ${whereSql}
         GROUP BY d.stat_date
@@ -509,10 +738,8 @@ export function getMusicStatsForCabinetUser(
         SELECT
           COALESCE(SUM(d.plays), 0) AS total_plays,
           COUNT(DISTINCT d.stat_date) AS days_count,
-          COALESCE(COUNT(DISTINCT d.track_key), 0) AS tracks_in_db
+          COALESCE(COUNT(DISTINCT m.cabinet_track_id), 0) AS tracks_in_db
         FROM music_platform_track_daily_plays d
-        JOIN music_platform_tracks t
-          ON t.platform_key = d.platform_key AND t.track_key = d.track_key
         ${cabinetTrackJoin}
         WHERE ${whereSql}
       `,
@@ -527,8 +754,6 @@ export function getMusicStatsForCabinetUser(
           d.country,
           COALESCE(SUM(d.plays), 0) AS plays
         FROM music_platform_track_daily_plays_by_country d
-        JOIN music_platform_tracks t
-          ON t.platform_key = d.platform_key AND t.track_key = d.track_key
         ${cabinetTrackJoin}
         WHERE ${whereSql}
         GROUP BY d.stat_date, d.country
@@ -798,6 +1023,8 @@ export async function importMusicStatsParsedToDb(args: {
         LIMIT 10
       `,
     ).run(args.platformKey)
+
+    rebuildCabinetMusicTrackMapForPlatformWithDb(db, args.platformKey, nowIso)
   })
 
   importTx()

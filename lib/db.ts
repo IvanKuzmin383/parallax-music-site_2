@@ -459,6 +459,21 @@ function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_mptdpbc_platform_date
       ON music_platform_track_daily_plays_by_country(platform_key, stat_date);
 
+    CREATE TABLE IF NOT EXISTS cabinet_music_track_map (
+      user_id TEXT NOT NULL,
+      platform_key TEXT NOT NULL,
+      track_key TEXT NOT NULL,
+      cabinet_track_id TEXT NOT NULL,
+      matched_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, platform_key, track_key)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_cmtm_platform_track
+      ON cabinet_music_track_map(platform_key, track_key);
+
+    CREATE INDEX IF NOT EXISTS idx_cmtm_user_platform_track
+      ON cabinet_music_track_map(user_id, platform_key, cabinet_track_id);
+
     CREATE TABLE IF NOT EXISTS cabinet_announcements (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
