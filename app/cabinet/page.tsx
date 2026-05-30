@@ -211,7 +211,6 @@ export default function CabinetPage() {
   const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState("")
   const [registerArtistName, setRegisterArtistName] = useState("")
   const [registerLoading, setRegisterLoading] = useState(false)
-  const [loginCaptchaToken, setLoginCaptchaToken] = useState<string | null>(null)
   const [registerCaptchaToken, setRegisterCaptchaToken] = useState<string | null>(null)
   const [registerConsentPersonalData, setRegisterConsentPersonalData] = useState(false)
   const [registerConsentPrivacy, setRegisterConsentPrivacy] = useState(false)
@@ -594,7 +593,7 @@ export default function CabinetPage() {
       const response = await fetch("/api/cabinet/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, captchaToken: loginCaptchaToken }),
+        body: JSON.stringify({ email, password }),
         credentials: "include",
       })
       const data = await response.json().catch(() => ({} as { error?: string }))
@@ -868,19 +867,6 @@ export default function CabinetPage() {
                   className="w-full"
                   autoComplete="current-password"
                 />
-                {mounted && turnstileEnabled && turnstileSiteKey ? (
-                  <div className="flex justify-center">
-                    <Turnstile
-                      siteKey={turnstileSiteKey}
-                      onSuccess={(token) => setLoginCaptchaToken(token)}
-                      onError={() => setLoginCaptchaToken(null)}
-                      onExpire={() => setLoginCaptchaToken(null)}
-                      options={{
-                        theme: "dark",
-                      }}
-                    />
-                  </div>
-                ) : null}
                 <Button type="submit" className="w-full" disabled={loginLoading}>
                   {loginLoading ? "Вход..." : "Войти"}
                 </Button>

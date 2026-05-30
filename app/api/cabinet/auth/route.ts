@@ -8,8 +8,6 @@ import {
   checkCabinetLoginRateLimit,
   CABINET_SESSION_COOKIE,
 } from "@/lib/cabinet-auth"
-import { verifyTurnstileToken } from "@/lib/turnstile"
-import { isTurnstileEnabledServer } from "@/lib/turnstile-config"
 import { CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE } from "@/lib/cabinet-account-messages"
 
 const loginSchema = z.object({
@@ -28,32 +26,10 @@ function sessionCookieOptions(maxAge: number) {
   }
 }
 
-// После N неудачных логинов за окно времени начинаем требовать капчу
-const LOGIN_CAPTCHA_WINDOW_MS = 60_000
-const LOGIN_CAPTCHA_THRESHOLD = 3
-const loginFailedAttemptsMap = new Map<string, number[]>()
-
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")
   if (forwarded) return forwarded.split(",")[0]?.trim() ?? "unknown"
   return "unknown"
-}
-
-function registerFailedLogin(ip: string) {
-  const now = Date.now()
-  const cutoff = now - LOGIN_CAPTCHA_WINDOW_MS
-  let attempts = loginFailedAttemptsMap.get(ip) ?? []
-  attempts = attempts.filter((t) => t > cutoff)
-  attempts.push(now)
-  loginFailedAttemptsMap.set(ip, attempts)
-}
-
-function shouldRequireCaptcha(ip: string): boolean {
-  const now = Date.now()
-  const cutoff = now - LOGIN_CAPTCHA_WINDOW_MS
-  const attempts = (loginFailedAttemptsMap.get(ip) ?? []).filter((t) => t > cutoff)
-  loginFailedAttemptsMap.set(ip, attempts)
-  return attempts.length >= LOGIN_CAPTCHA_THRESHOLD
 }
 
 export async function POST(request: NextRequest) {
@@ -80,20 +56,8 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const requireCaptcha = isTurnstileEnabledServer() && shouldRequireCaptcha(ip)
-  if (requireCaptcha) {
-    const isHuman = await verifyTurnstileToken(parsed.data.captchaToken, ip)
-    if (!isHuman) {
-      return NextResponse.json(
-        { error: "Подтвердите, что вы не робот" },
-        { status: 429 }
-      )
-    }
-  }
-
   const authStatus = await getCabinetUserAuthStatus(parsed.data.email, parsed.data.password)
   if (authStatus !== "ok") {
-    registerFailedLogin(ip)
     if (authStatus === "blocked") {
       return NextResponse.json({ error: CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE }, { status: 403 })
     }
