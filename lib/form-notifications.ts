@@ -5,6 +5,11 @@ import {
 } from "@/lib/email"
 import { isTelegramConfigured, sendTelegramMessage } from "@/lib/telegram"
 
+const STAFF_NOTIFY_TIMEOUT_MS = Math.min(
+  Math.max(Number(process.env.STAFF_NOTIFY_TIMEOUT_MS) || 5000, 1000),
+  30_000
+)
+
 async function tryTelegram(message: string): Promise<boolean> {
   if (!isTelegramConfigured()) return false
 
@@ -78,14 +83,35 @@ export function isStaffNotificationConfigured(): boolean {
 /** @deprecated Use isStaffNotificationConfigured */
 export const isFormNotificationConfigured = isStaffNotificationConfigured
 
+type DeliverResult = { ok: boolean; telegram: boolean; email: boolean; timedOut?: boolean }
+
 async function deliverStaffNotification(params: {
   telegramMessage: string
   emailSubject: string
   emailHtml: string
-}): Promise<{ ok: boolean; telegram: boolean; email: boolean }> {
-  const telegram = await tryTelegram(params.telegramMessage)
-  const email = await tryEmail(params.emailSubject, params.emailHtml)
-  return { ok: telegram || email, telegram, email }
+}): Promise<DeliverResult> {
+  const work = Promise.all([
+    tryTelegram(params.telegramMessage),
+    tryEmail(params.emailSubject, params.emailHtml),
+  ]).then(([telegram, email]) => ({
+    ok: telegram || email,
+    telegram,
+    email,
+  }))
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<DeliverResult>((resolve) => {
+    timeoutId = setTimeout(
+      () => resolve({ ok: false, telegram: false, email: false, timedOut: true }),
+      STAFF_NOTIFY_TIMEOUT_MS
+    )
+  })
+
+  try {
+    return await Promise.race([work, timeout])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
 }
 
 /** Telegram first, then Resend email; success if at least one channel delivers. */
@@ -93,7 +119,7 @@ export async function deliverFormNotification(params: {
   telegramMessage: string
   emailSubject: string
   emailHtml: string
-}): Promise<{ ok: boolean; telegram: boolean; email: boolean }> {
+}): Promise<DeliverResult> {
   return deliverStaffNotification(params)
 }
 
@@ -106,7 +132,7 @@ export async function notifyStaff(params: {
   emailSubject: string
   emailHtml?: string
   logContext?: string
-}): Promise<{ ok: boolean; telegram: boolean; email: boolean }> {
+}): Promise<DeliverResult> {
   const emailHtml = params.emailHtml ?? telegramHtmlToEmailHtml(params.telegramMessage)
   const result = await deliverStaffNotification({
     telegramMessage: params.telegramMessage,
@@ -115,8 +141,26 @@ export async function notifyStaff(params: {
   })
 
   if (!result.ok && params.logContext) {
-    console.error(`[${params.logContext}] Staff notification failed (Telegram and email)`)
+    if (result.timedOut) {
+      console.error(`[${params.logContext}] Staff notification timed out after ${STAFF_NOTIFY_TIMEOUT_MS}ms`)
+    } else {
+      console.error(`[${params.logContext}] Staff notification failed (Telegram and email)`)
+    }
   }
 
   return result
+}
+
+/**
+ * Не блокирует HTTP-ответ: уведомление в фоне с общим таймаутом.
+ */
+export function notifyStaffInBackground(params: {
+  telegramMessage: string
+  emailSubject: string
+  emailHtml?: string
+  logContext?: string
+}): void {
+  void notifyStaff(params).catch((err) => {
+    console.error(`[${params.logContext ?? "staff-notify"}] Background notify error`, err)
+  })
 }

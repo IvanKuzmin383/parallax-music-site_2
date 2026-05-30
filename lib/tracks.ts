@@ -52,7 +52,7 @@ export interface Track {
   updatedAt: string
 }
 
-interface TrackRow {
+export interface TrackRow {
   id: string
   user_id: string
   album_id: string | null
@@ -86,7 +86,7 @@ interface TrackRow {
   updated_at: string
 }
 
-function rowToTrack(row: TrackRow): Track {
+export function rowToTrack(row: TrackRow): Track {
   let platformLinks: PlatformLinks | undefined
   if (row.platform_links && row.platform_links.trim()) {
     try {

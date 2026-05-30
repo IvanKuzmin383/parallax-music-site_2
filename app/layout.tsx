@@ -6,9 +6,11 @@ import { ScrollToTop } from "@/components/scroll-to-top"
 import { I18nProvider } from "@/lib/i18n-context"
 import { SiteShell } from "@/components/site-shell"
 import { fontClassNames } from "@/lib/fonts"
+import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 import "./globals.css"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
+const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
 
 export const metadata: Metadata = {
   title: {
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
       "Дистрибьютор музыки, лейбл и продюсерский центр. Мы знаем, как сделать так, чтобы твою музыку услышали все",
     images: [
       {
-        url: `${siteUrl}/music-studio-recording-session-dark-moody-atmosphe.jpg`,
+        url: heroOgImage,
         width: 1200,
         height: 630,
         alt: "Parallax Music - Professional Music Studio",
@@ -59,7 +61,7 @@ export const metadata: Metadata = {
     title: "Parallax Music - Label & Promotion Agency",
     description:
       "Дистрибьютор музыки, лейбл и продюсерский центр. Мы знаем, как сделать так, чтобы твою музыку услышали все",
-    images: [`${siteUrl}/music-studio-recording-session-dark-moody-atmosphe.jpg`],
+    images: [heroOgImage],
     creator: "@parallaxmusic",
   },
   robots: {

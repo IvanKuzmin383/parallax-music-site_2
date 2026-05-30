@@ -5,7 +5,7 @@ import { createPasswordResetToken, deleteExpiredTokens } from "@/lib/password-re
 import { isEmailConfigured, sendPasswordResetEmail } from "@/lib/email"
 import { verifyTurnstileToken } from "@/lib/turnstile"
 import { escapeHtml } from "@/lib/telegram"
-import { notifyStaff } from "@/lib/form-notifications"
+import { notifyStaffInBackground } from "@/lib/form-notifications"
 
 const forgotSchema = z.object({
   email: z.string().email("Неверный формат email"),
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       "#сброс_пароля #кабинет",
     ].filter(Boolean) as string[]
 
-    await notifyStaff({
+    notifyStaffInBackground({
       telegramMessage: messageLines.join("\n"),
       emailSubject: `[Parallax] Сброс пароля: ${user.email}`,
       logContext: "cabinet/forgot-password",

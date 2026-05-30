@@ -264,6 +264,22 @@ server {
 
     client_max_body_size 100M;
 
+    # Кэш оптимизированных картинок Next (снижает CPU Sharp). Подробнее: docs/nginx-next-image-cache.conf
+    location /_next/image {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache next_image;
+        proxy_cache_valid 200 30d;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_lock on;
+        proxy_cache_key "$request_uri";
+        add_header X-Cache-Status $upstream_cache_status always;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -277,6 +293,17 @@ server {
         proxy_read_timeout 300s;
     }
 }
+```
+
+Перед `server {` добавь один раз (или подключи `docs/nginx-next-image-cache.conf`):
+
+```nginx
+proxy_cache_path /var/cache/nginx/next_image
+    levels=1:2 keys_zone=next_image:10m max_size=2g inactive=30d use_temp_path=off;
+```
+
+```bash
+mkdir -p /var/cache/nginx/next_image && chown www-data:www-data /var/cache/nginx/next_image
 ```
 
 `client_max_body_size 100M` - под загрузки до **80 MB** аудио в API.
@@ -393,6 +420,8 @@ curl "https://parallaxmusic.ru/api/cron/upload-drafts-cleanup?secret=CRON_SECRET
 cd /var/www/parallaxmusic
 git pull
 pnpm install
+# Фон Hero: WebP из JPG в public/ (без /_next/image на сервере)
+pnpm generate-hero-webp
 pnpm build
 pm2 restart parallaxmusic
 ```

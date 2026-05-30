@@ -1,4 +1,5 @@
 import dynamic from "next/dynamic"
+import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { Hero } from "@/components/hero"
 import { Services } from "@/components/services"
@@ -21,7 +22,7 @@ export default function HomePage() {
     description: 'Дистрибьютор музыки, лейбл и продюсерский центр. Мы знаем, как сделать так, чтобы твою музыку услышали все',
     url: siteUrl,
     logo: `${siteUrl}/icon.svg`,
-    image: `${siteUrl}/music-studio-recording-session-dark-moody-atmosphe.jpg`,
+    image: getHeroBackgroundOgUrl(siteUrl),
     sameAs: [
       'https://instagram.com/parallaxmusic',
       'https://twitter.com/parallaxmusic',

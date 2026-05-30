@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "start": "next start -H 0.0.0.0 -p 3000",
     "migrate": "tsx scripts/migrate-json-to-sqlite.ts",
-    "export-reviews": "tsx scripts/export-reviews-sqlite-to-json.ts"
+    "export-reviews": "tsx scripts/export-reviews-sqlite-to-json.ts",
+    "generate-hero-webp": "tsx scripts/generate-hero-webp.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

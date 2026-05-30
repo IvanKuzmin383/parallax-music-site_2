@@ -9,7 +9,7 @@ import {
   updateCabinetUserSubscription,
 } from "@/lib/cabinet-users"
 import { escapeHtml } from "@/lib/telegram"
-import { notifyStaff } from "@/lib/form-notifications"
+import { notifyStaffInBackground } from "@/lib/form-notifications"
 import { getPaidOrdersByEmail } from "@/lib/orders"
 import { isPlanId, planIdToSubscriptionName, type PlanId } from "@/lib/plan-pricing"
 import { createCabinetSession, CABINET_SESSION_COOKIE } from "@/lib/cabinet-auth"
@@ -174,25 +174,21 @@ export async function POST(request: NextRequest) {
 
     const userOut = (await getCabinetUserByEmail(parsed.data.email, { includeDisabled: true })) ?? user
 
-    try {
-      const messageLines = [
-        "<b>Новая регистрация в кабинете</b>",
-        "",
-        `<b>Email:</b> ${escapeHtml(user.email)}`,
-        user.artistName ? `<b>Артист:</b> ${escapeHtml(user.artistName)}` : null,
-        user.telegram ? `<b>Telegram:</b> ${escapeHtml(user.telegram)}` : null,
-        "",
-        "#регистрация #кабинет",
-      ].filter(Boolean) as string[]
+    const messageLines = [
+      "<b>Новая регистрация в кабинете</b>",
+      "",
+      `<b>Email:</b> ${escapeHtml(user.email)}`,
+      user.artistName ? `<b>Артист:</b> ${escapeHtml(user.artistName)}` : null,
+      user.telegram ? `<b>Telegram:</b> ${escapeHtml(user.telegram)}` : null,
+      "",
+      "#регистрация #кабинет",
+    ].filter(Boolean) as string[]
 
-      await notifyStaff({
-        telegramMessage: messageLines.join("\n"),
-        emailSubject: `[Parallax] Регистрация: ${user.email}`,
-        logContext: "cabinet/register",
-      })
-    } catch (err) {
-      console.error("[cabinet/register] Staff notification error for registration", err)
-    }
+    notifyStaffInBackground({
+      telegramMessage: messageLines.join("\n"),
+      emailSubject: `[Parallax] Регистрация: ${user.email}`,
+      logContext: "cabinet/register",
+    })
 
     const response = NextResponse.json(
       {

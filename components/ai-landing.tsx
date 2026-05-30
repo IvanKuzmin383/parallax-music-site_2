@@ -1,8 +1,8 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import Image from "next/image"
 import { Network, ListMusic, FileText } from "lucide-react"
+import { HeroBackgroundImage } from "@/components/hero-background-image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Pricing } from "@/components/pricing"
@@ -52,14 +52,7 @@ export function AiLanding() {
       <section id="about-ai" className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <Image
-            src="/music-studio-recording-session-dark-moody-atmosphe.jpg"
-            alt={t.aiLanding.hero.imageAlt}
-            fill
-            className="object-cover opacity-30"
-            priority
-            sizes="100vw"
-          />
+          <HeroBackgroundImage alt={t.aiLanding.hero.imageAlt} />
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
         </div>
 

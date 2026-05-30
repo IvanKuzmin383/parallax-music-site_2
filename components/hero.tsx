@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 import { useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import Image from "next/image"
+import { HeroBackgroundImage } from "@/components/hero-background-image"
 import { useI18n } from "@/lib/i18n-context"
 
 const PartnerMarquee = dynamic(
@@ -41,14 +41,7 @@ export function Hero() {
     <section id="about" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/music-studio-recording-session-dark-moody-atmosphe.jpg"
-          alt="Professional music studio with recording equipment in dark moody atmosphere"
-          fill
-          className="object-cover opacity-30"
-          priority
-          sizes="100vw"
-        />
+        <HeroBackgroundImage alt="Professional music studio with recording equipment in dark moody atmosphere" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
       </div>
 

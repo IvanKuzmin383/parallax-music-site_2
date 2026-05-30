@@ -462,7 +462,7 @@ export default function MusicStatsPage() {
     const loadMeta = async () => {
       setLoadingMeta(true)
       try {
-        const response = await fetch("/api/admin/tracks", { credentials: "include" })
+        const response = await fetch("/api/admin/tracks?meta=1", { credentials: "include" })
 
         if (response.status === 401) {
           router.replace("/admin26081993")

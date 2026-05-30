@@ -6,6 +6,7 @@ import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import type { Article } from "@/lib/articles"
 import Link from "next/link"
+import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 
 // Отключаем статическую генерацию, чтобы новые статьи обрабатывались динамически
 export const dynamic = 'force-dynamic'
@@ -52,7 +53,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-  const defaultOg = `${siteUrl}/music-studio-recording-session-dark-moody-atmosphe.jpg`
+  const defaultOg = getHeroBackgroundOgUrl(siteUrl)
   const ogImage = resolveOgImageUrl(article.ogImage, siteUrl, defaultOg)
 
   return {
@@ -94,7 +95,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-  const defaultOg = `${siteUrl}/music-studio-recording-session-dark-moody-atmosphe.jpg`
+  const defaultOg = getHeroBackgroundOgUrl(siteUrl)
   const ogImage = resolveOgImageUrl(article.ogImage, siteUrl, defaultOg)
 
   const jsonLd = {

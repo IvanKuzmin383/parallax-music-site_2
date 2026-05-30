@@ -12,7 +12,7 @@ import {
 import { planIdToSubscriptionName, isPlanId, type PlanId } from "@/lib/plan-pricing"
 import { escapeHtml } from "@/lib/telegram"
 import { isEmailConfigured, sendSubscriptionRegistrationEmail } from "@/lib/email"
-import { isStaffNotificationConfigured, notifyStaff } from "@/lib/form-notifications"
+import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import { fetchYooKassaPayment, type YooKassaPaymentObject } from "@/lib/yookassa-subscription"
 import { upsertPendingSubscriptionAutopay } from "@/lib/pending-subscription-autopay"
 import { createCabinetArtistSubscriptionSlot } from "@/lib/cabinet-artist-subscriptions"
@@ -44,17 +44,17 @@ function getClientIp(request: NextRequest): string | null {
   return request.headers.get("x-real-ip")
 }
 
-async function notifyPaymentStaff(
+function notifyPaymentStaff(
   telegramMessage: string,
   emailSubject: string,
   logContext: string
-): Promise<void> {
+): void {
   if (!isStaffNotificationConfigured()) return
-  try {
-    await notifyStaff({ telegramMessage, emailSubject, logContext: `payments/webhook ${logContext}` })
-  } catch (err) {
-    console.error(`[payments/webhook] ${logContext} notification error`, err)
-  }
+  notifyStaffInBackground({
+    telegramMessage,
+    emailSubject,
+    logContext: `payments/webhook ${logContext}`,
+  })
 }
 
 function isIpAllowed(ip: string | null): boolean {
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
         "#оплата #кабинет",
       ].filter(Boolean) as string[]
 
-      await notifyPaymentStaff(
+      notifyPaymentStaff(
         messageLines.join("\n"),
         `[Parallax] Оплата Fix: ${email}`,
         "tracks_topup"
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         "#ai_mastering #оплата",
       ].filter(Boolean) as string[]
 
-      await notifyPaymentStaff(
+      notifyPaymentStaff(
         messageLines.join("\n"),
         `[Parallax] Оплата AI мастеринг: ${accountEmail}`,
         "ai_mastering"
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
         "#vertical_video #оплата",
       ].filter(Boolean) as string[]
 
-      await notifyPaymentStaff(
+      notifyPaymentStaff(
         messageLines.join("\n"),
         `[Parallax] Оплата вертикальные видео: ${accountEmail}`,
         "vertical_video"
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
         "#track_cover #оплата",
       ].filter(Boolean) as string[]
 
-      await notifyPaymentStaff(
+      notifyPaymentStaff(
         messageLines.join("\n"),
         `[Parallax] Оплата обложка: ${accountEmail}`,
         "track_cover"
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
         `${config.hashtag} #оплата`,
       ].filter(Boolean) as string[]
 
-      await notifyPaymentStaff(
+      notifyPaymentStaff(
         messageLines.join("\n"),
         `[Parallax] Оплата ${config.title}: ${accountEmail}`,
         order.orderType
@@ -500,7 +500,7 @@ export async function POST(request: NextRequest) {
         "#подписка #оплата",
       ].filter(Boolean) as string[]
 
-      await notifyPaymentStaff(
+      notifyPaymentStaff(
         messageLines.join("\n"),
         `[Parallax] Оплата подписки ${subscriptionName}: ${email}`,
         "subscription"

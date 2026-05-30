@@ -80,6 +80,9 @@ import {
 } from "@/lib/track-constants"
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
+import { fetchAdminTracksAllMatching } from "@/lib/admin-tracks-fetch"
+import { ADMIN_TRACKS_CLIENT_CAP } from "@/lib/admin-tracks-query"
+import type { AdminTracksListQuery } from "@/lib/admin-tracks-query"
 
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "upload_pending", label: "Черновик (доработка пользователем)" },
@@ -307,6 +310,9 @@ function trackToDraft(t: Track): TrackDraft {
 
 export default function TracksPageClient() {
   const [tracks, setTracks] = useState<Track[]>([])
+  const [tracksTotal, setTracksTotal] = useState(0)
+  const [tracksTotalInDb, setTracksTotalInDb] = useState(0)
+  const [tracksTruncated, setTracksTruncated] = useState(false)
   const [albums, setAlbums] = useState<AdminAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -377,29 +383,47 @@ export default function TracksPageClient() {
     router.replace("/admin26081993/tracks")
   }, [router])
 
-  const displayTracks = useMemo(() => {
-    if (!userIdFilterNorm) return tracks
-    return tracks.filter((t) => t.userId.toLowerCase() === userIdFilterNorm)
-  }, [tracks, userIdFilterNorm])
+  /** Фильтры применяются на сервере; локальный список уже отфильтрован. */
+  const statusFilteredTracks = tracks
+  const releaseDateFilteredTracks = tracks
 
-  const releaseDateFilteredTracks = useMemo(() => {
-    if (!releaseDateFromApplied && !releaseDateToApplied) return displayTracks
-    const fromTime = releaseDateFromApplied ? new Date(`${releaseDateFromApplied}T00:00:00`).getTime() : null
-    const toTime = releaseDateToApplied ? new Date(`${releaseDateToApplied}T23:59:59`).getTime() : null
-    return displayTracks.filter((track) => {
-      if (!track.releaseDate) return false
-      const time = new Date(track.releaseDate).getTime()
-      if (Number.isNaN(time)) return false
-      if (fromTime !== null && time < fromTime) return false
-      if (toTime !== null && time > toTime) return false
-      return true
-    })
-  }, [displayTracks, releaseDateFromApplied, releaseDateToApplied])
+  const adminTracksQuery = useMemo((): Omit<AdminTracksListQuery, "limit" | "offset"> => ({
+    userId: userIdFilterNorm || undefined,
+    status: statusFilter,
+    releaseDateFrom: releaseDateFromApplied || undefined,
+    releaseDateTo: releaseDateToApplied || undefined,
+    sortField: trackListSortField,
+    sortDirection: trackListSortDirection,
+  }), [
+    userIdFilterNorm,
+    statusFilter,
+    releaseDateFromApplied,
+    releaseDateToApplied,
+    trackListSortField,
+    trackListSortDirection,
+  ])
 
-  const statusFilteredTracks = useMemo(() => {
-    if (statusFilter === "all") return releaseDateFilteredTracks
-    return releaseDateFilteredTracks.filter((track) => track.status === statusFilter)
-  }, [releaseDateFilteredTracks, statusFilter])
+  const refreshTracks = useCallback(async () => {
+    try {
+      const data = await fetchAdminTracksAllMatching(adminTracksQuery)
+      setTracks(data.tracks)
+      setTracksTotal(data.total)
+      setTracksTotalInDb(data.totalInDatabase)
+      setTracksTruncated(data.truncated)
+      setAlbums(
+        data.albums.map((a) => ({
+          id: a.id,
+          title: a.title,
+          artistName: a.artistName,
+        }))
+      )
+      setUploadDrafts(data.uploadDrafts as UploadDraft[])
+      setIsAuthenticated(true)
+    } catch (err) {
+      const status = (err as { status?: number }).status
+      if (status === 401) setIsAuthenticated(false)
+    }
+  }, [adminTracksQuery])
 
   const trackAlbumTitleById = useMemo(() => {
     return albums.reduce<Record<string, string>>((acc, album) => {
@@ -431,14 +455,19 @@ export default function TracksPageClient() {
 
   useEffect(() => {
     setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
-  }, [
-    statusFilter,
-    releaseDateFromApplied,
-    releaseDateToApplied,
-    userIdFilterNorm,
-    trackListSortField,
-    trackListSortDirection,
-  ])
+  }, [adminTracksQuery])
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    void (async () => {
+      await refreshTracks()
+      if (!cancelled) setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshTracks])
 
   const displayUploadDrafts = useMemo(() => {
     let list = uploadDrafts
@@ -494,35 +523,8 @@ export default function TracksPageClient() {
   }, [isDialogOpen, selectedTrack?.id])
 
   const loadTracks = async () => {
-    const response = await fetch("/api/admin/tracks", { credentials: "include" })
-    if (response.ok) {
-      const data = await response.json()
-      setTracks(data.tracks || [])
-      setAlbums(data.albums || [])
-      setUploadDrafts((data.uploadDrafts ?? []) as UploadDraft[])
-    } else if (response.status === 401) {
-      setIsAuthenticated(false)
-    }
+    await refreshTracks()
   }
-
-  useEffect(() => {
-    fetch("/api/admin/tracks", { credentials: "include" })
-      .then((res) => {
-        if (res.ok) {
-          setIsAuthenticated(true)
-          return res.json()
-        }
-        if (res.status === 401) setIsAuthenticated(false)
-        return null
-      })
-      .then((data) => {
-        if (data?.tracks) setTracks(data.tracks)
-        if (data?.albums) setAlbums(data.albums)
-        if (data?.uploadDrafts) setUploadDrafts(data.uploadDrafts as UploadDraft[])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
 
   useEffect(() => {
     if (!userIdFilterNorm) return
@@ -1338,6 +1340,16 @@ export default function TracksPageClient() {
 
         <h1 className="text-2xl font-bold">Модерация треков</h1>
 
+        {tracksTruncated ? (
+          <Alert>
+            <AlertTitle>Показаны не все треки</AlertTitle>
+            <AlertDescription>
+              Загружено {tracks.length} из {tracksTotal} по текущему фильтру (лимит{" "}
+              {ADMIN_TRACKS_CLIENT_CAP}). Сузьте фильтр по пользователю, статусу или дате.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {userIdFilterRaw ? (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
             <p className="text-muted-foreground">
@@ -1353,7 +1365,7 @@ export default function TracksPageClient() {
                 {userIdFilterRaw}
               </span>
               <span className="block sm:inline text-foreground sm:ml-2">
-                - треков: {statusFilteredTracks.length}
+                - треков: {tracksTotal}
                 {showUploadDraftsInModeration && displayUploadDrafts.length > 0
                   ? ` · черновиков: ${displayUploadDrafts.length}`
                   : ""}
@@ -1371,12 +1383,12 @@ export default function TracksPageClient() {
           </div>
         ) : null}
 
-        {tracks.length === 0 && uploadDrafts.length === 0 ? (
+        {tracksTotalInDb === 0 && uploadDrafts.length === 0 ? (
           <div className="border rounded-lg p-12 text-center text-muted-foreground">
             Треков и активных черновиков загрузки пока нет
           </div>
         ) : !(
-            statusFilteredTracks.length > 0 ||
+            tracksTotal > 0 ||
             (showUploadDraftsInModeration && displayUploadDrafts.length > 0)
           ) ? (
           <div className="border rounded-lg p-12 text-center space-y-3">
@@ -1460,12 +1472,12 @@ export default function TracksPageClient() {
             <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
               <p className="text-sm text-muted-foreground">
                 {userIdFilterRaw
-                  ? `Треков в фильтре: ${statusFilteredTracks.length} (всего в базе: ${tracks.length})${
+                  ? `Треков в фильтре: ${tracksTotal} (всего в базе: ${tracksTotalInDb})${
                       showUploadDraftsInModeration && displayUploadDrafts.length > 0
                         ? ` · черновиков загрузки: ${displayUploadDrafts.length}`
                         : ""
                     }`
-                  : `Всего треков: ${tracks.length}${
+                  : `Всего треков: ${tracksTotalInDb} (в фильтре: ${tracksTotal})${
                       showUploadDraftsInModeration && displayUploadDrafts.length > 0
                         ? ` · черновиков загрузки: ${displayUploadDrafts.length}`
                         : ""

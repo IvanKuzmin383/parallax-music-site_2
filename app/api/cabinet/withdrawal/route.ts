@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { escapeHtml } from '@/lib/telegram'
-import { notifyStaff } from '@/lib/form-notifications'
+import { notifyStaffInBackground } from '@/lib/form-notifications'
 import { getCabinetToken, getCabinetSession } from '@/lib/cabinet-auth'
 import { getCabinetUserByEmail } from '@/lib/cabinet-users'
 import { createWithdrawalRequest } from '@/lib/withdrawal-requests'
@@ -99,16 +99,11 @@ export async function POST(request: NextRequest) {
     }
     message += `\n#вывод`
 
-    try {
-      await notifyStaff({
-        telegramMessage: message,
-        emailSubject: `[Parallax] Вывод ${validatedData.amount.toLocaleString('ru-RU')} ₽: ${user.email}`,
-        logContext: 'cabinet/withdrawal',
-      })
-    } catch (err) {
-      console.error('Withdrawal staff notification error:', err)
-      // Не возвращаем ошибку - заявка уже создана в БД
-    }
+    notifyStaffInBackground({
+      telegramMessage: message,
+      emailSubject: `[Parallax] Вывод ${validatedData.amount.toLocaleString('ru-RU')} ₽: ${user.email}`,
+      logContext: 'cabinet/withdrawal',
+    })
     
     return NextResponse.json(
       { 
