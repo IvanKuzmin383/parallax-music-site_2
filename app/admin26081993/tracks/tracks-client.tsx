@@ -81,8 +81,10 @@ import {
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { fetchAdminTracksAllMatching } from "@/lib/admin-tracks-fetch"
-import { ADMIN_TRACKS_CLIENT_CAP } from "@/lib/admin-tracks-query"
-import type { AdminTracksListQuery } from "@/lib/admin-tracks-query"
+import {
+  ADMIN_TRACKS_CLIENT_CAP,
+  type AdminTracksListQuery,
+} from "@/lib/admin-tracks-query-shared"
 
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "upload_pending", label: "Черновик (доработка пользователем)" },

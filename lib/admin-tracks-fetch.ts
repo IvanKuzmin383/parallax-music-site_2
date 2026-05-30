@@ -2,7 +2,7 @@ import {
   ADMIN_TRACKS_CLIENT_CAP,
   ADMIN_TRACKS_DEFAULT_LIMIT,
   type AdminTracksListQuery,
-} from "@/lib/admin-tracks-query"
+} from "@/lib/admin-tracks-query-shared"
 import type { Album } from "@/lib/albums"
 import type { Track } from "@/lib/tracks"
 import type { UploadDraft } from "@/lib/upload-drafts"
