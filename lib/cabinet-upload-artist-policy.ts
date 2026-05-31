@@ -3,11 +3,9 @@ import {
   claimArtistForActiveSlot,
   listActiveCabinetArtistSubscriptionsByUserId,
 } from "@/lib/cabinet-artist-subscriptions"
+import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 
-/** Сравнение имён исполнителя для политики «один артист на тарифе» */
-export function normalizeArtistForPolicy(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ")
-}
+export { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 
 /**
  * Явные признаки нескольких исполнителей в одном поле (feat., соавторы и т. п.).

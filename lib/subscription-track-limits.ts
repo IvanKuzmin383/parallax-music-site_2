@@ -1,14 +1,21 @@
-import type { CabinetArtistSubscription } from "@/lib/cabinet-artist-subscriptions"
-import type { CabinetUser } from "@/lib/cabinet-users"
-import { normalizeArtistForPolicy } from "@/lib/cabinet-upload-artist-policy"
+import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 import { getEffectiveTrackLimit, getTrackLimit } from "@/lib/subscription-plans"
 
 type TrackLike = { artistName: string }
 
-type UserForLimit = Pick<
-  CabinetUser,
-  "subscriptionName" | "subscriptionTrackLimit" | "purchasedTracksBalance"
->
+/** Минимальные поля слота артиста (без импорта server-only модулей). */
+export type ArtistSubscriptionSlotLike = {
+  subscriptionName: string
+  subscriptionTrackLimit: number | null
+  subscriptionExpiresAt: string | null
+  artistName: string | null
+}
+
+type UserForLimit = {
+  subscriptionName?: string
+  subscriptionTrackLimit?: number
+  purchasedTracksBalance?: number
+}
 
 export function subscriptionTrackLimitError(limit: number): string {
   return `Текущий тариф предусматривает не более ${limit} активных релизов. Чтобы загрузить больше, необходимо расширить подписку или оплатить дополнительные треки.`
@@ -25,8 +32,8 @@ export function isArtistSlotActive(
 }
 
 export function filterActiveArtistSlots(
-  slots: CabinetArtistSubscription[]
-): CabinetArtistSubscription[] {
+  slots: ArtistSubscriptionSlotLike[]
+): ArtistSubscriptionSlotLike[] {
   return slots.filter((s) => isArtistSlotActive(s.subscriptionExpiresAt))
 }
 
@@ -37,7 +44,7 @@ export function countTracksForArtist(tracks: TrackLike[], artistName: string): n
 }
 
 function sumSlotLimits(
-  slots: Pick<CabinetArtistSubscription, "subscriptionName" | "subscriptionTrackLimit">[]
+  slots: Pick<ArtistSubscriptionSlotLike, "subscriptionName" | "subscriptionTrackLimit">[]
 ): number | null {
   let total = 0
   for (const slot of slots) {
@@ -55,7 +62,7 @@ function sumSlotLimits(
 export function getEffectiveTrackLimitForArtist(
   user: UserForLimit,
   artistName: string,
-  activeSlots: CabinetArtistSubscription[]
+  activeSlots: ArtistSubscriptionSlotLike[]
 ): number | null {
   if (!user.subscriptionName) return 0
 
@@ -99,7 +106,7 @@ export function isTrackUploadWithinLimit(
   user: UserForLimit,
   artistName: string,
   existingTracks: TrackLike[],
-  activeSlots: CabinetArtistSubscription[],
+  activeSlots: ArtistSubscriptionSlotLike[],
   tracksToAdd = 1
 ): { allowed: boolean; limit: number | null } {
   const limit = getEffectiveTrackLimitForArtist(user, artistName, activeSlots)
@@ -118,7 +125,7 @@ export function isTrackUploadWithinLimit(
 export function canUserAddAnyTrack(
   user: UserForLimit,
   existingTracks: TrackLike[],
-  activeSlots: CabinetArtistSubscription[]
+  activeSlots: ArtistSubscriptionSlotLike[]
 ): boolean {
   if (!user.subscriptionName) return false
 
@@ -158,7 +165,7 @@ export function canUserAddAnyTrack(
 /** Лимит для текста диалога (типичный лимит одного слота). */
 export function getRepresentativeTrackLimitForDialog(
   user: UserForLimit,
-  activeSlots: CabinetArtistSubscription[]
+  activeSlots: ArtistSubscriptionSlotLike[]
 ): number | null {
   if (user.subscriptionName === "Fix") {
     return getEffectiveTrackLimit(user)
