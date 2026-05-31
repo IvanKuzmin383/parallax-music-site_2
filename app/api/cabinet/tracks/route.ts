@@ -5,7 +5,12 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { getEffectiveTrackLimit } from "@/lib/subscription-plans"
+import { listActiveCabinetArtistSubscriptionsByUserId } from "@/lib/cabinet-artist-subscriptions"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
+import {
+  isTrackUploadWithinLimit,
+  subscriptionTrackLimitError,
+} from "@/lib/subscription-track-limits"
 import { getTracksByUserId } from "@/lib/tracks"
 import { createTrack, getAudioDir, getCoversDir, GENRES, TRACK_MOODS } from "@/lib/tracks"
 import { musicRightsRequiresAiService } from "@/lib/track-constants"
@@ -60,21 +65,11 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-    const limit = getEffectiveTrackLimit(user)
-    if (limit === 0) {
+    if (getEffectiveTrackLimit(user) === 0) {
       return NextResponse.json(
         {
           error:
             "Для загрузки треков необходима активная подписка. Обратитесь к администратору для подключения тарифа.",
-        },
-        { status: 403 }
-      )
-    }
-    const existingTracks = await getTracksByUserId(session.email)
-    if (limit !== null && existingTracks.length >= limit) {
-      return NextResponse.json(
-        {
-          error: `Текущий тариф предусматривает не более ${limit} активных релизов. Чтобы загрузить больше, необходимо расширить подписку или оплатить дополнительные треки.`,
         },
         { status: 403 }
       )
@@ -163,6 +158,26 @@ export async function POST(request: NextRequest) {
       const artistPolicyError = await getUploadArtistPolicyViolationWithSlots(user, artistName)
       if (artistPolicyError) {
         return NextResponse.json({ error: artistPolicyError }, { status: 400 })
+      }
+
+      const existingTracks = await getTracksByUserId(session.email)
+      const activeSlots = await listActiveCabinetArtistSubscriptionsByUserId(user.id)
+      const trackLimitCheck = isTrackUploadWithinLimit(
+        user,
+        artistName,
+        existingTracks,
+        activeSlots
+      )
+      if (!trackLimitCheck.allowed) {
+        return NextResponse.json(
+          {
+            error:
+              trackLimitCheck.limit != null
+                ? subscriptionTrackLimitError(trackLimitCheck.limit)
+                : "Для загрузки треков необходима активная подписка. Обратитесь к администратору для подключения тарифа.",
+          },
+          { status: 403 }
+        )
       }
       if (!TRACK_MOODS.includes(mood as (typeof TRACK_MOODS)[number])) {
         return NextResponse.json(

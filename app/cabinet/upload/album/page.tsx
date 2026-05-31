@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type MouseEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray, useWatch, type FieldPath } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -41,7 +41,14 @@ import {
   TRACK_MOODS,
   musicRightsRequiresAiService,
 } from "@/lib/track-constants"
-import { getEffectiveTrackLimit, isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
+import { isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
+import type { CabinetArtistSubscription } from "@/lib/cabinet-artist-subscriptions"
+import {
+  countTracksForArtist,
+  filterActiveArtistSlots,
+  getEffectiveTrackLimitForArtist,
+  isTrackUploadWithinLimit,
+} from "@/lib/subscription-track-limits"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { SubscriptionLimitDialog } from "@/components/subscription-limit-dialog"
 import { ArrowLeft, Upload, CalendarIcon, Plus, Trash2, AlertCircle } from "lucide-react"
@@ -378,8 +385,14 @@ export default function CabinetUploadAlbumPage() {
   const albumAudioSyncInFlight = useRef(false)
   /** Текст этапа пошаговой загрузки (альбом отправляется частями, чтобы не упираться в лимит размера запроса) */
   const [uploadStepLabel, setUploadStepLabel] = useState<string | null>(null)
-  const [trackLimit, setTrackLimit] = useState<number | null>(null)
-  const [currentTrackCount, setCurrentTrackCount] = useState(0)
+  const [userLimit, setUserLimit] = useState<{
+    subscriptionName?: string
+    subscriptionTrackLimit?: number
+    purchasedTracksBalance?: number
+    hasActive: boolean
+  } | null>(null)
+  const [artistSubscriptions, setArtistSubscriptions] = useState<CabinetArtistSubscription[]>([])
+  const [existingTracks, setExistingTracks] = useState<{ artistName: string }[]>([])
   const [subscriptionName, setSubscriptionName] = useState<string | undefined>(undefined)
   const [subscriptionExpired, setSubscriptionExpired] = useState(false)
   const [purchaseTracksDialogOpen, setPurchaseTracksDialogOpen] = useState(false)
@@ -417,6 +430,46 @@ export default function CabinetUploadAlbumPage() {
     control: form.control,
     name: "tracks",
   })
+
+  const watchedAlbumArtistName = useWatch({ control: form.control, name: "albumArtistName" })
+  const activeArtistSlots = useMemo(
+    () => filterActiveArtistSlots(artistSubscriptions),
+    [artistSubscriptions]
+  )
+  const trackLimit = useMemo(() => {
+    if (!userLimit?.hasActive || !userLimit.subscriptionName) return 0
+    const limit = getEffectiveTrackLimitForArtist(
+      {
+        subscriptionName: userLimit.subscriptionName,
+        subscriptionTrackLimit: userLimit.subscriptionTrackLimit,
+        purchasedTracksBalance: userLimit.purchasedTracksBalance,
+      },
+      watchedAlbumArtistName ?? "",
+      activeArtistSlots
+    )
+    return limit === 0 ? 0 : limit
+  }, [userLimit, watchedAlbumArtistName, activeArtistSlots])
+  const currentTrackCount = useMemo(() => {
+    if (!userLimit?.hasActive) return 0
+    if (userLimit.subscriptionName === "Fix") return existingTracks.length
+    if (!`${watchedAlbumArtistName ?? ""}`.trim()) return 0
+    return countTracksForArtist(existingTracks, watchedAlbumArtistName ?? "")
+  }, [userLimit, existingTracks, watchedAlbumArtistName])
+
+  const exceedsTrackLimit = (tracksToAdd: number) => {
+    if (!userLimit?.hasActive || !userLimit.subscriptionName) return false
+    return !isTrackUploadWithinLimit(
+      {
+        subscriptionName: userLimit.subscriptionName,
+        subscriptionTrackLimit: userLimit.subscriptionTrackLimit,
+        purchasedTracksBalance: userLimit.purchasedTracksBalance,
+      },
+      watchedAlbumArtistName ?? "",
+      existingTracks,
+      activeArtistSlots,
+      tracksToAdd
+    ).allowed
+  }
   const watchedCoverFiles = useWatch({ control: form.control, name: "cover" }) as FileList | undefined
   const watchedRequestAiCover = useWatch({ control: form.control, name: "requestAiCover" }) ?? false
   const selectedAddonsTotal = computeSelectedUploadAddonsTotalRub({
@@ -498,7 +551,7 @@ export default function CabinetUploadAlbumPage() {
         return
       }
       if (userRes.ok && tracksRes.ok) {
-        userRes.json().then((userData: { user?: { createdAt?: string; subscriptionName?: string; subscriptionExpiresAt?: string; subscriptionTrackLimit?: number; purchasedTracksBalance?: number; profileCompleteForUpload?: boolean } }) => {
+        userRes.json().then((userData: { user?: { createdAt?: string; subscriptionName?: string; subscriptionExpiresAt?: string; subscriptionTrackLimit?: number; purchasedTracksBalance?: number; profileCompleteForUpload?: boolean; artistSubscriptions?: CabinetArtistSubscription[] } }) => {
           const u = userData.user
           setProfileCompleteForUpload(u?.profileCompleteForUpload ?? false)
           setUserTrackPriceRub(getTrackPriceRubByCreatedAt(u?.createdAt))
@@ -516,18 +569,21 @@ export default function CabinetUploadAlbumPage() {
               subscriptionExpiresAt: u.subscriptionExpiresAt,
             })
           setSubscriptionExpired(expired)
-          const limit = hasActive && u
-            ? getEffectiveTrackLimit({
-                subscriptionName: u.subscriptionName,
-                subscriptionTrackLimit: u.subscriptionTrackLimit,
-                purchasedTracksBalance: u.purchasedTracksBalance,
-              })
-            : 0
-          setTrackLimit(limit === 0 ? 0 : limit)
+          setUserLimit(
+            u
+              ? {
+                  subscriptionName: u.subscriptionName,
+                  subscriptionTrackLimit: u.subscriptionTrackLimit,
+                  purchasedTracksBalance: u.purchasedTracksBalance,
+                  hasActive: Boolean(hasActive),
+                }
+              : null
+          )
+          setArtistSubscriptions(u?.artistSubscriptions ?? [])
           setSubscriptionName(u?.subscriptionName)
         })
-        tracksRes.json().then((tracksData: { tracks?: unknown[] }) => {
-          setCurrentTrackCount(tracksData.tracks?.length ?? 0)
+        tracksRes.json().then((tracksData: { tracks?: { artistName: string }[] }) => {
+          setExistingTracks(tracksData.tracks ?? [])
         })
       }
     })
@@ -910,7 +966,7 @@ export default function CabinetUploadAlbumPage() {
       return
     }
     const tracksToAdd = data.tracks.length
-    if (trackLimit !== null && currentTrackCount + tracksToAdd > trackLimit) {
+    if (exceedsTrackLimit(tracksToAdd)) {
       if (subscriptionName === "Fix") {
         setPurchaseTracksDialogOpen(true)
       } else {
@@ -1583,7 +1639,7 @@ export default function CabinetUploadAlbumPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (trackLimit !== null && currentTrackCount + fields.length >= trackLimit) {
+                    if (exceedsTrackLimit(fields.length + 1)) {
                       if (subscriptionName === "Fix") {
                         setPurchaseTracksDialogOpen(true)
                       } else {

@@ -5,7 +5,12 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { getEffectiveTrackLimit } from "@/lib/subscription-plans"
+import { listActiveCabinetArtistSubscriptionsByUserId } from "@/lib/cabinet-artist-subscriptions"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
+import {
+  isTrackUploadWithinLimit,
+  subscriptionTrackLimitError,
+} from "@/lib/subscription-track-limits"
 import { createTrack, getAudioDir, getCoversDir, GENRES, TRACK_MOODS, getTracksByUserId } from "@/lib/tracks"
 import { musicRightsRequiresAiService } from "@/lib/track-constants"
 import { createAlbum, getAlbumsByUserId } from "@/lib/albums"
@@ -77,8 +82,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-    const limit = getEffectiveTrackLimit(user)
-    if (limit === 0) {
+    if (getEffectiveTrackLimit(user) === 0) {
       return NextResponse.json(
         {
           error:
@@ -145,19 +149,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const existingTracks = await getTracksByUserId(session.email)
-    if (limit !== null && existingTracks.length + tracksMeta.length > limit) {
-      return NextResponse.json(
-        {
-          error: `Текущий тариф предусматривает не более ${limit} активных релизов. Чтобы загрузить больше, необходимо расширить подписку или оплатить дополнительные треки.`,
-        },
-        { status: 403 }
-      )
-    }
-
     const albumArtistPolicyError = await getUploadArtistPolicyViolationWithSlots(user, albumArtistName)
     if (albumArtistPolicyError) {
       return NextResponse.json({ error: albumArtistPolicyError }, { status: 400 })
+    }
+
+    const existingTracks = await getTracksByUserId(session.email)
+    const activeSlots = await listActiveCabinetArtistSubscriptionsByUserId(user.id)
+    const trackLimitCheck = isTrackUploadWithinLimit(
+      user,
+      albumArtistName,
+      existingTracks,
+      activeSlots,
+      tracksMeta.length
+    )
+    if (!trackLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            trackLimitCheck.limit != null
+              ? subscriptionTrackLimitError(trackLimitCheck.limit)
+              : "Для загрузки треков необходима активная подписка. Обратитесь к администратору для подключения тарифа.",
+        },
+        { status: 403 }
+      )
     }
 
     const labelName = getEffectiveReleaseLabelName(labelNameRaw, user.subscriptionName)

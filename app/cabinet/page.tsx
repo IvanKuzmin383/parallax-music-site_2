@@ -44,7 +44,13 @@ import type { Track } from "@/lib/tracks"
 import type { UploadDraft, UploadDraftStatus } from "@/lib/upload-drafts"
 import { AI_COVER_REQUEST_PRICE_RUB } from "@/lib/track-constants"
 import type { Album } from "@/lib/albums"
-import { getEffectiveTrackLimit, isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
+import { isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
+import type { CabinetArtistSubscription } from "@/lib/cabinet-artist-subscriptions"
+import {
+  canUserAddAnyTrack,
+  filterActiveArtistSlots,
+  getRepresentativeTrackLimitForDialog,
+} from "@/lib/subscription-track-limits"
 import { CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE } from "@/lib/cabinet-account-messages"
 import { isCabinetSubscriptionExpiredForNavigation } from "@/lib/cabinet-subscription-gate"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
@@ -219,6 +225,7 @@ export default function CabinetPage() {
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [artistName, setArtistName] = useState<string>("")
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
+  const [artistSubscriptions, setArtistSubscriptions] = useState<CabinetArtistSubscription[]>([])
   const [streamingBalance, setStreamingBalance] = useState<number>(0)
   const [reports, setReports] = useState<StreamingReport[]>([])
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([])
@@ -323,6 +330,7 @@ export default function CabinetPage() {
         subscriptionTrackLimit: data.user?.subscriptionTrackLimit,
         purchasedTracksBalance: data.user?.purchasedTracksBalance,
       })
+      setArtistSubscriptions(data.user?.artistSubscriptions ?? [])
       setStreamingBalance(data.user?.streamingBalance || 0)
     }
   }
@@ -368,34 +376,38 @@ export default function CabinetPage() {
     }
   }
 
+  const activeArtistSlots = filterActiveArtistSlots(artistSubscriptions)
+
   const canAddTrack = (() => {
     const isFixPlan = subscription?.subscriptionName === "Fix"
-    // Для Fix плана не проверяем срок действия
     if (!isFixPlan) {
       if (!subscription?.subscriptionExpiresAt) return false
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       if (new Date(subscription.subscriptionExpiresAt) < today) return false
     }
-    const limit = subscription
-      ? getEffectiveTrackLimit({
-          subscriptionName: subscription.subscriptionName,
-          subscriptionTrackLimit: subscription.subscriptionTrackLimit,
-          purchasedTracksBalance: subscription.purchasedTracksBalance,
-        })
-      : 0
-    if (limit === 0) return false
-    if (limit === null) return true
-    return tracks.length < limit
+    if (!subscription?.subscriptionName) return false
+    return canUserAddAnyTrack(
+      {
+        subscriptionName: subscription.subscriptionName,
+        subscriptionTrackLimit: subscription.subscriptionTrackLimit,
+        purchasedTracksBalance: subscription.purchasedTracksBalance,
+      },
+      tracks,
+      activeArtistSlots
+    )
   })()
 
   const effectiveLimit =
     subscription &&
-    getEffectiveTrackLimit({
-      subscriptionName: subscription.subscriptionName,
-      subscriptionTrackLimit: subscription.subscriptionTrackLimit,
-      purchasedTracksBalance: subscription.purchasedTracksBalance,
-    })
+    getRepresentativeTrackLimitForDialog(
+      {
+        subscriptionName: subscription.subscriptionName,
+        subscriptionTrackLimit: subscription.subscriptionTrackLimit,
+        purchasedTracksBalance: subscription.purchasedTracksBalance,
+      },
+      activeArtistSlots
+    )
 
   const subscriptionLimitDialogReason: "limit" | "expired" =
     subscription &&
@@ -547,6 +559,7 @@ export default function CabinetPage() {
                 subscriptionTrackLimit: data.user.subscriptionTrackLimit,
                 purchasedTracksBalance: data.user.purchasedTracksBalance,
               })
+              setArtistSubscriptions(data.user.artistSubscriptions ?? [])
               setStreamingBalance(data.user.streamingBalance || 0)
             }
           })

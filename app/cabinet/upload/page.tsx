@@ -49,7 +49,14 @@ import {
   TRACK_MOODS,
   musicRightsRequiresAiService,
 } from "@/lib/track-constants"
-import { getEffectiveTrackLimit, isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
+import { isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
+import type { CabinetArtistSubscription } from "@/lib/cabinet-artist-subscriptions"
+import {
+  countTracksForArtist,
+  filterActiveArtistSlots,
+  getEffectiveTrackLimitForArtist,
+  isTrackUploadWithinLimit,
+} from "@/lib/subscription-track-limits"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { SubscriptionLimitDialog } from "@/components/subscription-limit-dialog"
 import {
@@ -328,8 +335,14 @@ export default function CabinetUploadPage() {
   const cabinetUploadPreviewAudioRef = useRef<HTMLAudioElement | null>(null)
   const [cabinetUploadAudioPreviewPlaying, setCabinetUploadAudioPreviewPlaying] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [trackLimit, setTrackLimit] = useState<number | null>(null)
-  const [currentTrackCount, setCurrentTrackCount] = useState(0)
+  const [userLimit, setUserLimit] = useState<{
+    subscriptionName?: string
+    subscriptionTrackLimit?: number
+    purchasedTracksBalance?: number
+    hasActive: boolean
+  } | null>(null)
+  const [artistSubscriptions, setArtistSubscriptions] = useState<CabinetArtistSubscription[]>([])
+  const [existingTracks, setExistingTracks] = useState<{ artistName: string }[]>([])
   const [subscriptionName, setSubscriptionName] = useState<string | undefined>(undefined)
   const [subscriptionExpired, setSubscriptionExpired] = useState(false)
   const [purchaseTracksDialogOpen, setPurchaseTracksDialogOpen] = useState(false)
@@ -380,6 +393,31 @@ export default function CabinetUploadPage() {
       serverDraftHasCover: false,
     },
   })
+
+  const watchedArtistName = useWatch({ control: form.control, name: "artistName" })
+  const activeArtistSlots = useMemo(
+    () => filterActiveArtistSlots(artistSubscriptions),
+    [artistSubscriptions]
+  )
+  const trackLimit = useMemo(() => {
+    if (!userLimit?.hasActive || !userLimit.subscriptionName) return 0
+    const limit = getEffectiveTrackLimitForArtist(
+      {
+        subscriptionName: userLimit.subscriptionName,
+        subscriptionTrackLimit: userLimit.subscriptionTrackLimit,
+        purchasedTracksBalance: userLimit.purchasedTracksBalance,
+      },
+      watchedArtistName ?? "",
+      activeArtistSlots
+    )
+    return limit === 0 ? 0 : limit
+  }, [userLimit, watchedArtistName, activeArtistSlots])
+  const currentTrackCount = useMemo(() => {
+    if (!userLimit?.hasActive) return 0
+    if (userLimit.subscriptionName === "Fix") return existingTracks.length
+    if (!`${watchedArtistName ?? ""}`.trim()) return 0
+    return countTracksForArtist(existingTracks, watchedArtistName ?? "")
+  }, [userLimit, existingTracks, watchedArtistName])
 
   const watchedAudioFiles = useWatch({ control: form.control, name: "audio" }) as FileList | undefined
   const watchedServerDraftHasAudio = useWatch({ control: form.control, name: "serverDraftHasAudio" })
@@ -893,7 +931,7 @@ export default function CabinetUploadPage() {
         return
       }
       if (userRes.ok && tracksRes.ok) {
-        userRes.json().then((userData: { user?: { createdAt?: string; subscriptionName?: string; subscriptionExpiresAt?: string; subscriptionTrackLimit?: number; purchasedTracksBalance?: number; profileCompleteForUpload?: boolean } }) => {
+        userRes.json().then((userData: { user?: { createdAt?: string; subscriptionName?: string; subscriptionExpiresAt?: string; subscriptionTrackLimit?: number; purchasedTracksBalance?: number; profileCompleteForUpload?: boolean; artistSubscriptions?: CabinetArtistSubscription[] } }) => {
           const u = userData.user
           setProfileCompleteForUpload(u?.profileCompleteForUpload ?? false)
           setUserTrackPriceRub(getTrackPriceRubByCreatedAt(u?.createdAt))
@@ -911,18 +949,21 @@ export default function CabinetUploadPage() {
               subscriptionExpiresAt: u.subscriptionExpiresAt,
             })
           setSubscriptionExpired(expired)
-          const limit = hasActive && u
-            ? getEffectiveTrackLimit({
-                subscriptionName: u.subscriptionName,
-                subscriptionTrackLimit: u.subscriptionTrackLimit,
-                purchasedTracksBalance: u.purchasedTracksBalance,
-              })
-            : 0
-          setTrackLimit(limit === 0 ? 0 : limit)
+          setUserLimit(
+            u
+              ? {
+                  subscriptionName: u.subscriptionName,
+                  subscriptionTrackLimit: u.subscriptionTrackLimit,
+                  purchasedTracksBalance: u.purchasedTracksBalance,
+                  hasActive: Boolean(hasActive),
+                }
+              : null
+          )
+          setArtistSubscriptions(u?.artistSubscriptions ?? [])
           setSubscriptionName(u?.subscriptionName)
         })
-        tracksRes.json().then((tracksData: { tracks?: unknown[] }) => {
-          setCurrentTrackCount(tracksData.tracks?.length ?? 0)
+        tracksRes.json().then((tracksData: { tracks?: { artistName: string }[] }) => {
+          setExistingTracks(tracksData.tracks ?? [])
         })
       }
     })
@@ -1006,13 +1047,25 @@ export default function CabinetUploadPage() {
       toast.error("Заполните профиль: ФИО, адрес регистрации и телефон")
       return
     }
-    if (trackLimit !== null && currentTrackCount >= trackLimit) {
-      if (subscriptionName === "Fix") {
-        setPurchaseTracksDialogOpen(true)
-      } else {
-        setSubscriptionLimitDialogOpen(true)
+    if (userLimit?.hasActive && userLimit.subscriptionName) {
+      const limitCheck = isTrackUploadWithinLimit(
+        {
+          subscriptionName: userLimit.subscriptionName,
+          subscriptionTrackLimit: userLimit.subscriptionTrackLimit,
+          purchasedTracksBalance: userLimit.purchasedTracksBalance,
+        },
+        data.artistName,
+        existingTracks,
+        activeArtistSlots
+      )
+      if (!limitCheck.allowed) {
+        if (subscriptionName === "Fix") {
+          setPurchaseTracksDialogOpen(true)
+        } else {
+          setSubscriptionLimitDialogOpen(true)
+        }
+        return
       }
-      return
     }
     const hasLocalAudio = Boolean(data.audio && data.audio[0])
     if (hasLocalAudio) {
