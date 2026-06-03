@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import crypto from "crypto"
 import {
   type PlanId,
   isPlanId,
@@ -8,14 +7,9 @@ import {
   getMaxPeriods,
   normalizePeriodsCount,
 } from "@/lib/plan-pricing"
-import { createOrder, updateOrderStatus } from "@/lib/orders"
-import {
-  buildSubscriptionReceipt,
-  merchantCustomerIdFromEmail,
-  shouldSendYooKassaReceipt,
-} from "@/lib/yookassa-subscription"
-
-const YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
+import { createOrder } from "@/lib/orders"
+import { assertTbankConfigured } from "@/lib/tbank-cabinet-payment"
+import { createTbankSubscriptionPayment } from "@/lib/tbank-subscription"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -85,14 +79,9 @@ function validateInput(body: unknown): ValidInput | { error: string; code: strin
 }
 
 export async function POST(request: NextRequest) {
-  const shopId = process.env.YOOKASSA_SHOP_ID
-  const secretKey = process.env.YOOKASSA_SECRET_KEY
-  const returnUrl = process.env.YOOKASSA_RETURN_URL
-
-  if (!shopId || !secretKey || !returnUrl) {
-    console.error(
-      "[payments/create] Missing YOOKASSA env (YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, YOOKASSA_RETURN_URL)"
-    )
+  const tbankCfg = assertTbankConfigured()
+  if (!tbankCfg.ok) {
+    console.error("[payments/create] Missing TBANK env")
     return NextResponse.json(
       { error: "Payment configuration error", code: "config_error" },
       { status: 500 }
@@ -134,97 +123,24 @@ export async function POST(request: NextRequest) {
   const periodLabel = period === "month" ? "мес" : "год"
   const description = `Подписка ${subscriptionName}, ${periodLabel} x ${periodsCount}, email ${email}`
 
-  const idempotenceKey = crypto.randomUUID()
-  const auth = Buffer.from(`${shopId}:${secretKey}`).toString("base64")
-
-  /**
-   * Рекурренты / сохранение карты: только если ЮKassa включила магазину автоплатежи.
-   * По умолчанию false - иначе API вернёт 403. Включить: YOOKASSA_SAVE_PAYMENT_METHOD=true в .env
-   */
-  const savePaymentMethod = process.env.YOOKASSA_SAVE_PAYMENT_METHOD === "true"
-
-  const yookassaBody: Record<string, unknown> = {
-    amount: {
-      value: totalAmount,
-      currency: "RUB",
-    },
-    confirmation: {
-      type: "redirect" as const,
-      return_url: returnUrl,
-    },
-    capture: true,
+  const pay = await createTbankSubscriptionPayment({
+    orderId: order.id,
+    totalAmount,
     description,
-    ...(savePaymentMethod ? { save_payment_method: true as const } : {}),
-    merchant_customer_id: merchantCustomerIdFromEmail(email),
-    metadata: {
-      orderId: order.id,
-      orderType: "subscription",
-      planId,
-      period,
-      periodsCount: String(periodsCount),
-      email,
-      telegram: telegram ?? "",
-      recurring: "false",
-    },
-  }
+    customerEmail: email,
+    planId,
+    period,
+    periodsCount,
+    telegram,
+    logPrefix: "payments/create",
+  })
 
-  if (shouldSendYooKassaReceipt()) {
-    yookassaBody.receipt = buildSubscriptionReceipt({
-      customerEmail: email,
-      planId,
-      period,
-      periodsCount,
-      totalAmount,
-    })
-  }
-
-  let res: Response
-  try {
-    res = await fetch(YOOKASSA_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-        "Idempotence-Key": idempotenceKey,
-      },
-      body: JSON.stringify(yookassaBody),
-    })
-  } catch (err) {
-    console.error("[payments/create] YooKassa request failed:", err)
+  if (!pay.ok) {
     return NextResponse.json(
-      { error: "Не удалось создать платёж, попробуйте позже", code: "payment_request_failed" },
+      { error: pay.error, code: "payment_create_failed" },
       { status: 500 }
     )
   }
 
-  const data = (await res.json().catch(() => ({}))) as {
-    id?: string
-    confirmation?: { confirmation_url?: string }
-    description?: string
-    code?: string
-  }
-
-  if (!res.ok) {
-    console.error("[payments/create] YooKassa error:", res.status, data)
-    return NextResponse.json(
-      { error: data.description || "Не удалось создать платёж", code: data.code || "payment_create_failed" },
-      { status: 500 }
-    )
-  }
-
-  const paymentId = data.id
-  const confirmationUrl = data.confirmation?.confirmation_url
-
-  if (!paymentId || !confirmationUrl) {
-    console.error("[payments/create] YooKassa response missing id or confirmation_url:", data)
-    return NextResponse.json(
-      { error: "Неверный ответ платёжной системы", code: "payment_response_invalid" },
-      { status: 500 }
-    )
-  }
-
-  await updateOrderStatus(order.id, "pending", { paymentId })
-
-  return NextResponse.json({ confirmationUrl, paymentId })
+  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
 }
-

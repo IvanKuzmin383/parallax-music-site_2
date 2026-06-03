@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { format, differenceInCalendarDays } from "date-fns"
 import { ru } from "date-fns/locale"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { getAllCabinetUsers, type CabinetUser } from "@/lib/cabinet-users"
+import { cabinetUserHasAutopayBinding, getAllCabinetUsers, type CabinetUser } from "@/lib/cabinet-users"
 import {
   calculateTotalAmount,
   isPlanId,
@@ -18,9 +18,10 @@ const DEFAULT_DAYS_AHEAD = 3
 
 function getAutopayStatusLabel(user: {
   autopayEnabled?: boolean
+  tbankRebillId?: string
   yookassaPaymentMethodId?: string
 }): string {
-  return user.autopayEnabled && user.yookassaPaymentMethodId ? "✅ подключено" : "❌ не подключено"
+  return user.autopayEnabled && cabinetUserHasAutopayBinding(user) ? "✅ подключено" : "❌ не подключено"
 }
 
 function formatAmountRub(amount: number): string {

@@ -3,9 +3,13 @@ import { promises as fs } from "fs"
 import path from "path"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { createOrder, updateOrderStatus } from "@/lib/orders"
+import { createOrder } from "@/lib/orders"
 import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
-import { getTbankConfig, initTbankPayment, rublesToKopecks } from "@/lib/tbank-acquiring"
+import {
+  assertTbankConfigured,
+  createCabinetTbankPayment,
+  getSiteBaseUrl,
+} from "@/lib/tbank-cabinet-payment"
 import { getUploadsBasePath } from "@/lib/tracks"
 import { validateWavStereoFromPrefix } from "@/lib/wav-parse-stereo"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
@@ -35,14 +39,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  if (!getTbankConfig()) {
-    console.error(
-      "[payments/ai-mastering/create] Missing TBANK env (TBANK_TERMINAL_KEY, TBANK_PASSWORD)"
-    )
-    return NextResponse.json({ error: "Оплата временно недоступна" }, { status: 500 })
+  const tbankCfg = assertTbankConfigured()
+  if (!tbankCfg.ok) {
+    console.error("[payments/ai-mastering/create] Missing TBANK env")
+    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
   }
 
-  const siteBase = (process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru").replace(/\/$/, "")
+  const siteBase = getSiteBaseUrl()
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -160,40 +163,25 @@ export async function POST(request: NextRequest) {
   const trackSummary = trackTitlesJoined.slice(0, 200)
   const returnUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=fail&orderId=${encodeURIComponent(order.id)}`
-  const notificationUrl =
-    process.env.TBANK_NOTIFICATION_URL?.trim() || `${siteBase}/api/payments/tbank/webhook`
-
   const description = `AI мастеринг: ${trackSummary.slice(0, 60)}${trackSummary.length > 60 ? "…" : ""}, ${tracksCount} тр., ${user.email}`
 
-  const amountKopecks = rublesToKopecks(totalAmount)
-  if (amountKopecks <= 0) {
-    return NextResponse.json({ error: "Некорректная сумма заказа" }, { status: 500 })
-  }
-
-  const pay = await initTbankPayment({
-    amountKopecks,
+  const pay = await createCabinetTbankPayment({
     orderId: order.id,
-    description: description.slice(0, 140),
+    totalAmount,
+    description,
     successUrl: returnUrl,
     failUrl,
-    notificationUrl,
-    data: {
-      orderId: order.id,
-      orderType: "ai_mastering",
-    },
+    orderType: "ai_mastering",
+    receiptEmail: user.email,
+    receiptItemName: "AI мастеринг",
+    logPrefix: "payments/ai-mastering/create",
   })
 
   if (!pay.ok) {
-    console.error("[payments/ai-mastering/create] T-Bank Init error:", pay.status, pay.body)
-    return NextResponse.json(
-      { error: pay.message || "Не удалось создать платёж" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: pay.error }, { status: 500 })
   }
 
-      await updateOrderStatus(order.id, "pending", { paymentId: pay.paymentId })
-
-      return NextResponse.json({ confirmationUrl: pay.paymentUrl, paymentId: pay.paymentId })
+      return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
     } finally {
       await multipart.cleanup()
     }

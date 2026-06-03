@@ -45,8 +45,10 @@ export interface CabinetUser {
   subscriptionTrackLimit?: number
   purchasedTracksBalance?: number
   streamingBalance?: number
-  /** YooKassa: id сохранённого способа оплаты для рекуррентов */
+  /** Legacy ЮKassa: payment_method_id для рекуррентов */
   yookassaPaymentMethodId?: string
+  /** Т‑Банк: RebillId для рекуррентных списаний */
+  tbankRebillId?: string
   autopayEnabled?: boolean
   autopayPlanId?: string
   autopayPeriod?: "month" | "year"
@@ -96,6 +98,7 @@ interface CabinetUserRow {
   purchased_tracks_balance: number | null
   streaming_balance: number | null
   yookassa_payment_method_id: string | null
+  tbank_rebill_id: string | null
   autopay_enabled: number | null
   autopay_plan_id: string | null
   autopay_period: string | null
@@ -162,6 +165,7 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     purchasedTracksBalance: row.purchased_tracks_balance ?? undefined,
     streamingBalance: row.streaming_balance ?? undefined,
     yookassaPaymentMethodId: row.yookassa_payment_method_id ?? undefined,
+    tbankRebillId: row.tbank_rebill_id ?? undefined,
     autopayEnabled: row.autopay_enabled === 1 ? true : row.autopay_enabled === 0 ? false : undefined,
     autopayPlanId: row.autopay_plan_id ?? undefined,
     autopayPeriod:
@@ -186,7 +190,7 @@ export async function listCabinetUsersWithActiveAutopay(): Promise<CabinetUser[]
       `SELECT * FROM cabinet_users
        WHERE autopay_enabled = 1
          AND is_disabled = 0
-         AND yookassa_payment_method_id IS NOT NULL
+         AND (tbank_rebill_id IS NOT NULL OR yookassa_payment_method_id IS NOT NULL)
          AND autopay_next_charge_at IS NOT NULL
          AND autopay_plan_id IS NOT NULL
          AND autopay_period IS NOT NULL
@@ -306,7 +310,8 @@ export async function touchAutopayReminderSent(userId: string, sentAtIso: string
 export async function setCabinetUserAutopay(
   id: string,
   params: {
-    yookassaPaymentMethodId: string | null
+    tbankRebillId?: string | null
+    yookassaPaymentMethodId?: string | null
     autopayEnabled: boolean
     autopayPlanId: string | null
     autopayPeriod: "month" | "year" | null
@@ -318,10 +323,18 @@ export async function setCabinetUserAutopay(
   const user = await getCabinetUserById(id)
   if (!user) return null
 
+  const tbankRebillId =
+    params.tbankRebillId !== undefined ? params.tbankRebillId : user.tbankRebillId ?? null
+  const yookassaPaymentMethodId =
+    params.yookassaPaymentMethodId !== undefined
+      ? params.yookassaPaymentMethodId
+      : user.yookassaPaymentMethodId ?? null
+
   const db = getDb()
   db.prepare(
     `
     UPDATE cabinet_users SET
+      tbank_rebill_id = ?,
       yookassa_payment_method_id = ?,
       autopay_enabled = ?,
       autopay_plan_id = ?,
@@ -332,7 +345,8 @@ export async function setCabinetUserAutopay(
     WHERE id = ?
   `
   ).run(
-    params.yookassaPaymentMethodId,
+    tbankRebillId,
+    yookassaPaymentMethodId,
     params.autopayEnabled ? 1 : 0,
     params.autopayPlanId,
     params.autopayPeriod,
@@ -343,6 +357,10 @@ export async function setCabinetUserAutopay(
   )
 
   return getCabinetUserById(id)
+}
+
+export function cabinetUserHasAutopayBinding(user: Pick<CabinetUser, "tbankRebillId" | "yookassaPaymentMethodId">): boolean {
+  return Boolean(user.tbankRebillId?.trim() || user.yookassaPaymentMethodId?.trim())
 }
 
 export async function updateCabinetUserSubscription(

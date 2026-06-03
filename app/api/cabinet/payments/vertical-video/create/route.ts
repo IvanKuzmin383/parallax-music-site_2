@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
-import crypto from "crypto"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { createOrder, updateOrderStatus } from "@/lib/orders"
+import { createOrder } from "@/lib/orders"
 import {
   getVerticalVideoUnitPrice,
   VERTICAL_VIDEO_MAX_COUNT,
   VERTICAL_VIDEO_MIN_COUNT,
 } from "@/lib/vertical-video-pricing"
-
-const YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
+import {
+  assertTbankConfigured,
+  createCabinetTbankPayment,
+  getSiteBaseUrl,
+} from "@/lib/tbank-cabinet-payment"
 
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 
@@ -20,16 +22,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const shopId = process.env.YOOKASSA_SHOP_ID
-  const secretKey = process.env.YOOKASSA_SECRET_KEY
-  if (!shopId || !secretKey) {
-    console.error(
-      "[payments/vertical-video/create] Missing YOOKASSA env (YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY)"
-    )
-    return NextResponse.json({ error: "Оплата временно недоступна" }, { status: 500 })
+  const tbankCfg = assertTbankConfigured()
+  if (!tbankCfg.ok) {
+    console.error("[payments/vertical-video/create] Missing TBANK env")
+    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
   }
 
-  const siteBase = (process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru").replace(/\/$/, "")
+  const siteBase = getSiteBaseUrl()
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -87,70 +86,24 @@ export async function POST(request: NextRequest) {
     contactTelegram: isTelegram ? contactValue : undefined,
   })
   const returnUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=return&orderId=${encodeURIComponent(order.id)}`
-
+  const failUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=fail&orderId=${encodeURIComponent(order.id)}`
   const description = "Разработка видеоконтента для социальных сетей и видеоплатформ"
-  const idempotenceKey = crypto.randomUUID()
-  const auth = Buffer.from(`${shopId}:${secretKey}`).toString("base64")
 
-  const yookassaBody = {
-    amount: { value: totalAmount, currency: "RUB" },
-    capture: true,
-    confirmation: { type: "redirect" as const, return_url: returnUrl },
+  const pay = await createCabinetTbankPayment({
+    orderId: order.id,
+    totalAmount,
     description,
-    metadata: {
-      orderId: order.id,
-      orderType: "vertical_video",
-      userId: user.id,
-      accountEmail: user.email,
-      videosCount: String(videosCount),
-      unitPrice: String(unitPrice),
-      trackTitle,
-      comment,
-      contactType,
-      contactValue,
-    },
+    successUrl: returnUrl,
+    failUrl,
+    orderType: "vertical_video",
+    receiptEmail: user.email,
+    receiptItemName: description,
+    logPrefix: "payments/vertical-video/create",
+  })
+
+  if (!pay.ok) {
+    return NextResponse.json({ error: pay.error }, { status: 500 })
   }
 
-  let res: Response
-  try {
-    res = await fetch(YOOKASSA_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-        "Idempotence-Key": idempotenceKey,
-      },
-      body: JSON.stringify(yookassaBody),
-    })
-  } catch (err) {
-    console.error("[payments/vertical-video/create] YooKassa request failed:", err)
-    return NextResponse.json(
-      { error: "Не удалось создать платёж, попробуйте позже" },
-      { status: 500 }
-    )
-  }
-
-  const data = (await res.json().catch(() => ({}))) as {
-    id?: string
-    confirmation?: { confirmation_url?: string }
-    description?: string
-  }
-
-  if (!res.ok) {
-    console.error("[payments/vertical-video/create] YooKassa error:", res.status, data)
-    return NextResponse.json(
-      { error: data.description || "Не удалось создать платёж" },
-      { status: 500 }
-    )
-  }
-
-  const paymentId = data.id
-  const confirmationUrl = data.confirmation?.confirmation_url
-  if (!paymentId || !confirmationUrl) {
-    console.error("[payments/vertical-video/create] YooKassa response missing id or confirmation_url:", data)
-    return NextResponse.json({ error: "Неверный ответ платёжной системы" }, { status: 500 })
-  }
-
-  await updateOrderStatus(order.id, "pending", { paymentId })
-  return NextResponse.json({ confirmationUrl, paymentId })
+  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
 }

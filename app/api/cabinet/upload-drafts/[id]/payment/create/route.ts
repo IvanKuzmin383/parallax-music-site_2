@@ -1,12 +1,14 @@
-import crypto from "crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
 import { createOrder, updateOrderStatus } from "@/lib/orders"
 import { getUploadDraftById, updateUploadDraft } from "@/lib/upload-drafts"
-
-const YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
+import {
+  assertTbankConfigured,
+  createCabinetTbankPayment,
+  getSiteBaseUrl,
+} from "@/lib/tbank-cabinet-payment"
 
 export async function POST(
   request: NextRequest,
@@ -20,9 +22,13 @@ export async function POST(
   if (!draft || draft.userId.toLowerCase() !== session.email.toLowerCase()) {
     return NextResponse.json({ error: "Черновик не найден" }, { status: 404 })
   }
-  const shopId = process.env.YOOKASSA_SHOP_ID
-  const secretKey = process.env.YOOKASSA_SECRET_KEY
-  if (!shopId || !secretKey) return NextResponse.json({ error: "Оплата временно недоступна" }, { status: 500 })
+
+  const tbankCfg = assertTbankConfigured()
+  if (!tbankCfg.ok) {
+    console.error("[upload-drafts/payment/create] Missing TBANK env")
+    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
+  }
+
   const user = await getCabinetUserByEmail(session.email)
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
 
@@ -42,38 +48,27 @@ export async function POST(
   })
   await updateUploadDraft(draft.id, { bundleOrderId: order.id, status: "awaiting_payment" })
 
-  const siteBase = (process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru").replace(/\/$/, "")
+  const siteBase = getSiteBaseUrl()
   const returnPath = draft.kind === "album" ? "/cabinet/upload/album" : "/cabinet/upload"
   const returnUrl = `${siteBase}${returnPath}?draftId=${encodeURIComponent(draft.id)}&payment=return`
-  const auth = Buffer.from(`${shopId}:${secretKey}`).toString("base64")
-  const idempotenceKey = crypto.randomUUID()
-  const yookassaBody = {
-    amount: { value: order.totalAmount, currency: "RUB" },
-    capture: true,
-    confirmation: { type: "redirect" as const, return_url: returnUrl },
+  const failUrl = `${siteBase}${returnPath}?draftId=${encodeURIComponent(draft.id)}&payment=fail`
+
+  const pay = await createCabinetTbankPayment({
+    orderId: order.id,
+    totalAmount: order.totalAmount,
     description: "Пакет услуг",
-    metadata: {
-      orderId: order.id,
-      orderType: "upload_addon_bundle",
-      draftId: draft.id,
-      userId: user.id,
-      accountEmail: user.email,
-    },
-  }
-  const res = await fetch(YOOKASSA_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${auth}`,
-      "Idempotence-Key": idempotenceKey,
-    },
-    body: JSON.stringify(yookassaBody),
+    successUrl: returnUrl,
+    failUrl,
+    orderType: "upload_addon_bundle",
+    receiptEmail: user.email,
+    receiptItemName: "Пакет услуг при загрузке",
+    logPrefix: "upload-drafts/payment/create",
   })
-  const data = (await res.json()) as { id?: string; confirmation?: { confirmation_url?: string } }
-  if (!res.ok || !data.id || !data.confirmation?.confirmation_url) {
+
+  if (!pay.ok) {
     await updateOrderStatus(order.id, "failed")
-    return NextResponse.json({ error: "Не удалось создать платёж" }, { status: 500 })
+    return NextResponse.json({ error: pay.error }, { status: 500 })
   }
-  await updateOrderStatus(order.id, "pending", { paymentId: data.id })
-  return NextResponse.json({ paymentUrl: data.confirmation.confirmation_url })
+
+  return NextResponse.json({ paymentUrl: pay.confirmationUrl })
 }

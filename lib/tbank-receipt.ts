@@ -12,12 +12,20 @@ export type TbankReceiptPayload = {
   }>
 }
 
+/** УСН «доходы» по умолчанию (ИП). Переопределение: TBANK_RECEIPT_TAXATION */
 export function getTbankReceiptTaxation(): string {
-  return process.env.TBANK_RECEIPT_TAXATION?.trim() || "osn"
+  return process.env.TBANK_RECEIPT_TAXATION?.trim() || "usn_income"
 }
 
 export function getTbankReceiptTax(): string {
   return process.env.TBANK_RECEIPT_TAX?.trim() || "none"
+}
+
+export function shouldSendTbankReceipt(): boolean {
+  if (process.env.TBANK_SKIP_RECEIPT === "1" || process.env.TBANK_SKIP_RECEIPT === "true") {
+    return false
+  }
+  return process.env.TBANK_SEND_RECEIPT !== "false"
 }
 
 export function buildTbankTestReceipt(params: {

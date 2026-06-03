@@ -238,14 +238,17 @@ export async function chargeTbankRecurrentPayment(params: {
   return { ok: true, paymentId: result.paymentId, body: result.body }
 }
 
-/** Init для дочернего COF-платежа (без редиректа на форму). */
+/** Init для дочернего COF-платежа (рекуррентное списание без формы). */
 export async function initTbankRecurrentChildPayment(params: {
   amountKopecks: number
   orderId: string
   description: string
   customerKey: string
   notificationUrl?: string
+  successUrl?: string
+  failUrl?: string
   data?: Record<string, string>
+  receipt?: TbankReceiptPayload
 }): Promise<TbankInitPaymentResult> {
   if (!getTbankConfig()) {
     return { ok: false, status: 500, message: "T-Bank not configured", body: { error: "no_config" } }
@@ -255,12 +258,13 @@ export async function initTbankRecurrentChildPayment(params: {
     amountKopecks: params.amountKopecks,
     orderId: params.orderId,
     description: params.description,
-    successUrl: "https://example.com/tbank-recurrent-test-success",
-    failUrl: "https://example.com/tbank-recurrent-test-fail",
+    successUrl: params.successUrl ?? "https://example.com/tbank-recurrent-test-success",
+    failUrl: params.failUrl ?? "https://example.com/tbank-recurrent-test-fail",
     notificationUrl: params.notificationUrl,
     data: params.data,
     customerKey: params.customerKey,
     operationInitiatorType: "R",
+    receipt: params.receipt,
   }
 
   const { requestBody, tokenParams } = buildInitPayload(initParams)

@@ -1,8 +1,13 @@
 import { subDays } from "date-fns"
-import { listCabinetUsersWithActiveAutopay, touchAutopayReminderSent } from "@/lib/cabinet-users"
+import {
+  cabinetUserHasAutopayBinding,
+  listCabinetUsersWithActiveAutopay,
+  touchAutopayReminderSent,
+} from "@/lib/cabinet-users"
 import { calculateTotalAmount, isPlanId, planIdToSubscriptionName } from "@/lib/plan-pricing"
 import { createOrder, hasPendingRecurringSubscriptionChargeToday, updateOrderStatus } from "@/lib/orders"
-import { buildSubscriptionReceipt, createYooKassaRecurrentPayment, shouldSendYooKassaReceipt } from "@/lib/yookassa-subscription"
+import { createTbankSubscriptionRenewal } from "@/lib/tbank-subscription"
+import { createYooKassaRecurrentPayment, shouldSendYooKassaReceipt, buildSubscriptionReceipt } from "@/lib/yookassa-subscription"
 import { formatMoscowDateString, moscowCalendarDayStart } from "@/lib/moscow-time"
 import { SUBSCRIPTION_REMINDER_DAYS_BEFORE_CHARGE } from "@/lib/subscription-notification-config"
 import { isEmailConfigured, sendAutopayReminderEmail } from "@/lib/email"
@@ -11,6 +16,7 @@ type AutopayUser = {
   id: string
   email: string
   telegram?: string
+  tbankRebillId?: string
   yookassaPaymentMethodId?: string
   autopayPlanId?: string
   autopayPeriod?: "month" | "year"
@@ -81,7 +87,7 @@ export async function runSubscriptionBilling(): Promise<SubscriptionBillingRunRe
     }
 
     if (!shouldChargeDueOrOverdue(u)) continue
-    if (!u.autopayPlanId || !u.autopayPeriod || u.autopayPeriodsCount == null || !u.yookassaPaymentMethodId) {
+    if (!u.autopayPlanId || !u.autopayPeriod || u.autopayPeriodsCount == null || !cabinetUserHasAutopayBinding(u)) {
       continue
     }
     if (!isPlanId(u.autopayPlanId)) continue
@@ -115,42 +121,66 @@ export async function runSubscriptionBilling(): Promise<SubscriptionBillingRunRe
       const periodLabel = period === "month" ? "мес" : "год"
       const description = `Подписка ${subscriptionName}, ${periodLabel} x ${periodsCount}, ${u.email} (автопродление)`
 
-      const receipt =
-        shouldSendYooKassaReceipt() ?
-          buildSubscriptionReceipt({
-            customerEmail: u.email,
-            planId,
-            period,
-            periodsCount,
-            totalAmount,
-          })
-        : undefined
-
-      const idempotenceKey = `${order.id}:${formatMoscowDateString(new Date())}`
-
-      const pay = await createYooKassaRecurrentPayment({
-        paymentMethodId: u.yookassaPaymentMethodId,
-        amountValue: totalAmount,
-        description,
-        metadata: {
+      if (u.tbankRebillId) {
+        const pay = await createTbankSubscriptionRenewal({
           orderId: order.id,
-          orderType: "subscription",
+          totalAmount,
+          description,
+          customerEmail: u.email,
           planId,
           period,
-          periodsCount: String(periodsCount),
-          email: u.email,
-          telegram: u.telegram ?? "",
-          recurring: "true",
-        },
-        idempotenceKey,
-        receipt,
-      })
+          periodsCount,
+          rebillId: u.tbankRebillId,
+          telegram: u.telegram,
+        })
 
-      if (pay.ok) {
-        await updateOrderStatus(order.id, "pending", { paymentId: pay.paymentId })
-        chargesInitiated += 1
-      } else {
-        errors.push(`charge ${u.email}: ${JSON.stringify(pay.body)}`)
+        if (pay.ok) {
+          chargesInitiated += 1
+        } else {
+          await updateOrderStatus(order.id, "failed")
+          errors.push(`charge ${u.email} (tbank): ${pay.error}`)
+        }
+        continue
+      }
+
+      if (u.yookassaPaymentMethodId) {
+        const receipt =
+          shouldSendYooKassaReceipt() ?
+            buildSubscriptionReceipt({
+              customerEmail: u.email,
+              planId,
+              period,
+              periodsCount,
+              totalAmount,
+            })
+          : undefined
+
+        const idempotenceKey = `${order.id}:${formatMoscowDateString(new Date())}`
+
+        const pay = await createYooKassaRecurrentPayment({
+          paymentMethodId: u.yookassaPaymentMethodId,
+          amountValue: totalAmount,
+          description,
+          metadata: {
+            orderId: order.id,
+            orderType: "subscription",
+            planId,
+            period,
+            periodsCount: String(periodsCount),
+            email: u.email,
+            telegram: u.telegram ?? "",
+            recurring: "true",
+          },
+          idempotenceKey,
+          receipt,
+        })
+
+        if (pay.ok) {
+          await updateOrderStatus(order.id, "pending", { paymentId: pay.paymentId })
+          chargesInitiated += 1
+        } else {
+          errors.push(`charge ${u.email} (yookassa): ${JSON.stringify(pay.body)}`)
+        }
       }
     } catch (e) {
       errors.push(`charge ${u.email}: ${e instanceof Error ? e.message : String(e)}`)

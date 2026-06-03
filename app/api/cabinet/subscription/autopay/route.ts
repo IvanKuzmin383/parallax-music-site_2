@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import {
+  cabinetUserHasAutopayBinding,
   getCabinetUserByEmail,
   setCabinetUserAutopay,
 } from "@/lib/cabinet-users"
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    autopayEnabled: Boolean(user.autopayEnabled && user.yookassaPaymentMethodId),
+    autopayEnabled: Boolean(user.autopayEnabled && cabinetUserHasAutopayBinding(user)),
     autopayPlanId: user.autopayPlanId ?? null,
     autopayPlanName:
       user.autopayPlanId && isPlanId(user.autopayPlanId) ? planIdToSubscriptionName(user.autopayPlanId) : null,
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Ссылка недействительна или истекла" }, { status: 400 })
     }
     await setCabinetUserAutopay(consumed.userId, {
+      tbankRebillId: null,
       yookassaPaymentMethodId: null,
       autopayEnabled: false,
       autopayPlanId: null,
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   }
 
-  if (!user.autopayEnabled || !user.yookassaPaymentMethodId) {
+  if (!user.autopayEnabled || !cabinetUserHasAutopayBinding(user)) {
     return NextResponse.json({ error: "Автопродление не подключено" }, { status: 400 })
   }
 

@@ -276,8 +276,9 @@ function runMigrations(db: Database.Database): void {
   ensureColumn(db, "cabinet_users", "edo_required", "edo_required INTEGER NOT NULL DEFAULT 0")
   ensureColumn(db, "cabinet_users", "edo_identifier", "edo_identifier TEXT")
 
-  // Подписка: автоплатежи YooKassa
+  // Подписка: автоплатежи (legacy ЮKassa + Т‑Банк RebillId)
   ensureColumn(db, "cabinet_users", "yookassa_payment_method_id", "yookassa_payment_method_id TEXT")
+  ensureColumn(db, "cabinet_users", "tbank_rebill_id", "tbank_rebill_id TEXT")
   ensureColumn(db, "cabinet_users", "autopay_enabled", "autopay_enabled INTEGER NOT NULL DEFAULT 0")
   ensureColumn(db, "cabinet_users", "autopay_plan_id", "autopay_plan_id TEXT")
   ensureColumn(db, "cabinet_users", "autopay_period", "autopay_period TEXT")
@@ -304,7 +305,8 @@ function runMigrations(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS pending_subscription_autopay (
       email TEXT PRIMARY KEY COLLATE NOCASE,
-      yookassa_payment_method_id TEXT NOT NULL,
+      yookassa_payment_method_id TEXT,
+      tbank_rebill_id TEXT,
       plan_id TEXT NOT NULL,
       period TEXT NOT NULL,
       periods_count INTEGER NOT NULL,
@@ -318,7 +320,11 @@ function runMigrations(db: Database.Database): void {
       expires_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_autopay_disable_tokens_expires_at ON autopay_disable_tokens(expires_at);
+  `)
 
+  ensureColumn(db, "pending_subscription_autopay", "tbank_rebill_id", "tbank_rebill_id TEXT")
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS subscription_billing_runs (
       id TEXT PRIMARY KEY,
       source TEXT NOT NULL,

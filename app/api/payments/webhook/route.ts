@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { addMonths, format } from "date-fns"
-import { ru } from "date-fns/locale"
-import { getOrderById, getOrderByPaymentId, updateOrderStatus } from "@/lib/orders"
+import { getOrderById, getOrderByPaymentId, updateOrderStatus, type OrderSubscription } from "@/lib/orders"
 import {
-  getCabinetUserByEmail,
   getCabinetUserById,
-  setCabinetUserAutopay,
   updateCabinetUserPurchasedTracks,
-  updateCabinetUserSubscription,
 } from "@/lib/cabinet-users"
-import { planIdToSubscriptionName, isPlanId, type PlanId } from "@/lib/plan-pricing"
 import { escapeHtml } from "@/lib/telegram"
-import { isEmailConfigured, sendSubscriptionRegistrationEmail } from "@/lib/email"
 import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import { fetchYooKassaPayment, type YooKassaPaymentObject } from "@/lib/yookassa-subscription"
-import { upsertPendingSubscriptionAutopay } from "@/lib/pending-subscription-autopay"
-import { createCabinetArtistSubscriptionSlot } from "@/lib/cabinet-artist-subscriptions"
+import { fulfillSubscriptionOrder } from "@/lib/fulfill-subscription-order"
 import { markUploadDraftPaid } from "@/lib/upload-drafts"
 import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service-fulfillments"
 
@@ -385,130 +377,15 @@ export async function POST(request: NextRequest) {
   }
 
   if (order.orderType === "subscription") {
-    const email = obj.metadata?.email
-    const planIdMeta = obj.metadata?.planId
-    const periodMeta = obj.metadata?.period as "month" | "year" | undefined
-    const periodsCountMeta = parseInt(obj.metadata?.periodsCount ?? "1", 10)
-
-    if (!email || !planIdMeta || !isPlanId(planIdMeta) || !periodMeta || !periodsCountMeta || periodsCountMeta < 1) {
-      console.error("[payments/webhook] Invalid subscription metadata", obj.metadata)
-      await updateOrderStatus(orderId, "paid", { paidAt })
-      return NextResponse.json({ received: true })
-    }
-
-    const planId: PlanId = planIdMeta
-    const subscriptionName = planIdToSubscriptionName(planId)
-    const periodsCount = periodsCountMeta
-    const monthsToAdd = periodMeta === "year" ? 12 * periodsCount : periodsCount
-    const isRenewal = Boolean(order.isRecurringRenewal || obj.metadata?.recurring === "true")
-
     const savedPaymentMethod = await resolveSavedPaymentMethod(obj.id, obj)
-
-    const user = await getCabinetUserByEmail(email)
-    let newExpiresAt: string | null = null
-    let currentExpires: Date | null = null
-    const now = new Date()
-
-    if (user) {
-      currentExpires =
-        user.subscriptionName === subscriptionName && user.subscriptionExpiresAt
-          ? new Date(user.subscriptionExpiresAt)
-          : null
-      const baseDate = currentExpires && currentExpires > now ? currentExpires : now
-      newExpiresAt = addMonths(baseDate, monthsToAdd).toISOString()
-
-      await updateCabinetUserSubscription(user.id, subscriptionName, newExpiresAt, user.subscriptionTrackLimit ?? null)
-      await createCabinetArtistSubscriptionSlot({
-        userId: user.id,
-        subscriptionName,
-        subscriptionExpiresAt: newExpiresAt,
-        subscriptionTrackLimit: user.subscriptionTrackLimit ?? null,
-      })
-      await updateOrderStatus(orderId, "paid", { paidAt, userId: user.id })
-
-      if (savedPaymentMethod && newExpiresAt) {
-        await setCabinetUserAutopay(user.id, {
-          yookassaPaymentMethodId: savedPaymentMethod.id,
-          autopayEnabled: true,
-          autopayPlanId: planId,
-          autopayPeriod: periodMeta,
-          autopayPeriodsCount: periodsCount,
-          autopayNextChargeAt: newExpiresAt,
-          autopayLastReminderSentAt: null,
-        })
-      }
-    } else {
-      await updateOrderStatus(orderId, "paid", { paidAt })
-
-      if (savedPaymentMethod) {
-        upsertPendingSubscriptionAutopay({
-          email,
-          yookassaPaymentMethodId: savedPaymentMethod.id,
-          planId,
-          period: periodMeta,
-          periodsCount,
-        })
-      }
-
-      if (!isRenewal && isEmailConfigured()) {
-        try {
-          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru").replace(/\/$/, "")
-          const registerLink = `${baseUrl}/cabinet?tab=register&email=${encodeURIComponent(email)}`
-          const mailResult = await sendSubscriptionRegistrationEmail(email, registerLink, subscriptionName)
-          if (!mailResult.ok) {
-            console.error("[payments/webhook] Subscription registration email failed", {
-              orderId,
-              email,
-              error: mailResult.error,
-            })
-          }
-        } catch (err) {
-          console.error("[payments/webhook] Subscription registration email error", err)
-        }
-      }
-    }
-
-    try {
-      const amount = amountValue ?? order.totalAmount
-      const periodLabel = periodMeta === "year" ? "год" : "месяц"
-      const isRenewalTg = isRenewal || Boolean(user && currentExpires && currentExpires > now)
-      const title = user
-        ? isRenewalTg
-          ? "Продление подписки / тарифа"
-          : "Выполнена оплата подписки"
-        : "Выполнена оплата подписки (пользователь ещё не зарегистрирован)"
-      const autopayLine = savedPaymentMethod
-        ? user
-          ? "<b>Автосписание:</b> подключено"
-          : "<b>Автосписание:</b> включается при регистрации в кабинете с этим email - привязка сохранена в системе, зарегистрироваться можно в любой момент"
-        : "<b>Автосписание:</b> не подключено (способ оплаты не сохранён в ЮKassa)"
-      const messageLines = [
-        `<b>${title}</b>`,
-        "",
-        `<b>Тариф:</b> ${escapeHtml(subscriptionName)}`,
-        `<b>Email:</b> ${escapeHtml(email)}`,
-        ...(newExpiresAt
-          ? [`<b>Действует до:</b> ${format(new Date(newExpiresAt), "d MMM yyyy", { locale: ru })}`]
-          : []),
-        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
-        obj?.id ? `<b>ID платежа:</b> ${escapeHtml(obj.id ?? "")}` : null,
-        `<b>Периодичность:</b> ${periodLabel}`,
-        `<b>Количество периодов:</b> ${periodsCount}`,
-        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
-        autopayLine,
-        "",
-        "#подписка #оплата",
-      ].filter(Boolean) as string[]
-
-      notifyPaymentStaff(
-        messageLines.join("\n"),
-        `[Parallax] Оплата подписки ${subscriptionName}: ${email}`,
-        "subscription"
-      )
-    } catch (err) {
-      console.error("[payments/webhook] Notification error for subscription", err)
-    }
-
+    await fulfillSubscriptionOrder({
+      order: order as OrderSubscription,
+      paymentId: obj.id ?? "",
+      paidAt,
+      amountRub: amountValue ?? order.totalAmount,
+      yookassaPaymentMethodId: savedPaymentMethod?.id ?? null,
+      provider: "yookassa",
+    })
     return NextResponse.json({ received: true })
   }
 

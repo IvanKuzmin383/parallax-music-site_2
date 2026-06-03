@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import crypto from "crypto"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { createOrder } from "@/lib/orders"
 import { getTrackPriceRubByCreatedAt, MAX_TRACKS_TOPUP } from "@/lib/track-pricing"
-
-const YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
+import {
+  assertTbankConfigured,
+  createCabinetTbankPayment,
+  getSiteBaseUrl,
+} from "@/lib/tbank-cabinet-payment"
 
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -14,15 +16,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const shopId = process.env.YOOKASSA_SHOP_ID
-  const secretKey = process.env.YOOKASSA_SECRET_KEY
-  const returnUrl = process.env.YOOKASSA_RETURN_URL
-  if (!shopId || !secretKey || !returnUrl) {
-    console.error("[payments/tracks/create] Missing YOOKASSA env (YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, YOOKASSA_RETURN_URL)")
-    return NextResponse.json(
-      { error: "Оплата временно недоступна" },
-      { status: 500 }
-    )
+  const tbankCfg = assertTbankConfigured()
+  if (!tbankCfg.ok) {
+    console.error("[payments/tracks/create] Missing TBANK env")
+    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
   }
 
   const user = await getCabinetUserByEmail(session.email)
@@ -71,6 +68,7 @@ export async function POST(request: NextRequest) {
 
   const trackPriceRub = getTrackPriceRubByCreatedAt(user.createdAt)
   const totalAmount = (tracksCount * trackPriceRub).toFixed(2)
+  const description = `Оплата услуги (тариф Fix): ${tracksCount} шт., email ${user.email}`
 
   const order = await createOrder({
     orderType: "tracks_topup",
@@ -79,69 +77,25 @@ export async function POST(request: NextRequest) {
     totalAmount,
   })
 
-  const idempotenceKey = crypto.randomUUID()
-  const auth = Buffer.from(`${shopId}:${secretKey}`).toString("base64")
+  const siteBase = getSiteBaseUrl()
+  const returnUrl = `${siteBase}/cabinet?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const failUrl = `${siteBase}/cabinet?payment=fail&orderId=${encodeURIComponent(order.id)}`
 
-  const yookassaBody = {
-    amount: { value: totalAmount, currency: "RUB" },
-    capture: true,
-    confirmation: { type: "redirect" as const, return_url: returnUrl },
-    description: `Оплата услуги (тариф Fix): ${tracksCount} шт., email ${user.email}`,
-    metadata: {
-      orderId: order.id,
-      orderType: "tracks_topup",
-      userId: user.id,
-      tracksCount: String(tracksCount),
-    },
+  const pay = await createCabinetTbankPayment({
+    orderId: order.id,
+    totalAmount,
+    description,
+    successUrl: returnUrl,
+    failUrl,
+    orderType: "tracks_topup",
+    receiptEmail: user.email,
+    receiptItemName: `Доп. треки Fix (${tracksCount} шт.)`,
+    logPrefix: "payments/tracks/create",
+  })
+
+  if (!pay.ok) {
+    return NextResponse.json({ error: pay.error }, { status: 500 })
   }
 
-  let res: Response
-  try {
-    res = await fetch(YOOKASSA_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-        "Idempotence-Key": idempotenceKey,
-      },
-      body: JSON.stringify(yookassaBody),
-    })
-  } catch (err) {
-    console.error("[payments/tracks/create] YooKassa request failed:", err)
-    return NextResponse.json(
-      { error: "Не удалось создать платёж, попробуйте позже" },
-      { status: 500 }
-    )
-  }
-
-  const data = await res.json().catch(() => ({})) as {
-    id?: string
-    confirmation?: { confirmation_url?: string }
-    description?: string
-    code?: string
-  }
-
-  if (!res.ok) {
-    console.error("[payments/tracks/create] YooKassa error:", res.status, data)
-    return NextResponse.json(
-      { error: data.description || "Не удалось создать платёж" },
-      { status: 500 }
-    )
-  }
-
-  const paymentId = data.id
-  const confirmationUrl = data.confirmation?.confirmation_url
-
-  if (!paymentId || !confirmationUrl) {
-    console.error("[payments/tracks/create] YooKassa response missing id or confirmation_url:", data)
-    return NextResponse.json(
-      { error: "Неверный ответ платёжной системы" },
-      { status: 500 }
-    )
-  }
-
-  const { updateOrderStatus } = await import("@/lib/orders")
-  await updateOrderStatus(order.id, "pending", { paymentId })
-
-  return NextResponse.json({ confirmationUrl, paymentId })
+  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
 }
