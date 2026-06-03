@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
-import { getReleasedSmartlinkTrack, smartlinkOgImageUrl } from "@/lib/smartlink"
+import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
+import { ensureSmartlinkPublicOgJpeg } from "@/lib/smartlink-og-public"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 
 /**
- * OG/Twitter для /s/[slug]. connection() + htmlLimitedBots — теги в <head>.
- * og:image — абсолютный URL /s/{slug}/cover (без ?hash от file-based opengraph-image).
+ * OG/Twitter для /s/[slug]. Статический /og-covers/{slug}.jpg + теги в <head>.
  */
 export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
   await connection()
@@ -25,10 +25,23 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
     }
   }
 
+  const imageUrl = await ensureSmartlinkPublicOgJpeg(slug, siteUrl)
   const pageUrl = new URL(`/s/${slug}`, siteUrl).href
-  const imageUrl = smartlinkOgImageUrl(slug, siteUrl)
   const title = `${track.trackName} - ${track.artistName} | Parallax Music`
   const description = `Слушайте «${track.trackName}» от ${track.artistName} на всех платформах`
+
+  const ogImages = imageUrl
+    ? [
+        {
+          url: imageUrl,
+          secureUrl: imageUrl,
+          type: "image/jpeg" as const,
+          width: 1200,
+          height: 630,
+          alt: track.trackName,
+        },
+      ]
+    : []
 
   return {
     title,
@@ -40,23 +53,14 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
       url: pageUrl,
       siteName: "Parallax Music",
       locale: "ru_RU",
-      images: [
-        {
-          url: imageUrl,
-          secureUrl: imageUrl,
-          type: "image/jpeg",
-          width: 1200,
-          height: 1200,
-          alt: track.trackName,
-        },
-      ],
+      images: ogImages,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [imageUrl],
+      images: imageUrl ? [imageUrl] : [],
     },
   }
 }

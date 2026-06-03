@@ -14,20 +14,26 @@ import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
 
 ensureCabinetCoverSharpConfigured()
 
-/** Квадрат для OG / Telegram (лимит ~5 MB на превью). */
+/** 1.91:1 — рекомендация Telegram / Facebook для превью ссылок. */
 export const SMARTLINK_OG_WIDTH = 1200
+export const SMARTLINK_OG_HEIGHT = 630
 export const SMARTLINK_OG_QUALITY = 82
 
-async function renderOgJpeg(coverPath: string, width: number, quality: number): Promise<Buffer> {
+async function renderOgJpeg(
+  coverPath: string,
+  width: number,
+  height: number,
+  quality: number
+): Promise<Buffer> {
   return sharp(coverPath, { sequentialRead: true })
     .rotate()
-    .resize({ width, height: width, fit: "cover", position: "centre" })
+    .resize({ width, height, fit: "cover", position: "centre" })
     .jpeg({ quality, mozjpeg: true })
     .toBuffer()
 }
 
 /**
- * JPEG 1200×1200 для смартлинка (кэш рядом с обложками). null - трек не найден или нет файла.
+ * JPEG 1200×630 для OG (кэш рядом с обложками). null — трек не найден или нет файла.
  */
 export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer | null> {
   const track = await getReleasedSmartlinkTrack(slug)
@@ -38,7 +44,7 @@ export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer
     const coversDir = path.dirname(track.coverPath)
     const cachePath = buildCoverDerivativeCachePath({
       coversDir,
-      trackId: `smartlink-og-${track.id}`,
+      trackId: `smartlink-og-630-${track.id}`,
       width: SMARTLINK_OG_WIDTH,
       quality: SMARTLINK_OG_QUALITY,
       format: "jpeg",
@@ -48,7 +54,12 @@ export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer
     let buffer = await readCoverDerivativeCache(cachePath)
     if (!buffer) {
       buffer = await cabinetCoverSharpSemaphore.runExclusive(() =>
-        renderOgJpeg(track.coverPath, SMARTLINK_OG_WIDTH, SMARTLINK_OG_QUALITY)
+        renderOgJpeg(
+          track.coverPath,
+          SMARTLINK_OG_WIDTH,
+          SMARTLINK_OG_HEIGHT,
+          SMARTLINK_OG_QUALITY
+        )
       )
       await writeCoverDerivativeCacheAtomically(cachePath, buffer)
     }
