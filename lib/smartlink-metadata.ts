@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
-import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
+import { getReleasedSmartlinkTrack, smartlinkOgImageUrl } from "@/lib/smartlink"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 
 /**
- * OG/Twitter для /s/[slug]. connection() — metadata в <head> до стрима HTML
- * (иначе Telegram и др. html-limited боты не видят теги в body).
+ * OG/Twitter для /s/[slug]. connection() + htmlLimitedBots — теги в <head>.
+ * og:image — абсолютный URL /s/{slug}/cover (без ?hash от file-based opengraph-image).
  */
 export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
   await connection()
@@ -26,7 +26,7 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
   }
 
   const pageUrl = new URL(`/s/${slug}`, siteUrl).href
-  const coverPath = smartlinkOgImagePath(slug)
+  const imageUrl = smartlinkOgImageUrl(slug, siteUrl)
   const title = `${track.trackName} - ${track.artistName} | Parallax Music`
   const description = `Слушайте «${track.trackName}» от ${track.artistName} на всех платформах`
 
@@ -38,14 +38,25 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
       title,
       description,
       url: pageUrl,
-      images: [{ url: coverPath, width: 1200, height: 1200, alt: track.trackName }],
+      siteName: "Parallax Music",
+      locale: "ru_RU",
+      images: [
+        {
+          url: imageUrl,
+          secureUrl: imageUrl,
+          type: "image/jpeg",
+          width: 1200,
+          height: 1200,
+          alt: track.trackName,
+        },
+      ],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [coverPath],
+      images: [imageUrl],
     },
   }
 }
