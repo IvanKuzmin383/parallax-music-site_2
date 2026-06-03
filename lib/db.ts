@@ -521,6 +521,20 @@ function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_legal_acceptance_user_email ON legal_acceptance_events(user_email);
     CREATE INDEX IF NOT EXISTS idx_legal_acceptance_occurred ON legal_acceptance_events(occurred_at);
     CREATE INDEX IF NOT EXISTS idx_legal_acceptance_resource ON legal_acceptance_events(resource_type, resource_id);
+
+    CREATE TABLE IF NOT EXISTS tbank_recurrent_test_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      customer_key TEXT NOT NULL,
+      parent_order_id TEXT,
+      parent_payment_id TEXT,
+      rebill_id TEXT,
+      parent_status TEXT,
+      child_order_id TEXT,
+      child_payment_id TEXT,
+      child_status TEXT,
+      last_charge_error TEXT,
+      updated_at TEXT NOT NULL
+    );
   `)
 
   try {

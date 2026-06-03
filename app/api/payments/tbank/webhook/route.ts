@@ -6,6 +6,11 @@ import { getOrderById, updateOrderStatus } from "@/lib/orders"
 import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import { escapeHtml } from "@/lib/telegram"
 import { getTbankConfig, verifyTbankNotification } from "@/lib/tbank-acquiring"
+import {
+  findTbankRecurrentTestByOrderId,
+  saveTbankRecurrentTestRebillId,
+  updateTbankRecurrentTestStatus,
+} from "@/lib/tbank-recurrent-test-store"
 import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service-fulfillments"
 import { getUploadsBasePath } from "@/lib/tracks"
 
@@ -128,11 +133,36 @@ export async function POST(request: NextRequest) {
   }
 
   const status = typeof body.Status === "string" ? body.Status : ""
+  const orderIdRaw = typeof body.OrderId === "string" ? body.OrderId.trim() : ""
+
+  const recurrentMatch = orderIdRaw ? findTbankRecurrentTestByOrderId(orderIdRaw) : null
+  if (recurrentMatch) {
+    const rebillRaw = body.RebillId
+    const rebillId = rebillRaw != null && `${rebillRaw}`.trim() ? String(rebillRaw) : ""
+    if (rebillId) {
+      saveTbankRecurrentTestRebillId(rebillId)
+      console.info("[payments/tbank/webhook] Recurrent test RebillId saved", {
+        orderId: orderIdRaw,
+        rebillId,
+        status,
+      })
+    }
+    if (status) {
+      updateTbankRecurrentTestStatus(orderIdRaw, status)
+      console.info("[payments/tbank/webhook] Recurrent test status", {
+        orderId: orderIdRaw,
+        step: recurrentMatch.step,
+        status,
+      })
+    }
+    return new NextResponse("OK", { status: 200 })
+  }
+
   if (status !== "CONFIRMED") {
     return new NextResponse("OK", { status: 200 })
   }
 
-  const orderId = typeof body.OrderId === "string" ? body.OrderId.trim() : ""
+  const orderId = orderIdRaw
   if (!orderId) {
     console.error("[payments/tbank/webhook] Missing OrderId")
     return new NextResponse("OK", { status: 200 })
