@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { promises as fs } from "fs"
 import path from "path"
-import crypto from "crypto"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { createOrder, updateOrderStatus } from "@/lib/orders"
 import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
+import { getTbankConfig, initTbankPayment, rublesToKopecks } from "@/lib/tbank-acquiring"
 import { getUploadsBasePath } from "@/lib/tracks"
 import { validateWavStereoFromPrefix } from "@/lib/wav-parse-stereo"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
@@ -15,8 +15,6 @@ import {
   parseMultipartRequestStream,
   readFilePrefix,
 } from "@/lib/node-streaming-multipart"
-
-const YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_WAV_BYTES = 80 * 1024 * 1024
@@ -37,11 +35,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const shopId = process.env.YOOKASSA_SHOP_ID
-  const secretKey = process.env.YOOKASSA_SECRET_KEY
-  if (!shopId || !secretKey) {
+  if (!getTbankConfig()) {
     console.error(
-      "[payments/ai-mastering/create] Missing YOOKASSA env (YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY)"
+      "[payments/ai-mastering/create] Missing TBANK env (TBANK_TERMINAL_KEY, TBANK_PASSWORD)"
     )
     return NextResponse.json({ error: "Оплата временно недоступна" }, { status: 500 })
   }
@@ -163,77 +159,41 @@ export async function POST(request: NextRequest) {
   const trackTitlesJoined = displayNames.join(" | ")
   const trackSummary = trackTitlesJoined.slice(0, 200)
   const returnUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const failUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=fail&orderId=${encodeURIComponent(order.id)}`
+  const notificationUrl =
+    process.env.TBANK_NOTIFICATION_URL?.trim() || `${siteBase}/api/payments/tbank/webhook`
 
   const description = `AI мастеринг: ${trackSummary.slice(0, 60)}${trackSummary.length > 60 ? "…" : ""}, ${tracksCount} тр., ${user.email}`
 
-  const idempotenceKey = crypto.randomUUID()
-  const auth = Buffer.from(`${shopId}:${secretKey}`).toString("base64")
+  const amountKopecks = rublesToKopecks(totalAmount)
+  if (amountKopecks <= 0) {
+    return NextResponse.json({ error: "Некорректная сумма заказа" }, { status: 500 })
+  }
 
-  const yookassaBody = {
-    amount: { value: totalAmount, currency: "RUB" },
-    capture: true,
-    confirmation: { type: "redirect" as const, return_url: returnUrl },
-    description: description.slice(0, 128),
-    metadata: {
+  const pay = await initTbankPayment({
+    amountKopecks,
+    orderId: order.id,
+    description: description.slice(0, 140),
+    successUrl: returnUrl,
+    failUrl,
+    notificationUrl,
+    data: {
       orderId: order.id,
       orderType: "ai_mastering",
-      userId: user.id,
-      tracksCount: String(tracksCount),
-      trackIds: "",
-      trackTitles: trackTitlesJoined.slice(0, 1800),
-      orderWithoutTrackSelection: "false",
-      aiMasteringFilesPath: `ai-mastering-orders/${order.id}`,
-      contactEmail: contactEmailRaw || "",
-      contactTelegram: contactTelegramRaw || "",
-      accountEmail: user.email,
     },
-  }
+  })
 
-  let res: Response
-  try {
-    res = await fetch(YOOKASSA_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-        "Idempotence-Key": idempotenceKey,
-      },
-      body: JSON.stringify(yookassaBody),
-    })
-  } catch (err) {
-    console.error("[payments/ai-mastering/create] YooKassa request failed:", err)
+  if (!pay.ok) {
+    console.error("[payments/ai-mastering/create] T-Bank Init error:", pay.status, pay.body)
     return NextResponse.json(
-      { error: "Не удалось создать платёж, попробуйте позже" },
+      { error: pay.message || "Не удалось создать платёж" },
       { status: 500 }
     )
   }
 
-  const data = (await res.json().catch(() => ({}))) as {
-    id?: string
-    confirmation?: { confirmation_url?: string }
-    description?: string
-    code?: string
-  }
+      await updateOrderStatus(order.id, "pending", { paymentId: pay.paymentId })
 
-  if (!res.ok) {
-    console.error("[payments/ai-mastering/create] YooKassa error:", res.status, data)
-    return NextResponse.json(
-      { error: data.description || "Не удалось создать платёж" },
-      { status: 500 }
-    )
-  }
-
-  const paymentId = data.id
-  const confirmationUrl = data.confirmation?.confirmation_url
-
-  if (!paymentId || !confirmationUrl) {
-    console.error("[payments/ai-mastering/create] YooKassa response missing id or confirmation_url:", data)
-    return NextResponse.json({ error: "Неверный ответ платёжной системы" }, { status: 500 })
-  }
-
-      await updateOrderStatus(order.id, "pending", { paymentId })
-
-      return NextResponse.json({ confirmationUrl, paymentId })
+      return NextResponse.json({ confirmationUrl: pay.paymentUrl, paymentId: pay.paymentId })
     } finally {
       await multipart.cleanup()
     }

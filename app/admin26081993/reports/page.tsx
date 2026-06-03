@@ -34,6 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AdminReportsBulkUpload } from "@/components/admin-reports-bulk-upload"
 
 interface StreamingReport {
   id: string
@@ -256,19 +258,30 @@ export default function AdminReportsPage() {
       <div className="container mx-auto px-4 space-y-6">
         <AdminSectionNav active="reports" />
 
-        <div className="flex justify-between items-center flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Отчеты по стримингу</h1>
-            <p className="text-muted-foreground text-sm">
-              Управление отчетами и балансами пользователей
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold">Отчеты по стримингу</h1>
+          <p className="text-muted-foreground text-sm">
+            Управление отчетами и балансами пользователей
+          </p>
+        </div>
+
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList>
+            <TabsTrigger value="list">Список отчётов</TabsTrigger>
+            <TabsTrigger value="bulk">Массовая загрузка</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="bulk" className="mt-4">
+            <AdminReportsBulkUpload users={users} onCommitted={loadData} />
+          </TabsContent>
+
+          <TabsContent value="list" className="mt-4 space-y-6">
+        <div className="flex justify-end">
           <Button onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Добавить отчет
           </Button>
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle>Общая сумма по всем отчетам</CardTitle>
@@ -331,6 +344,8 @@ export default function AdminReportsPage() {
             ))
           )}
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

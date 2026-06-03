@@ -1,7 +1,11 @@
 import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 import { getEffectiveTrackLimit, getTrackLimit } from "@/lib/subscription-plans"
 
-type TrackLike = { artistName: string }
+type TrackLike = { artistName: string; status?: string }
+
+function isCountedTrack(track: TrackLike): boolean {
+  return track.status !== "rejected"
+}
 
 /** Минимальные поля слота артиста (без импорта server-only модулей). */
 export type ArtistSubscriptionSlotLike = {
@@ -40,7 +44,7 @@ export function filterActiveArtistSlots(
 export function countTracksForArtist(tracks: TrackLike[], artistName: string): number {
   const norm = normalizeArtistForPolicy(artistName)
   if (!norm) return 0
-  return tracks.filter((t) => normalizeArtistForPolicy(t.artistName) === norm).length
+  return tracks.filter((t) => isCountedTrack(t) && normalizeArtistForPolicy(t.artistName) === norm).length
 }
 
 function sumSlotLimits(
@@ -115,7 +119,7 @@ export function isTrackUploadWithinLimit(
 
   const count =
     user.subscriptionName === "Fix"
-      ? existingTracks.length
+      ? existingTracks.filter(isCountedTrack).length
       : countTracksForArtist(existingTracks, artistName)
 
   return { allowed: count + tracksToAdd <= limit, limit }
@@ -127,13 +131,15 @@ export function canUserAddAnyTrack(
   existingTracks: TrackLike[],
   activeSlots: ArtistSubscriptionSlotLike[]
 ): boolean {
+  const countedTracks = existingTracks.filter(isCountedTrack)
+
   if (!user.subscriptionName) return false
 
   if (user.subscriptionName === "Fix") {
     const limit = getEffectiveTrackLimit(user)
     if (limit === 0) return false
     if (limit === null) return true
-    return existingTracks.length < limit
+    return countedTracks.length < limit
   }
 
   if (activeSlots.some((s) => s.subscriptionName === "Label")) {
@@ -144,7 +150,7 @@ export function canUserAddAnyTrack(
     const limit = getEffectiveTrackLimit(user)
     if (limit === 0) return false
     if (limit === null) return true
-    return existingTracks.length < limit
+    return countedTracks.length < limit
   }
 
   for (const slot of activeSlots) {
@@ -154,7 +160,7 @@ export function canUserAddAnyTrack(
       return true
     }
     if (slotLimit === null) return true
-    if (countTracksForArtist(existingTracks, artist) < slotLimit) {
+    if (countTracksForArtist(countedTracks, artist) < slotLimit) {
       return true
     }
   }
