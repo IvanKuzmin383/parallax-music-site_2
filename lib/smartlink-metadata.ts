@@ -2,6 +2,10 @@ import type { Metadata } from "next"
 import { connection } from "next/server"
 import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
 import { ensureSmartlinkPublicOgJpeg } from "@/lib/smartlink-og-public"
+import {
+  SMARTLINK_OG_HEIGHT,
+  SMARTLINK_OG_WIDTH,
+} from "@/lib/smartlink-cover"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 
@@ -36,8 +40,8 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
           url: imageUrl,
           secureUrl: imageUrl,
           type: "image/jpeg" as const,
-          width: 1200,
-          height: 630,
+          width: SMARTLINK_OG_WIDTH,
+          height: SMARTLINK_OG_HEIGHT,
           alt: track.trackName,
         },
       ]

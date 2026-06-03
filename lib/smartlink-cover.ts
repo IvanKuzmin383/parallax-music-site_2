@@ -14,9 +14,9 @@ import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
 
 ensureCabinetCoverSharpConfigured()
 
-/** 1.91:1 — рекомендация Telegram / Facebook для превью ссылок. */
+/** Квадрат 1:1 — как исходные обложки; для og:image и /s/[slug]/cover. */
 export const SMARTLINK_OG_WIDTH = 1200
-export const SMARTLINK_OG_HEIGHT = 630
+export const SMARTLINK_OG_HEIGHT = 1200
 export const SMARTLINK_OG_QUALITY = 82
 
 async function renderOgJpeg(
@@ -33,7 +33,7 @@ async function renderOgJpeg(
 }
 
 /**
- * JPEG 1200×630 для OG (кэш рядом с обложками). null — трек не найден или нет файла.
+ * JPEG 1200×1200 для OG (кэш рядом с обложками). null — трек не найден или нет файла.
  */
 export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer | null> {
   const track = await getReleasedSmartlinkTrack(slug)
@@ -44,7 +44,7 @@ export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer
     const coversDir = path.dirname(track.coverPath)
     const cachePath = buildCoverDerivativeCachePath({
       coversDir,
-      trackId: `smartlink-og-630-${track.id}`,
+      trackId: `smartlink-og-1200sq-${track.id}`,
       width: SMARTLINK_OG_WIDTH,
       quality: SMARTLINK_OG_QUALITY,
       format: "jpeg",
