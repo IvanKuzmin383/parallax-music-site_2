@@ -1,45 +1,10 @@
 import { notFound } from "next/navigation"
-import { Metadata } from "next"
 import { SMARTLINK_PLATFORMS } from "@/lib/smartlink-platforms"
 import type { PlatformLinks } from "@/lib/smartlink-platforms"
 import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
 
 interface SmartlinkPageProps {
   params: Promise<{ slug: string }>
-}
-
-export async function generateMetadata({ params }: SmartlinkPageProps): Promise<Metadata> {
-  const { slug } = await params
-  let track: Awaited<ReturnType<typeof getReleasedSmartlinkTrack>> = null
-  try {
-    track = await getReleasedSmartlinkTrack(slug)
-  } catch (error) {
-    console.error("[smartlink] generateMetadata error:", error)
-  }
-  if (!track) {
-    return { title: "Не найдено" }
-  }
-
-  const coverPath = smartlinkOgImagePath(slug)
-  const title = `${track.trackName} - ${track.artistName} | Parallax Music`
-  const description = `Слушайте «${track.trackName}» от ${track.artistName} на всех платформах`
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: [{ url: coverPath, width: 1200, height: 1200, alt: track.trackName }],
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [coverPath],
-    },
-  }
 }
 
 function getLinksList(links: PlatformLinks | undefined) {

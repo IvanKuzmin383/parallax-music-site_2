@@ -19,6 +19,7 @@ export default async function Image({ params }: Props) {
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "image/jpeg",
+      "Content-Length": String(buffer.byteLength),
       "Cache-Control": SMARTLINK_COVER_CACHE_CONTROL,
     },
   })

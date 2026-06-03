@@ -1,12 +1,20 @@
 import { NextRequest } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
 
+export function getTbankLkTestSecret(): string | null {
+  return (
+    process.env.TBANK_LK_TEST_SECRET?.trim() ||
+    process.env.TBANK_RECURRENT_TEST_SECRET?.trim() ||
+    null
+  )
+}
+
 export function isTbankRecurrentTestEnabled(): boolean {
-  return Boolean(process.env.TBANK_RECURRENT_TEST_SECRET?.trim())
+  return Boolean(getTbankLkTestSecret())
 }
 
 export function verifyTbankRecurrentTestAccess(request: NextRequest): boolean {
-  const secret = process.env.TBANK_RECURRENT_TEST_SECRET?.trim()
+  const secret = getTbankLkTestSecret()
   if (!secret) return false
 
   const adminToken = getAdminToken(request)

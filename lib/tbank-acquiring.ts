@@ -1,4 +1,5 @@
 import crypto from "crypto"
+import type { TbankReceiptPayload } from "./tbank-receipt"
 
 const TBANK_API_BASE = (process.env.TBANK_API_URL || "https://securepay.tinkoff.ru/v2").replace(/\/$/, "")
 
@@ -51,6 +52,7 @@ export type TbankInitPaymentParams = {
   recurrent?: boolean
   customerKey?: string
   operationInitiatorType?: string
+  receipt?: TbankReceiptPayload
 }
 
 export type TbankApiResult =
@@ -159,6 +161,10 @@ function buildInitPayload(params: TbankInitPaymentParams): {
   if (params.operationInitiatorType) {
     requestBody.OperationInitiatorType = params.operationInitiatorType
     tokenParams.OperationInitiatorType = params.operationInitiatorType
+  }
+
+  if (params.receipt) {
+    requestBody.Receipt = params.receipt
   }
 
   return { requestBody, tokenParams }
@@ -270,6 +276,49 @@ export async function initTbankRecurrentChildPayment(params: {
   }
 
   return { ok: true, paymentId: result.paymentId, paymentUrl: result.paymentUrl ?? "" }
+}
+
+export type TbankCancelResult =
+  | { ok: true; paymentId: string; body: unknown }
+  | { ok: false; status: number; errorCode?: string; message?: string; body: unknown }
+
+/** Полная или частичная отмена / возврат (тест №8). При полной отмене Receipt не передаётся. */
+export async function cancelTbankPayment(params: {
+  paymentId: string
+  amountKopecks?: number
+}): Promise<TbankCancelResult> {
+  const config = getTbankConfig()
+  if (!config) {
+    return { ok: false, status: 500, message: "T-Bank not configured", body: { error: "no_config" } }
+  }
+
+  const requestBody: Record<string, unknown> = {
+    TerminalKey: config.terminalKey,
+    PaymentId: params.paymentId,
+  }
+
+  const tokenParams: Record<string, unknown> = {
+    TerminalKey: config.terminalKey,
+    PaymentId: params.paymentId,
+  }
+
+  if (params.amountKopecks != null) {
+    requestBody.Amount = params.amountKopecks
+    tokenParams.Amount = String(params.amountKopecks)
+  }
+
+  const result = await postTbank("Cancel", requestBody, tokenParams)
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: result.status,
+      errorCode: result.errorCode,
+      message: result.message,
+      body: result.body,
+    }
+  }
+
+  return { ok: true, paymentId: result.paymentId, body: result.body }
 }
 
 export function rublesToKopecks(amountRub: string | number): number {

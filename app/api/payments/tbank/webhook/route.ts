@@ -11,6 +11,11 @@ import {
   saveTbankRecurrentTestRebillId,
   updateTbankRecurrentTestStatus,
 } from "@/lib/tbank-recurrent-test-store"
+import {
+  findTbankReceiptTestByOrderId,
+  updateTbankReceiptTestPaymentStatus,
+  updateTbankReceiptTestRefundStatus,
+} from "@/lib/tbank-receipt-test-store"
 import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service-fulfillments"
 import { getUploadsBasePath } from "@/lib/tracks"
 
@@ -134,6 +139,18 @@ export async function POST(request: NextRequest) {
 
   const status = typeof body.Status === "string" ? body.Status : ""
   const orderIdRaw = typeof body.OrderId === "string" ? body.OrderId.trim() : ""
+
+  const receiptTest = orderIdRaw ? findTbankReceiptTestByOrderId(orderIdRaw) : null
+  if (receiptTest) {
+    if (status) {
+      updateTbankReceiptTestPaymentStatus(status)
+      if (status === "REFUNDED" || status === "CANCELED" || status === "REVERSED" || status === "PARTIAL_REFUNDED") {
+        updateTbankReceiptTestRefundStatus(status)
+      }
+      console.info("[payments/tbank/webhook] Receipt test status", { orderId: orderIdRaw, status })
+    }
+    return new NextResponse("OK", { status: 200 })
+  }
 
   const recurrentMatch = orderIdRaw ? findTbankRecurrentTestByOrderId(orderIdRaw) : null
   if (recurrentMatch) {

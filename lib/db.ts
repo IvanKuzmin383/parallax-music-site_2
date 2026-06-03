@@ -535,6 +535,17 @@ function runMigrations(db: Database.Database): void {
       last_charge_error TEXT,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS tbank_receipt_test_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      order_id TEXT,
+      payment_id TEXT,
+      receipt_email TEXT,
+      payment_status TEXT,
+      refund_status TEXT,
+      last_refund_error TEXT,
+      updated_at TEXT NOT NULL
+    );
   `)
 
   try {

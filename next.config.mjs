@@ -70,9 +70,14 @@ const securityHeaders = [
   },
 ]
 
+// Боты превью ссылок (Telegram, VK, WhatsApp…) — metadata в <head>, без streaming в body.
+const htmlLimitedBots =
+  /Googlebot|Google-InspectionTool|Bingbot|Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|Discordbot|TelegramBot|WhatsApp|vkShare|Applebot|Pinterest|redditbot|SkypeUriPreview|ia_archiver|Viber|YandexBot|YandexImages/i
+
 const nextConfig = {
   // Удалено ignoreBuildErrors для безопасности типов
   reactStrictMode: true,
+  htmlLimitedBots,
   experimental: {
     proxyClientMaxBodySize: '80mb',
   },
