@@ -62,6 +62,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Turnstile } from "@marsidev/react-turnstile"
 import { CabinetAnnouncementsHost } from "@/components/cabinet-announcements-host"
+import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { getTurnstileSiteKeyClient, isTurnstileEnabledClient } from "@/lib/turnstile-config"
@@ -117,7 +118,7 @@ const SUPPORT_TELEGRAM_URL = "https://t.me/ParallaxMusic_RT"
 const SUPPORT_VK_URL = "https://vk.com/parallaxmusic_releaseteam"
 const PRICING_PAGE_URL = "https://parallaxmusic.ru/#pricing"
 const SUBSCRIPTION_REQUIRED_REGISTER_MESSAGE =
-  "Сначала оплатите тариф на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться."
+  "Сначала оплатите подписку или пакет треков Fix на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться."
 
 /** Иконка Telegram как на главной (контакт / футер) - «бумажный самолётик» */
 function TelegramSupportIcon({ className }: { className?: string }) {
@@ -242,6 +243,7 @@ export default function CabinetPage() {
   const [subscriptionRequiredDialogOpen, setSubscriptionRequiredDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"releases" | "promotion" | "reports">("releases")
   const [userTrackPriceRub, setUserTrackPriceRub] = useState(TRACK_PRICE_RUB)
+  const [userCreatedAt, setUserCreatedAt] = useState<string | undefined>(undefined)
   const [mounted, setMounted] = useState(false)
   /** Один раз за визит показываем диалог «Подписка истекла» при входе в кабинет (не при исчерпании лимита). */
   const subscriptionExpiredEntryDialogShownRef = useRef(false)
@@ -323,6 +325,8 @@ export default function CabinetPage() {
     if (response.ok) {
       const data = await response.json()
       setArtistName(data.user?.artistName || "")
+      setUserCreatedAt(data.user?.createdAt)
+      setUserCreatedAt(data.user?.createdAt)
       setUserTrackPriceRub(getTrackPriceRubByCreatedAt(data.user?.createdAt))
       setSubscription({
         subscriptionName: data.user?.subscriptionName,
@@ -552,6 +556,7 @@ export default function CabinetPage() {
           userRes.json().then((data) => {
             if (data?.user) {
               setArtistName(data.user.artistName || "")
+              setUserCreatedAt(data.user.createdAt)
               setUserTrackPriceRub(getTrackPriceRubByCreatedAt(data.user.createdAt))
               setSubscription({
                 subscriptionName: data.user.subscriptionName,
@@ -2115,6 +2120,10 @@ export default function CabinetPage() {
         <PurchaseTracksDialog
           open={purchaseTracksDialogOpen}
           onOpenChange={setPurchaseTracksDialogOpen}
+          useFixPackPricing={
+            subscription?.subscriptionName === "Fix" &&
+            !isLegacyFixPricing({ createdAt: userCreatedAt })
+          }
           unitPriceRub={userTrackPriceRub}
         />
         <SubscriptionLimitDialog

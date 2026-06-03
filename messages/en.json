@@ -75,6 +75,10 @@
     "title": "Our",
     "titleHighlight": "Pricing",
     "description": "Choose the pricing plan that suits your music project",
+    "modeOnetime": "One-time payment",
+    "modeSubscription": "Subscription",
+    "onetimeIntro": "Fix plan — pay only for the tracks you need, no subscription or auto-renewal",
+    "perTrack": "₽/track",
     "periodMonth": "Month",
     "periodYear": "Year",
     "perMonth": "₽/mo",
@@ -123,7 +127,54 @@
         "priceMonth": 2999,
         "priceYear": 1999
       }
+    ],
+    "fixPlanHint": "1 track = 1 upload slot",
+    "priceFromOrder": "from ₽{amount} per order",
+    "fixRoyaltyTitle": "80% royalties",
+    "fixRoyaltyDescription": "80% of net platform receipts go to the artist; 20% is the service fee (public offer, clause 4.6)",
+    "fixCtaButton": "Buy",
+    "fixTiers": [
+      {
+        "id": "1-5",
+        "title": "1–5 tracks",
+        "subtitle": "For single releases",
+        "pricePerTrack": 500,
+        "defaultTracks": 1,
+        "popular": false,
+        "discount": null
+      },
+      {
+        "id": "6-10",
+        "title": "6–10 tracks",
+        "subtitle": "20% off per track",
+        "pricePerTrack": 400,
+        "defaultTracks": 6,
+        "popular": true,
+        "discount": "-20%"
+      },
+      {
+        "id": "11plus",
+        "title": "11+ tracks",
+        "subtitle": "Best per-track rate",
+        "pricePerTrack": 350,
+        "defaultTracks": 11,
+        "popular": false,
+        "discount": "-30%"
+      }
     ]
+  },
+  "payFix": {
+    "title": "Fix plan — pay per track",
+    "description": "No subscription: pay for a track pack and register in the dashboard with the same email to upload releases.",
+    "backToPricing": "Back to pricing",
+    "planInfo": "Fix plan",
+    "planSubtitle": "One-time payment, no auto-renewal",
+    "tier1": "1–5 tracks per order — 500 ₽ per track",
+    "tier2": "6–10 tracks — 400 ₽ per track (−20%)",
+    "tier3": "11+ tracks — 350 ₽ per track (−30%)",
+    "tracksCountLabel": "Number of tracks",
+    "tracksCountHint": "From 1 to {max} tracks per payment",
+    "royaltyNote": "80% of net platform receipts to the artist; 20% service fee (public offer, clause 4.6)"
   },
   "pay": {
   "title": "Checkout",

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getOrderById, updateOrderStatus, type OrderSubscription } from "@/lib/orders"
+import { getOrderById, updateOrderStatus, type OrderFixPack, type OrderSubscription } from "@/lib/orders"
 import { getTbankConfig, verifyTbankNotification } from "@/lib/tbank-acquiring"
+import { fulfillFixPackOrder } from "@/lib/fulfill-fix-pack-order"
 import { fulfillPaidOrder } from "@/lib/fulfill-paid-order"
 import { fulfillSubscriptionOrder } from "@/lib/fulfill-subscription-order"
 import {
@@ -150,6 +151,17 @@ export async function POST(request: NextRequest) {
       paidAt,
       amountRub,
       tbankRebillId,
+      provider: "tbank",
+    })
+    return new NextResponse("OK", { status: 200 })
+  }
+
+  if (order.orderType === "fix_pack") {
+    await fulfillFixPackOrder({
+      order: order as OrderFixPack,
+      paymentId,
+      paidAt,
+      amountRub,
       provider: "tbank",
     })
     return new NextResponse("OK", { status: 200 })

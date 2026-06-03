@@ -14,6 +14,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import {
+  calculateFixPackTotalRub,
+  getFixPackUnitPriceRub,
+  MAX_FIX_PACK_ORDER,
+} from "@/lib/fix-pack-pricing"
 import { TRACK_PRICE_RUB, MAX_TRACKS_TOPUP } from "@/lib/track-pricing"
 import { useI18n } from "@/lib/i18n-context"
 
@@ -22,6 +27,8 @@ const TRACKS_MIN = 1
 type PurchaseTracksDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Ступенчатый прайс Fix (500/400/350); иначе flat legacy 300/400 */
+  useFixPackPricing?: boolean
   unitPriceRub?: number
   title?: string
   description?: string
@@ -30,6 +37,7 @@ type PurchaseTracksDialogProps = {
 export function PurchaseTracksDialog({
   open,
   onOpenChange,
+  useFixPackPricing = false,
   unitPriceRub,
   title = "Лимит треков исчерпан",
   description,
@@ -40,12 +48,19 @@ export function PurchaseTracksDialog({
   const [error, setError] = useState<string | null>(null)
   const [consentOfferLicense, setConsentOfferLicense] = useState(false)
 
-  const trackPriceRub = unitPriceRub ?? TRACK_PRICE_RUB
-  const total = tracksCount * trackPriceRub
-  const validCount = tracksCount >= TRACKS_MIN && tracksCount <= MAX_TRACKS_TOPUP
+  const maxTracks = useFixPackPricing ? MAX_FIX_PACK_ORDER : MAX_TRACKS_TOPUP
+  const trackPriceRub = useFixPackPricing
+    ? getFixPackUnitPriceRub(Math.max(1, Math.min(tracksCount, MAX_FIX_PACK_ORDER)))
+    : (unitPriceRub ?? TRACK_PRICE_RUB)
+  const total = useFixPackPricing
+    ? calculateFixPackTotalRub(tracksCount)
+    : tracksCount * trackPriceRub
+  const validCount = tracksCount >= TRACKS_MIN && tracksCount <= maxTracks
   const resolvedDescription =
     description ??
-    `Чтобы загрузить больше треков, оплатите дополнительные. Цена за один трек - ${trackPriceRub} ₽.`
+    (useFixPackPricing
+      ? "Оплата пакета треков: 1–5 шт. — 500 ₽/трек, 6–10 — 400 ₽, 11+ — 350 ₽."
+      : `Чтобы загрузить больше треков, оплатите дополнительные. Цена за один трек - ${trackPriceRub} ₽.`)
 
   useEffect(() => {
     if (!open) {
@@ -64,7 +79,10 @@ export function PurchaseTracksDialog({
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch("/api/cabinet/payments/tracks/create", {
+      const endpoint = useFixPackPricing
+        ? "/api/cabinet/payments/fix-pack/create"
+        : "/api/cabinet/payments/tracks/create"
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -104,13 +122,13 @@ export function PurchaseTracksDialog({
               id="tracksCount"
               type="number"
               min={TRACKS_MIN}
-              max={MAX_TRACKS_TOPUP}
+              max={maxTracks}
               value={tracksCount}
               onChange={(e) => setTracksCount(Number(e.target.value) || 0)}
               disabled={loading}
             />
             <p className="text-sm text-muted-foreground">
-              от {TRACKS_MIN} до {MAX_TRACKS_TOPUP}
+              от {TRACKS_MIN} до {maxTracks}
             </p>
           </div>
           <p className="text-sm font-medium">

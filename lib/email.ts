@@ -25,6 +25,48 @@ function escapeHtmlText(s: string): string {
     .replace(/"/g, "&quot;")
 }
 
+export async function sendFixPackRegistrationEmail(
+  to: string,
+  registerLink: string,
+  tracksCount: number
+): Promise<{ ok: boolean; error?: string }> {
+  if (!resendApiKey) {
+    console.error("[email] RESEND_API_KEY is not set")
+    return { ok: false, error: "Email not configured" }
+  }
+
+  const resend = new Resend(resendApiKey)
+  const hrefAttr = registerLink.replace(/"/g, "&quot;")
+  const linkText = escapeHtmlText(registerLink)
+
+  try {
+    const { error } = await resend.emails.send({
+      from: fromEmail,
+      to: [to],
+      subject: "Оплата пакета треков Fix — зарегистрируйтесь в кабинете",
+      html: `
+        <p>Здравствуйте!</p>
+        <p>Оплата пакета треков (тариф Fix) прошла успешно.</p>
+        <p><b>Количество треков:</b> ${tracksCount}</p>
+        <p>Чтобы загружать релизы, зарегистрируйтесь в личном кабинете с тем же email, который вы указали при оплате.</p>
+        <p>Перейдите по ссылке для регистрации:<br/>
+        <a href="${hrefAttr}">${linkText}</a></p>
+        <p>Если вы уже зарегистрированы, войдите в кабинет на сайте.</p>
+        <p>- Parallax Music</p>
+      `,
+    })
+
+    if (error) {
+      console.error("[email] Resend error:", error)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error("[email] Send failed:", err)
+    return { ok: false, error: err instanceof Error ? err.message : "Send failed" }
+  }
+}
+
 export async function sendSubscriptionRegistrationEmail(
   to: string,
   registerLink: string,

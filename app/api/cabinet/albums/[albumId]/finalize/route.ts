@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import {
+  assertFixPackCreditsAvailable,
+  deductFixPackCreditsOnUpload,
+} from "@/lib/fix-pack-credits"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { getTracksByAlbumId } from "@/lib/tracks"
 import { updateTrack } from "@/lib/tracks"
@@ -71,6 +75,12 @@ export async function POST(
       return NextResponse.json({ error: "У альбома нет треков" }, { status: 400 })
     }
 
+    const pendingCount = tracks.filter((t) => t.status === "upload_pending").length
+    const creditsGate = assertFixPackCreditsAvailable(user, pendingCount)
+    if (!creditsGate.ok) {
+      return NextResponse.json({ error: creditsGate.error }, { status: 403 })
+    }
+
     for (const t of tracks) {
       try {
         const wavError = await validateWavFormatFromFilePath(t.audioPath)
@@ -98,6 +108,10 @@ export async function POST(
     if (albumDraft) {
       await removeUploadDraftFiles(albumDraft)
       await markUploadDraftFinalized(albumDraft.id)
+    }
+
+    if (pendingCount > 0) {
+      await deductFixPackCreditsOnUpload(user, pendingCount)
     }
 
     return NextResponse.json({

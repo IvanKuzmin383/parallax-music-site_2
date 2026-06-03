@@ -395,11 +395,12 @@ export async function updateCabinetUserPurchasedTracks(userId: string, addTracks
   if (!user) return null
 
   const current = user.purchasedTracksBalance ?? 0
+  const next = Math.max(0, current + addTracks)
   const db = getDb()
-  db.prepare("UPDATE cabinet_users SET purchased_tracks_balance = ? WHERE id = ?").run(current + addTracks, userId)
+  db.prepare("UPDATE cabinet_users SET purchased_tracks_balance = ? WHERE id = ?").run(next, userId)
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[cabinet-users] Updated purchasedTracksBalance for user", { id: userId, email: user.email, addTracks, newBalance: current + addTracks })
+    console.log("[cabinet-users] Updated purchasedTracksBalance for user", { id: userId, email: user.email, addTracks, newBalance: next })
   }
 
   return getCabinetUserById(userId)

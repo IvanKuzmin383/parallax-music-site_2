@@ -10,13 +10,29 @@ import {
 } from "@/lib/cabinet-users"
 import { escapeHtml } from "@/lib/telegram"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
-import { getPaidOrdersByEmail } from "@/lib/orders"
+import { applyFixPackCreditsOnRegister } from "@/lib/fulfill-fix-pack-order"
+import { sumPendingFixCredits } from "@/lib/pending-fix-credits"
+import { getPaidFixPackOrdersByEmail, getPaidOrdersByEmail, type OrderFixPack } from "@/lib/orders"
 import { isPlanId, planIdToSubscriptionName, type PlanId } from "@/lib/plan-pricing"
 import { createCabinetSession, CABINET_SESSION_COOKIE } from "@/lib/cabinet-auth"
 import { verifyTurnstileToken } from "@/lib/turnstile"
 import { deletePendingSubscriptionAutopay, getPendingSubscriptionAutopay } from "@/lib/pending-subscription-autopay"
 import { createCabinetArtistSubscriptionSlot } from "@/lib/cabinet-artist-subscriptions"
 import type { Order, OrderSubscription } from "@/lib/orders"
+
+function filterOrdersAfterDeletion<T extends { paidAt?: string; createdAt: string }>(
+  orders: T[],
+  deletedAt: string | null
+): T[] {
+  if (!deletedAt) return orders
+  return orders.filter((order) => {
+    const orderDateRaw = order.paidAt ?? order.createdAt
+    const orderDateTs = Date.parse(orderDateRaw)
+    const deletedAtTs = Date.parse(deletedAt)
+    if (Number.isNaN(orderDateTs) || Number.isNaN(deletedAtTs)) return false
+    return orderDateTs > deletedAtTs
+  })
+}
 
 function isPaidSubscriptionOrder(order: Order): order is OrderSubscription & { planId: PlanId } {
   return order.orderType === "subscription" && isPlanId(order.planId)
@@ -88,40 +104,56 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const paidOrders = await getPaidOrdersByEmail(parsed.data.email)
-    const deletedAt = await getLastCabinetUserDeletionAt(parsed.data.email)
-    const eligiblePaidOrders = deletedAt
-      ? paidOrders.filter((order) => {
-          const orderDateRaw = order.paidAt ?? order.createdAt
-          const orderDateTs = Date.parse(orderDateRaw)
-          const deletedAtTs = Date.parse(deletedAt)
-          if (Number.isNaN(orderDateTs) || Number.isNaN(deletedAtTs)) return false
-          return orderDateTs > deletedAtTs
-        })
-      : paidOrders
-    const hasPaidSubscription = eligiblePaidOrders.some(
+    const email = parsed.data.email
+    const deletedAt = await getLastCabinetUserDeletionAt(email)
+    const eligiblePaidSubscriptions = filterOrdersAfterDeletion(
+      await getPaidOrdersByEmail(email),
+      deletedAt
+    )
+    const eligiblePaidFixPacks = filterOrdersAfterDeletion(
+      await getPaidFixPackOrdersByEmail(email),
+      deletedAt
+    ) as OrderFixPack[]
+
+    const hasPaidSubscription = eligiblePaidSubscriptions.some(
       (o) => o.orderType === "subscription" && isPlanId(o.planId)
     )
-    if (!hasPaidSubscription) {
+    const hasPaidFixPack =
+      eligiblePaidFixPacks.length > 0 || sumPendingFixCredits(email) > 0
+
+    if (!hasPaidSubscription && !hasPaidFixPack) {
       return NextResponse.json(
         {
           error:
-            "Сначала оплатите тариф на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться.",
+            "Сначала оплатите подписку или пакет треков Fix на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться.",
           code: "SUBSCRIPTION_REQUIRED" as const,
         },
         { status: 403 }
       )
     }
 
+    if (hasPaidSubscription && hasPaidFixPack) {
+      return NextResponse.json(
+        {
+          error:
+            "На этот email найдены и подписка, и оплата Fix. Обратитесь в поддержку для привязки аккаунта.",
+          code: "PAYMENT_CONFLICT" as const,
+        },
+        { status: 403 }
+      )
+    }
+
     const user = await createCabinetUser({
-      email: parsed.data.email,
+      email,
       password: parsed.data.password,
       artistName: parsed.data.artistName,
       telegram: parsed.data.telegram,
     })
 
-    if (eligiblePaidOrders.length > 0) {
-      const subscriptionOrders = eligiblePaidOrders
+    if (hasPaidFixPack) {
+      await applyFixPackCreditsOnRegister(user.id, email, eligiblePaidFixPacks)
+    } else if (eligiblePaidSubscriptions.length > 0) {
+      const subscriptionOrders = eligiblePaidSubscriptions
         .filter(isPaidSubscriptionOrder)
         .sort((a, b) => (a.paidAt ?? "").localeCompare(b.paidAt ?? ""))
       if (subscriptionOrders.length > 0) {
@@ -153,9 +185,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const merged = await getCabinetUserByEmail(parsed.data.email, { includeDisabled: true })
+    const merged = await getCabinetUserByEmail(email, { includeDisabled: true })
     if (merged?.subscriptionExpiresAt) {
-      const pend = getPendingSubscriptionAutopay(parsed.data.email)
+      const pend = getPendingSubscriptionAutopay(email)
       if (pend) {
         await setCabinetUserAutopay(merged.id, {
           tbankRebillId: pend.tbankRebillId ?? null,
@@ -167,13 +199,13 @@ export async function POST(request: NextRequest) {
           autopayNextChargeAt: merged.subscriptionExpiresAt,
           autopayLastReminderSentAt: null,
         })
-        deletePendingSubscriptionAutopay(parsed.data.email)
+        deletePendingSubscriptionAutopay(email)
       }
     }
 
     const token = createCabinetSession(user.email)
 
-    const userOut = (await getCabinetUserByEmail(parsed.data.email, { includeDisabled: true })) ?? user
+    const userOut = (await getCabinetUserByEmail(email, { includeDisabled: true })) ?? user
 
     const messageLines = [
       "<b>Новая регистрация в кабинете</b>",

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { createOrder } from "@/lib/orders"
 import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
-import { getTrackPriceRubByCreatedAt, MAX_TRACKS_TOPUP } from "@/lib/track-pricing"
+import {
+  formatFixPackTotalAmount,
+  isValidFixPackTracksCount,
+  MAX_FIX_PACK_ORDER,
+} from "@/lib/fix-pack-pricing"
+import { createOrder } from "@/lib/orders"
 import {
   assertTbankConfigured,
   createCabinetTbankPayment,
@@ -19,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   const tbankCfg = assertTbankConfigured()
   if (!tbankCfg.ok) {
-    console.error("[payments/tracks/create] Missing TBANK env")
+    console.error("[payments/fix-pack/create] Missing TBANK env")
     return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
   }
 
@@ -30,16 +34,17 @@ export async function POST(request: NextRequest) {
 
   if (user.subscriptionName !== "Fix") {
     return NextResponse.json(
-      { error: "Покупка дополнительных треков доступна только для тарифа Fix" },
+      { error: "Покупка пакета треков доступна только для тарифа Fix" },
       { status: 403 }
     )
   }
 
-  if (!isLegacyFixPricing(user)) {
+  if (isLegacyFixPricing(user)) {
     return NextResponse.json(
       {
-        error: "Используйте покупку пакета треков с актуальными ценами (500/400/350 ₽).",
-        code: "use_fix_pack_pricing",
+        error:
+          "Для вашего аккаунта действует прежняя цена докупки. Используйте форму «Купить дополнительные треки» в кабинете.",
+        code: "legacy_fix_pricing",
       },
       { status: 403 }
     )
@@ -64,28 +69,22 @@ export async function POST(request: NextRequest) {
   }
 
   const tracksCount = typeof raw.tracksCount === "number" ? raw.tracksCount : undefined
-
-  if (
-    tracksCount === undefined ||
-    !Number.isInteger(tracksCount) ||
-    tracksCount < 1 ||
-    tracksCount > MAX_TRACKS_TOPUP
-  ) {
+  if (!isValidFixPackTracksCount(tracksCount)) {
     return NextResponse.json(
-      { error: `Количество треков должно быть от 1 до ${MAX_TRACKS_TOPUP}` },
+      { error: `Количество треков должно быть от 1 до ${MAX_FIX_PACK_ORDER}` },
       { status: 400 }
     )
   }
 
-  const trackPriceRub = getTrackPriceRubByCreatedAt(user.createdAt)
-  const totalAmount = (tracksCount * trackPriceRub).toFixed(2)
-  const description = `Оплата услуги (тариф Fix): ${tracksCount} шт., email ${user.email}`
+  const totalAmount = formatFixPackTotalAmount(tracksCount)
+  const description = `Тариф Fix: ${tracksCount} трек(ов), ${user.email}`
 
   const order = await createOrder({
-    orderType: "tracks_topup",
-    userId: user.id,
+    orderType: "fix_pack",
+    userEmail: user.email,
     tracksCount,
     totalAmount,
+    userId: user.id,
   })
 
   const siteBase = getSiteBaseUrl()
@@ -98,10 +97,10 @@ export async function POST(request: NextRequest) {
     description,
     successUrl: returnUrl,
     failUrl,
-    orderType: "tracks_topup",
+    orderType: "fix_pack",
     receiptEmail: user.email,
-    receiptItemName: `Доп. треки Fix (${tracksCount} шт.)`,
-    logPrefix: "payments/tracks/create",
+    receiptItemName: `Дистрибуция треков Fix (${tracksCount} шт.)`,
+    logPrefix: "payments/fix-pack/create",
   })
 
   if (!pay.ok) {

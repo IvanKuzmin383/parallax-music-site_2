@@ -75,6 +75,10 @@
     "title": "Наши",
     "titleHighlight": "Тарифы",
     "description": "Выберите подходящий тарифный план для вашего музыкального проекта",
+    "modeOnetime": "Разовая оплата",
+    "modeSubscription": "По подписке",
+    "onetimeIntro": "Тариф Fix — платите только за нужное количество треков, без подписки и автопродления",
+    "perTrack": "₽/трек",
     "periodMonth": "Месяц",
     "periodYear": "Год",
     "perMonth": "₽/мес",
@@ -123,7 +127,54 @@
         "priceMonth": 2999,
         "priceYear": 1999
       }
+    ],
+    "fixPlanHint": "1 трек = 1 слот для загрузки релиза",
+    "priceFromOrder": "от {amount} ₽ за заказ",
+    "fixRoyaltyTitle": "80% роялти",
+    "fixRoyaltyDescription": "80% поступлений с площадок (net) начисляется артисту, 20% — вознаграждение сервиса (публичная оферта, п. 4.6)",
+    "fixCtaButton": "Купить",
+    "fixTiers": [
+      {
+        "id": "1-5",
+        "title": "1–5 треков",
+        "subtitle": "Для одиночных релизов",
+        "pricePerTrack": 500,
+        "defaultTracks": 1,
+        "popular": false,
+        "discount": null
+      },
+      {
+        "id": "6-10",
+        "title": "6–10 треков",
+        "subtitle": "Выгоднее на 20%",
+        "pricePerTrack": 400,
+        "defaultTracks": 6,
+        "popular": true,
+        "discount": "-20%"
+      },
+      {
+        "id": "11plus",
+        "title": "11+ треков",
+        "subtitle": "Максимальная скидка",
+        "pricePerTrack": 350,
+        "defaultTracks": 11,
+        "popular": false,
+        "discount": "-30%"
+      }
     ]
+  },
+  "payFix": {
+    "title": "Тариф Fix — оплата за трек",
+    "description": "Без подписки: оплатите пакет треков и зарегистрируйтесь в кабинете с тем же email для загрузки релизов.",
+    "backToPricing": "Назад к тарифам",
+    "planInfo": "Тариф Fix",
+    "planSubtitle": "Разовая оплата, без автопродления",
+    "tier1": "1–5 треков в заказе — 500 ₽ за трек",
+    "tier2": "6–10 треков — 400 ₽ за трек (−20%)",
+    "tier3": "11 и более — 350 ₽ за трек (−30%)",
+    "tracksCountLabel": "Количество треков",
+    "tracksCountHint": "От 1 до {max} треков в одном платеже",
+    "royaltyNote": "80% роялти артисту с площадок (net), 20% — сервису (публичная оферта, п. 4.6)"
   },
   "pay": {
   "title": "Оформление тарифа",

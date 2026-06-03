@@ -72,6 +72,7 @@ import { cn } from "@/lib/utils"
 import { isReleaseDateWeekend } from "@/lib/release-date-validation"
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
 import { PROFILE_INCOMPLETE_UPLOAD_ERROR_CODE } from "@/lib/cabinet-upload-profile-gate"
+import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
 import {
   COVER_HEIC_ERROR,
@@ -356,6 +357,7 @@ export default function CabinetUploadPage() {
   }
   const [profileCompleteForUpload, setProfileCompleteForUpload] = useState<boolean | null>(null)
   const [userTrackPriceRub, setUserTrackPriceRub] = useState(TRACK_PRICE_RUB)
+  const [userCreatedAt, setUserCreatedAt] = useState<string | undefined>(undefined)
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
   const [addonVerticalVideoCount, setAddonVerticalVideoCount] = useState(1)
   const [addonAiMastering, setAddonAiMastering] = useState(false)
@@ -934,6 +936,7 @@ export default function CabinetUploadPage() {
         userRes.json().then((userData: { user?: { createdAt?: string; subscriptionName?: string; subscriptionExpiresAt?: string; subscriptionTrackLimit?: number; purchasedTracksBalance?: number; profileCompleteForUpload?: boolean; artistSubscriptions?: CabinetArtistSubscription[] } }) => {
           const u = userData.user
           setProfileCompleteForUpload(u?.profileCompleteForUpload ?? false)
+          setUserCreatedAt(u?.createdAt)
           setUserTrackPriceRub(getTrackPriceRubByCreatedAt(u?.createdAt))
           const isFixPlan = u?.subscriptionName === "Fix"
           const today = new Date()
@@ -2105,6 +2108,9 @@ export default function CabinetUploadPage() {
         <PurchaseTracksDialog
           open={purchaseTracksDialogOpen}
           onOpenChange={setPurchaseTracksDialogOpen}
+          useFixPackPricing={
+            subscriptionName === "Fix" && !isLegacyFixPricing({ createdAt: userCreatedAt })
+          }
           unitPriceRub={userTrackPriceRub}
         />
         <SubscriptionLimitDialog

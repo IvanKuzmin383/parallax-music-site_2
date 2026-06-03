@@ -325,6 +325,17 @@ function runMigrations(db: Database.Database): void {
   ensureColumn(db, "pending_subscription_autopay", "tbank_rebill_id", "tbank_rebill_id TEXT")
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS pending_fix_credits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL COLLATE NOCASE,
+      tracks_count INTEGER NOT NULL,
+      order_id TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_pending_fix_credits_email ON pending_fix_credits(email);
+  `)
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS subscription_billing_runs (
       id TEXT PRIMARY KEY,
       source TEXT NOT NULL,

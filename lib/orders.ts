@@ -11,6 +11,7 @@ import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "./spotify-videoshot-pricing"
 
 export type OrderType =
   | "subscription"
+  | "fix_pack"
   | "tracks_topup"
   | "ai_mastering"
   | "vertical_video"
@@ -44,6 +45,15 @@ export interface OrderSubscription extends OrderBase {
   userId?: string
   /** Автопродление (рекуррент), не первичная оплата */
   isRecurringRenewal?: boolean
+}
+
+export interface OrderFixPack extends OrderBase {
+  orderType: "fix_pack"
+  userEmail: string
+  telegram?: string
+  tracksCount: number
+  totalAmount: string
+  userId?: string
 }
 
 export interface OrderTracksTopup extends OrderBase {
@@ -115,6 +125,7 @@ export interface OrderUploadAddonBundle extends OrderBase {
 
 export type Order =
   | OrderSubscription
+  | OrderFixPack
   | OrderTracksTopup
   | OrderAiMastering
   | OrderVerticalVideo
@@ -124,6 +135,7 @@ export type Order =
 
 export type CreateOrderInput =
   | Omit<OrderSubscription, "id" | "status" | "createdAt">
+  | Omit<OrderFixPack, "id" | "status" | "createdAt">
   | Omit<OrderTracksTopup, "id" | "status" | "createdAt">
   | Omit<OrderAiMastering, "id" | "status" | "createdAt">
   | Omit<OrderVerticalVideo, "id" | "status" | "createdAt">
@@ -169,6 +181,17 @@ function rowToOrder(row: OrderRow): Order {
       draftId: row.draft_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       uploadAddonBundlePayloadJson: row.upload_addon_bundle_payload_json ?? undefined,
+    }
+  }
+  if (row.order_type === "fix_pack") {
+    return {
+      ...base,
+      orderType: "fix_pack",
+      userEmail: row.user_email ?? "",
+      telegram: row.telegram ?? undefined,
+      tracksCount: row.tracks_count ?? 0,
+      totalAmount: row.total_amount,
+      userId: row.user_id ?? undefined,
     }
   }
   if (row.order_type === "tracks_topup") {
@@ -296,6 +319,28 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
       o.userId ?? null,
       null,
       recurring
+    )
+    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+  }
+  if (orderType === "fix_pack") {
+    const o = order as Omit<OrderFixPack, "id" | "status" | "createdAt">
+    db.prepare(`
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      "fix_pack",
+      null,
+      createdAt,
+      null,
+      o.userEmail,
+      o.telegram ?? null,
+      "fix",
+      null,
+      null,
+      totalAmount,
+      o.userId ?? null,
+      o.tracksCount
     )
     return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
   }
@@ -447,7 +492,7 @@ export async function updateOrderStatus(
     setClauses.push("paid_at = ?")
     params.push(updates.paidAt)
   }
-  if (updates?.userId !== undefined && order.orderType === "subscription") {
+  if (updates?.userId !== undefined && (order.orderType === "subscription" || order.orderType === "fix_pack")) {
     setClauses.push("user_id = ?")
     params.push(updates.userId)
   }
@@ -464,6 +509,20 @@ export async function getPaidOrdersByEmail(email: string): Promise<Order[]> {
     .prepare("SELECT * FROM orders WHERE status = 'paid' AND order_type = 'subscription' AND LOWER(user_email) = LOWER(?)")
     .all(email) as OrderRow[]
   return rows.map(rowToOrder)
+}
+
+export async function getPaidFixPackOrdersByEmail(email: string): Promise<OrderFixPack[]> {
+  const db = getDb()
+  const rows = db
+    .prepare(
+      `SELECT * FROM orders WHERE status = 'paid' AND order_type = 'fix_pack' AND LOWER(user_email) = LOWER(?) ORDER BY paid_at ASC, created_at ASC`
+    )
+    .all(email) as OrderRow[]
+  return rows.map((row) => rowToOrder(row) as OrderFixPack)
+}
+
+export function isPaidFixPackOrder(order: Order): order is OrderFixPack {
+  return order.orderType === "fix_pack" && order.status === "paid"
 }
 
 export async function hasPendingRecurringSubscriptionChargeToday(userEmail: string): Promise<boolean> {

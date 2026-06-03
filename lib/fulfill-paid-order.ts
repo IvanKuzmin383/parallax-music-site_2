@@ -69,6 +69,11 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     return
   }
 
+  if (order.orderType === "fix_pack") {
+    console.error("[fulfill-paid-order] fix_pack must use fulfillFixPackOrder", orderId)
+    return
+  }
+
   if (order.orderType === "tracks_topup") {
     const updatedUser = await updateCabinetUserPurchasedTracks(order.userId, order.tracksCount)
     if (!updatedUser) {
