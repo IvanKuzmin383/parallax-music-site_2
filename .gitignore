@@ -28,9 +28,6 @@ data/app.db
 *.db-wal
 *.db-shm
 
-# Сгенерированные OG для смартлинков (создаются на VPS при первом запросе)
-/public/og-covers/*.jpg
-
 # vercel
 .vercel
 

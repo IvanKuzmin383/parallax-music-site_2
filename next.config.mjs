@@ -70,9 +70,9 @@ const securityHeaders = [
   },
 ]
 
-// Streaming metadata (Next 15.2+) кладёт og:* в <body> — Telegram/VK не видят превью.
-// /.*/ = ждать generateMetadata до HTML для всех UA (og-теги всегда в <head>).
-const htmlLimitedBots = /.*/
+// Боты превью ссылок (Telegram, VK, WhatsApp…) — metadata в <head>, без streaming в body.
+const htmlLimitedBots =
+  /Googlebot|Google-InspectionTool|Bingbot|Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|Discordbot|TelegramBot|WhatsApp|vkShare|Applebot|Pinterest|redditbot|SkypeUriPreview|ia_archiver|Viber|YandexBot|YandexImages/i
 
 const nextConfig = {
   // Удалено ignoreBuildErrors для безопасности типов
@@ -92,24 +92,6 @@ const nextConfig = {
   },
   async headers() {
     return [
-      {
-        source: '/og-covers/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
-          },
-        ],
-      },
-      {
-        source: '/s/:slug/cover',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
-          },
-        ],
-      },
       {
         source: '/:path*',
         headers: securityHeaders,

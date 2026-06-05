@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { SMARTLINK_PLATFORMS } from "@/lib/smartlink-platforms"
 import type { PlatformLinks } from "@/lib/smartlink-platforms"
-import { getReleasedSmartlinkTrack, smartlinkCoverPath } from "@/lib/smartlink"
+import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
 
 interface SmartlinkPageProps {
   params: Promise<{ slug: string }>
@@ -20,7 +20,7 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
   const track = await getReleasedSmartlinkTrack(slug)
   if (!track) notFound()
 
-  const coverUrl = smartlinkCoverPath(slug)
+  const coverUrl = smartlinkOgImagePath(slug)
   const linksList = getLinksList(track.platformLinks)
 
   return (

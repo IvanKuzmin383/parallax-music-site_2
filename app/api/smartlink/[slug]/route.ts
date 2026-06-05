@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getReleasedSmartlinkTrack, SMARTLINK_SLUG_REGEX, smartlinkOgImageUrl } from "@/lib/smartlink"
+import { getReleasedSmartlinkTrack, SMARTLINK_SLUG_REGEX, smartlinkOgImagePath } from "@/lib/smartlink"
 
 export async function GET(
   _request: NextRequest,
@@ -17,7 +17,7 @@ export async function GET(
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-  const coverUrl = smartlinkOgImageUrl(slug, baseUrl)
+  const coverUrl = `${baseUrl}${smartlinkOgImagePath(slug)}`
 
   return NextResponse.json({
     trackName: track.trackName,
