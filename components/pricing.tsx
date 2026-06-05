@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,7 @@ function formatPriceFromOrder(template: string, amount: number, locale: string):
   return template.replace("{amount}", formatted)
 }
 
-export function Pricing() {
+function PricingContent() {
   const { t, locale } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -269,5 +269,13 @@ export function Pricing() {
         )}
       </div>
     </section>
+  )
+}
+
+export function Pricing() {
+  return (
+    <Suspense fallback={<section id="pricing" className="py-20 bg-muted/30" aria-hidden />}>
+      <PricingContent />
+    </Suspense>
   )
 }

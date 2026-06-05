@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { Suspense, useState, useMemo } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import { toast } from "sonner"
 
 type Period = "month" | "year"
 
-export default function PayPage() {
+function PayPageContent() {
   const params = useParams<{ planId: string }>()
   const searchParams = useSearchParams()
   const { t, locale } = useI18n()
@@ -340,6 +340,20 @@ export default function PayPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function PayPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-background pt-20 flex items-center justify-center">
+          <p className="text-muted-foreground">Загрузка...</p>
+        </main>
+      }
+    >
+      <PayPageContent />
+    </Suspense>
   )
 }
 
