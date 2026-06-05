@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,8 @@ import {
   isValidFixPackTracksCount,
   MAX_FIX_PACK_ORDER,
 } from "@/lib/fix-pack-pricing"
+import { Disc3, ChevronLeft } from "lucide-react"
+import { toast } from "sonner"
 
 function parseTracksFromSearchParams(searchParams: URLSearchParams): number {
   const raw = searchParams.get("tracks")
@@ -21,10 +23,8 @@ function parseTracksFromSearchParams(searchParams: URLSearchParams): number {
   if (isValidFixPackTracksCount(n)) return n
   return 5
 }
-import { Disc3, ChevronLeft } from "lucide-react"
-import { toast } from "sonner"
 
-export default function PayFixPage() {
+function PayFixPageContent() {
   const { t } = useI18n()
   const fix = t.payFix
   const searchParams = useSearchParams()
@@ -277,5 +277,19 @@ export default function PayFixPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function PayFixPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-background pt-20 flex items-center justify-center">
+          <p className="text-muted-foreground">Загрузка...</p>
+        </main>
+      }
+    >
+      <PayFixPageContent />
+    </Suspense>
   )
 }
