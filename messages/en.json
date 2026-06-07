@@ -130,8 +130,8 @@
     ],
     "fixPlanHint": "1 track = 1 upload slot",
     "priceFromOrder": "from ₽{amount} per order",
-    "fixRoyaltyTitle": "80% royalties",
-    "fixRoyaltyDescription": "80% of net platform receipts go to the artist; 20% is the service fee (public offer, clause 4.6)",
+    "fixRoyaltyTitle": "100% Royalties",
+    "fixRoyaltyDescription": "All royalties remain with the artist. We take zero commission from your earnings.",
     "fixCtaButton": "Buy",
     "fixTiers": [
       {
@@ -174,7 +174,7 @@
     "tier3": "11+ tracks — 350 ₽ per track (−30%)",
     "tracksCountLabel": "Number of tracks",
     "tracksCountHint": "From 1 to {max} tracks per payment",
-    "royaltyNote": "80% of net platform receipts to the artist; 20% service fee (public offer, clause 4.6)"
+    "royaltyNote": "100% royalties to the artist. We take zero commission from your earnings."
   },
   "pay": {
   "title": "Checkout",
