@@ -34,6 +34,10 @@ import {
   Info,
 } from "lucide-react"
 import { AdminSectionNav } from "@/components/admin-section-nav"
+import {
+  AdminTracksStatsBar,
+  type TracksViewFilter,
+} from "@/components/admin-tracks-stats-bar"
 import type { Track, TrackStatus } from "@/lib/tracks"
 import type { UploadAddonBundleItem } from "@/lib/orders"
 import { formatUploadAddonBundleLine } from "@/lib/upload-addon-bundle-display"
@@ -84,6 +88,7 @@ import { fetchAdminTracksAllMatching } from "@/lib/admin-tracks-fetch"
 import {
   ADMIN_TRACKS_CLIENT_CAP,
   type AdminTracksListQuery,
+  type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
 
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
@@ -96,12 +101,26 @@ const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "postponed", label: "Отложено" },
 ]
 
-type StatusFilter = TrackStatus | "all"
 type TrackListSortField = "releaseDate" | "createdAt"
 type AdminAlbum = {
   id: string
   title: string
   artistName: string
+}
+
+const EMPTY_TRACKS_STATS: AdminTracksStats = {
+  total: 0,
+  byStatus: {
+    upload_pending: 0,
+    on_moderation: 0,
+    sent_to_platforms: 0,
+    approved_by_platforms: 0,
+    released: 0,
+    rejected: 0,
+    postponed: 0,
+  },
+  upcomingCount: 0,
+  uploadDraftsCount: 0,
 }
 
 const MUSIC_RIGHTS_OPTIONS = [
@@ -326,7 +345,8 @@ export default function TracksPageClient() {
   const [deleteUploadDraftDialogOpen, setDeleteUploadDraftDialogOpen] = useState(false)
   const [uploadDraftToDelete, setUploadDraftToDelete] = useState<UploadDraft | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [viewFilter, setViewFilter] = useState<TracksViewFilter>({ type: "all" })
+  const [tracksStats, setTracksStats] = useState<AdminTracksStats>(EMPTY_TRACKS_STATS)
   const [releaseDateFromDraft, setReleaseDateFromDraft] = useState("")
   const [releaseDateToDraft, setReleaseDateToDraft] = useState("")
   const [releaseDateFromApplied, setReleaseDateFromApplied] = useState("")
@@ -352,8 +372,6 @@ export default function TracksPageClient() {
   const [draftCoverFileInputKey, setDraftCoverFileInputKey] = useState(0)
   const [draftAudioFileInputKey, setDraftAudioFileInputKey] = useState(0)
   const [coverRefreshKey, setCoverRefreshKey] = useState<Record<string, number>>({})
-  const [upcomingExpanded, setUpcomingExpanded] = useState(false)
-  const [uploadDraftsSectionExpanded, setUploadDraftsSectionExpanded] = useState(false)
   const [albumBulkOpen, setAlbumBulkOpen] = useState(false)
   const [albumBulkAlbumId, setAlbumBulkAlbumId] = useState<string | null>(null)
   const [albumBulkTrackCount, setAlbumBulkTrackCount] = useState(0)
@@ -377,7 +395,7 @@ export default function TracksPageClient() {
   const filterUserLabel = searchParams.get("label")?.trim() ?? ""
 
   const resetTrackListFilters = useCallback(() => {
-    setStatusFilter("all")
+    setViewFilter({ type: "all" })
     setReleaseDateFromDraft("")
     setReleaseDateToDraft("")
     setReleaseDateFromApplied("")
@@ -385,20 +403,29 @@ export default function TracksPageClient() {
     router.replace("/admin26081993/tracks")
   }, [router])
 
+  const isUploadDraftsView = viewFilter.type === "upload_drafts"
+
   /** Фильтры применяются на сервере; локальный список уже отфильтрован. */
   const statusFilteredTracks = tracks
-  const releaseDateFilteredTracks = tracks
 
-  const adminTracksQuery = useMemo((): Omit<AdminTracksListQuery, "limit" | "offset"> => ({
-    userId: userIdFilterNorm || undefined,
-    status: statusFilter,
-    releaseDateFrom: releaseDateFromApplied || undefined,
-    releaseDateTo: releaseDateToApplied || undefined,
-    sortField: trackListSortField,
-    sortDirection: trackListSortDirection,
-  }), [
+  const adminTracksQuery = useMemo((): Omit<AdminTracksListQuery, "limit" | "offset"> => {
+    const base = {
+      userId: userIdFilterNorm || undefined,
+      releaseDateFrom: releaseDateFromApplied || undefined,
+      releaseDateTo: releaseDateToApplied || undefined,
+      sortField: trackListSortField,
+      sortDirection: trackListSortDirection,
+    }
+    if (viewFilter.type === "upcoming") {
+      return { ...base, status: "all", upcomingOnly: true }
+    }
+    if (viewFilter.type === "status") {
+      return { ...base, status: viewFilter.status }
+    }
+    return { ...base, status: "all" }
+  }, [
     userIdFilterNorm,
-    statusFilter,
+    viewFilter,
     releaseDateFromApplied,
     releaseDateToApplied,
     trackListSortField,
@@ -420,6 +447,7 @@ export default function TracksPageClient() {
         }))
       )
       setUploadDrafts(data.uploadDrafts as UploadDraft[])
+      setTracksStats(data.stats ?? EMPTY_TRACKS_STATS)
       setIsAuthenticated(true)
     } catch (err) {
       const status = (err as { status?: number }).status
@@ -489,8 +517,9 @@ export default function TracksPageClient() {
     })
   }, [uploadDrafts, userIdFilterNorm])
 
-  const showUploadDraftsInModeration =
-    statusFilter === "all" || statusFilter === "on_moderation"
+  const hasViewContent = isUploadDraftsView
+    ? displayUploadDrafts.length > 0
+    : tracksTotal > 0
 
   useEffect(() => {
     if (!isDialogOpen || !selectedTrack) {
@@ -1296,26 +1325,6 @@ export default function TracksPageClient() {
     }
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const upcomingReleases = releaseDateFilteredTracks
-    .filter((track) => track.releaseDate)
-    .filter(
-      (track) =>
-        track.status !== "rejected" && track.status !== "postponed",
-    )
-    .filter((track) => {
-      const date = new Date(track.releaseDate!)
-      if (Number.isNaN(date.getTime())) return false
-      return date.getTime() >= today.getTime()
-    })
-    .sort((a, b) => {
-      const aDate = new Date(a.releaseDate!)
-      const bDate = new Date(b.releaseDate!)
-      return aDate.getTime() - bDate.getTime()
-    })
-
   const sortedAlbums = [...albums].sort((a, b) => {
     const byArtist = a.artistName.localeCompare(b.artistName)
     if (byArtist !== 0) return byArtist
@@ -1368,7 +1377,7 @@ export default function TracksPageClient() {
               </span>
               <span className="block sm:inline text-foreground sm:ml-2">
                 - треков: {tracksTotal}
-                {showUploadDraftsInModeration && displayUploadDrafts.length > 0
+                {isUploadDraftsView && displayUploadDrafts.length > 0
                   ? ` · черновиков: ${displayUploadDrafts.length}`
                   : ""}
               </span>
@@ -1385,106 +1394,39 @@ export default function TracksPageClient() {
           </div>
         ) : null}
 
-        {tracksTotalInDb === 0 && uploadDrafts.length === 0 ? (
+        {tracksTotalInDb === 0 && tracksStats.uploadDraftsCount === 0 ? (
           <div className="border rounded-lg p-12 text-center text-muted-foreground">
             Треков и активных черновиков загрузки пока нет
           </div>
-        ) : !(
-            tracksTotal > 0 ||
-            (showUploadDraftsInModeration && displayUploadDrafts.length > 0)
-          ) ? (
-          <div className="border rounded-lg p-12 text-center space-y-3">
-            <p className="text-muted-foreground">
-              {userIdFilterRaw
-                ? "У выбранного пользователя нет треков по текущим фильтрам и черновиков загрузки."
-                : statusFilter === "upload_pending"
-                  ? "Нет треков в статусе «Черновик (доработка пользователем)». Заявки из формы загрузки (черновики загрузки) показываются при фильтре «Все статусы» или «На модерации»."
-                  : "Нет треков по выбранным фильтрам (дата публикации / статус). Черновики загрузки смотрите при фильтре «Все статусы» или «На модерации»."}
-            </p>
-            <Button type="button" variant="outline" onClick={resetTrackListFilters}>
-              Показать всех
-            </Button>
-          </div>
         ) : (
           <>
-            {upcomingReleases.length > 0 && (
-              <Card className="border-primary/30 bg-muted/40">
-                <button
-                  type="button"
-                  className="w-full text-left"
-                  onClick={() => setUpcomingExpanded((prev) => !prev)}
-                >
-                  <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
-                    <div>
-                      <CardTitle className="text-lg">Ближайшие релизы</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Треки с запланированной датой выхода на площадки
-                      </p>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {upcomingExpanded ? "Свернуть" : "Показать"}
-                    </span>
-                  </CardHeader>
-                </button>
-                {upcomingExpanded && (
-                  <CardContent className="space-y-2">
-                    {upcomingReleases.map((track) => (
-                      <div
-                        key={track.id}
-                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border rounded-md px-3 py-2 bg-background/60"
-                      >
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium">
-                            {format(new Date(track.releaseDate!), "d MMM yyyy", {
-                              locale: ru,
-                            })}
-                          </span>
-                          <span className="text-sm">
-                            {track.artistName} -{" "}
-                            <span className="font-medium">{track.trackName}</span>
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            Лейбл: {getReleaseLabelName(track.labelName)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            Статус:{" "}
-                            {
-                              STATUS_OPTIONS.find((opt) => opt.value === track.status)
-                                ?.label
-                            }
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDetails(track)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Подробнее
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                )}
-              </Card>
-            )}
+            <AdminTracksStatsBar
+              stats={tracksStats}
+              viewFilter={viewFilter}
+              onViewFilterChange={setViewFilter}
+            />
 
-            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
-              <p className="text-sm text-muted-foreground">
-                {userIdFilterRaw
-                  ? `Треков в фильтре: ${tracksTotal} (всего в базе: ${tracksTotalInDb})${
-                      showUploadDraftsInModeration && displayUploadDrafts.length > 0
-                        ? ` · черновиков загрузки: ${displayUploadDrafts.length}`
-                        : ""
-                    }`
-                  : `Всего треков: ${tracksTotalInDb} (в фильтре: ${tracksTotal})${
-                      showUploadDraftsInModeration && displayUploadDrafts.length > 0
-                        ? ` · черновиков загрузки: ${displayUploadDrafts.length}`
-                        : ""
-                    }`}
-              </p>
+            {!hasViewContent ? (
+              <div className="border rounded-lg p-12 text-center space-y-3">
+                <p className="text-muted-foreground">
+                  {userIdFilterRaw
+                    ? "У выбранного пользователя нет записей по текущему фильтру."
+                    : isUploadDraftsView
+                      ? "Нет активных черновиков загрузки."
+                      : viewFilter.type === "status" && viewFilter.status === "upload_pending"
+                        ? "Нет треков в статусе «Черновик (доработка пользователем)». Заявки из формы загрузки — в блоке «Черновики загрузки»."
+                        : viewFilter.type === "upcoming"
+                          ? "Нет треков с запланированной датой выхода на площадки."
+                          : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
+                </p>
+                <Button type="button" variant="outline" onClick={resetTrackListFilters}>
+                  Сбросить фильтры
+                </Button>
+              </div>
+            ) : (
+              <>
+            {!isUploadDraftsView ? (
+            <div className="flex items-center justify-end gap-2 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground">Дата публикации:</span>
                 <Popover>
@@ -1590,49 +1532,17 @@ export default function TracksPageClient() {
                     Сбросить дату
                   </Button>
                 )}
-                <span className="text-sm text-muted-foreground">Фильтр по статусу:</span>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Все статусы" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все статусы</SelectItem>
-                    {STATUS_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
+            ) : null}
 
-            {showUploadDraftsInModeration && displayUploadDrafts.length > 0 ? (
-              <Card className="mb-4 border-dashed border-muted-foreground/40">
-                <button
-                  type="button"
-                  className="w-full text-left"
-                  onClick={() => setUploadDraftsSectionExpanded((prev) => !prev)}
-                >
-                  <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
-                    <div>
-                      <CardTitle className="text-lg">Черновики загрузки</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно открыть,
-                        поправить статус и при необходимости нажать «Создать трек на модерации». Статус и поля - как в
-                        карточке трека на модерации.
-                      </p>
-                    </div>
-                    <span className="text-sm text-muted-foreground shrink-0">
-                      {uploadDraftsSectionExpanded ? "Свернуть" : "Показать"}
-                    </span>
-                  </CardHeader>
-                </button>
-                {uploadDraftsSectionExpanded && (
-                <CardContent className="space-y-2 pt-0">
+            {isUploadDraftsView ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые — можно
+                  открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
+                </p>
+                <div className="space-y-2">
                   {displayUploadDrafts.map((d) => {
                     const title = `${d.payload.trackName ?? ""}`.trim() || "Без названия"
                     const artist = `${d.payload.artistName ?? ""}`.trim() || "-"
@@ -1715,11 +1625,9 @@ export default function TracksPageClient() {
                       </div>
                     )
                   })}
-                </CardContent>
-                )}
-              </Card>
-            ) : null}
-
+                </div>
+              </div>
+            ) : (
             <Tabs defaultValue="grouped" className="w-full">
               <TabsList>
                 <TabsTrigger value="grouped">Группировка по артистам</TabsTrigger>
@@ -2074,6 +1982,9 @@ export default function TracksPageClient() {
                 </Card>
               </TabsContent>
             </Tabs>
+            )}
+              </>
+            )}
           </>
         )}
 

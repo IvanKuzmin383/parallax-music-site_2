@@ -8,7 +8,9 @@ import {
   type AdminTracksListResult,
   type AdminTracksSortDirection,
   type AdminTracksSortField,
+  type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
+import type { TrackStatus } from "@/lib/tracks"
 
 export {
   ADMIN_TRACKS_CLIENT_CAP,
@@ -19,7 +21,30 @@ export {
   type AdminTracksListResult,
   type AdminTracksSortDirection,
   type AdminTracksSortField,
+  type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
+
+const ALL_TRACK_STATUSES: TrackStatus[] = [
+  "upload_pending",
+  "on_moderation",
+  "sent_to_platforms",
+  "approved_by_platforms",
+  "released",
+  "rejected",
+  "postponed",
+]
+
+const ADMIN_UPLOAD_DRAFT_STATUSES = [
+  "collecting",
+  "awaiting_payment",
+  "paid",
+  "expired",
+  "cancelled",
+] as const
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 function clampLimit(limit: number | undefined): number {
   const n = limit ?? ADMIN_TRACKS_DEFAULT_LIMIT
@@ -41,7 +66,12 @@ function buildWhereClause(query: AdminTracksListQuery): { sql: string; params: u
     params.push(query.status)
   }
 
-  if (query.releaseDateFrom || query.releaseDateTo) {
+  if (query.upcomingOnly) {
+    parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
+    parts.push("date(release_date) >= date(?)")
+    params.push(todayIsoDate())
+    parts.push("status NOT IN ('rejected', 'postponed')")
+  } else if (query.releaseDateFrom || query.releaseDateTo) {
     parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
     if (query.releaseDateFrom) {
       parts.push("date(release_date) >= date(?)")
@@ -108,6 +138,57 @@ export function listTracksForAdmin(query: AdminTracksListQuery): AdminTracksList
     limit,
     offset,
     hasMore: offset + tracks.length < total,
+  }
+}
+
+export function getAdminTracksStats(userId?: string): AdminTracksStats {
+  const db = getDb()
+  const uid = userId?.trim()
+  const userClause = uid ? "WHERE LOWER(user_id) = LOWER(?)" : ""
+  const userParams: unknown[] = uid ? [uid] : []
+
+  const byStatusRows = db
+    .prepare(`SELECT status, COUNT(*) AS c FROM tracks ${userClause} GROUP BY status`)
+    .all(...userParams) as { status: string; c: number }[]
+
+  const byStatus = Object.fromEntries(
+    ALL_TRACK_STATUSES.map((s) => [s, 0])
+  ) as Record<TrackStatus, number>
+
+  let total = 0
+  for (const row of byStatusRows) {
+    const count = Number(row.c) || 0
+    total += count
+    if (ALL_TRACK_STATUSES.includes(row.status as TrackStatus)) {
+      byStatus[row.status as TrackStatus] = count
+    }
+  }
+
+  const upcomingParams: unknown[] = uid ? [uid, todayIsoDate()] : [todayIsoDate()]
+  const upcomingWhere = uid
+    ? "LOWER(user_id) = LOWER(?) AND release_date IS NOT NULL AND TRIM(release_date) != '' AND date(release_date) >= date(?) AND status NOT IN ('rejected', 'postponed')"
+    : "release_date IS NOT NULL AND TRIM(release_date) != '' AND date(release_date) >= date(?) AND status NOT IN ('rejected', 'postponed')"
+
+  const upcomingRow = db
+    .prepare(`SELECT COUNT(*) AS c FROM tracks WHERE ${upcomingWhere}`)
+    .get(...upcomingParams) as { c: number }
+
+  const draftPlaceholders = ADMIN_UPLOAD_DRAFT_STATUSES.map(() => "?").join(", ")
+  const draftParams: unknown[] = [...ADMIN_UPLOAD_DRAFT_STATUSES]
+  let draftWhere = `status IN (${draftPlaceholders})`
+  if (uid) {
+    draftWhere += " AND LOWER(user_id) = LOWER(?)"
+    draftParams.push(uid)
+  }
+  const draftRow = db
+    .prepare(`SELECT COUNT(*) AS c FROM upload_drafts WHERE ${draftWhere}`)
+    .get(...draftParams) as { c: number }
+
+  return {
+    total,
+    byStatus,
+    upcomingCount: Number(upcomingRow.c) || 0,
+    uploadDraftsCount: Number(draftRow.c) || 0,
   }
 }
 

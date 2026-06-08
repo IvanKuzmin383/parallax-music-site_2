@@ -13,10 +13,19 @@ export type AdminTracksListQuery = {
   status?: TrackStatus | "all"
   releaseDateFrom?: string
   releaseDateTo?: string
+  /** Треки с датой релиза >= сегодня, без rejected/postponed */
+  upcomingOnly?: boolean
   sortField?: AdminTracksSortField
   sortDirection?: AdminTracksSortDirection
   limit?: number
   offset?: number
+}
+
+export type AdminTracksStats = {
+  total: number
+  byStatus: Record<TrackStatus, number>
+  upcomingCount: number
+  uploadDraftsCount: number
 }
 
 export type AdminTracksListResult = {

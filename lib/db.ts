@@ -102,6 +102,7 @@ function runMigrations(db: Database.Database): void {
       updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_tracks_user_id ON tracks(user_id);
+    CREATE INDEX IF NOT EXISTS idx_tracks_status ON tracks(status);
     CREATE INDEX IF NOT EXISTS idx_tracks_smartlink_slug ON tracks(smartlink_slug);
 
     CREATE TABLE IF NOT EXISTS articles (

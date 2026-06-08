@@ -2,6 +2,7 @@ import {
   ADMIN_TRACKS_CLIENT_CAP,
   ADMIN_TRACKS_DEFAULT_LIMIT,
   type AdminTracksListQuery,
+  type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
 import type { Album } from "@/lib/albums"
 import type { Track } from "@/lib/tracks"
@@ -16,6 +17,7 @@ export type AdminTracksApiResponse = {
   hasMore: boolean
   albums: Album[]
   uploadDrafts: UploadDraft[]
+  stats: AdminTracksStats
 }
 
 export function buildAdminTracksSearchParams(
@@ -26,6 +28,7 @@ export function buildAdminTracksSearchParams(
   if (query.status && query.status !== "all") params.set("status", query.status)
   if (query.releaseDateFrom) params.set("releaseDateFrom", query.releaseDateFrom)
   if (query.releaseDateTo) params.set("releaseDateTo", query.releaseDateTo)
+  if (query.upcomingOnly) params.set("upcomingOnly", "1")
   if (query.sortField) params.set("sortField", query.sortField)
   if (query.sortDirection) params.set("sortDirection", query.sortDirection)
   params.set("limit", String(query.limit ?? ADMIN_TRACKS_DEFAULT_LIMIT))

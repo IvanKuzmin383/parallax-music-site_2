@@ -3,6 +3,7 @@ import { getAdminToken, verifySession } from "@/lib/auth"
 import {
   ADMIN_TRACKS_DEFAULT_LIMIT,
   ADMIN_TRACKS_MAX_LIMIT,
+  getAdminTracksStats,
   listTrackMetaForAdmin,
   listTracksForAdmin,
   type AdminTracksListQuery,
@@ -67,6 +68,7 @@ function buildListQuery(searchParams: URLSearchParams): AdminTracksListQuery {
     status: status ?? "all",
     releaseDateFrom: searchParams.get("releaseDateFrom")?.trim() || undefined,
     releaseDateTo: searchParams.get("releaseDateTo")?.trim() || undefined,
+    upcomingOnly: searchParams.get("upcomingOnly") === "1",
     sortField: parseSortField(searchParams.get("sortField")),
     sortDirection: parseSortDirection(searchParams.get("sortDirection")),
     limit: parseLimit(searchParams.get("limit")),
@@ -100,6 +102,7 @@ export async function GET(request: NextRequest) {
       limit: draftUserId ? 200 : 500,
     })
     const uploadDrafts = allDrafts.filter((d) => ADMIN_DRAFT_STATUSES.has(d.status))
+    const stats = getAdminTracksStats(listQuery.userId)
 
     return NextResponse.json({
       tracks: tracksPage.tracks,
@@ -110,6 +113,7 @@ export async function GET(request: NextRequest) {
       hasMore: tracksPage.hasMore,
       albums,
       uploadDrafts,
+      stats,
     })
   } catch (error) {
     console.error("Error fetching admin tracks:", error)
