@@ -1,15 +1,24 @@
 import { MetadataRoute } from 'next'
 import { getPublishedArticles } from '@/lib/articles'
+import { getAllCaseStudies } from '@/data/cases'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parallaxmusic.ru'
   
   const articles = await getPublishedArticles()
+  const cases = getAllCaseStudies()
   
   const articleUrls = articles.map((article) => ({
     url: `${baseUrl}/blog/${article.slug}`,
     lastModified: new Date(article.updatedAt),
     changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+
+  const caseUrls = cases.map((c) => ({
+    url: `${baseUrl}/cases/${c.slug}`,
+    lastModified: c.updatedAt ? new Date(c.updatedAt) : new Date(),
+    changeFrequency: 'monthly' as const,
     priority: 0.8,
   }))
   
@@ -33,6 +42,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/cases`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/terms`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
@@ -51,6 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     ...articleUrls,
+    ...caseUrls,
   ]
 }
 
