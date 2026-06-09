@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { getFeaturedCaseStudies } from "@/data/cases"
 import { CaseCard } from "@/app/cases/components/case-card"
-import { Button } from "@/components/ui/button"
 
 export function CaseStudies() {
   const cases = getFeaturedCaseStudies(6)
@@ -20,9 +19,12 @@ export function CaseStudies() {
               Истории артистов, с которыми мы работали: задачи, решения и измеримые результаты
             </p>
           </div>
-          <Button asChild variant="outline" className="uppercase tracking-wider shrink-0">
-            <Link href="/cases">Все кейсы</Link>
-          </Button>
+          <Link
+            href="/cases"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium uppercase tracking-wider shrink-0 hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            Все кейсы
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

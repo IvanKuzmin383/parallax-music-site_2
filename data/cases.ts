@@ -23,19 +23,19 @@ export type CaseStudyMeta = {
 }
 
 export const caseStudies: CaseStudyMeta[] = [
-  // Пример (раскомментируйте после создания app/cases/nova-wave/page.tsx):
-  // {
-  //   slug: "nova-wave",
-  //   title: "Nova Wave — рост прослушиваний",
-  //   excerpt: "Дистрибуция и питчинг за 6 месяцев",
-  //   coverImage: "/cases/nova-wave/cover.webp",
-  //   artistName: "Nova Wave",
-  //   genre: "Indie pop",
-  //   services: ["Дистрибуция", "Питчинг"],
-  //   featured: true,
-  //   sortOrder: 1,
-  //   updatedAt: "2026-06-01",
-  // },
+  {
+    slug: "nova-wave",
+    title: "Nova Wave — рост с 800 до 45 000 прослушиваний",
+    excerpt:
+      "Дистрибуция, питчинг и визуальный контент: как indie pop-сингл вышел на editorial-плейлисты за 6 месяцев.",
+    coverImage: "/hero-studio.webp",
+    artistName: "Nova Wave",
+    genre: "Indie pop",
+    services: ["Дистрибуция", "Питчинг", "Spotify Canvas"],
+    featured: true,
+    sortOrder: 1,
+    updatedAt: "2026-06-01",
+  },
 ]
 
 export function getAllCaseStudies(): CaseStudyMeta[] {

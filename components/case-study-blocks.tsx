@@ -82,3 +82,44 @@ export function CaseTable({
     </div>
   )
 }
+
+/** Демо-график до загрузки скриншота. Замените на CaseFigure со скрином. */
+export function CaseBarChartPreview({
+  title,
+  caption,
+  data,
+}: {
+  title: string
+  caption?: string
+  data: { label: string; value: number }[]
+}) {
+  const max = Math.max(...data.map((d) => d.value), 1)
+
+  const formatValue = (value: number) =>
+    value >= 1000 ? `${Math.round(value / 1000)}K` : String(value)
+
+  return (
+    <figure className="my-6 rounded-lg border border-border bg-card p-6">
+      <p className="text-sm font-medium text-foreground mb-6">{title}</p>
+      <div className="flex items-end justify-between gap-2 h-44 px-2">
+        {data.map((d) => (
+          <div key={d.label} className="flex flex-1 flex-col items-center gap-2 h-full justify-end">
+            <span className="text-xs font-medium text-primary tabular-nums">
+              {formatValue(d.value)}
+            </span>
+            <div
+              className="w-full max-w-[48px] bg-primary rounded-t transition-all"
+              style={{ height: `${Math.round((d.value / max) * 100)}%`, minHeight: "8px" }}
+            />
+            <span className="text-xs text-muted-foreground">{d.label}</span>
+          </div>
+        ))}
+      </div>
+      {caption && (
+        <figcaption className="text-sm text-muted-foreground text-center mt-4 italic">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  )
+}

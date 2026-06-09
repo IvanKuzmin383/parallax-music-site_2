@@ -1,6 +1,5 @@
 import Link from "next/link"
 import type { CaseStudyMeta } from "@/data/cases"
-import { Button } from "@/components/ui/button"
 
 export type CaseMetric = {
   label: string
@@ -95,9 +94,12 @@ export function CaseStudyLayout({ meta, metrics, children }: CaseStudyLayoutProp
 
           <div className="mt-16 pt-8 border-t border-border text-center">
             <p className="text-muted-foreground mb-4">Хотите такой же результат?</p>
-            <Button asChild className="uppercase tracking-wider">
-              <Link href="/#contact">Связаться с нами</Link>
-            </Button>
+            <Link
+              href="/#contact"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Связаться с нами
+            </Link>
           </div>
         </div>
       </article>
