@@ -1,4 +1,5 @@
 import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
+import { shouldDeductFixPackCreditsOnUpload } from "@/lib/fix-pricing-legacy"
 import { getEffectiveTrackLimit, getTrackLimit } from "@/lib/subscription-plans"
 
 type TrackLike = { artistName: string; status?: string }
@@ -19,6 +20,23 @@ type UserForLimit = {
   subscriptionName?: string
   subscriptionTrackLimit?: number
   purchasedTracksBalance?: number
+  createdAt?: string
+}
+
+function isFixWalletUploadModel(user: UserForLimit): boolean {
+  if (user.subscriptionName !== "Fix") return false
+  return shouldDeductFixPackCreditsOnUpload({
+    subscriptionName: "Fix",
+    createdAt: user.createdAt,
+  })
+}
+
+/** Оставшиеся слоты для загрузки (новый Fix: баланс кошелька, без повторного учёта уже загруженных). */
+export function getFixRemainingUploadSlots(user: UserForLimit): number {
+  if (user.subscriptionName !== "Fix") return 0
+  const limit = getEffectiveTrackLimit(user)
+  if (limit === null) return Number.MAX_SAFE_INTEGER
+  return Math.max(0, limit)
 }
 
 export function subscriptionTrackLimitError(limit: number): string {
@@ -117,6 +135,10 @@ export function isTrackUploadWithinLimit(
   if (limit === 0) return { allowed: false, limit: 0 }
   if (limit === null) return { allowed: true, limit: null }
 
+  if (isFixWalletUploadModel(user)) {
+    return { allowed: tracksToAdd <= limit, limit }
+  }
+
   const count =
     user.subscriptionName === "Fix"
       ? existingTracks.filter(isCountedTrack).length
@@ -136,6 +158,9 @@ export function canUserAddAnyTrack(
   if (!user.subscriptionName) return false
 
   if (user.subscriptionName === "Fix") {
+    if (isFixWalletUploadModel(user)) {
+      return getFixRemainingUploadSlots(user) > 0
+    }
     const limit = getEffectiveTrackLimit(user)
     if (limit === 0) return false
     if (limit === null) return true

@@ -445,12 +445,13 @@ export default function CabinetUploadAlbumPage() {
         subscriptionName: userLimit.subscriptionName,
         subscriptionTrackLimit: userLimit.subscriptionTrackLimit,
         purchasedTracksBalance: userLimit.purchasedTracksBalance,
+        createdAt: userCreatedAt,
       },
       watchedAlbumArtistName ?? "",
       activeArtistSlots
     )
     return limit === 0 ? 0 : limit
-  }, [userLimit, watchedAlbumArtistName, activeArtistSlots])
+  }, [userLimit, watchedAlbumArtistName, activeArtistSlots, userCreatedAt])
   const currentTrackCount = useMemo(() => {
     if (!userLimit?.hasActive) return 0
     if (userLimit.subscriptionName === "Fix") return existingTracks.length
@@ -465,6 +466,7 @@ export default function CabinetUploadAlbumPage() {
         subscriptionName: userLimit.subscriptionName,
         subscriptionTrackLimit: userLimit.subscriptionTrackLimit,
         purchasedTracksBalance: userLimit.purchasedTracksBalance,
+        createdAt: userCreatedAt,
       },
       watchedAlbumArtistName ?? "",
       existingTracks,
