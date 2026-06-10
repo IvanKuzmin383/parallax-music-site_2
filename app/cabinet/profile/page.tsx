@@ -30,7 +30,9 @@ import {
 } from "@/lib/cabinet-counterparty"
 import { PROFILE_INCOMPLETE_LEGAL_BASIS_RU } from "@/lib/cabinet-upload-profile-gate"
 import { subscriptionNameToPlanId } from "@/lib/plan-pricing"
+import { shouldDeductFixPackCreditsOnUpload } from "@/lib/fix-pricing-legacy"
 import { getEffectiveTrackLimit } from "@/lib/subscription-plans"
+import { getFixRemainingUploadSlots } from "@/lib/subscription-track-limits"
 import type { CabinetUser } from "@/lib/cabinet-users"
 
 type AutopayApiResponse = {
@@ -56,6 +58,7 @@ export default function CabinetProfilePage() {
     subscriptionExpiresAt?: string
     subscriptionTrackLimit?: number
     purchasedTracksBalance?: number
+    createdAt?: string
   } | null>(null)
   const [streamingBalance, setStreamingBalance] = useState<number>(0)
   const [uploadedTracksCount, setUploadedTracksCount] = useState(0)
@@ -91,6 +94,7 @@ export default function CabinetProfilePage() {
           subscriptionExpiresAt: u.subscriptionExpiresAt,
           subscriptionTrackLimit: u.subscriptionTrackLimit,
           purchasedTracksBalance: u.purchasedTracksBalance,
+          createdAt: u.createdAt,
         })
         setStreamingBalance(u.streamingBalance ?? 0)
         setUploadedTracksCount(
@@ -117,6 +121,20 @@ export default function CabinetProfilePage() {
         purchasedTracksBalance: subscription.purchasedTracksBalance,
       })
     : null
+
+  const fixUsesWalletModel =
+    subscription?.subscriptionName === "Fix" &&
+    shouldDeductFixPackCreditsOnUpload({
+      subscriptionName: "Fix",
+      createdAt: subscription.createdAt,
+    })
+
+  const fixTracksAvailable =
+    subscription?.subscriptionName === "Fix" && subscription
+      ? fixUsesWalletModel
+        ? getFixRemainingUploadSlots(subscription)
+        : Math.max(0, (effectiveLimit ?? 0) - uploadedTracksCount)
+      : 0
 
   const renewPlanId = subscriptionNameToPlanId(subscription?.subscriptionName)
 
@@ -163,8 +181,15 @@ export default function CabinetProfilePage() {
                   <div className="font-semibold text-lg">{subscription.subscriptionName}</div>
                   {subscription.subscriptionName === "Fix" && effectiveLimit != null && (
                     <div className="text-sm text-muted-foreground">
-                      Лимит треков: {effectiveLimit} (Доступно:{" "}
-                      {Math.max(0, effectiveLimit - uploadedTracksCount)})
+                      {fixUsesWalletModel ? (
+                        <>
+                          Оплачено слотов: {effectiveLimit} (доступно для загрузки: {fixTracksAvailable})
+                        </>
+                      ) : (
+                        <>
+                          Лимит треков: {effectiveLimit} (доступно: {fixTracksAvailable})
+                        </>
+                      )}
                     </div>
                   )}
                   {subscription.subscriptionName !== "Fix" && subscription.subscriptionExpiresAt && (

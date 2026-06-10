@@ -110,16 +110,19 @@ export async function applyFixPackCreditsOnRegister(
     "@/lib/pending-fix-credits"
   )
 
-  let totalTracks = paidFixPackOrders.reduce((sum, order) => sum + order.tracksCount, 0)
-  if (totalTracks === 0) {
-    totalTracks = sumPendingFixCredits(email)
-  }
+  const totalFromOrders = paidFixPackOrders.reduce(
+    (sum, order) => sum + Math.max(0, order.tracksCount ?? 0),
+    0
+  )
+  const totalFromPending = sumPendingFixCredits(email)
+  // Берём максимум: pending может содержать корректное число, если в заказе tracks_count = 0.
+  // Не суммируем оба источника — один заказ может быть и в orders, и в pending.
+  const totalTracks = Math.max(totalFromOrders, totalFromPending)
 
   await updateCabinetUserSubscription(userId, "Fix", null, 0)
 
   if (totalTracks > 0) {
     await addFixPackCredits(userId, totalTracks)
+    deletePendingFixCreditsByEmail(email)
   }
-
-  deletePendingFixCreditsByEmail(email)
 }
