@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { getCaseStudyBySlug } from "@/data/cases"
+import { buildCaseStudyMetadata } from "@/lib/case-seo"
 import { CaseStudyLayout } from "@/components/case-study-layout"
+import { CaseStudyJsonLd } from "@/components/case-study-json-ld"
 import {
   CaseSection,
   CaseTable,
@@ -14,31 +16,19 @@ import {
 const SLUG = "where-mountains-dream"
 const caseMeta = getCaseStudyBySlug(SLUG)!
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-const ogImage = caseMeta.coverImage.startsWith("http")
-  ? caseMeta.coverImage
-  : `${siteUrl}${caseMeta.coverImage}`
-
 const channels = [
   { name: "VK: переходы на BandLink", clicks: 2506, spend: 3592 },
   { name: "VK: продвижение релиза", clicks: 703, spend: 4604 },
   { name: "Яндекс Директ", clicks: 5146, spend: 8760 },
 ]
 
-export const metadata: Metadata = {
-  title: caseMeta.title,
-  description: caseMeta.excerpt,
-  openGraph: {
-    title: caseMeta.title,
-    description: caseMeta.excerpt,
-    images: [{ url: ogImage, width: 1200, height: 630, alt: caseMeta.title }],
-    type: "article",
-  },
-}
+export const metadata: Metadata = buildCaseStudyMetadata(SLUG, caseMeta)
 
 export default function WhereMountainsDreamCasePage() {
   return (
-    <CaseStudyLayout
+    <>
+      <CaseStudyJsonLd slug={SLUG} meta={caseMeta} />
+      <CaseStudyLayout
       meta={caseMeta}
       wide
       metrics={[
@@ -421,5 +411,6 @@ export default function WhereMountainsDreamCasePage() {
         кампании.
       </p>
     </CaseStudyLayout>
+    </>
   )
 }

@@ -1,12 +1,8 @@
 import { getAllCaseStudies } from "@/data/cases"
 import { CaseCard } from "./components/case-card"
-import { Metadata } from "next"
+import { casesListMetadata } from "@/lib/case-seo"
 
-export const metadata: Metadata = {
-  title: "Кейсы",
-  description:
-    "Истории успеха артистов Parallax Music: дистрибуция, продвижение и результаты на стриминговых платформах.",
-}
+export const metadata = casesListMetadata
 
 export default function CasesPage() {
   const cases = getAllCaseStudies()

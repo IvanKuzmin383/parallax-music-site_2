@@ -2,7 +2,7 @@
  * Реестр кейсов для карточек на главной и /cases.
  *
  * Новый кейс:
- * 1. Добавьте объект в caseStudies ниже
+ * 1. Добавьте объект в caseStudies ниже (title, excerpt, metaDescription, keywords)
  * 2. Создайте app/cases/{slug}/page.tsx (скопируйте app/cases/_template/page.tsx)
  * 3. Положите картинки в public/cases/{slug}/
  */
@@ -10,6 +10,10 @@ export type CaseStudyMeta = {
   slug: string
   title: string
   excerpt: string
+  /** SEO description (если не задан — используется excerpt) */
+  metaDescription?: string
+  /** SEO keywords */
+  keywords?: string[]
   coverImage: string
   artistName: string
   genre?: string
@@ -28,6 +32,16 @@ export const caseStudies: CaseStudyMeta[] = [
     title: "Nova Wave — рост с 800 до 45 000 прослушиваний",
     excerpt:
       "Дистрибуция, питчинг и визуальный контент: как indie pop-сингл вышел на editorial-плейлисты за 6 месяцев.",
+    metaDescription:
+      "Кейс Parallax Music: indie pop-сингл Nova Wave вырос с 800 до 45 000 прослушиваний за 6 месяцев — дистрибуция, питчинг Spotify и Яндекс Музыки, editorial-плейлисты.",
+    keywords: [
+      "продвижение indie pop",
+      "питчинг Spotify",
+      "editorial плейлисты",
+      "дистрибуция музыки",
+      "Parallax Music кейс",
+      "продвижение релиза",
+    ],
     coverImage: "/hero-studio.webp",
     artistName: "Nova Wave",
     genre: "Indie pop",
@@ -41,6 +55,17 @@ export const caseStudies: CaseStudyMeta[] = [
     title: "Дмитрий Крюков — продвижение оркестрового релиза",
     excerpt:
       "VK Ads, Яндекс Директ и BandLink: как авторское оркестровое произведение вышло на массовую аудиторию за неделю рекламы.",
+    metaDescription:
+      "Кейс продвижения оркестрового релиза «Where the Mountains Dream»: VK Ads, Яндекс Директ, BandLink — 8 355 кликов, 302 слушателя VK Музыки, тест эмоциональных креативов.",
+    keywords: [
+      "продвижение оркестровой музыки",
+      "VK Ads музыка",
+      "Яндекс Директ релиз",
+      "BandLink",
+      "таргет VK",
+      "Parallax Music кейс",
+      "продвижение релиза",
+    ],
     coverImage: "/hero-studio.webp",
     artistName: "Дмитрий Крюков",
     genre: "Оркестровая / cinematic",

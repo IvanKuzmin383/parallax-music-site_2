@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { getCaseStudyBySlug } from "@/data/cases"
-import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
+import { buildCaseStudyMetadata } from "@/lib/case-seo"
 import { CaseStudyLayout } from "@/components/case-study-layout"
+import { CaseStudyJsonLd } from "@/components/case-study-json-ld"
 import {
   CaseSection,
   CaseQuote,
@@ -13,25 +14,13 @@ import {
 const SLUG = "nova-wave"
 const caseMeta = getCaseStudyBySlug(SLUG)!
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
-const ogImage = caseMeta.coverImage.startsWith("http")
-  ? caseMeta.coverImage
-  : `${siteUrl}${caseMeta.coverImage}`
-
-export const metadata: Metadata = {
-  title: caseMeta.title,
-  description: caseMeta.excerpt,
-  openGraph: {
-    title: caseMeta.title,
-    description: caseMeta.excerpt,
-    images: [{ url: ogImage, width: 1200, height: 630, alt: caseMeta.title }],
-    type: "article",
-  },
-}
+export const metadata: Metadata = buildCaseStudyMetadata(SLUG, caseMeta)
 
 export default function NovaWaveCasePage() {
   return (
-    <CaseStudyLayout
+    <>
+      <CaseStudyJsonLd slug={SLUG} meta={caseMeta} />
+      <CaseStudyLayout
       meta={caseMeta}
       metrics={[
         { label: "Рост прослушиваний", value: "+340%", hint: "за 6 месяцев" },
@@ -110,5 +99,6 @@ export default function NovaWaveCasePage() {
         author="Nova Wave"
       />
     </CaseStudyLayout>
+    </>
   )
 }
