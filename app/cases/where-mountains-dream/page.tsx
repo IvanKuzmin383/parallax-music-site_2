@@ -8,8 +8,8 @@ import {
   CaseCardGrid,
   CaseColumns,
   CaseHorizontalBarChartPreview,
+  CaseFigure,
 } from "@/components/case-study-blocks"
-import { CasePieChart } from "@/components/case-study-charts"
 
 const SLUG = "where-mountains-dream"
 const caseMeta = getCaseStudyBySlug(SLUG)!
@@ -336,36 +336,23 @@ export default function WhereMountainsDreamCasePage() {
               ]}
             />
           </div>
-          <CasePieChart
-            title="Доли источников прослушиваний, %"
-            caption="Значения: доля уникальных слушателей по источникам, %. Источник: VK Музыка, последние 7 дней."
-            data={[
-              { label: "Лента новостей", value: 73.6 },
-              { label: "Другое", value: 23.2 },
-              { label: "Раздел Моя Музыка", value: 1.6 },
-              { label: "Сообщения", value: 0.6 },
-              { label: "Медиатеки пользователей", value: 0.3 },
-              { label: "Медиатеки сообществ", value: 0.3 },
-              { label: "Поиск по музыке", value: 0.3 },
-            ]}
-            valueSuffix="%"
-          />
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-3">
+              VK Музыка: источники слушателей
+            </h3>
+            <CaseFigure
+              src="/cases/where-mountains-dream/vk-music-sources.webp"
+              alt="Доли источников прослушиваний VK Музыки"
+              caption="Значения: доля уникальных слушателей по источникам, %. Источник: VK Музыка, последние 7 дней. Мелкие источники (менее 1%) объединены в «Прочее»."
+            />
+          </div>
         </CaseColumns>
 
         <CaseColumns>
-          <CasePieChart
-            title="Распределение кликов по музыкальным сервисам"
+          <CaseFigure
+            src="/cases/where-mountains-dream/bandlink-services.webp"
+            alt="Распределение кликов BandLink по музыкальным сервисам"
             caption="Значения: клики по сервисам, шт. Источник: BandLink, последние 7 дней."
-            data={[
-              { label: "Яндекс Музыка", value: 1177 },
-              { label: "VK Музыка", value: 728 },
-              { label: "Звук", value: 195 },
-              { label: "МТС Музыка", value: 125 },
-              { label: "Spotify", value: 75 },
-              { label: "Deezer", value: 71 },
-              { label: "Apple Music", value: 38 },
-              { label: "Прочее", value: 34 },
-            ]}
           />
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-3">VK Музыка: портрет аудитории</h3>
