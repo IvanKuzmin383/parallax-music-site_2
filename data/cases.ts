@@ -36,6 +36,19 @@ export const caseStudies: CaseStudyMeta[] = [
     sortOrder: 1,
     updatedAt: "2026-06-01",
   },
+  {
+    slug: "where-mountains-dream",
+    title: "Дмитрий Крюков — продвижение оркестрового релиза",
+    excerpt:
+      "VK Ads, Яндекс Директ и BandLink: как авторское оркестровое произведение вышло на массовую аудиторию за неделю рекламы.",
+    coverImage: "/hero-studio.webp",
+    artistName: "Дмитрий Крюков",
+    genre: "Оркестровая / cinematic",
+    services: ["VK Ads", "Яндекс Директ", "BandLink"],
+    featured: true,
+    sortOrder: 2,
+    updatedAt: "2026-06-06",
+  },
 ]
 
 export function getAllCaseStudies(): CaseStudyMeta[] {

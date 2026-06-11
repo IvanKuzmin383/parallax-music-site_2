@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 import type { CaseStudyMeta } from "@/data/cases"
 
 export type CaseMetric = {
@@ -10,14 +11,16 @@ export type CaseMetric = {
 interface CaseStudyLayoutProps {
   meta: Pick<CaseStudyMeta, "title" | "artistName" | "genre" | "coverImage" | "excerpt" | "services">
   metrics?: CaseMetric[]
+  /** Шире контейнер для таблиц и графиков */
+  wide?: boolean
   children: React.ReactNode
 }
 
-export function CaseStudyLayout({ meta, metrics, children }: CaseStudyLayoutProps) {
+export function CaseStudyLayout({ meta, metrics, children, wide }: CaseStudyLayoutProps) {
   return (
     <main className="min-h-screen bg-background pt-20">
       <article className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
+        <div className={cn("mx-auto", wide ? "max-w-6xl" : "max-w-4xl")}>
           <div className="mb-6 space-y-2">
             <Link
               href="/cases"
@@ -76,7 +79,12 @@ export function CaseStudyLayout({ meta, metrics, children }: CaseStudyLayoutProp
           </header>
 
           {metrics && metrics.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
+            <div
+              className={cn(
+                "grid gap-4 mb-12",
+                metrics.length >= 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3",
+              )}
+            >
               {metrics.map((m) => (
                 <div
                   key={m.label}
