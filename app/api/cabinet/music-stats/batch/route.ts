@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const started = Date.now()
-    const result = getMusicStatsBatchForCabinetUser(user.email, {
+    const result = await getMusicStatsBatchForCabinetUser(user.email, {
       platformKeys,
       chartTrackIds: chartTrackIds.length > 0 ? chartTrackIds : null,
       compareTrackIds,

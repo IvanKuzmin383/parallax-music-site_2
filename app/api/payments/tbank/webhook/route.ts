@@ -75,23 +75,23 @@ export async function POST(request: NextRequest) {
   const status = typeof body.Status === "string" ? body.Status : ""
   const orderIdRaw = typeof body.OrderId === "string" ? body.OrderId.trim() : ""
 
-  const receiptTest = orderIdRaw ? findTbankReceiptTestByOrderId(orderIdRaw) : null
+  const receiptTest = orderIdRaw ? await findTbankReceiptTestByOrderId(orderIdRaw) : null
   if (receiptTest) {
     if (status) {
-      updateTbankReceiptTestPaymentStatus(status)
+      await updateTbankReceiptTestPaymentStatus(status)
       if (status === "REFUNDED" || status === "CANCELED" || status === "REVERSED" || status === "PARTIAL_REFUNDED") {
-        updateTbankReceiptTestRefundStatus(status)
+        await updateTbankReceiptTestRefundStatus(status)
       }
     }
     return new NextResponse("OK", { status: 200 })
   }
 
-  const recurrentMatch = orderIdRaw ? findTbankRecurrentTestByOrderId(orderIdRaw) : null
+  const recurrentMatch = orderIdRaw ? await findTbankRecurrentTestByOrderId(orderIdRaw) : null
   if (recurrentMatch) {
     const rebillRaw = body.RebillId
     const rebillId = rebillRaw != null && `${rebillRaw}`.trim() ? String(rebillRaw) : ""
-    if (rebillId) saveTbankRecurrentTestRebillId(rebillId)
-    if (status) updateTbankRecurrentTestStatus(orderIdRaw, status)
+    if (rebillId) await saveTbankRecurrentTestRebillId(rebillId)
+    if (status) await updateTbankRecurrentTestStatus(orderIdRaw, status)
     return new NextResponse("OK", { status: 200 })
   }
 

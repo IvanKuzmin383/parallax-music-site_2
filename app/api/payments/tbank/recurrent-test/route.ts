@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   if (!isTbankRecurrentTestEnabled()) return disabledResponse()
   if (!verifyTbankRecurrentTestAccess(request)) return unauthorizedResponse()
 
-  const state = getTbankRecurrentTestState()
+  const state = await getTbankRecurrentTestState()
 
   return NextResponse.json({
     enabled: true,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const state = resetTbankRecurrentTestParent({
+  const state = await resetTbankRecurrentTestParent({
     parentOrderId: orderId,
     parentPaymentId: pay.paymentId,
   })
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "T-Bank not configured" }, { status: 500 })
   }
 
-  const state = getTbankRecurrentTestState()
+  const state = await getTbankRecurrentTestState()
   if (!state?.rebillId) {
     return NextResponse.json(
       {
@@ -155,11 +155,11 @@ export async function PUT(request: NextRequest) {
 
   if (!childInit.ok) {
     const message = childInit.message || "Child Init failed"
-    setTbankRecurrentTestChargeError(message)
+    await setTbankRecurrentTestChargeError(message)
     return NextResponse.json({ error: message, details: childInit.body }, { status: 500 })
   }
 
-  setTbankRecurrentTestChildInit({
+  await setTbankRecurrentTestChildInit({
     childOrderId,
     childPaymentId: childInit.paymentId,
   })
@@ -171,7 +171,7 @@ export async function PUT(request: NextRequest) {
 
   if (!charge.ok) {
     const message = charge.message || "Charge failed"
-    setTbankRecurrentTestChargeError(message)
+    await setTbankRecurrentTestChargeError(message)
     return NextResponse.json(
       {
         error: message,
@@ -188,7 +188,7 @@ export async function PUT(request: NextRequest) {
     childOrderId,
     childPaymentId: childInit.paymentId,
     rebillId: state.rebillId,
-    state: getTbankRecurrentTestState(),
+    state: await getTbankRecurrentTestState(),
     message: "Charge отправлен. Дождитесь webhook CONFIRMED для child-платежа, затем нажмите «Проверить» в ЛК Т-Бизнес.",
   })
 }

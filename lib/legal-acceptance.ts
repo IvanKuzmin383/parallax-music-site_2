@@ -2,7 +2,8 @@ import crypto from "crypto"
 import fs from "fs"
 import path from "path"
 import type { NextRequest } from "next/server"
-import type Database from "better-sqlite3"
+import type { PoolClient } from "pg"
+import { clientExecute, clientQuery, query, queryOne } from "./database"
 
 export const DOCUMENT_KEY_PUBLIC_OFFER = "public_offer"
 export const EVENT_LICENSE_TRACK_UPLOAD = "license_track_upload"
@@ -24,32 +25,43 @@ export function extractRevisionLabelFromMarkdown(content: string): string | null
   return m ? m[1].trim() : null
 }
 
+function isUniqueViolation(e: unknown): boolean {
+  if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "23505") {
+    return true
+  }
+  const msg = e instanceof Error ? e.message : String(e)
+  return msg.includes("UNIQUE") || msg.includes("unique") || msg.includes("duplicate key")
+}
+
 /**
  * Возвращает id строки в legal_document_versions для текущего файла оферты.
  * При новом хэше содержимого создаёт новую версию.
  */
-export function getOrCreateDocumentVersionId(db: Database.Database): string {
+export async function getOrCreateDocumentVersionId(client: PoolClient): Promise<string> {
   const fullPath = getPublicOfferAbsolutePath()
   if (!fs.existsSync(fullPath)) {
     throw new Error(`Legal document not found: ${OFFER_FILE}`)
   }
   const buf = fs.readFileSync(fullPath)
   const contentSha256 = sha256Buffer(buf)
-  const row = db
-    .prepare(
-      `SELECT id FROM legal_document_versions WHERE document_key = ? AND content_sha256 = ?`
-    )
-    .get(DOCUMENT_KEY_PUBLIC_OFFER, contentSha256) as { id: string } | undefined
+  const rows = await clientQuery<{ id: string }>(
+    client,
+    `SELECT id FROM legal_document_versions WHERE document_key = ? AND content_sha256 = ?`,
+    [DOCUMENT_KEY_PUBLIC_OFFER, contentSha256]
+  )
+  const row = rows[0]
   if (row) return row.id
 
   const id = crypto.randomUUID()
   const revisionLabel =
     extractRevisionLabelFromMarkdown(buf.toString("utf-8")) ?? contentSha256.slice(0, 16)
   const now = new Date().toISOString()
-  db.prepare(
+  await clientExecute(
+    client,
     `INSERT INTO legal_document_versions (id, document_key, revision_label, content_sha256, source_path, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, DOCUMENT_KEY_PUBLIC_OFFER, revisionLabel, contentSha256, OFFER_FILE, now)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, DOCUMENT_KEY_PUBLIC_OFFER, revisionLabel, contentSha256, OFFER_FILE, now]
+  )
   return id
 }
 
@@ -77,45 +89,46 @@ export type RecordLicenseTrackParams = {
   backfilled?: boolean
 }
 
-export function recordLicenseAcceptanceForTrack(
-  db: Database.Database,
+export async function recordLicenseAcceptanceForTrack(
+  client: PoolClient,
   params: RecordLicenseTrackParams
-): void {
-  const documentVersionId = getOrCreateDocumentVersionId(db)
+): Promise<void> {
+  const documentVersionId = await getOrCreateDocumentVersionId(client)
   const eventId = crypto.randomUUID()
   const metadataJson =
     params.backfilled === true ? JSON.stringify({ backfilled: true }) : null
-  db.prepare(
+  await clientExecute(
+    client,
     `INSERT INTO legal_acceptance_events (
       id, user_email, document_version_id, event_type, resource_type, resource_id,
       occurred_at, client_ip, user_agent, metadata_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    eventId,
-    params.userEmail,
-    documentVersionId,
-    EVENT_LICENSE_TRACK_UPLOAD,
-    RESOURCE_TYPE_TRACK,
-    params.trackId,
-    params.occurredAtIso,
-    params.clientIp,
-    params.userAgent,
-    metadataJson
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      eventId,
+      params.userEmail,
+      documentVersionId,
+      EVENT_LICENSE_TRACK_UPLOAD,
+      RESOURCE_TYPE_TRACK,
+      params.trackId,
+      params.occurredAtIso,
+      params.clientIp,
+      params.userAgent,
+      metadataJson,
+    ]
   )
 }
 
 /**
  * Одна попытка записи; при дубликате (UNIQUE) - игнорировать (идемпотентность).
  */
-export function tryRecordLicenseAcceptanceForTrack(
-  db: Database.Database,
+export async function tryRecordLicenseAcceptanceForTrack(
+  client: PoolClient,
   params: RecordLicenseTrackParams
-): void {
+): Promise<void> {
   try {
-    recordLicenseAcceptanceForTrack(db, params)
+    await recordLicenseAcceptanceForTrack(client, params)
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    if (msg.includes("UNIQUE") || msg.includes("unique")) {
+    if (isUniqueViolation(e)) {
       return
     }
     throw e
@@ -129,14 +142,14 @@ export type TrackLicenseAcceptanceInput = {
 }
 
 /** Записать акцепт лицензии для нескольких треков (идемпотентно). */
-export function recordLicenseAcceptancesForTracks(
-  db: Database.Database,
+export async function recordLicenseAcceptancesForTracks(
+  client: PoolClient,
   tracks: TrackLicenseAcceptanceInput[],
   options?: { clientIp?: string | null; userAgent?: string | null; occurredAtIso?: string }
-): void {
+): Promise<void> {
   const occurredAtIso = options?.occurredAtIso ?? new Date().toISOString()
   for (const t of tracks) {
-    tryRecordLicenseAcceptanceForTrack(db, {
+    await tryRecordLicenseAcceptanceForTrack(client, {
       userEmail: t.userId,
       trackId: t.id,
       occurredAtIso: t.createdAt ?? occurredAtIso,
@@ -152,66 +165,68 @@ type TrackRow = { id: string; user_id: string; created_at: string }
  * Для треков, созданных до внедрения журнала: событие с текущей редакцией оферты,
  * occurred_at = дата создания трека, metadata backfilled.
  */
-function insertBackfilledAcceptanceIfMissing(
-  db: Database.Database,
+async function insertBackfilledAcceptanceIfMissing(
+  client: PoolClient,
   versionId: string,
   track: TrackRow
-): boolean {
-  const exists = db
-    .prepare(
-      `SELECT 1 FROM legal_acceptance_events
-       WHERE resource_type = ? AND resource_id = ? AND event_type = ? LIMIT 1`
-    )
-    .get(RESOURCE_TYPE_TRACK, track.id, EVENT_LICENSE_TRACK_UPLOAD)
-  if (exists) return false
+): Promise<boolean> {
+  const exists = await clientQuery(
+    client,
+    `SELECT 1 FROM legal_acceptance_events
+     WHERE resource_type = ? AND resource_id = ? AND event_type = ? LIMIT 1`,
+    [RESOURCE_TYPE_TRACK, track.id, EVENT_LICENSE_TRACK_UPLOAD]
+  )
+  if (exists.length > 0) return false
 
   const meta = JSON.stringify({ backfilled: true })
-  db.prepare(
+  await clientExecute(
+    client,
     `INSERT INTO legal_acceptance_events (
       id, user_email, document_version_id, event_type, resource_type, resource_id,
       occurred_at, client_ip, user_agent, metadata_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    crypto.randomUUID(),
-    track.user_id,
-    versionId,
-    EVENT_LICENSE_TRACK_UPLOAD,
-    RESOURCE_TYPE_TRACK,
-    track.id,
-    track.created_at,
-    null,
-    null,
-    meta
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      crypto.randomUUID(),
+      track.user_id,
+      versionId,
+      EVENT_LICENSE_TRACK_UPLOAD,
+      RESOURCE_TYPE_TRACK,
+      track.id,
+      track.created_at,
+      null,
+      null,
+      meta,
+    ]
   )
   return true
 }
 
 /** Догнать журнал акцептов для треков пользователя без события. */
-export function backfillMissingTrackAcceptancesForUser(
-  db: Database.Database,
+export async function backfillMissingTrackAcceptancesForUser(
+  client: PoolClient,
   userEmail: string
-): number {
-  const versionId = getOrCreateDocumentVersionId(db)
-  const tracks = db
-    .prepare(`SELECT id, user_id, created_at FROM tracks WHERE LOWER(user_id) = LOWER(?)`)
-    .all(userEmail.trim()) as TrackRow[]
+): Promise<number> {
+  const versionId = await getOrCreateDocumentVersionId(client)
+  const tracks = await clientQuery<TrackRow>(
+    client,
+    `SELECT id, user_id, created_at FROM tracks WHERE LOWER(user_id) = LOWER(?)`,
+    [userEmail.trim()]
+  )
 
   let n = 0
   for (const t of tracks) {
-    if (insertBackfilledAcceptanceIfMissing(db, versionId, t)) n += 1
+    if (await insertBackfilledAcceptanceIfMissing(client, versionId, t)) n += 1
   }
   return n
 }
 
-export function backfillTrackAcceptancesWithCurrentOffer(db: Database.Database): number {
-  const versionId = getOrCreateDocumentVersionId(db)
-  const tracks = db
-    .prepare(`SELECT id, user_id, created_at FROM tracks`)
-    .all() as TrackRow[]
+export async function backfillTrackAcceptancesWithCurrentOffer(client: PoolClient): Promise<number> {
+  const versionId = await getOrCreateDocumentVersionId(client)
+  const tracks = await clientQuery<TrackRow>(client, `SELECT id, user_id, created_at FROM tracks`)
 
   let n = 0
   for (const t of tracks) {
-    if (insertBackfilledAcceptanceIfMissing(db, versionId, t)) n += 1
+    if (await insertBackfilledAcceptanceIfMissing(client, versionId, t)) n += 1
   }
   return n
 }
@@ -235,18 +250,18 @@ export type LegalAcceptanceRow = {
 const LEGAL_ACCEPTANCE_LIST_SELECT = `
   SELECT
     e.id,
-    e.user_email AS userEmail,
-    e.document_version_id AS documentVersionId,
-    v.revision_label AS revisionLabel,
-    v.content_sha256 AS contentSha256,
-    e.event_type AS eventType,
-    e.resource_type AS resourceType,
-    e.resource_id AS resourceId,
-    e.occurred_at AS occurredAt,
-    e.client_ip AS clientIp,
-    e.user_agent AS userAgent,
-    e.metadata_json AS metadataJson,
-    tr.track_name AS trackName
+    e.user_email AS "userEmail",
+    e.document_version_id AS "documentVersionId",
+    v.revision_label AS "revisionLabel",
+    v.content_sha256 AS "contentSha256",
+    e.event_type AS "eventType",
+    e.resource_type AS "resourceType",
+    e.resource_id AS "resourceId",
+    e.occurred_at AS "occurredAt",
+    e.client_ip AS "clientIp",
+    e.user_agent AS "userAgent",
+    e.metadata_json AS "metadataJson",
+    tr.track_name AS "trackName"
   FROM legal_acceptance_events e
   JOIN legal_document_versions v ON v.id = e.document_version_id
   LEFT JOIN tracks tr ON tr.id = e.resource_id AND e.resource_type = 'track'
@@ -254,54 +269,46 @@ const LEGAL_ACCEPTANCE_LIST_SELECT = `
 
 export const LEGAL_ACCEPTANCE_PAGE_SIZE = 15
 
-export function countLegalAcceptances(
-  db: Database.Database,
-  options?: { email?: string }
-): number {
+export async function countLegalAcceptances(options?: { email?: string }): Promise<number> {
   const email = options?.email?.trim()
   if (email) {
-    const row = db
-      .prepare(
-        `SELECT COUNT(*) AS cnt FROM legal_acceptance_events e WHERE LOWER(e.user_email) = LOWER(?)`
-      )
-      .get(email) as { cnt: number }
-    return row.cnt
+    const row = await queryOne<{ cnt: string | number }>(
+      `SELECT COUNT(*) AS cnt FROM legal_acceptance_events e WHERE LOWER(e.user_email) = LOWER(?)`,
+      [email]
+    )
+    return Number(row?.cnt ?? 0)
   }
-  const row = db.prepare(`SELECT COUNT(*) AS cnt FROM legal_acceptance_events`).get() as {
-    cnt: number
-  }
-  return row.cnt
+  const row = await queryOne<{ cnt: string | number }>(
+    `SELECT COUNT(*) AS cnt FROM legal_acceptance_events`
+  )
+  return Number(row?.cnt ?? 0)
 }
 
-export function getLegalAcceptancesList(
-  db: Database.Database,
-  options: { limit: number; offset: number; email?: string }
-): LegalAcceptanceRow[] {
+export async function getLegalAcceptancesList(options: {
+  limit: number
+  offset: number
+  email?: string
+}): Promise<LegalAcceptanceRow[]> {
   const email = options.email?.trim()
   if (email) {
-    return db
-      .prepare(
-        `${LEGAL_ACCEPTANCE_LIST_SELECT}
-         WHERE LOWER(e.user_email) = LOWER(?)
-         ORDER BY datetime(e.occurred_at) DESC
-         LIMIT ? OFFSET ?`
-      )
-      .all(email, options.limit, options.offset) as LegalAcceptanceRow[]
-  }
-  return db
-    .prepare(
+    return query<LegalAcceptanceRow>(
       `${LEGAL_ACCEPTANCE_LIST_SELECT}
-       ORDER BY datetime(e.occurred_at) DESC
-       LIMIT ? OFFSET ?`
+       WHERE LOWER(e.user_email) = LOWER(?)
+       ORDER BY e.occurred_at::timestamptz DESC
+       LIMIT ? OFFSET ?`,
+      [email, options.limit, options.offset]
     )
-    .all(options.limit, options.offset) as LegalAcceptanceRow[]
+  }
+  return query<LegalAcceptanceRow>(
+    `${LEGAL_ACCEPTANCE_LIST_SELECT}
+     ORDER BY e.occurred_at::timestamptz DESC
+     LIMIT ? OFFSET ?`,
+    [options.limit, options.offset]
+  )
 }
 
-export function getLegalAcceptancesByUserEmail(
-  db: Database.Database,
-  userEmail: string
-): LegalAcceptanceRow[] {
-  return getLegalAcceptancesList(db, {
+export async function getLegalAcceptancesByUserEmail(userEmail: string): Promise<LegalAcceptanceRow[]> {
+  return getLegalAcceptancesList({
     email: userEmail,
     limit: 1_000_000,
     offset: 0,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { getDb } from "@/lib/db"
 import {
   countLegalAcceptances,
   getLegalAcceptancesList,
@@ -65,10 +64,8 @@ export async function GET(request: NextRequest) {
   )
   const offset = Math.max(parseInt(offsetParam ?? "0", 10) || 0, 0)
 
-  const db = getDb()
-
   if (format === "csv") {
-    const rows = getLegalAcceptancesList(db, {
+    const rows = await getLegalAcceptancesList({
       email,
       limit: 1_000_000,
       offset: 0,
@@ -86,8 +83,8 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const total = countLegalAcceptances(db, { email })
-  const events = getLegalAcceptancesList(db, { email, limit, offset })
+  const total = await countLegalAcceptances({ email })
+  const events = await getLegalAcceptancesList({ email, limit, offset })
   const hasMore = offset + events.length < total
 
   return NextResponse.json({

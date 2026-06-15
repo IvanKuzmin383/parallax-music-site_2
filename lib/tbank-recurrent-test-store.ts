@@ -1,4 +1,4 @@
-import { getDb } from "./db"
+import { execute, queryOne } from "./database"
 
 export const TBANK_RECURRENT_TEST_CUSTOMER_KEY = "recurrent-test-customer"
 export const TBANK_RECURRENT_TEST_AMOUNT_KOPECKS = 10_000
@@ -48,85 +48,82 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
-export function getTbankRecurrentTestState(): TbankRecurrentTestState | null {
-  const db = getDb()
-  const row = db
-    .prepare(`SELECT * FROM tbank_recurrent_test_state WHERE id = 1`)
-    .get() as Row | undefined
+export async function getTbankRecurrentTestState(): Promise<TbankRecurrentTestState | null> {
+  const row = await queryOne<Row>(`SELECT * FROM tbank_recurrent_test_state WHERE id = 1`)
   return row ? rowToState(row) : null
 }
 
-export function resetTbankRecurrentTestParent(params: {
+export async function resetTbankRecurrentTestParent(params: {
   parentOrderId: string
   parentPaymentId: string
-}): TbankRecurrentTestState {
-  const db = getDb()
+}): Promise<TbankRecurrentTestState> {
   const t = nowIso()
-  db.prepare(
+  await execute(
     `INSERT INTO tbank_recurrent_test_state (
       id, customer_key, parent_order_id, parent_payment_id, rebill_id, parent_status,
       child_order_id, child_payment_id, child_status, last_charge_error, updated_at
     ) VALUES (1, ?, ?, ?, NULL, 'initiated', NULL, NULL, NULL, NULL, ?)
     ON CONFLICT(id) DO UPDATE SET
-      customer_key = excluded.customer_key,
-      parent_order_id = excluded.parent_order_id,
-      parent_payment_id = excluded.parent_payment_id,
+      customer_key = EXCLUDED.customer_key,
+      parent_order_id = EXCLUDED.parent_order_id,
+      parent_payment_id = EXCLUDED.parent_payment_id,
       rebill_id = NULL,
       parent_status = 'initiated',
       child_order_id = NULL,
       child_payment_id = NULL,
       child_status = NULL,
       last_charge_error = NULL,
-      updated_at = excluded.updated_at`
-  ).run(TBANK_RECURRENT_TEST_CUSTOMER_KEY, params.parentOrderId, params.parentPaymentId, t)
-  return getTbankRecurrentTestState()!
+      updated_at = EXCLUDED.updated_at`,
+    [TBANK_RECURRENT_TEST_CUSTOMER_KEY, params.parentOrderId, params.parentPaymentId, t]
+  )
+  return (await getTbankRecurrentTestState())!
 }
 
-export function findTbankRecurrentTestByOrderId(orderId: string): {
+export async function findTbankRecurrentTestByOrderId(orderId: string): Promise<{
   state: TbankRecurrentTestState
   step: "parent" | "child"
-} | null {
-  const state = getTbankRecurrentTestState()
+} | null> {
+  const state = await getTbankRecurrentTestState()
   if (!state) return null
   if (state.parentOrderId === orderId) return { state, step: "parent" }
   if (state.childOrderId === orderId) return { state, step: "child" }
   return null
 }
 
-export function saveTbankRecurrentTestRebillId(rebillId: string): void {
-  const db = getDb()
-  db.prepare(
+export async function saveTbankRecurrentTestRebillId(rebillId: string): Promise<void> {
+  await execute(
     `UPDATE tbank_recurrent_test_state
      SET rebill_id = ?, updated_at = ?
-     WHERE id = 1`
-  ).run(rebillId, nowIso())
+     WHERE id = 1`,
+    [rebillId, nowIso()]
+  )
 }
 
-export function updateTbankRecurrentTestStatus(orderId: string, status: string): void {
-  const match = findTbankRecurrentTestByOrderId(orderId)
+export async function updateTbankRecurrentTestStatus(orderId: string, status: string): Promise<void> {
+  const match = await findTbankRecurrentTestByOrderId(orderId)
   if (!match) return
-  const db = getDb()
   const column = match.step === "parent" ? "parent_status" : "child_status"
-  db.prepare(
-    `UPDATE tbank_recurrent_test_state SET ${column} = ?, updated_at = ? WHERE id = 1`
-  ).run(status, nowIso())
+  await execute(`UPDATE tbank_recurrent_test_state SET ${column} = ?, updated_at = ? WHERE id = 1`, [
+    status,
+    nowIso(),
+  ])
 }
 
-export function setTbankRecurrentTestChildInit(params: {
+export async function setTbankRecurrentTestChildInit(params: {
   childOrderId: string
   childPaymentId: string
-}): void {
-  const db = getDb()
-  db.prepare(
+}): Promise<void> {
+  await execute(
     `UPDATE tbank_recurrent_test_state
      SET child_order_id = ?, child_payment_id = ?, child_status = 'initiated', last_charge_error = NULL, updated_at = ?
-     WHERE id = 1`
-  ).run(params.childOrderId, params.childPaymentId, nowIso())
+     WHERE id = 1`,
+    [params.childOrderId, params.childPaymentId, nowIso()]
+  )
 }
 
-export function setTbankRecurrentTestChargeError(message: string): void {
-  const db = getDb()
-  db.prepare(
-    `UPDATE tbank_recurrent_test_state SET last_charge_error = ?, updated_at = ? WHERE id = 1`
-  ).run(message.slice(0, 500), nowIso())
+export async function setTbankRecurrentTestChargeError(message: string): Promise<void> {
+  await execute(
+    `UPDATE tbank_recurrent_test_state SET last_charge_error = ?, updated_at = ? WHERE id = 1`,
+    [message.slice(0, 500), nowIso()]
+  )
 }

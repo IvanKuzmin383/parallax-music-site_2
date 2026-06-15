@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "platform param is required" }, { status: 400 })
   }
 
-  let stats = getMusicStatsByPlatformKeyWithArtist(platformKey, artistTerm, { albumId, trackId })
+  let stats = await getMusicStatsByPlatformKeyWithArtist(platformKey, artistTerm, { albumId, trackId })
 
   // Авто-импорт с диска имеет смысл только для "без фильтров", иначе мы не сможем отличить:
   // "в базе нет данных" от "данные есть, но нет матчей по артисту".

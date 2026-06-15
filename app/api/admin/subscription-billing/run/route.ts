@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   const limitRaw = new URL(request.url).searchParams.get("limit")
   const limit = limitRaw ? parseInt(limitRaw, 10) || 20 : 20
-  const runs = listSubscriptionBillingRuns(limit)
+  const runs = await listSubscriptionBillingRuns(limit)
   return NextResponse.json({ runs })
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")
   const userAgent = request.headers.get("user-agent")
-  const runId = createSubscriptionBillingRunLog({
+  const runId = await createSubscriptionBillingRunLog({
     source: "admin_manual",
     triggerIp: ip,
     triggerUserAgent: userAgent,
@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await runSubscriptionBilling()
-    finalizeSubscriptionBillingRunLog(runId, result)
+    await finalizeSubscriptionBillingRunLog(runId, result)
     return NextResponse.json({ ...result, runId })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error"
-    markSubscriptionBillingRunFailed(runId, message)
+    await markSubscriptionBillingRunFailed(runId, message)
     console.error("[admin/subscription-billing/run] failed", error)
     return NextResponse.json({ error: "Не удалось запустить автосписание" }, { status: 500 })
   }

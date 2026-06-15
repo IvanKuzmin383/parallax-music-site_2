@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       (o) => o.orderType === "subscription" && isPlanId(o.planId)
     )
     const hasPaidFixPack =
-      eligiblePaidFixPacks.length > 0 || sumPendingFixCredits(email) > 0
+      eligiblePaidFixPacks.length > 0 || (await sumPendingFixCredits(email)) > 0
 
     if (!hasPaidSubscription && !hasPaidFixPack) {
       return NextResponse.json(
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     const merged = await getCabinetUserByEmail(email, { includeDisabled: true })
     if (merged?.subscriptionExpiresAt) {
-      const pend = getPendingSubscriptionAutopay(email)
+      const pend = await getPendingSubscriptionAutopay(email)
       if (pend) {
         await setCabinetUserAutopay(merged.id, {
           tbankRebillId: pend.tbankRebillId ?? null,
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
           autopayNextChargeAt: merged.subscriptionExpiresAt,
           autopayLastReminderSentAt: null,
         })
-        deletePendingSubscriptionAutopay(email)
+        await deletePendingSubscriptionAutopay(email)
       }
     }
 

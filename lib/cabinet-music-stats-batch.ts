@@ -29,14 +29,14 @@ export type CabinetMusicStatsBatchResult = {
  * Один вызов API вместо N×M HTTP-запросов с клиента.
  * Запросы к БД выполняются последовательно в одном воркере Node.
  */
-export function getMusicStatsBatchForCabinetUser(
+export async function getMusicStatsBatchForCabinetUser(
   cabinetUserEmail: string,
   options: {
     platformKeys: MusicPlatformKey[]
     chartTrackIds?: string[] | null
     compareTrackIds?: string[]
-  },
-): CabinetMusicStatsBatchResult {
+  }
+): Promise<CabinetMusicStatsBatchResult> {
   const platformKeys = options.platformKeys.filter((k) => PLATFORM_SET.has(k))
   const chartFilter =
     options.chartTrackIds && options.chartTrackIds.length > 0 ? options.chartTrackIds : null
@@ -48,7 +48,7 @@ export function getMusicStatsBatchForCabinetUser(
   const chart: MusicStatsResponse[] = []
   for (const platformKey of platformKeys) {
     chart.push(
-      getMusicStatsForCabinetUser(platformKey, cabinetUserEmail, { trackIds: chartFilter }),
+      await getMusicStatsForCabinetUser(platformKey, cabinetUserEmail, { trackIds: chartFilter })
     )
   }
 
@@ -57,7 +57,7 @@ export function getMusicStatsBatchForCabinetUser(
     const platforms: MusicStatsResponse[] = []
     for (const platformKey of platformKeys) {
       platforms.push(
-        getMusicStatsForCabinetUser(platformKey, cabinetUserEmail, { trackIds: [trackId] }),
+        await getMusicStatsForCabinetUser(platformKey, cabinetUserEmail, { trackIds: [trackId] })
       )
     }
     compare.push({ trackId, platforms })

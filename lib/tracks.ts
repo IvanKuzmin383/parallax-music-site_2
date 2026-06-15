@@ -4,7 +4,7 @@ import crypto from "crypto"
 import { nanoid } from "nanoid"
 import type { TrackGenre, TrackMood } from "./track-constants"
 import type { PlatformLinks } from "./smartlink-platforms"
-import { getDb } from "./db"
+import { query, queryOne, execute } from "./database"
 export { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "./track-constants"
 
 export type TrackStatus =
@@ -69,17 +69,17 @@ export interface TrackRow {
   music_ai_service: string | null
   lyrics_rights: string | null
   performance_rights: string | null
-  is_instrumental: number | null
+  is_instrumental: boolean | null
   backing_author: string | null
   cover_path: string
-  needs_ai_cover?: number | null
+  needs_ai_cover?: boolean | null
   audio_path: string
   status: string
   release_date: string | null
   moderation_note: string | null
   upc: string | null
   isrc: string | null
-  transfer_from_other_distributor?: number | null
+  transfer_from_other_distributor?: boolean | null
   smartlink_slug: string | null
   platform_links: string | null
   created_at: string
@@ -112,17 +112,17 @@ export function rowToTrack(row: TrackRow): Track {
     musicAiService: row.music_ai_service ?? "",
     lyricsRights: row.lyrics_rights ?? "",
     performanceRights: row.performance_rights ?? "",
-    isInstrumental: Boolean(row.is_instrumental),
+    isInstrumental: row.is_instrumental === true,
     backingAuthor: row.backing_author ?? "",
     coverPath: row.cover_path,
-    needsAiCover: row.needs_ai_cover === 1,
+    needsAiCover: row.needs_ai_cover === true,
     audioPath: row.audio_path,
     status: row.status as TrackStatus,
     releaseDate: row.release_date ?? undefined,
     moderationNote: row.moderation_note ?? null,
     upc: row.upc ?? undefined,
     isrc: row.isrc ?? undefined,
-    transferFromOtherDistributor: row.transfer_from_other_distributor === 1,
+    transferFromOtherDistributor: row.transfer_from_other_distributor === true,
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
     createdAt: row.created_at,
@@ -173,32 +173,27 @@ export async function getCoversDir(): Promise<string> {
 }
 
 export async function getAllTracks(): Promise<Track[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM tracks").all() as TrackRow[]
+  const rows = await query<TrackRow>("SELECT * FROM tracks")
   return rows.map(rowToTrack)
 }
 
 export async function getTracksByUserId(userId: string): Promise<Track[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM tracks WHERE LOWER(user_id) = LOWER(?)").all(userId) as TrackRow[]
+  const rows = await query<TrackRow>("SELECT * FROM tracks WHERE LOWER(user_id) = LOWER(?)", [userId])
   return rows.map(rowToTrack)
 }
 
 export async function getTrackById(id: string): Promise<Track | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM tracks WHERE id = ?").get(id) as TrackRow | undefined
+  const row = await queryOne<TrackRow>("SELECT * FROM tracks WHERE id = ?", [id])
   return row ? rowToTrack(row) : null
 }
 
 export async function getTrackBySmartlinkSlug(slug: string): Promise<Track | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM tracks WHERE smartlink_slug = ?").get(slug) as TrackRow | undefined
+  const row = await queryOne<TrackRow>("SELECT * FROM tracks WHERE smartlink_slug = ?", [slug])
   return row ? rowToTrack(row) : null
 }
 
 export async function getTracksByAlbumId(albumId: string): Promise<Track[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM tracks WHERE album_id = ?").all(albumId) as TrackRow[]
+  const rows = await query<TrackRow>("SELECT * FROM tracks WHERE album_id = ?", [albumId])
   return rows.map(rowToTrack)
 }
 
@@ -226,9 +221,10 @@ function hasAnyPlatformLink(links?: PlatformLinks): boolean {
   return values.some((v) => typeof v === "string" && v.trim().length > 0)
 }
 
-function generateUniqueSmartlinkSlug(): string {
-  const db = getDb()
-  const existing = db.prepare("SELECT smartlink_slug FROM tracks WHERE smartlink_slug IS NOT NULL").all() as { smartlink_slug: string }[]
+async function generateUniqueSmartlinkSlug(): Promise<string> {
+  const existing = await query<{ smartlink_slug: string }>(
+    "SELECT smartlink_slug FROM tracks WHERE smartlink_slug IS NOT NULL"
+  )
   const set = new Set(existing.map((r) => r.smartlink_slug))
   for (let i = 0; i < 100; i++) {
     const slug = nanoid(10)
@@ -237,13 +233,10 @@ function generateUniqueSmartlinkSlug(): string {
   return nanoid(10)
 }
 
-export function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string): boolean {
+export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string): Promise<boolean> {
   const trimmed = slug.trim()
   if (!trimmed) return false
-  const db = getDb()
-  const row = db.prepare("SELECT id FROM tracks WHERE smartlink_slug = ?").get(trimmed) as
-    | { id: string }
-    | undefined
+  const row = await queryOne<{ id: string }>("SELECT id FROM tracks WHERE smartlink_slug = ?", [trimmed])
   if (!row) return false
   if (excludeTrackId && row.id === excludeTrackId) return false
   return true
@@ -264,42 +257,44 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
     updatedAt: now,
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    track.id,
-    track.userId,
-    track.albumId ?? null,
-    track.trackName,
-    track.artistName,
-    track.labelName,
-    track.genre,
-    track.mood ?? null,
-    track.shortDescription ?? null,
-    track.lyricsText ?? null,
-    track.musicAuthor ?? null,
-    track.lyricsAuthor ?? null,
-    track.musicRights ?? null,
-    track.musicAiService ?? null,
-    track.lyricsRights ?? null,
-    track.performanceRights ?? null,
-    track.isInstrumental ? 1 : 0,
-    track.backingAuthor ?? null,
-    track.coverPath,
-    track.audioPath,
-    track.status,
-    track.releaseDate ?? null,
-    track.moderationNote ?? null,
-    track.upc ?? null,
-    track.isrc ?? null,
-    track.transferFromOtherDistributor ? 1 : 0,
-    track.smartlinkSlug ?? null,
-    track.platformLinks ? JSON.stringify(track.platformLinks) : null,
-    track.needsAiCover ? 1 : 0,
-    track.createdAt,
-    track.updatedAt
+  `,
+    [
+      track.id,
+      track.userId,
+      track.albumId ?? null,
+      track.trackName,
+      track.artistName,
+      track.labelName,
+      track.genre,
+      track.mood ?? null,
+      track.shortDescription ?? null,
+      track.lyricsText ?? null,
+      track.musicAuthor ?? null,
+      track.lyricsAuthor ?? null,
+      track.musicRights ?? null,
+      track.musicAiService ?? null,
+      track.lyricsRights ?? null,
+      track.performanceRights ?? null,
+      track.isInstrumental,
+      track.backingAuthor ?? null,
+      track.coverPath,
+      track.audioPath,
+      track.status,
+      track.releaseDate ?? null,
+      track.moderationNote ?? null,
+      track.upc ?? null,
+      track.isrc ?? null,
+      track.transferFromOtherDistributor,
+      track.smartlinkSlug ?? null,
+      track.platformLinks ? JSON.stringify(track.platformLinks) : null,
+      track.needsAiCover,
+      track.createdAt,
+      track.updatedAt,
+    ]
   )
 
   if (process.env.NODE_ENV === "development") {
@@ -335,7 +330,7 @@ export async function updateTrack(
       ((partial.status ?? current.status) === "released" && hasAnyPlatformLink(current.platformLinks)))
 
   if (shouldAutoGenerateSmartlink) {
-    smartlinkSlug = generateUniqueSmartlinkSlug()
+    smartlinkSlug = await generateUniqueSmartlinkSlug()
   }
 
   const updated: Track = {
@@ -345,41 +340,43 @@ export async function updateTrack(
     updatedAt: new Date().toISOString(),
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, updated_at = ?
     WHERE id = ?
-  `).run(
-    updated.userId,
-    updated.albumId ?? null,
-    updated.trackName,
-    updated.artistName,
-    updated.labelName,
-    updated.genre,
-    updated.mood ?? null,
-    updated.shortDescription ?? null,
-    updated.lyricsText ?? null,
-    updated.musicAuthor ?? null,
-    updated.lyricsAuthor ?? null,
-    updated.musicRights ?? null,
-    updated.musicAiService ?? null,
-    updated.lyricsRights ?? null,
-    updated.performanceRights ?? null,
-    updated.isInstrumental ? 1 : 0,
-    updated.backingAuthor ?? null,
-    updated.coverPath,
-    updated.audioPath,
-    updated.status,
-    updated.releaseDate ?? null,
-    updated.moderationNote ?? null,
-    updated.upc ?? null,
-    updated.isrc ?? null,
-    updated.transferFromOtherDistributor ? 1 : 0,
-    updated.smartlinkSlug ?? null,
-    updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
-    updated.needsAiCover ? 1 : 0,
-    updated.updatedAt,
-    id
+  `,
+    [
+      updated.userId,
+      updated.albumId ?? null,
+      updated.trackName,
+      updated.artistName,
+      updated.labelName,
+      updated.genre,
+      updated.mood ?? null,
+      updated.shortDescription ?? null,
+      updated.lyricsText ?? null,
+      updated.musicAuthor ?? null,
+      updated.lyricsAuthor ?? null,
+      updated.musicRights ?? null,
+      updated.musicAiService ?? null,
+      updated.lyricsRights ?? null,
+      updated.performanceRights ?? null,
+      updated.isInstrumental,
+      updated.backingAuthor ?? null,
+      updated.coverPath,
+      updated.audioPath,
+      updated.status,
+      updated.releaseDate ?? null,
+      updated.moderationNote ?? null,
+      updated.upc ?? null,
+      updated.isrc ?? null,
+      updated.transferFromOtherDistributor,
+      updated.smartlinkSlug ?? null,
+      updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
+      updated.needsAiCover,
+      updated.updatedAt,
+      id,
+    ]
   )
 
   if (process.env.NODE_ENV === "development") {
@@ -421,12 +418,11 @@ export async function deleteTrack(id: string): Promise<boolean> {
     console.error("[tracks] Error deleting track files:", error)
   }
 
-  const db = getDb()
-  const result = db.prepare("DELETE FROM tracks WHERE id = ?").run(id)
+  const changes = await execute("DELETE FROM tracks WHERE id = ?", [id])
 
-  if (process.env.NODE_ENV === "development" && result.changes > 0) {
+  if (process.env.NODE_ENV === "development" && changes > 0) {
     console.log("[tracks] Deleted track", { id: track.id, trackName: track.trackName })
   }
 
-  return result.changes > 0
+  return changes > 0
 }

@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
   const platformKey: MusicPlatformKey = "yandex_music"
 
-  let stats = getMusicStatsByPlatformKey(platformKey)
+  let stats = await getMusicStatsByPlatformKey(platformKey)
 
   // If DB empty, try importing from disk once (replacement-by-dates will still apply).
   if (stats.daysCount === 0 && stats.topTracks.length === 0) {

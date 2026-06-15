@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { getDb } from "./db"
+import { query, queryOne, execute, withTransaction, clientExecute } from "./database"
 
 export interface Article {
   id: string
@@ -30,7 +30,7 @@ interface ArticleRow {
   og_image: string | null
   category: string | null
   tags: string
-  published: number
+  published: boolean
   published_at: string | null
   created_at: string
   updated_at: string
@@ -66,20 +66,17 @@ function parseJsonArray(raw: string): string[] {
 }
 
 export async function getAllArticles(): Promise<Article[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM articles").all() as ArticleRow[]
+  const rows = await query<ArticleRow>("SELECT * FROM articles")
   return rows.map(rowToArticle)
 }
 
 export async function getArticleById(id: string): Promise<Article | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM articles WHERE id = ?").get(id) as ArticleRow | undefined
+  const row = await queryOne<ArticleRow>("SELECT * FROM articles WHERE id = ?", [id])
   return row ? rowToArticle(row) : null
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM articles WHERE slug = ?").get(slug) as ArticleRow | undefined
+  const row = await queryOne<ArticleRow>("SELECT * FROM articles WHERE slug = ?", [slug])
   return row ? rowToArticle(row) : null
 }
 
@@ -101,34 +98,51 @@ export async function getPublishedArticles(): Promise<Article[]> {
   return published
 }
 
+const INSERT_ARTICLE_SQL = `
+  INSERT INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, category, tags, published, published_at, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT (id) DO UPDATE SET
+    slug = EXCLUDED.slug,
+    title = EXCLUDED.title,
+    content = EXCLUDED.content,
+    excerpt = EXCLUDED.excerpt,
+    meta_description = EXCLUDED.meta_description,
+    keywords = EXCLUDED.keywords,
+    og_image = EXCLUDED.og_image,
+    category = EXCLUDED.category,
+    tags = EXCLUDED.tags,
+    published = EXCLUDED.published,
+    published_at = EXCLUDED.published_at,
+    created_at = EXCLUDED.created_at,
+    updated_at = EXCLUDED.updated_at
+`
+
+function articleInsertParams(a: Article): unknown[] {
+  return [
+    a.id,
+    a.slug,
+    a.title,
+    a.content ?? null,
+    a.excerpt ?? null,
+    a.metaDescription ?? null,
+    JSON.stringify(a.keywords ?? []),
+    a.ogImage ?? null,
+    a.category ?? null,
+    JSON.stringify(a.tags ?? []),
+    a.published,
+    a.publishedAt ?? null,
+    a.createdAt,
+    a.updatedAt,
+  ]
+}
+
 export async function saveArticles(articles: Article[]): Promise<void> {
-  const db = getDb()
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, category, tags, published, published_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
-  const run = db.transaction(() => {
-    db.prepare("DELETE FROM articles").run()
+  await withTransaction(async (client) => {
+    await clientExecute(client, "DELETE FROM articles")
     for (const a of articles) {
-      stmt.run(
-        a.id,
-        a.slug,
-        a.title,
-        a.content ?? null,
-        a.excerpt ?? null,
-        a.metaDescription ?? null,
-        JSON.stringify(a.keywords ?? []),
-        a.ogImage ?? null,
-        a.category ?? null,
-        JSON.stringify(a.tags ?? []),
-        a.published ? 1 : 0,
-        a.publishedAt ?? null,
-        a.createdAt,
-        a.updatedAt
-      )
+      await clientExecute(client, INSERT_ARTICLE_SQL, articleInsertParams(a))
     }
   })
-  run()
 }
 
 export async function createArticle(
@@ -142,25 +156,12 @@ export async function createArticle(
     createdAt: now,
     updatedAt: now,
   }
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     INSERT INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, category, tags, published, published_at, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    newArticle.id,
-    newArticle.slug,
-    newArticle.title,
-    newArticle.content ?? null,
-    newArticle.excerpt ?? null,
-    newArticle.metaDescription ?? null,
-    JSON.stringify(newArticle.keywords ?? []),
-    newArticle.ogImage ?? null,
-    newArticle.category ?? null,
-    JSON.stringify(newArticle.tags ?? []),
-    newArticle.published ? 1 : 0,
-    newArticle.publishedAt ?? null,
-    newArticle.createdAt,
-    newArticle.updatedAt
+  `,
+    articleInsertParams(newArticle)
   )
   return newArticle
 }
@@ -183,32 +184,33 @@ export async function updateArticle(
     updatedAt: new Date().toISOString(),
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     UPDATE articles SET slug = ?, title = ?, content = ?, excerpt = ?, meta_description = ?, keywords = ?, og_image = ?, category = ?, tags = ?, published = ?, published_at = ?, updated_at = ?
     WHERE id = ?
-  `).run(
-    updated.slug,
-    updated.title,
-    updated.content ?? null,
-    updated.excerpt ?? null,
-    updated.metaDescription ?? null,
-    JSON.stringify(updated.keywords ?? []),
-    updated.ogImage ?? null,
-    updated.category ?? null,
-    JSON.stringify(updated.tags ?? []),
-    updated.published ? 1 : 0,
-    updated.publishedAt ?? null,
-    updated.updatedAt,
-    id
+  `,
+    [
+      updated.slug,
+      updated.title,
+      updated.content ?? null,
+      updated.excerpt ?? null,
+      updated.metaDescription ?? null,
+      JSON.stringify(updated.keywords ?? []),
+      updated.ogImage ?? null,
+      updated.category ?? null,
+      JSON.stringify(updated.tags ?? []),
+      updated.published,
+      updated.publishedAt ?? null,
+      updated.updatedAt,
+      id,
+    ]
   )
   return updated
 }
 
 export async function deleteArticle(id: string): Promise<boolean> {
-  const db = getDb()
-  const result = db.prepare("DELETE FROM articles WHERE id = ?").run(id)
-  return result.changes > 0
+  const changes = await execute("DELETE FROM articles WHERE id = ?", [id])
+  return changes > 0
 }
 
 export function generateSlug(title: string): string {

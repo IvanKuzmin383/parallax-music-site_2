@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   const albumId = url.searchParams.get("albumId")?.trim() || undefined
   const trackId = url.searchParams.get("trackId")?.trim() || undefined
 
-  const page = getAdminMusicStatsTopTracksPage({
+  const page = await getAdminMusicStatsTopTracksPage({
     platformKeys,
     artist,
     filters: { albumId, trackId },

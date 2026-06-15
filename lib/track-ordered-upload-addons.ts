@@ -1,4 +1,4 @@
-import { getDb } from "./db"
+import { query } from "./database"
 import type { Track } from "./tracks"
 import type { UploadDraftPayload } from "./upload-drafts"
 import type { UploadAddonBundleItem } from "./orders"
@@ -59,19 +59,17 @@ export function uploadAddonBundleItemsApplyingToTrack(
  * Позиции из оплаченных заказов `upload_addon_bundle`, относящиеся к этому треку
  * (по `album_id` черновика или совпадению single-черновика с названием/артистом).
  */
-export function getPaidBundleAddonItemsForTrack(track: Track): UploadAddonBundleItem[] {
-  const db = getDb()
+export async function getPaidBundleAddonItemsForTrack(track: Track): Promise<UploadAddonBundleItem[]> {
   const user = track.userId.trim()
-  const rows = db
-    .prepare(
-      `SELECT ud.kind, ud.album_id, ud.payload_json
-       FROM orders o
-       INNER JOIN upload_drafts ud ON ud.id = o.draft_id
-       WHERE o.order_type = 'upload_addon_bundle' AND o.status = 'paid'
-         AND LOWER(TRIM(COALESCE(o.user_id, ''))) = LOWER(TRIM(?))
-       ORDER BY datetime(COALESCE(o.paid_at, o.created_at)) DESC`
-    )
-    .all(user) as { kind: string; album_id: string | null; payload_json: string }[]
+  const rows = await query<{ kind: string; album_id: string | null; payload_json: string }>(
+    `SELECT ud.kind, ud.album_id, ud.payload_json
+     FROM orders o
+     INNER JOIN upload_drafts ud ON ud.id = o.draft_id
+     WHERE o.order_type = 'upload_addon_bundle' AND o.status = 'paid'
+       AND LOWER(TRIM(COALESCE(o.user_id, ''))) = LOWER(TRIM(?))
+     ORDER BY COALESCE(o.paid_at, o.created_at)::timestamptz DESC`,
+    [user]
+  )
 
   const collected: UploadAddonBundleItem[] = []
 

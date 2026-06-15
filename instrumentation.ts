@@ -7,6 +7,9 @@ if (typeof process !== "undefined" && process.env.NEXT_RUNTIME !== "edge") {
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "edge") return
 
+  const { initDatabase } = await import("@/lib/db")
+  await initDatabase()
+
   const { startNodeRuntimeMetrics } = await import("@/lib/node-runtime-metrics")
   startNodeRuntimeMetrics()
 }

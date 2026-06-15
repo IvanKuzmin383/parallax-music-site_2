@@ -11,10 +11,10 @@ import { fulfillSubscriptionOrder } from "@/lib/fulfill-subscription-order"
 import { markUploadDraftPaid } from "@/lib/upload-drafts"
 import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service-fulfillments"
 
-function tryRecordServiceFulfillment(orderId: string, orderType: string) {
+async function tryRecordServiceFulfillment(orderId: string, orderType: string) {
   if (!isServiceOrderType(orderType)) return
   try {
-    upsertNewFulfillmentIfMissing(orderId)
+    await upsertNewFulfillmentIfMissing(orderId)
   } catch (e) {
     console.error("[payments/webhook] service_fulfillments insert failed", { orderId, orderType, e })
   }
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
   if (order.orderType === "ai_mastering") {
     await updateOrderStatus(orderId, "paid", { paidAt })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     try {
       const user = await getCabinetUserById(order.userId)
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
 
   if (order.orderType === "vertical_video") {
     await updateOrderStatus(orderId, "paid", { paidAt })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     try {
       const user = await getCabinetUserById(order.userId)
@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
 
   if (order.orderType === "track_cover") {
     await updateOrderStatus(orderId, "paid", { paidAt })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     try {
       const user = await getCabinetUserById(order.userId)
@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
     order.orderType === "spotify_videoshot"
   ) {
     await updateOrderStatus(orderId, "paid", { paidAt })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     try {
       const user = await getCabinetUserById(order.userId)
@@ -369,7 +369,7 @@ export async function POST(request: NextRequest) {
 
   if (order.orderType === "upload_addon_bundle") {
     await updateOrderStatus(orderId, "paid", { paidAt })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
     if (order.draftId) {
       await markUploadDraftPaid(order.draftId, orderId)
     }

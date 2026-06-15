@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Укажите параметр platform" }, { status: 400 })
   }
 
-  const stats = getMusicStatsForCabinetUser(platformKey, user.email, {
+  const stats = await getMusicStatsForCabinetUser(platformKey, user.email, {
     albumId,
     trackIds: trackIds.length > 0 ? trackIds : undefined,
   })

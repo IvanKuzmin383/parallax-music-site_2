@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/db"
+import { query } from "@/lib/database"
 import {
   extractArtistNameFromReportFileName,
   isCollabReportFileName,
@@ -21,15 +21,12 @@ export type StreamingReportMatchResult = {
   warnings: string[]
 }
 
-function listArtistUserCandidates(): ArtistUserCandidate[] {
-  const db = getDb()
+async function listArtistUserCandidates(): Promise<ArtistUserCandidate[]> {
   const candidates: ArtistUserCandidate[] = []
 
-  const users = db
-    .prepare(
-      `SELECT id, email, artist_name FROM cabinet_users WHERE COALESCE(is_disabled, 0) = 0`,
-    )
-    .all() as { id: string; email: string; artist_name: string | null }[]
+  const users = await query<{ id: string; email: string; artist_name: string | null }>(
+    `SELECT id, email, artist_name FROM cabinet_users WHERE COALESCE(is_disabled, false) = false`
+  )
 
   for (const user of users) {
     const name = user.artist_name?.trim()
@@ -43,16 +40,14 @@ function listArtistUserCandidates(): ArtistUserCandidate[] {
     }
   }
 
-  const slots = db
-    .prepare(
-      `SELECT s.user_id, s.artist_name, u.email
-       FROM cabinet_user_artist_subscriptions s
-       JOIN cabinet_users u ON u.id = s.user_id
-       WHERE COALESCE(u.is_disabled, 0) = 0
-         AND s.artist_name IS NOT NULL
-         AND TRIM(s.artist_name) != ''`,
-    )
-    .all() as { user_id: string; artist_name: string; email: string }[]
+  const slots = await query<{ user_id: string; artist_name: string; email: string }>(
+    `SELECT s.user_id, s.artist_name, u.email
+     FROM cabinet_user_artist_subscriptions s
+     JOIN cabinet_users u ON u.id = s.user_id
+     WHERE COALESCE(u.is_disabled, false) = false
+       AND s.artist_name IS NOT NULL
+       AND TRIM(s.artist_name) != ''`
+  )
 
   for (const slot of slots) {
     candidates.push({
@@ -66,7 +61,9 @@ function listArtistUserCandidates(): ArtistUserCandidate[] {
   return candidates
 }
 
-export function matchStreamingReportFileName(fileName: string): StreamingReportMatchResult {
+export async function matchStreamingReportFileName(
+  fileName: string
+): Promise<StreamingReportMatchResult> {
   const artistFromFile = extractArtistNameFromReportFileName(fileName)
   const warnings: string[] = []
 
@@ -94,7 +91,7 @@ export function matchStreamingReportFileName(fileName: string): StreamingReportM
     }
   }
 
-  const candidates = listArtistUserCandidates()
+  const candidates = await listArtistUserCandidates()
   const matches = candidates.filter((c) => normalizeArtistKey(c.artistName) === key)
   const uniqueUserIds = [...new Set(matches.map((m) => m.userId))]
 

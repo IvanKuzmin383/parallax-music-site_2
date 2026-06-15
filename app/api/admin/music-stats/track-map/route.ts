@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     : null
 
   try {
-    const page = listCabinetMusicTrackMapPage({
+    const page = await listCabinetMusicTrackMapPage({
       platformKey,
       userId: searchParams.get("userId"),
       trackKey: searchParams.get("trackKey"),
@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    updateCabinetMusicTrackMapEntry({
+    await updateCabinetMusicTrackMapEntry({
       userId: parsed.data.userId,
       platformKey,
       trackKey: parsed.data.trackKey,

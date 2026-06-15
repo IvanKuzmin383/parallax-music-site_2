@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { getDb } from "./db"
+import { query, queryOne, execute } from "./database"
 import { formatMoscowDateString } from "./moscow-time"
 import { TRACK_COVER_PRICE_RUB } from "./track-cover-pricing"
 import { getVerticalVideoUnitPrice } from "./vertical-video-pricing"
@@ -158,7 +158,7 @@ interface OrderRow {
   total_amount: string
   user_id: string | null
   tracks_count: number | null
-  is_recurring_renewal: number | null
+  is_recurring_renewal: boolean | null
   draft_id: string | null
   upload_addon_bundle_payload_json: string | null
 }
@@ -263,7 +263,7 @@ function rowToOrder(row: OrderRow): Order {
     periodsCount: row.periods_count ?? 0,
     totalAmount: row.total_amount,
     userId: row.user_id ?? undefined,
-    isRecurringRenewal: row.is_recurring_renewal === 1,
+    isRecurringRenewal: row.is_recurring_renewal === true,
   }
 }
 
@@ -273,142 +273,159 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
   const orderType = order.orderType
   const totalAmount = order.totalAmount
 
-  const db = getDb()
   if (orderType === "upload_addon_bundle") {
     const o = order as Omit<OrderUploadAddonBundle, "id" | "status" | "createdAt">
-    db.prepare(`
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, draft_id, upload_addon_bundle_payload_json)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      "upload_addon_bundle",
-      null,
-      createdAt,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      totalAmount,
-      o.userId,
-      o.tracksCount,
-      o.draftId,
-      o.uploadAddonBundlePayloadJson ?? null
+    `,
+      [
+        id,
+        "upload_addon_bundle",
+        null,
+        createdAt,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+        o.draftId,
+        o.uploadAddonBundlePayloadJson ?? null,
+      ]
     )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
   if (orderType === "subscription") {
     const o = order as Omit<OrderSubscription, "id" | "status" | "createdAt">
-    const recurring = o.isRecurringRenewal ? 1 : 0
-    db.prepare(`
+    const recurring = o.isRecurringRenewal ?? false
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, is_recurring_renewal)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      "subscription",
-      null,
-      createdAt,
-      null,
-      o.userEmail,
-      o.telegram ?? null,
-      o.planId,
-      o.period,
-      o.periodsCount,
-      totalAmount,
-      o.userId ?? null,
-      null,
-      recurring
+    `,
+      [
+        id,
+        "subscription",
+        null,
+        createdAt,
+        null,
+        o.userEmail,
+        o.telegram ?? null,
+        o.planId,
+        o.period,
+        o.periodsCount,
+        totalAmount,
+        o.userId ?? null,
+        null,
+        recurring,
+      ]
     )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
   if (orderType === "fix_pack") {
     const o = order as Omit<OrderFixPack, "id" | "status" | "createdAt">
-    db.prepare(`
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      "fix_pack",
-      null,
-      createdAt,
-      null,
-      o.userEmail,
-      o.telegram ?? null,
-      "fix",
-      null,
-      null,
-      totalAmount,
-      o.userId ?? null,
-      o.tracksCount
+    `,
+      [
+        id,
+        "fix_pack",
+        null,
+        createdAt,
+        null,
+        o.userEmail,
+        o.telegram ?? null,
+        "fix",
+        null,
+        null,
+        totalAmount,
+        o.userId ?? null,
+        o.tracksCount,
+      ]
     )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
   if (orderType === "tracks_topup") {
     const o = order as Omit<OrderTracksTopup, "id" | "status" | "createdAt">
-    db.prepare(`
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      "tracks_topup",
-      null,
-      createdAt,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      totalAmount,
-      o.userId,
-      o.tracksCount
+    `,
+      [
+        id,
+        "tracks_topup",
+        null,
+        createdAt,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+      ]
     )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
   if (orderType === "vertical_video") {
     const o = order as Omit<OrderVerticalVideo, "id" | "status" | "createdAt">
-    db.prepare(`
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      "vertical_video",
-      null,
-      createdAt,
-      null,
-      o.contactEmail?.trim() || null,
-      o.contactTelegram?.trim() || null,
-      null,
-      null,
-      null,
-      totalAmount,
-      o.userId,
-      o.tracksCount
+    `,
+      [
+        id,
+        "vertical_video",
+        null,
+        createdAt,
+        null,
+        o.contactEmail?.trim() || null,
+        o.contactTelegram?.trim() || null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+      ]
     )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
   if (orderType === "track_cover") {
     const o = order as Omit<OrderTrackCover, "id" | "status" | "createdAt">
-    db.prepare(`
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      "track_cover",
-      null,
-      createdAt,
-      null,
-      o.contactEmail?.trim() || null,
-      o.contactTelegram?.trim() || null,
-      null,
-      null,
-      null,
-      totalAmount,
-      o.userId,
-      o.tracksCount
+    `,
+      [
+        id,
+        "track_cover",
+        null,
+        createdAt,
+        null,
+        o.contactEmail?.trim() || null,
+        o.contactTelegram?.trim() || null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+      ]
     )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
   if (
     orderType === "ai_cover" ||
@@ -418,12 +435,38 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     orderType === "spotify_videoshot"
   ) {
     const o = order as Omit<OrderPromotionService, "id" | "status" | "createdAt">
-    db.prepare(`
+    await execute(
+      `
       INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+      [
+        id,
+        orderType,
+        null,
+        createdAt,
+        null,
+        o.contactEmail?.trim() || null,
+        o.contactTelegram?.trim() || null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+      ]
+    )
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
+  }
+  const o = order as Omit<OrderAiMastering, "id" | "status" | "createdAt">
+  await execute(
+    `
+    INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
+    VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+    [
       id,
-      orderType,
+      "ai_mastering",
       null,
       createdAt,
       null,
@@ -434,41 +477,19 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
       null,
       totalAmount,
       o.userId,
-      o.tracksCount
-    )
-    return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
-  }
-  const o = order as Omit<OrderAiMastering, "id" | "status" | "createdAt">
-  db.prepare(`
-    INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
-    VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    "ai_mastering",
-    null,
-    createdAt,
-    null,
-    o.contactEmail?.trim() || null,
-    o.contactTelegram?.trim() || null,
-    null,
-    null,
-    null,
-    totalAmount,
-    o.userId,
-    o.tracksCount
+      o.tracksCount,
+    ]
   )
-  return rowToOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow)
+  return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
 }
 
 export async function getOrderById(id: string): Promise<Order | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow | undefined
+  const row = await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])
   return row ? rowToOrder(row) : null
 }
 
 export async function getOrderByPaymentId(paymentId: string): Promise<Order | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM orders WHERE payment_id = ?").get(paymentId) as OrderRow | undefined
+  const row = await queryOne<OrderRow>("SELECT * FROM orders WHERE payment_id = ?", [paymentId])
   return row ? rowToOrder(row) : null
 }
 
@@ -480,7 +501,6 @@ export async function updateOrderStatus(
   const order = await getOrderById(id)
   if (!order) return null
 
-  const db = getDb()
   const setClauses: string[] = ["status = ?"]
   const params: (string | null)[] = [status]
 
@@ -498,26 +518,24 @@ export async function updateOrderStatus(
   }
 
   params.push(id)
-  db.prepare(`UPDATE orders SET ${setClauses.join(", ")} WHERE id = ?`).run(...params)
+  await execute(`UPDATE orders SET ${setClauses.join(", ")} WHERE id = ?`, params)
 
   return getOrderById(id)
 }
 
 export async function getPaidOrdersByEmail(email: string): Promise<Order[]> {
-  const db = getDb()
-  const rows = db
-    .prepare("SELECT * FROM orders WHERE status = 'paid' AND order_type = 'subscription' AND LOWER(user_email) = LOWER(?)")
-    .all(email) as OrderRow[]
+  const rows = await query<OrderRow>(
+    "SELECT * FROM orders WHERE status = 'paid' AND order_type = 'subscription' AND LOWER(user_email) = LOWER(?)",
+    [email]
+  )
   return rows.map(rowToOrder)
 }
 
 export async function getPaidFixPackOrdersByEmail(email: string): Promise<OrderFixPack[]> {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT * FROM orders WHERE status = 'paid' AND order_type = 'fix_pack' AND LOWER(user_email) = LOWER(?) ORDER BY paid_at ASC, created_at ASC`
-    )
-    .all(email) as OrderRow[]
+  const rows = await query<OrderRow>(
+    `SELECT * FROM orders WHERE status = 'paid' AND order_type = 'fix_pack' AND LOWER(user_email) = LOWER(?) ORDER BY paid_at ASC, created_at ASC`,
+    [email]
+  )
   return rows.map((row) => rowToOrder(row) as OrderFixPack)
 }
 
@@ -526,14 +544,12 @@ export function isPaidFixPackOrder(order: Order): order is OrderFixPack {
 }
 
 export async function hasPendingRecurringSubscriptionChargeToday(userEmail: string): Promise<boolean> {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT created_at FROM orders
-       WHERE order_type = 'subscription' AND status = 'pending'
-         AND is_recurring_renewal = 1 AND LOWER(user_email) = LOWER(?)`
-    )
-    .all(userEmail.trim()) as { created_at: string }[]
+  const rows = await query<{ created_at: string }>(
+    `SELECT created_at FROM orders
+     WHERE order_type = 'subscription' AND status = 'pending'
+       AND is_recurring_renewal = true AND LOWER(user_email) = LOWER(?)`,
+    [userEmail.trim()]
+  )
   const todayMoscow = formatMoscowDateString(new Date())
   return rows.some((r) => formatMoscowDateString(new Date(r.created_at)) === todayMoscow)
 }

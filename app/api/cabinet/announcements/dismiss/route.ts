@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
     }
 
-    const ok = dismissCabinetAnnouncement(user.id, announcementId)
+    const ok = await dismissCabinetAnnouncement(user.id, announcementId)
     if (!ok) {
       return NextResponse.json({ error: "Новость не найдена" }, { status: 404 })
     }

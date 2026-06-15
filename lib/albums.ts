@@ -2,7 +2,7 @@ import { promises as fs } from "fs"
 import path from "path"
 import crypto from "crypto"
 import { getCoversDir } from "./tracks"
-import { getDb } from "./db"
+import { query, queryOne, execute } from "./database"
 
 export interface Album {
   id: string
@@ -43,20 +43,17 @@ function rowToAlbum(row: AlbumRow): Album {
 }
 
 export async function getAllAlbums(): Promise<Album[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM albums").all() as AlbumRow[]
+  const rows = await query<AlbumRow>("SELECT * FROM albums")
   return rows.map(rowToAlbum)
 }
 
 export async function getAlbumById(id: string): Promise<Album | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM albums WHERE id = ?").get(id) as AlbumRow | undefined
+  const row = await queryOne<AlbumRow>("SELECT * FROM albums WHERE id = ?", [id])
   return row ? rowToAlbum(row) : null
 }
 
 export async function getAlbumsByUserId(userId: string): Promise<Album[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM albums WHERE LOWER(user_id) = LOWER(?)").all(userId) as AlbumRow[]
+  const rows = await query<AlbumRow>("SELECT * FROM albums WHERE LOWER(user_id) = LOWER(?)", [userId])
   return rows.map(rowToAlbum)
 }
 
@@ -71,20 +68,22 @@ export async function createAlbum(
     updatedAt: now,
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     INSERT INTO albums (id, user_id, title, artist_name, label_name, cover_path, release_date, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    album.id,
-    album.userId,
-    album.title,
-    album.artistName,
-    album.labelName,
-    album.coverPath,
-    album.releaseDate ?? null,
-    album.createdAt,
-    album.updatedAt
+  `,
+    [
+      album.id,
+      album.userId,
+      album.title,
+      album.artistName,
+      album.labelName,
+      album.coverPath,
+      album.releaseDate ?? null,
+      album.createdAt,
+      album.updatedAt,
+    ]
   )
 
   if (process.env.NODE_ENV === "development") {
@@ -107,11 +106,21 @@ export async function updateAlbum(
     updatedAt: new Date().toISOString(),
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     UPDATE albums SET title = ?, artist_name = ?, label_name = ?, cover_path = ?, release_date = ?, updated_at = ?
     WHERE id = ?
-  `).run(updated.title, updated.artistName, updated.labelName, updated.coverPath, updated.releaseDate ?? null, updated.updatedAt, id)
+  `,
+    [
+      updated.title,
+      updated.artistName,
+      updated.labelName,
+      updated.coverPath,
+      updated.releaseDate ?? null,
+      updated.updatedAt,
+      id,
+    ]
+  )
 
   if (process.env.NODE_ENV === "development") {
     console.log("[albums] Updated album", { id: updated.id, title: updated.title })
@@ -139,14 +148,13 @@ export async function deleteAlbum(id: string): Promise<boolean> {
     console.error("[albums] Error deleting album files:", error)
   }
 
-  const db = getDb()
-  const result = db.prepare("DELETE FROM albums WHERE id = ?").run(id)
+  const changes = await execute("DELETE FROM albums WHERE id = ?", [id])
 
-  if (process.env.NODE_ENV === "development" && result.changes > 0) {
+  if (process.env.NODE_ENV === "development" && changes > 0) {
     console.log("[albums] Deleted album", { id: album.id, title: album.title })
   }
 
-  return result.changes > 0
+  return changes > 0
 }
 
 export async function createAlbumCoverPathFromUpload(

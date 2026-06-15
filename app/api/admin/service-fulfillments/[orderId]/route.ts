@@ -24,7 +24,7 @@ export async function PATCH(
   try {
     const body = await request.json()
     const { fulfillmentStatus } = bodySchema.parse(body)
-    const updated = setFulfillmentStatus(orderId.trim(), fulfillmentStatus)
+    const updated = await setFulfillmentStatus(orderId.trim(), fulfillmentStatus)
     if (!updated) {
       return NextResponse.json(
         { error: "Заказ не найден, не оплачен или не относится к услугам" },

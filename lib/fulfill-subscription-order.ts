@@ -101,7 +101,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
 
     if (hasAutopayBinding) {
-      upsertPendingSubscriptionAutopay({
+      await upsertPendingSubscriptionAutopay({
         email,
         tbankRebillId: savedRebillId,
         yookassaPaymentMethodId: savedYookassaPm,
@@ -176,7 +176,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
 
 /** При регистрации: применить отложенную привязку RebillId. */
 export async function applyPendingSubscriptionAutopayOnRegister(userId: string, email: string): Promise<void> {
-  const pend = getPendingSubscriptionAutopay(email)
+  const pend = await getPendingSubscriptionAutopay(email)
   if (!pend) return
 
   const user = await getCabinetUserByEmail(email, { includeDisabled: true })
@@ -192,5 +192,5 @@ export async function applyPendingSubscriptionAutopayOnRegister(userId: string, 
     autopayNextChargeAt: user.subscriptionExpiresAt,
     autopayLastReminderSentAt: null,
   })
-  deletePendingSubscriptionAutopay(email)
+  await deletePendingSubscriptionAutopay(email)
 }

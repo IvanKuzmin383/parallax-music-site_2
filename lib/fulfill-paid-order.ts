@@ -9,10 +9,10 @@ import { escapeHtml } from "@/lib/telegram"
 import { markUploadDraftPaid } from "@/lib/upload-drafts"
 import { getUploadsBasePath } from "@/lib/tracks"
 
-function tryRecordServiceFulfillment(orderId: string, orderType: string) {
+async function tryRecordServiceFulfillment(orderId: string, orderType: string) {
   if (!isServiceOrderType(orderType)) return
   try {
-    upsertNewFulfillmentIfMissing(orderId)
+    await upsertNewFulfillmentIfMissing(orderId)
   } catch (e) {
     console.error("[fulfill-paid-order] service_fulfillments insert failed", { orderId, orderType, e })
   }
@@ -104,7 +104,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
 
   if (order.orderType === "ai_mastering") {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     const user = await getCabinetUserById(order.userId)
     const accountEmail = user?.email ?? `userId=${order.userId}`
@@ -142,7 +142,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
 
   if (order.orderType === "vertical_video") {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     const user = await getCabinetUserById(order.userId)
     const accountEmail = user?.email ?? `userId=${order.userId}`
@@ -180,7 +180,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
 
   if (order.orderType === "track_cover") {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     const user = await getCabinetUserById(order.userId)
     const accountEmail = user?.email ?? `userId=${order.userId}`
@@ -217,7 +217,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     order.orderType === "spotify_videoshot"
   ) {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
 
     const user = await getCabinetUserById(order.userId)
     const accountEmail = user?.email ?? `userId=${order.userId}`
@@ -262,7 +262,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
 
   if (order.orderType === "upload_addon_bundle") {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
-    tryRecordServiceFulfillment(orderId, order.orderType)
+    await tryRecordServiceFulfillment(orderId, order.orderType)
     if (order.draftId) {
       await markUploadDraftPaid(order.draftId, orderId)
     }

@@ -52,7 +52,7 @@ export async function fulfillFixPackOrder(params: FulfillFixPackOrderParams): Pr
     await addFixPackCredits(user.id, tracksCount)
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId, userId: user.id })
   } else {
-    addPendingFixCredits({ email, tracksCount, orderId })
+    await addPendingFixCredits({ email, tracksCount, orderId })
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
 
     if (isEmailConfigured()) {
@@ -112,7 +112,7 @@ export async function applyFixPackCreditsOnRegister(
 
   let totalTracks = paidFixPackOrders.reduce((sum, order) => sum + order.tracksCount, 0)
   if (totalTracks === 0) {
-    totalTracks = sumPendingFixCredits(email)
+    totalTracks = await sumPendingFixCredits(email)
   }
 
   await updateCabinetUserSubscription(userId, "Fix", null, 0)
@@ -121,5 +121,5 @@ export async function applyFixPackCreditsOnRegister(
     await addFixPackCredits(userId, totalTracks)
   }
 
-  deletePendingFixCreditsByEmail(email)
+  await deletePendingFixCreditsByEmail(email)
 }

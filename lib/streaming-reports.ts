@@ -1,7 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import crypto from "crypto"
-import { getDb } from "./db"
+import { execute, query, queryOne, withTransaction, clientExecute } from "./database"
 import { getCabinetUserById, updateCabinetUserBalance } from "./cabinet-users"
 import { copyFileToPathAtomic, writeMultipartFileToPathAtomic } from "./node-atomic-upload"
 import { getUploadsBasePath } from "./tracks"
@@ -50,21 +50,48 @@ export async function getReportsDir(): Promise<string> {
 }
 
 export async function getAllReports(): Promise<StreamingReport[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM streaming_reports").all() as StreamingReportRow[]
+  const rows = await query<StreamingReportRow>("SELECT * FROM streaming_reports")
   return rows.map(rowToReport)
 }
 
 export async function getReportsByUserId(userId: string): Promise<StreamingReport[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM streaming_reports WHERE user_id = ?").all(userId) as StreamingReportRow[]
+  const rows = await query<StreamingReportRow>(
+    "SELECT * FROM streaming_reports WHERE user_id = ?",
+    [userId]
+  )
   return rows.map(rowToReport)
 }
 
 export async function getReportById(id: string): Promise<StreamingReport | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM streaming_reports WHERE id = ?").get(id) as StreamingReportRow | undefined
+  const row = await queryOne<StreamingReportRow>("SELECT * FROM streaming_reports WHERE id = ?", [
+    id,
+  ])
   return row ? rowToReport(row) : null
+}
+
+async function insertReportAndCreditBalance(
+  reportId: string,
+  userId: string,
+  amount: number,
+  reportFilePath: string,
+  fileName: string,
+  now: string
+): Promise<void> {
+  await withTransaction(async (client) => {
+    await clientExecute(
+      client,
+      `
+      INSERT INTO streaming_reports (id, user_id, amount, file_path, file_name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+      [reportId, userId, amount, reportFilePath, fileName, now, now]
+    )
+    await clientExecute(
+      client,
+      "UPDATE cabinet_users SET streaming_balance = COALESCE(streaming_balance, 0) + ? WHERE id = ?",
+      [amount, userId]
+    )
+  })
 }
 
 export async function createReport(
@@ -82,17 +109,7 @@ export async function createReport(
   await fs.writeFile(reportFilePath, fileBuffer)
 
   const now = new Date().toISOString()
-
-  const db = getDb()
-  db.transaction(() => {
-    db.prepare(`
-      INSERT INTO streaming_reports (id, user_id, amount, file_path, file_name, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(reportId, userId, amount, reportFilePath, fileName, now, now)
-    db.prepare(
-      "UPDATE cabinet_users SET streaming_balance = COALESCE(streaming_balance, 0) + ? WHERE id = ?"
-    ).run(amount, userId)
-  })()
+  await insertReportAndCreditBalance(reportId, userId, amount, reportFilePath, fileName, now)
 
   const report: StreamingReport = {
     id: reportId,
@@ -105,7 +122,11 @@ export async function createReport(
   }
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[streaming-reports] Created report", { id: report.id, userId: report.userId, amount: report.amount })
+    console.log("[streaming-reports] Created report", {
+      id: report.id,
+      userId: report.userId,
+      amount: report.amount,
+    })
   }
 
   return report
@@ -127,16 +148,14 @@ export async function createReportFromFile(
   await writeMultipartFileToPathAtomic(file, reportFilePath)
 
   const now = new Date().toISOString()
-  const db = getDb()
-  db.transaction(() => {
-    db.prepare(`
-      INSERT INTO streaming_reports (id, user_id, amount, file_path, file_name, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(reportId, userId, amount, reportFilePath, originalName, now, now)
-    db.prepare(
-      "UPDATE cabinet_users SET streaming_balance = COALESCE(streaming_balance, 0) + ? WHERE id = ?"
-    ).run(amount, userId)
-  })()
+  await insertReportAndCreditBalance(
+    reportId,
+    userId,
+    amount,
+    reportFilePath,
+    originalName,
+    now
+  )
 
   return {
     id: reportId,
@@ -165,16 +184,14 @@ export async function createReportFromTempFile(
   await copyFileToPathAtomic(tempFilePath, reportFilePath)
 
   const now = new Date().toISOString()
-  const db = getDb()
-  db.transaction(() => {
-    db.prepare(`
-      INSERT INTO streaming_reports (id, user_id, amount, file_path, file_name, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(reportId, userId, amount, reportFilePath, originalName, now, now)
-    db.prepare(
-      "UPDATE cabinet_users SET streaming_balance = COALESCE(streaming_balance, 0) + ? WHERE id = ?"
-    ).run(amount, userId)
-  })()
+  await insertReportAndCreditBalance(
+    reportId,
+    userId,
+    amount,
+    reportFilePath,
+    originalName,
+    now
+  )
 
   return {
     id: reportId,
@@ -205,7 +222,6 @@ export async function updateReport(
     }
   }
 
-  const db = getDb()
   const updates: string[] = ["updated_at = ?"]
   const params: (string | number)[] = [now]
 
@@ -219,7 +235,7 @@ export async function updateReport(
   }
 
   params.push(id)
-  db.prepare(`UPDATE streaming_reports SET ${updates.join(", ")} WHERE id = ?`).run(...params)
+  await execute(`UPDATE streaming_reports SET ${updates.join(", ")} WHERE id = ?`, params)
 
   if (process.env.NODE_ENV === "development") {
     console.log("[streaming-reports] Updated report", { id, amount: partial.amount })
@@ -249,12 +265,11 @@ export async function deleteReport(id: string): Promise<boolean> {
     await updateCabinetUserBalance(report.userId, currentBalance - report.amount)
   }
 
-  const db = getDb()
-  const result = db.prepare("DELETE FROM streaming_reports WHERE id = ?").run(id)
+  const changes = await execute("DELETE FROM streaming_reports WHERE id = ?", [id])
 
-  if (process.env.NODE_ENV === "development" && result.changes > 0) {
+  if (process.env.NODE_ENV === "development" && changes > 0) {
     console.log("[streaming-reports] Deleted report", { id: report.id, userId: report.userId })
   }
 
-  return result.changes > 0
+  return changes > 0
 }
