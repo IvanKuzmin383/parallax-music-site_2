@@ -60,8 +60,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
   const isRenewal = Boolean(order.isRecurringRenewal)
 
   const savedRebillId = params.tbankRebillId?.trim() || null
-  const savedYookassaPm = params.yookassaPaymentMethodId?.trim() || null
-  const hasAutopayBinding = Boolean(savedRebillId || savedYookassaPm)
+  const hasAutopayBinding = Boolean(savedRebillId)
 
   const user = await getCabinetUserByEmail(email)
   let newExpiresAt: string | null = null
@@ -88,7 +87,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
     if (hasAutopayBinding && newExpiresAt) {
       await setCabinetUserAutopay(user.id, {
         tbankRebillId: savedRebillId,
-        yookassaPaymentMethodId: savedYookassaPm,
+        yookassaPaymentMethodId: null,
         autopayEnabled: true,
         autopayPlanId: planId,
         autopayPeriod: periodMeta,
@@ -104,7 +103,6 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
       await upsertPendingSubscriptionAutopay({
         email,
         tbankRebillId: savedRebillId,
-        yookassaPaymentMethodId: savedYookassaPm,
         planId,
         period: periodMeta,
         periodsCount,
@@ -177,14 +175,14 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
 /** При регистрации: применить отложенную привязку RebillId. */
 export async function applyPendingSubscriptionAutopayOnRegister(userId: string, email: string): Promise<void> {
   const pend = await getPendingSubscriptionAutopay(email)
-  if (!pend) return
+  if (!pend?.tbankRebillId) return
 
   const user = await getCabinetUserByEmail(email, { includeDisabled: true })
   if (!user?.subscriptionExpiresAt) return
 
   await setCabinetUserAutopay(userId, {
     tbankRebillId: pend.tbankRebillId,
-    yookassaPaymentMethodId: pend.yookassaPaymentMethodId,
+    yookassaPaymentMethodId: null,
     autopayEnabled: true,
     autopayPlanId: pend.planId,
     autopayPeriod: pend.period,

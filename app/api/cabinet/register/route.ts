@@ -190,8 +190,8 @@ export async function POST(request: NextRequest) {
       const pend = await getPendingSubscriptionAutopay(email)
       if (pend) {
         await setCabinetUserAutopay(merged.id, {
-          tbankRebillId: pend.tbankRebillId ?? null,
-          yookassaPaymentMethodId: pend.yookassaPaymentMethodId ?? null,
+          tbankRebillId: pend.tbankRebillId,
+          yookassaPaymentMethodId: null,
           autopayEnabled: true,
           autopayPlanId: pend.planId,
           autopayPeriod: pend.period,

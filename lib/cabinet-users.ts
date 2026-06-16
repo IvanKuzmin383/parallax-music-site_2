@@ -178,13 +178,14 @@ export async function getAllCabinetUsers(): Promise<CabinetUser[]> {
   return rows.map(rowToUser)
 }
 
-/** Пользователи с включённым автопродлением и сохранённым способом оплаты */
+/** Пользователи с включённым автопродлением и привязкой T-Bank RebillId */
 export async function listCabinetUsersWithActiveAutopay(): Promise<CabinetUser[]> {
   const rows = await query<CabinetUserRow>(
     `SELECT * FROM cabinet_users
      WHERE autopay_enabled = true
        AND is_disabled = false
-       AND (tbank_rebill_id IS NOT NULL OR yookassa_payment_method_id IS NOT NULL)
+       AND tbank_rebill_id IS NOT NULL
+       AND TRIM(tbank_rebill_id) <> ''
        AND autopay_next_charge_at IS NOT NULL
        AND autopay_plan_id IS NOT NULL
        AND autopay_period IS NOT NULL
@@ -346,8 +347,8 @@ export async function setCabinetUserAutopay(
   return getCabinetUserById(id)
 }
 
-export function cabinetUserHasAutopayBinding(user: Pick<CabinetUser, "tbankRebillId" | "yookassaPaymentMethodId">): boolean {
-  return Boolean(user.tbankRebillId?.trim() || user.yookassaPaymentMethodId?.trim())
+export function cabinetUserHasAutopayBinding(user: Pick<CabinetUser, "tbankRebillId">): boolean {
+  return Boolean(user.tbankRebillId?.trim())
 }
 
 export async function updateCabinetUserSubscription(
