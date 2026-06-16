@@ -271,10 +271,10 @@ const uploadAlbumSchema = z.object({
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const minDate = new Date(today)
-      minDate.setDate(minDate.getDate() + 10)
+      minDate.setDate(minDate.getDate() + 14)
       return date >= minDate
     }, {
-      message: "Дата публикации должна быть не ранее чем через 10 дней от сегодня",
+      message: "Дата публикации должна быть не ранее чем через 14 дней от сегодня",
     })
     .refine((date) => !isReleaseDateWeekend(date), {
       message: "Дата публикации не может приходиться на выходной день (суббота или воскресенье)",
@@ -1206,7 +1206,7 @@ export default function CabinetUploadAlbumPage() {
                             const today = new Date()
                             today.setHours(0, 0, 0, 0)
                             const minDate = new Date(today)
-                            minDate.setDate(minDate.getDate() + 10)
+                            minDate.setDate(minDate.getDate() + 14)
                             return date < minDate || isReleaseDateWeekend(date)
                           }}
                           initialFocus
