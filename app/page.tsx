@@ -7,7 +7,6 @@ import { Process } from "@/components/process"
 import { Advantages } from "@/components/advantages"
 
 const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Pricing))
-const CaseStudies = dynamic(() => import("@/components/case-studies").then((m) => m.CaseStudies))
 const FaqSection = dynamic(() => import("@/components/faq-section").then((m) => m.FaqSection))
 const Reviews = dynamic(() => import("@/components/reviews").then((m) => m.Reviews))
 const Contact = dynamic(() => import("@/components/contact").then((m) => m.Contact))
@@ -121,7 +120,6 @@ export default function HomePage() {
         <Services />
         <Process />
         <Advantages />
-        <CaseStudies />
         {/* <Platforms /> */}
         <Pricing />
         <FaqSection />
