@@ -95,7 +95,7 @@ function buildOrderClause(
   if (sortField === "createdAt") {
     return `ORDER BY created_at::timestamptz ${dir}, id ${dir}`
   }
-  return `ORDER BY COALESCE(NULLIF(TRIM(release_date), ''), created_at)::timestamptz ${dir}, id ${dir}`
+  return `ORDER BY COALESCE(NULLIF(TRIM(release_date), '')::timestamptz, created_at) ${dir}, id ${dir}`
 }
 
 export async function countTracksInDatabase(): Promise<number> {

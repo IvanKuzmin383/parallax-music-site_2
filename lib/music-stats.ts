@@ -411,8 +411,8 @@ export async function getAdminMusicStatsTopTracksPage(args: {
       : await query<{ title: string; author: string; plays: string | number }>(
           `
               SELECT
-                t.title AS title,
-                t.author AS author,
+                MAX(t.title) AS title,
+                MAX(t.author) AS author,
                 SUM(d.plays) AS plays
               FROM music_platform_track_daily_plays d
               JOIN music_platform_tracks t
@@ -735,8 +735,8 @@ export async function getMusicStatsForCabinetUser(
   const topRows = await query<{ title: string; author: string; plays: string | number }>(
     `
         SELECT
-          t.title AS title,
-          t.author AS author,
+          MAX(t.title) AS title,
+          MAX(t.author) AS author,
           SUM(d.plays) AS plays
         FROM music_platform_track_daily_plays d
         JOIN music_platform_tracks t
