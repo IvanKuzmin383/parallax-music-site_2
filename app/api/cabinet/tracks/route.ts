@@ -14,7 +14,7 @@ import {
 import { getTracksByUserId } from "@/lib/tracks"
 import { createTrack, getAudioDir, getCoversDir, GENRES, TRACK_MOODS } from "@/lib/tracks"
 import { musicRightsRequiresAiService } from "@/lib/track-constants"
-import { getDb } from "@/lib/db"
+import { withTransaction } from "@/lib/database"
 import { getClientIp, getUserAgent, tryRecordLicenseAcceptanceForTrack } from "@/lib/legal-acceptance"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
 import {
@@ -363,13 +363,14 @@ export async function POST(request: NextRequest) {
       })
 
       try {
-        const db = getDb()
-        tryRecordLicenseAcceptanceForTrack(db, {
-          userEmail: track.userId,
-          trackId: track.id,
-          occurredAtIso: track.createdAt,
-          clientIp: getClientIp(request),
-          userAgent: getUserAgent(request),
+        await withTransaction(async (client) => {
+          await tryRecordLicenseAcceptanceForTrack(client, {
+            userEmail: track.userId,
+            trackId: track.id,
+            occurredAtIso: track.createdAt,
+            clientIp: getClientIp(request),
+            userAgent: getUserAgent(request),
+          })
         })
       } catch (legalErr) {
         console.error("[cabinet/tracks] legal acceptance log failed:", legalErr)

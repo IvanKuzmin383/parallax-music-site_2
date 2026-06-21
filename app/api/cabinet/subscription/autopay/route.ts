@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (parsed.data.action === "confirm") {
-    const consumed = consumeAutopayDisableToken(parsed.data.token)
+    const consumed = await consumeAutopayDisableToken(parsed.data.token)
     if (!consumed) {
       return NextResponse.json({ error: "Ссылка недействительна или истекла" }, { status: 400 })
     }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Отправка почты не настроена" }, { status: 503 })
   }
 
-  const t = createAutopayDisableToken(user.id, user.email)
+  const t = await createAutopayDisableToken(user.id, user.email)
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru").replace(/\/$/, "")
   const confirmUrl = `${baseUrl}/cabinet/autopay/confirm?token=${encodeURIComponent(t)}`
 

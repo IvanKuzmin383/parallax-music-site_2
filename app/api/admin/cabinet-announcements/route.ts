@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const announcements = listAllCabinetAnnouncements()
+    const announcements = await listAllCabinetAnnouncements()
     return NextResponse.json({ announcements })
   } catch (error) {
     console.error("Error listing admin cabinet announcements:", error)
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const announcement = createCabinetAnnouncement(title, text)
+    const announcement = await createCabinetAnnouncement(title, text)
     return NextResponse.json({ announcement })
   } catch (error) {
     console.error("Error creating cabinet announcement:", error)

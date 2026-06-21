@@ -18,6 +18,6 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const bundleItems = getPaidBundleAddonItemsForTrack(track)
+  const bundleItems = await getPaidBundleAddonItemsForTrack(track)
   return NextResponse.json({ bundleItems })
 }

@@ -36,7 +36,7 @@ export async function PATCH(
   }
 
   try {
-    const updated = updateCabinetAnnouncement(id, patch)
+    const updated = await updateCabinetAnnouncement(id, patch)
     if (!updated) {
       return NextResponse.json({ error: "Не найдено" }, { status: 404 })
     }
@@ -62,7 +62,7 @@ export async function DELETE(
   }
 
   try {
-    const removed = deleteCabinetAnnouncement(id)
+    const removed = await deleteCabinetAnnouncement(id)
     if (!removed) {
       return NextResponse.json({ error: "Не найдено" }, { status: 404 })
     }

@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/db"
+import { query, queryOne } from "@/lib/database"
 import { rowToTrack, type TrackRow } from "@/lib/tracks"
 import {
   ADMIN_TRACKS_DEFAULT_LIMIT,
@@ -68,17 +68,17 @@ function buildWhereClause(query: AdminTracksListQuery): { sql: string; params: u
 
   if (query.upcomingOnly) {
     parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
-    parts.push("date(release_date) >= date(?)")
+    parts.push("release_date::date >= ?::date")
     params.push(todayIsoDate())
     parts.push("status NOT IN ('rejected', 'postponed')")
   } else if (query.releaseDateFrom || query.releaseDateTo) {
     parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
     if (query.releaseDateFrom) {
-      parts.push("date(release_date) >= date(?)")
+      parts.push("release_date::date >= ?::date")
       params.push(query.releaseDateFrom)
     }
     if (query.releaseDateTo) {
-      parts.push("date(release_date) <= date(?)")
+      parts.push("release_date::date <= ?::date")
       params.push(query.releaseDateTo)
     }
   }
@@ -93,41 +93,42 @@ function buildOrderClause(
 ): string {
   const dir = sortDirection === "desc" ? "DESC" : "ASC"
   if (sortField === "createdAt") {
-    return `ORDER BY datetime(created_at) ${dir}, id ${dir}`
+    return `ORDER BY created_at::timestamptz ${dir}, id ${dir}`
   }
-  return `ORDER BY datetime(COALESCE(NULLIF(TRIM(release_date), ''), created_at)) ${dir}, id ${dir}`
+  return `ORDER BY COALESCE(NULLIF(TRIM(release_date), '')::timestamptz, created_at) ${dir}, id ${dir}`
 }
 
-export function countTracksInDatabase(): number {
-  const db = getDb()
-  const row = db.prepare("SELECT COUNT(*) AS c FROM tracks").get() as { c: number }
-  return row.c
+export async function countTracksInDatabase(): Promise<number> {
+  const row = await queryOne<{ c: string | number }>("SELECT COUNT(*) AS c FROM tracks")
+  return Number(row?.c ?? 0)
 }
 
-export function countTracksMatching(query: AdminTracksListQuery): number {
-  const db = getDb()
+export async function countTracksMatching(query: AdminTracksListQuery): Promise<number> {
   const { sql, params } = buildWhereClause(query)
-  const row = db
-    .prepare(`SELECT COUNT(*) AS c FROM tracks ${sql}`)
-    .get(...params) as { c: number }
-  return row.c
+  const row = await queryOne<{ c: string | number }>(
+    `SELECT COUNT(*) AS c FROM tracks ${sql}`,
+    params
+  )
+  return Number(row?.c ?? 0)
 }
 
-export function listTracksForAdmin(query: AdminTracksListQuery): AdminTracksListResult {
-  const db = getDb()
-  const limit = clampLimit(query.limit)
-  const offset = Math.max(0, Math.floor(query.offset ?? 0))
-  const sortField = query.sortField ?? "releaseDate"
-  const sortDirection = query.sortDirection ?? "asc"
-  const { sql, params } = buildWhereClause(query)
+export async function listTracksForAdmin(
+  listQuery: AdminTracksListQuery
+): Promise<AdminTracksListResult> {
+  const limit = clampLimit(listQuery.limit)
+  const offset = Math.max(0, Math.floor(listQuery.offset ?? 0))
+  const sortField = listQuery.sortField ?? "releaseDate"
+  const sortDirection = listQuery.sortDirection ?? "asc"
+  const { sql, params } = buildWhereClause(listQuery)
   const order = buildOrderClause(sortField, sortDirection)
 
-  const total = countTracksMatching(query)
-  const totalInDatabase = countTracksInDatabase()
+  const total = await countTracksMatching(listQuery)
+  const totalInDatabase = await countTracksInDatabase()
 
-  const rows = db
-    .prepare(`SELECT * FROM tracks ${sql} ${order} LIMIT ? OFFSET ?`)
-    .all(...params, limit, offset) as TrackRow[]
+  const rows = await query<TrackRow>(
+    `SELECT * FROM tracks ${sql} ${order} LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  )
 
   const tracks = rows.map(rowToTrack)
 
@@ -141,15 +142,15 @@ export function listTracksForAdmin(query: AdminTracksListQuery): AdminTracksList
   }
 }
 
-export function getAdminTracksStats(userId?: string): AdminTracksStats {
-  const db = getDb()
+export async function getAdminTracksStats(userId?: string): Promise<AdminTracksStats> {
   const uid = userId?.trim()
   const userClause = uid ? "WHERE LOWER(user_id) = LOWER(?)" : ""
   const userParams: unknown[] = uid ? [uid] : []
 
-  const byStatusRows = db
-    .prepare(`SELECT status, COUNT(*) AS c FROM tracks ${userClause} GROUP BY status`)
-    .all(...userParams) as { status: string; c: number }[]
+  const byStatusRows = await query<{ status: string; c: string | number }>(
+    `SELECT status, COUNT(*) AS c FROM tracks ${userClause} GROUP BY status`,
+    userParams
+  )
 
   const byStatus = Object.fromEntries(
     ALL_TRACK_STATUSES.map((s) => [s, 0])
@@ -166,12 +167,13 @@ export function getAdminTracksStats(userId?: string): AdminTracksStats {
 
   const upcomingParams: unknown[] = uid ? [uid, todayIsoDate()] : [todayIsoDate()]
   const upcomingWhere = uid
-    ? "LOWER(user_id) = LOWER(?) AND release_date IS NOT NULL AND TRIM(release_date) != '' AND date(release_date) >= date(?) AND status NOT IN ('rejected', 'postponed')"
-    : "release_date IS NOT NULL AND TRIM(release_date) != '' AND date(release_date) >= date(?) AND status NOT IN ('rejected', 'postponed')"
+    ? "LOWER(user_id) = LOWER(?) AND release_date IS NOT NULL AND TRIM(release_date) != '' AND release_date::date >= ?::date AND status NOT IN ('rejected', 'postponed')"
+    : "release_date IS NOT NULL AND TRIM(release_date) != '' AND release_date::date >= ?::date AND status NOT IN ('rejected', 'postponed')"
 
-  const upcomingRow = db
-    .prepare(`SELECT COUNT(*) AS c FROM tracks WHERE ${upcomingWhere}`)
-    .get(...upcomingParams) as { c: number }
+  const upcomingRow = await queryOne<{ c: string | number }>(
+    `SELECT COUNT(*) AS c FROM tracks WHERE ${upcomingWhere}`,
+    upcomingParams
+  )
 
   const draftPlaceholders = ADMIN_UPLOAD_DRAFT_STATUSES.map(() => "?").join(", ")
   const draftParams: unknown[] = [...ADMIN_UPLOAD_DRAFT_STATUSES]
@@ -180,31 +182,29 @@ export function getAdminTracksStats(userId?: string): AdminTracksStats {
     draftWhere += " AND LOWER(user_id) = LOWER(?)"
     draftParams.push(uid)
   }
-  const draftRow = db
-    .prepare(`SELECT COUNT(*) AS c FROM upload_drafts WHERE ${draftWhere}`)
-    .get(...draftParams) as { c: number }
+  const draftRow = await queryOne<{ c: string | number }>(
+    `SELECT COUNT(*) AS c FROM upload_drafts WHERE ${draftWhere}`,
+    draftParams
+  )
 
   return {
     total,
     byStatus,
-    upcomingCount: Number(upcomingRow.c) || 0,
-    uploadDraftsCount: Number(draftRow.c) || 0,
+    upcomingCount: Number(upcomingRow?.c ?? 0) || 0,
+    uploadDraftsCount: Number(draftRow?.c ?? 0) || 0,
   }
 }
 
-export function listTrackMetaForAdmin(): AdminTrackMeta[] {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT id, track_name, artist_name, album_id, user_id FROM tracks ORDER BY datetime(created_at) DESC`
-    )
-    .all() as {
+export async function listTrackMetaForAdmin(): Promise<AdminTrackMeta[]> {
+  const rows = await query<{
     id: string
     track_name: string
     artist_name: string
     album_id: string | null
     user_id: string
-  }[]
+  }>(
+    `SELECT id, track_name, artist_name, album_id, user_id FROM tracks ORDER BY created_at::timestamptz DESC`
+  )
 
   return rows.map((row) => ({
     id: row.id,

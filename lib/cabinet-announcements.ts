@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { getDb } from "./db"
+import { execute, query, queryOne } from "./database"
 
 export type CabinetAnnouncement = {
   id: string
@@ -13,119 +13,111 @@ function rowToAnnouncement(row: {
   id: string
   title: string
   body: string
-  active: number
+  active: boolean
   created_at: string
 }): CabinetAnnouncement {
   return {
     id: row.id,
     title: row.title,
     body: row.body,
-    active: row.active === 1,
+    active: row.active,
     createdAt: row.created_at,
   }
 }
 
-export function listPendingAnnouncementsForUser(userId: string): CabinetAnnouncement[] {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT a.id, a.title, a.body, a.active, a.created_at
-       FROM cabinet_announcements a
-       WHERE a.active = 1
-         AND NOT EXISTS (
-           SELECT 1 FROM cabinet_announcement_dismissals d
-           WHERE d.user_id = ? AND d.announcement_id = a.id
-         )
-       ORDER BY a.created_at ASC`
-    )
-    .all(userId) as {
+export async function listPendingAnnouncementsForUser(userId: string): Promise<CabinetAnnouncement[]> {
+  const rows = await query<{
     id: string
     title: string
     body: string
-    active: number
+    active: boolean
     created_at: string
-  }[]
+  }>(
+    `SELECT a.id, a.title, a.body, a.active, a.created_at
+     FROM cabinet_announcements a
+     WHERE a.active = TRUE
+       AND NOT EXISTS (
+         SELECT 1 FROM cabinet_announcement_dismissals d
+         WHERE d.user_id = ? AND d.announcement_id = a.id
+       )
+     ORDER BY a.created_at ASC`,
+    [userId]
+  )
   return rows.map(rowToAnnouncement)
 }
 
-export function dismissCabinetAnnouncement(userId: string, announcementId: string): boolean {
-  const db = getDb()
-  const exists = db.prepare(`SELECT 1 FROM cabinet_announcements WHERE id = ?`).get(announcementId)
+export async function dismissCabinetAnnouncement(userId: string, announcementId: string): Promise<boolean> {
+  const exists = await queryOne(`SELECT 1 FROM cabinet_announcements WHERE id = ?`, [announcementId])
   if (!exists) return false
   const now = new Date().toISOString()
-  db.prepare(
-    `INSERT OR IGNORE INTO cabinet_announcement_dismissals (user_id, announcement_id, dismissed_at)
-     VALUES (?, ?, ?)`
-  ).run(userId, announcementId, now)
+  await execute(
+    `INSERT INTO cabinet_announcement_dismissals (user_id, announcement_id, dismissed_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT (user_id, announcement_id) DO NOTHING`,
+    [userId, announcementId, now]
+  )
   return true
 }
 
-export function listAllCabinetAnnouncements(): CabinetAnnouncement[] {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT id, title, body, active, created_at FROM cabinet_announcements ORDER BY created_at DESC`
-    )
-    .all() as {
+export async function listAllCabinetAnnouncements(): Promise<CabinetAnnouncement[]> {
+  const rows = await query<{
     id: string
     title: string
     body: string
-    active: number
+    active: boolean
     created_at: string
-  }[]
+  }>(
+    `SELECT id, title, body, active, created_at FROM cabinet_announcements ORDER BY created_at DESC`
+  )
   return rows.map(rowToAnnouncement)
 }
 
-export function createCabinetAnnouncement(title: string, body: string): CabinetAnnouncement {
-  const db = getDb()
+export async function createCabinetAnnouncement(title: string, body: string): Promise<CabinetAnnouncement> {
   const id = crypto.randomUUID()
   const createdAt = new Date().toISOString()
-  db.prepare(
+  await execute(
     `INSERT INTO cabinet_announcements (id, title, body, active, created_at)
-     VALUES (?, ?, ?, 1, ?)`
-  ).run(id, title.trim(), body.trim(), createdAt)
+     VALUES (?, ?, ?, TRUE, ?)`,
+    [id, title.trim(), body.trim(), createdAt]
+  )
   return { id, title: title.trim(), body: body.trim(), active: true, createdAt }
 }
 
-export function updateCabinetAnnouncement(
+export async function updateCabinetAnnouncement(
   id: string,
   patch: { title?: string; body?: string; active?: boolean }
-): CabinetAnnouncement | null {
-  const db = getDb()
-  const current = db
-    .prepare(`SELECT id, title, body, active, created_at FROM cabinet_announcements WHERE id = ?`)
-    .get(id) as
-    | {
-        id: string
-        title: string
-        body: string
-        active: number
-        created_at: string
-      }
-    | undefined
+): Promise<CabinetAnnouncement | null> {
+  const current = await queryOne<{
+    id: string
+    title: string
+    body: string
+    active: boolean
+    created_at: string
+  }>(`SELECT id, title, body, active, created_at FROM cabinet_announcements WHERE id = ?`, [id])
   if (!current) return null
 
   const title = patch.title !== undefined ? patch.title.trim() : current.title
   const body = patch.body !== undefined ? patch.body.trim() : current.body
-  const active =
-    patch.active !== undefined ? (patch.active ? 1 : 0) : current.active
+  const active = patch.active !== undefined ? patch.active : current.active
 
-  db.prepare(
-    `UPDATE cabinet_announcements SET title = ?, body = ?, active = ? WHERE id = ?`
-  ).run(title, body, active, id)
+  await execute(`UPDATE cabinet_announcements SET title = ?, body = ?, active = ? WHERE id = ?`, [
+    title,
+    body,
+    active,
+    id,
+  ])
 
   return {
     id: current.id,
     title,
     body,
-    active: active === 1,
+    active,
     createdAt: current.created_at,
   }
 }
 
-export function deleteCabinetAnnouncement(id: string): boolean {
-  const db = getDb()
-  db.prepare(`DELETE FROM cabinet_announcement_dismissals WHERE announcement_id = ?`).run(id)
-  const res = db.prepare(`DELETE FROM cabinet_announcements WHERE id = ?`).run(id)
-  return res.changes > 0
+export async function deleteCabinetAnnouncement(id: string): Promise<boolean> {
+  await execute(`DELETE FROM cabinet_announcement_dismissals WHERE announcement_id = ?`, [id])
+  const n = await execute(`DELETE FROM cabinet_announcements WHERE id = ?`, [id])
+  return n > 0
 }

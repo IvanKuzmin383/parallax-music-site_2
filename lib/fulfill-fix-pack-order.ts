@@ -52,7 +52,7 @@ export async function fulfillFixPackOrder(params: FulfillFixPackOrderParams): Pr
     await addFixPackCredits(user.id, tracksCount)
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId, userId: user.id })
   } else {
-    addPendingFixCredits({ email, tracksCount, orderId })
+    await addPendingFixCredits({ email, tracksCount, orderId })
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
 
     if (isEmailConfigured()) {
@@ -114,7 +114,7 @@ export async function applyFixPackCreditsOnRegister(
     (sum, order) => sum + Math.max(0, order.tracksCount ?? 0),
     0
   )
-  const totalFromPending = sumPendingFixCredits(email)
+  const totalFromPending = await sumPendingFixCredits(email)
   // Берём максимум: pending может содержать корректное число, если в заказе tracks_count = 0.
   // Не суммируем оба источника — один заказ может быть и в orders, и в pending.
   const totalTracks = Math.max(totalFromOrders, totalFromPending)
@@ -123,6 +123,6 @@ export async function applyFixPackCreditsOnRegister(
 
   if (totalTracks > 0) {
     await addFixPackCredits(userId, totalTracks)
-    deletePendingFixCreditsByEmail(email)
+    await deletePendingFixCreditsByEmail(email)
   }
 }

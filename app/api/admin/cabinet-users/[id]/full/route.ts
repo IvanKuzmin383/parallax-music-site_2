@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { getDb } from "@/lib/db"
+import { query, queryOne } from "@/lib/database"
 
 function safeJsonParse<T>(value: unknown): T | null {
   if (typeof value !== "string" || !value.trim()) return null
@@ -21,147 +21,136 @@ export async function GET(
   }
 
   const { id } = await params
-  const db = getDb()
 
-  const user = db.prepare("SELECT * FROM cabinet_users WHERE id = ?").get(id) as Record<string, unknown> | undefined
+  const user = await queryOne<Record<string, unknown>>(
+    "SELECT * FROM cabinet_users WHERE id = ?",
+    [id]
+  )
   if (!user) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   }
 
   const email = String(user.email ?? "")
 
-  const tracks = db
-    .prepare(
-      `
+  const tracks = await query<Record<string, unknown>>(
+    `
       SELECT * FROM tracks
       WHERE user_id = ? OR LOWER(user_id) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const albums = db
-    .prepare(
-      `
+  const albums = await query<Record<string, unknown>>(
+    `
       SELECT * FROM albums
       WHERE user_id = ? OR LOWER(user_id) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const orders = db
-    .prepare(
-      `
+  const orders = await query<Record<string, unknown>>(
+    `
       SELECT * FROM orders
       WHERE user_id = ? OR LOWER(COALESCE(user_email, '')) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const uploadDrafts = db
-    .prepare(
-      `
+  const uploadDrafts = await query<Record<string, unknown>>(
+    `
       SELECT * FROM upload_drafts
       WHERE user_id = ? OR LOWER(user_id) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const withdrawalRequests = db
-    .prepare(
-      `
+  const withdrawalRequests = await query<Record<string, unknown>>(
+    `
       SELECT * FROM withdrawal_requests
       WHERE user_id = ? OR LOWER(user_id) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const streamingReports = db
-    .prepare(
-      `
+  const streamingReports = await query<Record<string, unknown>>(
+    `
       SELECT * FROM streaming_reports
       WHERE user_id = ? OR LOWER(user_id) = LOWER(?)
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const artistSubscriptions = db
-    .prepare(
-      `
+  const artistSubscriptions = await query<Record<string, unknown>>(
+    `
       SELECT * FROM cabinet_user_artist_subscriptions
       WHERE user_id = ?
-      ORDER BY datetime(created_at) DESC
-    `
-    )
-    .all(id) as Record<string, unknown>[]
+      ORDER BY created_at::timestamptz DESC
+    `,
+    [id]
+  )
 
-  const announcementDismissals = db
-    .prepare(
-      `
+  const announcementDismissals = await query<Record<string, unknown>>(
+    `
       SELECT d.*, a.title AS announcement_title
       FROM cabinet_announcement_dismissals d
       LEFT JOIN cabinet_announcements a ON a.id = d.announcement_id
       WHERE d.user_id = ?
-      ORDER BY datetime(d.dismissed_at) DESC
-    `
-    )
-    .all(id) as Record<string, unknown>[]
+      ORDER BY d.dismissed_at::timestamptz DESC
+    `,
+    [id]
+  )
 
-  const legalAcceptanceEvents = db
-    .prepare(
-      `
+  const legalAcceptanceEvents = await query<Record<string, unknown>>(
+    `
       SELECT e.*, v.document_key, v.revision_label
       FROM legal_acceptance_events e
       LEFT JOIN legal_document_versions v ON v.id = e.document_version_id
       WHERE LOWER(e.user_email) = LOWER(?)
-      ORDER BY datetime(e.occurred_at) DESC
-    `
-    )
-    .all(email) as Record<string, unknown>[]
+      ORDER BY e.occurred_at::timestamptz DESC
+    `,
+    [email]
+  )
 
-  const passwordResetTokens = db
-    .prepare(
-      `
+  const passwordResetTokens = await query<Record<string, unknown>>(
+    `
       SELECT * FROM password_reset_tokens
       WHERE user_id = ? OR LOWER(email) = LOWER(?)
-      ORDER BY datetime(expires_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY expires_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const pendingAutopay = db
-    .prepare(
-      `
+  const pendingAutopay = await queryOne<Record<string, unknown>>(
+    `
       SELECT * FROM pending_subscription_autopay
       WHERE LOWER(email) = LOWER(?)
-    `
-    )
-    .get(email) as Record<string, unknown> | undefined
+    `,
+    [email]
+  )
 
-  const autopayDisableTokens = db
-    .prepare(
-      `
+  const autopayDisableTokens = await query<Record<string, unknown>>(
+    `
       SELECT * FROM autopay_disable_tokens
       WHERE user_id = ? OR LOWER(email) = LOWER(?)
-      ORDER BY datetime(expires_at) DESC
-    `
-    )
-    .all(id, email) as Record<string, unknown>[]
+      ORDER BY expires_at::timestamptz DESC
+    `,
+    [id, email]
+  )
 
-  const deletedHistory = db
-    .prepare(
-      `
+  const deletedHistory = await query<Record<string, unknown>>(
+    `
       SELECT * FROM cabinet_user_deletions
       WHERE LOWER(email) = LOWER(?)
-      ORDER BY datetime(deleted_at) DESC
-    `
-    )
-    .all(email) as Record<string, unknown>[]
+      ORDER BY deleted_at::timestamptz DESC
+    `,
+    [email]
+  )
 
   const preparedTracks = tracks.map((row) => ({
     ...row,

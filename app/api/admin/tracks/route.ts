@@ -86,11 +86,11 @@ export async function GET(request: NextRequest) {
 
   try {
     if (searchParams.get("meta") === "1") {
-      return NextResponse.json({ tracks: listTrackMetaForAdmin() })
+      return NextResponse.json({ tracks: await listTrackMetaForAdmin() })
     }
 
     const listQuery = buildListQuery(searchParams)
-    const tracksPage = listTracksForAdmin({
+    const tracksPage = await listTracksForAdmin({
       ...listQuery,
       limit: listQuery.limit ?? ADMIN_TRACKS_DEFAULT_LIMIT,
     })
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       limit: draftUserId ? 200 : 500,
     })
     const uploadDrafts = allDrafts.filter((d) => ADMIN_DRAFT_STATUSES.has(d.status))
-    const stats = getAdminTracksStats(listQuery.userId)
+    const stats = await getAdminTracksStats(listQuery.userId)
 
     return NextResponse.json({
       tracks: tracksPage.tracks,

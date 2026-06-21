@@ -137,7 +137,7 @@ export async function PATCH(
 
   if (data.smartlinkSlug !== undefined && data.smartlinkSlug && data.smartlinkSlug.trim()) {
     const slug = data.smartlinkSlug.trim()
-    if (isSmartlinkSlugTaken(slug, id)) {
+    if (await isSmartlinkSlugTaken(slug, id)) {
       return NextResponse.json(
         { error: "Такой смартлинк уже занят другим треком" },
         { status: 409 }

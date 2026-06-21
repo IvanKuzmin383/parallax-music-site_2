@@ -22,7 +22,7 @@ import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
 import { createAlbum, type Album } from "@/lib/albums"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
-import { getDb } from "@/lib/db"
+import { withTransaction } from "@/lib/database"
 import {
   backfillMissingTrackAcceptancesForUser,
   tryRecordLicenseAcceptanceForTrack,
@@ -53,32 +53,34 @@ async function applyFixPackCreditsAfterFinalize(
   await deductFixPackCreditsOnUpload(user, tracksToAdd)
 }
 
-function logLicenseAcceptancesForTracks(
+async function logLicenseAcceptancesForTracks(
   tracks: Track[],
   context?: FinalizeUploadDraftContext,
   options?: { occurredAtIso?: string }
-): void {
+): Promise<void> {
   if (tracks.length === 0) return
   try {
-    const db = getDb()
-    for (const t of tracks) {
-      tryRecordLicenseAcceptanceForTrack(db, {
-        userEmail: t.userId,
-        trackId: t.id,
-        occurredAtIso: options?.occurredAtIso ?? t.createdAt,
-        clientIp: context?.clientIp ?? null,
-        userAgent: context?.userAgent ?? null,
-      })
-    }
+    await withTransaction(async (client) => {
+      for (const t of tracks) {
+        await tryRecordLicenseAcceptanceForTrack(client, {
+          userEmail: t.userId,
+          trackId: t.id,
+          occurredAtIso: options?.occurredAtIso ?? t.createdAt,
+          clientIp: context?.clientIp ?? null,
+          userAgent: context?.userAgent ?? null,
+        })
+      }
+    })
   } catch (legalErr) {
     console.error("[upload-draft-finalize] legal acceptance log failed:", legalErr)
   }
 }
 
-function ensureUserTrackAcceptancesInJournal(ownerEmail: string): void {
+async function ensureUserTrackAcceptancesInJournal(ownerEmail: string): Promise<void> {
   try {
-    const db = getDb()
-    backfillMissingTrackAcceptancesForUser(db, ownerEmail)
+    await withTransaction(async (client) => {
+      await backfillMissingTrackAcceptancesForUser(client, ownerEmail)
+    })
   } catch (legalErr) {
     console.error("[upload-draft-finalize] legal acceptance backfill failed:", legalErr)
   }
@@ -194,8 +196,8 @@ export async function finalizeUploadDraftCore(
           await updateTrack(t.id, { status: "on_moderation" })
         }
       }
-      logLicenseAcceptancesForTracks(tracks, context, { occurredAtIso: new Date().toISOString() })
-      ensureUserTrackAcceptancesInJournal(ownerEmail)
+      await logLicenseAcceptancesForTracks(tracks, context, { occurredAtIso: new Date().toISOString() })
+      await ensureUserTrackAcceptancesInJournal(ownerEmail)
       await removeUploadDraftFiles(draft)
       const updated = await markUploadDraftFinalized(draft.id)
       if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
@@ -375,8 +377,8 @@ export async function finalizeUploadDraftCore(
       createdTracks.push(track)
     }
 
-    logLicenseAcceptancesForTracks(createdTracks, context)
-    ensureUserTrackAcceptancesInJournal(ownerEmail)
+    await logLicenseAcceptancesForTracks(createdTracks, context)
+    await ensureUserTrackAcceptancesInJournal(ownerEmail)
     await removeUploadDraftFiles(draft)
     const updated = await updateUploadDraft(draft.id, { status: "finalized", albumId: album.id })
     if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
@@ -555,8 +557,8 @@ export async function finalizeUploadDraftCore(
     transferFromOtherDistributor: xferNew.transfer,
   })
 
-  logLicenseAcceptancesForTracks([track], context)
-  ensureUserTrackAcceptancesInJournal(ownerEmail)
+  await logLicenseAcceptancesForTracks([track], context)
+  await ensureUserTrackAcceptancesInJournal(ownerEmail)
   await removeUploadDraftFiles(draft)
   const updated = await markUploadDraftFinalized(draft.id)
   if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }

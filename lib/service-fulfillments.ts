@@ -1,4 +1,4 @@
-import { getDb } from "./db"
+import { query, queryOne, execute } from "./database"
 import type { OrderType, UploadAddonBundleItem } from "./orders"
 import { addonBundleItemsFromUploadDraftPayload } from "./cabinet-upload-draft-addons"
 import { getUploadDraftByBundleOrderId, getUploadDraftById } from "./upload-drafts"
@@ -40,43 +40,44 @@ function nowIso(): string {
 }
 
 /** Вставить строку исполнения со статусом `new`, если её ещё нет (идемпотентно). */
-export function upsertNewFulfillmentIfMissing(orderId: string): void {
-  const db = getDb()
-  const exists = db.prepare("SELECT 1 FROM service_fulfillments WHERE order_id = ?").get(orderId)
+export async function upsertNewFulfillmentIfMissing(orderId: string): Promise<void> {
+  const exists = await queryOne("SELECT 1 AS ok FROM service_fulfillments WHERE order_id = ?", [orderId])
   if (exists) return
   const t = nowIso()
-  db.prepare(
+  await execute(
     `INSERT INTO service_fulfillments (order_id, fulfillment_status, created_at, updated_at)
-     VALUES (?, 'new', ?, ?)`
-  ).run(orderId, t, t)
+     VALUES (?, 'new', ?, ?)`,
+    [orderId, t, t]
+  )
 }
 
 const placeholders = SERVICE_ORDER_TYPES.map(() => "?").join(", ")
 
 /** Для всех оплаченных заказов услуг без строки исполнения - вставить `new`. */
-export function ensureMissingFulfillmentRowsForPaidOrders(options?: { userId?: string }): void {
-  const db = getDb()
+export async function ensureMissingFulfillmentRowsForPaidOrders(options?: { userId?: string }): Promise<void> {
   const t = nowIso()
   const types = [...SERVICE_ORDER_TYPES]
   if (options?.userId) {
-    db.prepare(
+    await execute(
       `INSERT INTO service_fulfillments (order_id, fulfillment_status, created_at, updated_at)
        SELECT o.id, 'new', ?, ?
        FROM orders o
        WHERE o.user_id = ?
          AND o.status = 'paid'
          AND o.order_type IN (${placeholders})
-         AND NOT EXISTS (SELECT 1 FROM service_fulfillments sf WHERE sf.order_id = o.id)`
-    ).run(t, t, options.userId, ...types)
+         AND NOT EXISTS (SELECT 1 FROM service_fulfillments sf WHERE sf.order_id = o.id)`,
+      [t, t, options.userId, ...types]
+    )
   } else {
-    db.prepare(
+    await execute(
       `INSERT INTO service_fulfillments (order_id, fulfillment_status, created_at, updated_at)
        SELECT o.id, 'new', ?, ?
        FROM orders o
        WHERE o.status = 'paid'
          AND o.order_type IN (${placeholders})
-         AND NOT EXISTS (SELECT 1 FROM service_fulfillments sf WHERE sf.order_id = o.id)`
-    ).run(t, t, ...types)
+         AND NOT EXISTS (SELECT 1 FROM service_fulfillments sf WHERE sf.order_id = o.id)`,
+      [t, t, ...types]
+    )
   }
 }
 
@@ -213,27 +214,10 @@ export async function listServiceFulfillmentsForUser(
   userId: string,
   filter: ServiceFulfillmentFilter
 ): Promise<ServiceFulfillmentListRow[]> {
-  ensureMissingFulfillmentRowsForPaidOrders({ userId })
-  const db = getDb()
+  await ensureMissingFulfillmentRowsForPaidOrders({ userId })
   const extra = fulfillmentFilterSql(filter)
   const types = [...SERVICE_ORDER_TYPES]
-  const rows = db
-    .prepare(
-      `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
-              o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
-              o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
-              o.upload_addon_bundle_payload_json
-       FROM orders o
-       INNER JOIN service_fulfillments sf ON sf.order_id = o.id
-       LEFT JOIN cabinet_users cu ON cu.id = o.user_id
-       WHERE o.user_id = ?
-         AND o.status = 'paid'
-         AND o.order_type IN (${placeholders})
-         ${extra}
-       ORDER BY datetime(COALESCE(o.paid_at, o.created_at)) DESC
-       LIMIT 200`
-    )
-    .all(userId, ...types) as {
+  const rows = await query<{
     order_id: string
     order_type: string
     payment_status: string
@@ -249,7 +233,22 @@ export async function listServiceFulfillmentsForUser(
     contact_email: string | null
     contact_telegram: string | null
     upload_addon_bundle_payload_json: string | null
-  }[]
+  }>(
+    `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
+            o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
+            o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
+            o.upload_addon_bundle_payload_json
+     FROM orders o
+     INNER JOIN service_fulfillments sf ON sf.order_id = o.id
+     LEFT JOIN cabinet_users cu ON cu.id = o.user_id
+     WHERE o.user_id = ?
+       AND o.status = 'paid'
+       AND o.order_type IN (${placeholders})
+       ${extra}
+     ORDER BY COALESCE(o.paid_at, o.created_at) DESC
+     LIMIT 200`,
+    [userId, ...types]
+  )
 
   return mapDbRowsBase(rows)
 }
@@ -257,26 +256,10 @@ export async function listServiceFulfillmentsForUser(
 export async function listServiceFulfillmentsAdmin(
   filter: ServiceFulfillmentFilter
 ): Promise<ServiceFulfillmentListRow[]> {
-  ensureMissingFulfillmentRowsForPaidOrders()
-  const db = getDb()
+  await ensureMissingFulfillmentRowsForPaidOrders()
   const extra = fulfillmentFilterSql(filter)
   const types = [...SERVICE_ORDER_TYPES]
-  const rows = db
-    .prepare(
-      `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
-              o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
-              o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
-              o.upload_addon_bundle_payload_json
-       FROM orders o
-       INNER JOIN service_fulfillments sf ON sf.order_id = o.id
-       LEFT JOIN cabinet_users cu ON cu.id = o.user_id
-       WHERE o.status = 'paid'
-         AND o.order_type IN (${placeholders})
-         ${extra}
-       ORDER BY datetime(COALESCE(o.paid_at, o.created_at)) DESC
-       LIMIT 500`
-    )
-    .all(...types) as {
+  const rows = await query<{
     order_id: string
     order_type: string
     payment_status: string
@@ -292,38 +275,51 @@ export async function listServiceFulfillmentsAdmin(
     contact_email: string | null
     contact_telegram: string | null
     upload_addon_bundle_payload_json: string | null
-  }[]
+  }>(
+    `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
+            o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
+            o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
+            o.upload_addon_bundle_payload_json
+     FROM orders o
+     INNER JOIN service_fulfillments sf ON sf.order_id = o.id
+     LEFT JOIN cabinet_users cu ON cu.id = o.user_id
+     WHERE o.status = 'paid'
+       AND o.order_type IN (${placeholders})
+       ${extra}
+     ORDER BY COALESCE(o.paid_at, o.created_at) DESC
+     LIMIT 500`,
+    types
+  )
 
   return mapDbRowsBase(rows)
 }
 
-export function canSetFulfillmentForOrder(orderId: string): {
+export async function canSetFulfillmentForOrder(orderId: string): Promise<{
   ok: boolean
   reason?: string
-} {
-  const db = getDb()
-  const row = db
-    .prepare(
-      `SELECT id, order_type, status FROM orders WHERE id = ?`
-    )
-    .get(orderId) as { id: string; order_type: string; status: string } | undefined
+}> {
+  const row = await queryOne<{ id: string; order_type: string; status: string }>(
+    `SELECT id, order_type, status FROM orders WHERE id = ?`,
+    [orderId]
+  )
   if (!row) return { ok: false, reason: "ORDER_NOT_FOUND" }
   if (row.status !== "paid") return { ok: false, reason: "ORDER_NOT_PAID" }
   if (!SERVICE_ORDER_TYPE_SET.has(row.order_type)) return { ok: false, reason: "ORDER_TYPE_NOT_SERVICE" }
   return { ok: true }
 }
 
-export function setFulfillmentStatus(orderId: string, status: FulfillmentStatus): FulfillmentStatus | null {
-  const check = canSetFulfillmentForOrder(orderId)
+export async function setFulfillmentStatus(orderId: string, status: FulfillmentStatus): Promise<FulfillmentStatus | null> {
+  const check = await canSetFulfillmentForOrder(orderId)
   if (!check.ok) return null
-  upsertNewFulfillmentIfMissing(orderId)
-  const db = getDb()
+  await upsertNewFulfillmentIfMissing(orderId)
   const t = nowIso()
-  db.prepare(
-    `UPDATE service_fulfillments SET fulfillment_status = ?, updated_at = ? WHERE order_id = ?`
-  ).run(status, t, orderId)
-  const cur = db
-    .prepare(`SELECT fulfillment_status FROM service_fulfillments WHERE order_id = ?`)
-    .get(orderId) as { fulfillment_status: string } | undefined
+  await execute(
+    `UPDATE service_fulfillments SET fulfillment_status = ?, updated_at = ? WHERE order_id = ?`,
+    [status, t, orderId]
+  )
+  const cur = await queryOne<{ fulfillment_status: string }>(
+    `SELECT fulfillment_status FROM service_fulfillments WHERE order_id = ?`,
+    [orderId]
+  )
   return (cur?.fulfillment_status as FulfillmentStatus) ?? null
 }

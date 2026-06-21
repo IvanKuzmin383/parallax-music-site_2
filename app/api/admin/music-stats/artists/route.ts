@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { getDb } from "@/lib/db"
+import { query } from "@/lib/database"
 import { MUSIC_PLATFORM_LABELS, type MusicPlatformKey } from "@/lib/music-platform"
 
 function parsePlatformParam(v: string | null): { mode: "all" } | { mode: "some"; keys: MusicPlatformKey[] } | null {
@@ -41,46 +41,41 @@ export async function GET(request: NextRequest) {
     return Math.min(Math.floor(n), 50)
   })()
 
-  const db = getDb()
-
   if (platformParam.mode === "all") {
     const allKeys = Object.keys(MUSIC_PLATFORM_LABELS) as MusicPlatformKey[]
     const placeholders = allKeys.map(() => "?").join(",")
-    const rows = db
-      .prepare(
-        `
+    const rows = await query<{ author: string }>(
+      `
           SELECT DISTINCT author
           FROM music_platform_tracks
           WHERE platform_key IN (${placeholders})
             AND author IS NOT NULL
             AND TRIM(author) != ''
-            AND unicode_lower(author) LIKE ?
-          ORDER BY author COLLATE NOCASE
+            AND LOWER(author) LIKE ?
+          ORDER BY LOWER(author)
           LIMIT ?
         `,
-      )
-      .all(...allKeys, `${prefix}%`, limit) as Array<{ author: string }>
+      [...allKeys, `${prefix}%`, limit]
+    )
 
     return NextResponse.json({ artists: rows.map((r) => r.author) })
   }
 
   const someKeys = platformParam.keys
   const placeholders = someKeys.map(() => "?").join(",")
-  const rows = db
-    .prepare(
-      `
+  const rows = await query<{ author: string }>(
+    `
         SELECT DISTINCT author
         FROM music_platform_tracks
         WHERE platform_key IN (${placeholders})
           AND author IS NOT NULL
           AND TRIM(author) != ''
-          AND unicode_lower(author) LIKE ?
-        ORDER BY author COLLATE NOCASE
+          AND LOWER(author) LIKE ?
+        ORDER BY LOWER(author)
         LIMIT ?
       `,
-    )
-    .all(...someKeys, `${prefix}%`, limit) as Array<{ author: string }>
+    [...someKeys, `${prefix}%`, limit]
+  )
 
   return NextResponse.json({ artists: rows.map((r) => r.author) })
 }
-

@@ -1,5 +1,13 @@
 import { createHash, randomUUID } from "node:crypto"
-import { getDb } from "./db"
+import type { PoolClient } from "pg"
+import {
+  clientExecute,
+  execute,
+  clientQuery,
+  query,
+  queryOne,
+  withTransaction,
+} from "./database"
 import {
   ADMIN_TOP_TRACKS_MAX_PAGE,
   ADMIN_TOP_TRACKS_PAGE_SIZE,
@@ -12,16 +20,19 @@ import {
   type TopTrack,
 } from "./music-stats-shared"
 
-function getLatestMusicImportMeta(platformKey: MusicPlatformKey): {
+async function getLatestMusicImportMeta(platformKey: MusicPlatformKey): Promise<{
   source: string | null
   exportedAt: string | null
   totalRows: number
   totalTracksInFile: number
-} | null {
-  const db = getDb()
-  const row = db
-    .prepare(
-      `
+} | null> {
+  const row = await queryOne<{
+    source: string | null
+    exported_at: string | null
+    total_rows: number
+    total_tracks_in_file: number
+  }>(
+    `
         SELECT
           source,
           exported_at,
@@ -32,13 +43,8 @@ function getLatestMusicImportMeta(platformKey: MusicPlatformKey): {
         ORDER BY created_at DESC
         LIMIT 1
       `,
-    )
-    .get(platformKey) as {
-    source: string | null
-    exported_at: string | null
-    total_rows: number
-    total_tracks_in_file: number
-  } | undefined
+    [platformKey]
+  )
 
   if (!row) return null
 
@@ -50,13 +56,12 @@ function getLatestMusicImportMeta(platformKey: MusicPlatformKey): {
   }
 }
 
-/** unicode_lower - UDF из lib/db.ts (SQLite LOWER() не трогает кириллицу). */
 const TITLE_NORM_SQL =
-  "REPLACE(REPLACE(REPLACE(REPLACE(unicode_lower(t.title), ' ', ''), '-', ''), '–', ''), '-', '')"
+  "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(t.title), ' ', ''), '-', ''), '–', ''), '-', '')"
 
 /** Нормализация названия для сравнения (пробелы и дефисы убраны). */
 function titleNormSql(columnRef: string): string {
-  return `REPLACE(REPLACE(REPLACE(REPLACE(unicode_lower(${columnRef}), ' ', ''), '-', ''), '–', ''), '-', '')`
+  return `REPLACE(REPLACE(REPLACE(REPLACE(LOWER(${columnRef}), ' ', ''), '-', ''), '–', ''), '-', '')`
 }
 
 function normalizeTrackTitleForMatch(title: string): string {
@@ -83,18 +88,23 @@ export type AdminCabinetMusicTrackMapRow = {
   cabinetArtistName: string | null
 }
 
-export function listCabinetMusicTrackMapPage(args: {
+export async function listCabinetMusicTrackMapPage(args: {
   platformKey?: MusicPlatformKey | null
   userId?: string | null
   trackKey?: string | null
   cabinetTrackId?: string | null
   limit?: number
   offset?: number
-}): { rows: AdminCabinetMusicTrackMapRow[]; total: number; limit: number; offset: number; hasMore: boolean } {
-  const db = getDb()
+}): Promise<{
+  rows: AdminCabinetMusicTrackMapRow[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+}> {
   const limit = Math.min(
     Math.max(1, Math.floor(args.limit ?? ADMIN_CABINET_MUSIC_TRACK_MAP_PAGE_SIZE)),
-    ADMIN_CABINET_MUSIC_TRACK_MAP_MAX_LIMIT,
+    ADMIN_CABINET_MUSIC_TRACK_MAP_MAX_LIMIT
   )
   const offset = Math.max(0, Math.floor(args.offset ?? 0))
 
@@ -127,30 +137,28 @@ export function listCabinetMusicTrackMapPage(args: {
 
   const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : ""
 
-  const totalRow = db
-    .prepare(
-      `
+  const totalRow = await queryOne<{ total?: string | number }>(
+    `
         SELECT COUNT(*) AS total
         FROM cabinet_music_track_map m
         ${whereSql}
       `,
-    )
-    .get(...params) as { total?: number } | undefined
-  const total = totalRow?.total ?? 0
+    params
+  )
+  const total = Number(totalRow?.total ?? 0)
 
-  const rows = db
-    .prepare(
-      `
+  const rows = await query<AdminCabinetMusicTrackMapRow>(
+    `
         SELECT
-          m.user_id AS userId,
-          m.platform_key AS platformKey,
-          m.track_key AS trackKey,
-          m.cabinet_track_id AS cabinetTrackId,
-          m.matched_at AS matchedAt,
-          p.title AS importTrackTitle,
-          p.author AS importTrackAuthor,
-          c.track_name AS cabinetTrackName,
-          c.artist_name AS cabinetArtistName
+          m.user_id AS "userId",
+          m.platform_key AS "platformKey",
+          m.track_key AS "trackKey",
+          m.cabinet_track_id AS "cabinetTrackId",
+          m.matched_at AS "matchedAt",
+          p.title AS "importTrackTitle",
+          p.author AS "importTrackAuthor",
+          c.track_name AS "cabinetTrackName",
+          c.artist_name AS "cabinetArtistName"
         FROM cabinet_music_track_map m
         LEFT JOIN music_platform_tracks p
           ON p.platform_key = m.platform_key AND p.track_key = m.track_key
@@ -161,8 +169,8 @@ export function listCabinetMusicTrackMapPage(args: {
         LIMIT ?
         OFFSET ?
       `,
-    )
-    .all(...params, limit, offset) as AdminCabinetMusicTrackMapRow[]
+    [...params, limit, offset]
+  )
 
   return {
     rows,
@@ -173,13 +181,12 @@ export function listCabinetMusicTrackMapPage(args: {
   }
 }
 
-export function updateCabinetMusicTrackMapEntry(args: {
+export async function updateCabinetMusicTrackMapEntry(args: {
   userId: string
   platformKey: MusicPlatformKey
   trackKey: string
   cabinetTrackId: string
-}): void {
-  const db = getDb()
+}): Promise<void> {
   const userId = args.userId.trim().toLowerCase()
   const platformKey = args.platformKey
   const trackKey = args.trackKey.trim()
@@ -192,9 +199,8 @@ export function updateCabinetMusicTrackMapEntry(args: {
     throw new Error("invalid_platform_key")
   }
 
-  const exists = db
-    .prepare(
-      `
+  const exists = await queryOne(
+    `
         SELECT 1
         FROM cabinet_music_track_map
         WHERE user_id = ?
@@ -202,30 +208,29 @@ export function updateCabinetMusicTrackMapEntry(args: {
           AND track_key = ?
         LIMIT 1
       `,
-    )
-    .get(userId, platformKey, trackKey) as { 1?: number } | undefined
+    [userId, platformKey, trackKey]
+  )
 
   if (!exists) {
     throw new Error("map_entry_not_found")
   }
 
-  const ownerTrack = db
-    .prepare(
-      `
+  const ownerTrack = await queryOne<{ id: string }>(
+    `
         SELECT id
         FROM tracks
         WHERE id = ?
           AND LOWER(user_id) = ?
         LIMIT 1
       `,
-    )
-    .get(cabinetTrackId, userId) as { id: string } | undefined
+    [cabinetTrackId, userId]
+  )
 
   if (!ownerTrack) {
     throw new Error("cabinet_track_not_found_for_user")
   }
 
-  db.prepare(
+  await execute(
     `
       UPDATE cabinet_music_track_map
       SET cabinet_track_id = ?,
@@ -234,17 +239,21 @@ export function updateCabinetMusicTrackMapEntry(args: {
         AND platform_key = ?
         AND track_key = ?
     `,
-  ).run(cabinetTrackId, new Date().toISOString(), userId, platformKey, trackKey)
+    [cabinetTrackId, new Date().toISOString(), userId, platformKey, trackKey]
+  )
 }
 
-function rebuildCabinetMusicTrackMapForPlatformWithDb(
-  db: ReturnType<typeof getDb>,
+async function rebuildCabinetMusicTrackMapForPlatformWithClient(
+  client: PoolClient,
   platformKey: MusicPlatformKey,
-  matchedAtIso: string,
-): void {
+  matchedAtIso: string
+): Promise<void> {
   const tn = titleNormSql
-  db.prepare(`DELETE FROM cabinet_music_track_map WHERE platform_key = ?`).run(platformKey)
-  db.prepare(
+  await clientExecute(client, `DELETE FROM cabinet_music_track_map WHERE platform_key = ?`, [
+    platformKey,
+  ])
+  await clientExecute(
+    client,
     `
       INSERT INTO cabinet_music_track_map (
         user_id,
@@ -261,40 +270,46 @@ function rebuildCabinetMusicTrackMapForPlatformWithDb(
         ? AS matched_at
       FROM music_platform_tracks p
       JOIN tracks c
-        ON unicode_lower(c.artist_name) = unicode_lower(p.author)
+        ON LOWER(c.artist_name) = LOWER(p.author)
        AND ${tn("c.track_name")} = ${tn("p.title")}
       WHERE p.platform_key = ?
         AND c.user_id IS NOT NULL
         AND TRIM(c.user_id) <> ''
       GROUP BY LOWER(TRIM(c.user_id)), p.platform_key, p.track_key
     `,
-  ).run(matchedAtIso, platformKey)
+    [matchedAtIso, platformKey]
+  )
 }
 
-export function rebuildCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformKey): void {
-  const db = getDb()
+export async function rebuildCabinetMusicTrackMapForPlatform(
+  platformKey: MusicPlatformKey
+): Promise<void> {
   const nowIso = new Date().toISOString()
-  db.transaction(() => {
-    rebuildCabinetMusicTrackMapForPlatformWithDb(db, platformKey, nowIso)
-  })()
+  await withTransaction(async (client) => {
+    await rebuildCabinetMusicTrackMapForPlatformWithClient(client, platformKey, nowIso)
+  })
   rebuiltCabinetTrackMapPlatforms.add(platformKey)
 }
 
-function ensureCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformKey): void {
+async function ensureCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformKey): Promise<void> {
   if (rebuiltCabinetTrackMapPlatforms.has(platformKey)) return
-  const db = getDb()
-  const row = db
-    .prepare(
-      `
+  const row = await queryOne<{ total?: string | number }>(
+    `
         SELECT COUNT(*) AS total
         FROM cabinet_music_track_map
         WHERE platform_key = ?
       `,
-    )
-    .get(platformKey) as { total?: number } | undefined
+    [platformKey]
+  )
 
-  if ((row?.total ?? 0) === 0) {
-    rebuildCabinetMusicTrackMapForPlatformWithDb(db, platformKey, new Date().toISOString())
+  if (Number(row?.total ?? 0) === 0) {
+    await withTransaction(async (client) => {
+      await rebuildCabinetMusicTrackMapForPlatformWithClient(
+        client,
+        platformKey,
+        new Date().toISOString()
+      )
+    })
   }
   rebuiltCabinetTrackMapPlatforms.add(platformKey)
 }
@@ -302,14 +317,13 @@ function ensureCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformKey): v
 /**
  * Пагинация рейтинга треков для админки: из `music_platform_track_daily_plays`, а не из урезанной `music_platform_top_tracks`.
  */
-export function getAdminMusicStatsTopTracksPage(args: {
+export async function getAdminMusicStatsTopTracksPage(args: {
   platformKeys: MusicPlatformKey[]
   artist?: string
   filters?: { albumId?: string | null; trackId?: string | null; trackTitle?: string | null }
   offset: number
   limit: number
-}): { tracks: TopTrack[]; hasMore: boolean } {
-  const db = getDb()
+}): Promise<{ tracks: TopTrack[]; hasMore: boolean }> {
   const rawKeys = [...new Set(args.platformKeys)].filter((k) => k in MUSIC_PLATFORM_LABELS)
   if (rawKeys.length === 0) return { tracks: [], hasMore: false }
 
@@ -326,14 +340,15 @@ export function getAdminMusicStatsTopTracksPage(args: {
   const trackTitleFromTrackId =
     !directTrackTitle && trackId
       ? (
-          db.prepare(
+          await queryOne<{ track_name: string }>(
             `
               SELECT track_name
               FROM tracks
               WHERE id = ?
               LIMIT 1
             `,
-          ).get(trackId) as { track_name: string } | undefined
+            [trackId]
+          )
         )?.track_name?.trim() || null
       : null
 
@@ -355,7 +370,7 @@ export function getAdminMusicStatsTopTracksPage(args: {
 
   if (hasArtistFilter) {
     const likeTerm = `${artistTerm!.toLowerCase()}%`
-    whereParts.push("unicode_lower(t.author) LIKE ?")
+    whereParts.push("LOWER(t.author) LIKE ?")
     params.push(likeTerm)
   }
   if (trackTitle) {
@@ -376,9 +391,8 @@ export function getAdminMusicStatsTopTracksPage(args: {
 
   const rows = (
     useMergedRanking
-      ? db
-          .prepare(
-            `
+      ? await query<{ title: string; author: string; plays: string | number }>(
+          `
               SELECT
                 MAX(t.author) AS author,
                 MAX(t.title) AS title,
@@ -388,18 +402,17 @@ export function getAdminMusicStatsTopTracksPage(args: {
                 ON t.platform_key = d.platform_key AND t.track_key = d.track_key
               ${joinTracks}
               WHERE ${whereSql}
-              GROUP BY unicode_lower(t.author) || '__' || unicode_lower(t.title)
+              GROUP BY LOWER(t.author) || '__' || LOWER(t.title)
               ORDER BY plays DESC
               LIMIT ? OFFSET ?
             `,
-          )
-          .all(...params, fetchLimit, offset)
-      : db
-          .prepare(
-            `
+          [...params, fetchLimit, offset]
+        )
+      : await query<{ title: string; author: string; plays: string | number }>(
+          `
               SELECT
-                t.title AS title,
-                t.author AS author,
+                MAX(t.title) AS title,
+                MAX(t.author) AS author,
                 SUM(d.plays) AS plays
               FROM music_platform_track_daily_plays d
               JOIN music_platform_tracks t
@@ -410,8 +423,8 @@ export function getAdminMusicStatsTopTracksPage(args: {
               ORDER BY plays DESC
               LIMIT ? OFFSET ?
             `,
-          )
-          .all(...params, fetchLimit, offset)
+          [...params, fetchLimit, offset]
+        )
   ) as Array<{ title: string; author: string; plays: number }>
 
   const hasMore = rows.length > limit
@@ -422,24 +435,18 @@ export function getAdminMusicStatsTopTracksPage(args: {
   }
 }
 
-export function getMusicStatsByPlatformKey(platformKey: MusicPlatformKey): MusicStatsResponse {
-  const db = getDb()
-
-  const importMeta = getLatestMusicImportMeta(platformKey)
-
-  // Backward-compatible: previous callers passed only `platformKey`.
-  // New behavior: when `artist` is passed via a second argument, we compute stats dynamically.
+export async function getMusicStatsByPlatformKey(
+  platformKey: MusicPlatformKey
+): Promise<MusicStatsResponse> {
   return getMusicStatsByPlatformKeyWithArtist(platformKey)
 }
 
-export function getMusicStatsByPlatformKeyWithArtist(
+export async function getMusicStatsByPlatformKeyWithArtist(
   platformKey: MusicPlatformKey,
   artist?: string,
-  filters?: { albumId?: string | null; trackId?: string | null; trackTitle?: string | null },
-): MusicStatsResponse {
-  const db = getDb()
-
-  const importMeta = getLatestMusicImportMeta(platformKey)
+  filters?: { albumId?: string | null; trackId?: string | null; trackTitle?: string | null }
+): Promise<MusicStatsResponse> {
+  const importMeta = await getLatestMusicImportMeta(platformKey)
 
   const artistTerm = artist?.trim()
   const hasArtistFilter = !!artistTerm
@@ -447,48 +454,52 @@ export function getMusicStatsByPlatformKeyWithArtist(
   const trackId = filters?.trackId?.trim() ? filters?.trackId?.trim() : null
   const directTrackTitle = filters?.trackTitle?.trim() ? filters?.trackTitle?.trim() : null
 
-  // For legacy callers that send `trackId`, resolve cabinet track name and search by platform title.
-  // This avoids strict dependence on `track_key === tracks.id`.
   const trackTitleFromTrackId =
     !directTrackTitle && trackId
       ? (
-          db.prepare(
+          await queryOne<{ track_name: string }>(
             `
               SELECT track_name
               FROM tracks
               WHERE id = ?
               LIMIT 1
             `,
-          ).get(trackId) as { track_name: string } | undefined
+            [trackId]
+          )
         )?.track_name?.trim() || null
       : null
 
   const trackTitle = directTrackTitle ?? trackTitleFromTrackId
   const hasReleaseFilter = !!albumId || !!trackId || !!trackTitle
 
-  // Fast path: no filters that require joining with `music_platform_track_daily_plays`.
   if (!hasArtistFilter && !hasReleaseFilter) {
-    const dailyRows = db
-      .prepare(
-        `
+    const dailyRows = await query<{
+      stat_date: string
+      total_plays: number
+      tracks_with_plays: number
+    }>(
+      `
           SELECT stat_date, total_plays, tracks_with_plays
           FROM music_platform_daily_stats
           WHERE platform_key = ?
           ORDER BY stat_date ASC
         `,
-      )
-      .all(platformKey) as Array<{ stat_date: string; total_plays: number; tracks_with_plays: number }>
+      [platformKey]
+    )
 
-    const topSlice = getAdminMusicStatsTopTracksPage({
+    const topSlice = await getAdminMusicStatsTopTracksPage({
       platformKeys: [platformKey],
       filters: {},
       offset: 0,
       limit: ADMIN_TOP_TRACKS_PAGE_SIZE,
     })
 
-    const totalsRow = db
-      .prepare(
-        `
+    const totalsRow = await queryOne<{
+      total_plays: string | number
+      days_count: string | number
+      tracks_in_db: string | number
+    }>(
+      `
           SELECT
             COALESCE(SUM(total_plays), 0) AS total_plays,
             COUNT(*) AS days_count,
@@ -496,20 +507,19 @@ export function getMusicStatsByPlatformKeyWithArtist(
           FROM music_platform_daily_stats
           WHERE platform_key = ?
         `,
-      )
-      .get(platformKey, platformKey) as { total_plays: number; days_count: number; tracks_in_db: number }
+      [platformKey, platformKey]
+    )
 
-    const countryRows = db
-      .prepare(
-        `
+    const countryRows = await query<{ date: string; country: string; plays: string | number }>(
+      `
           SELECT stat_date AS date, country, SUM(plays) AS plays
           FROM music_platform_track_daily_plays_by_country
           WHERE platform_key = ?
           GROUP BY stat_date, country
           ORDER BY stat_date ASC, country ASC
         `,
-      )
-      .all(platformKey) as Array<{ date: string; country: string; plays: number }>
+      [platformKey]
+    )
 
     return {
       source: importMeta?.source ?? null,
@@ -517,36 +527,34 @@ export function getMusicStatsByPlatformKeyWithArtist(
       platformLabel: MUSIC_PLATFORM_LABELS[platformKey],
       exportedAt: importMeta?.exportedAt ?? null,
       totalRows: importMeta?.totalRows ?? 0,
-      totalTracksInFile: totalsRow?.tracks_in_db ?? 0,
-      totalPlays: totalsRow?.total_plays ?? 0,
-      daysCount: totalsRow?.days_count ?? 0,
+      totalTracksInFile: Number(totalsRow?.tracks_in_db ?? 0),
+      totalPlays: Number(totalsRow?.total_plays ?? 0),
+      daysCount: Number(totalsRow?.days_count ?? 0),
       dailyStats: dailyRows.map((r) => ({
         date: r.stat_date,
         totalPlays: r.total_plays,
         tracksWithPlays: r.tracks_with_plays,
       })),
       topTracks: topSlice.tracks,
-      countryStatsByDate: countryRows,
+      countryStatsByDate: countryRows.map((r) => ({
+        date: r.date,
+        country: r.country,
+        plays: Number(r.plays) || 0,
+      })),
     }
   }
 
-  // Dynamic query: we need track-level joins to support filtering by:
-  // - author prefix (music_platform_tracks.author)
-  // - album/track (cabinet `tracks` table joined by `track_key`)
   const whereParts: string[] = ["d.platform_key = ?"]
   const params: Array<string> = [platformKey]
 
   const joinTracks = albumId || (trackId && !trackTitle) ? "JOIN tracks c ON c.id = d.track_key" : ""
   if (hasArtistFilter) {
     const likeTerm = `${artistTerm!.toLowerCase()}%`
-    whereParts.push("unicode_lower(t.author) LIKE ?")
+    whereParts.push("LOWER(t.author) LIKE ?")
     params.push(likeTerm)
   }
   if (trackTitle) {
     const normalizedTrackTitle = normalizeTrackTitleForMatch(trackTitle)
-
-    // Normalize both DB value and filter value so variants like
-    // "Любовь-боль", "Любовь - боль", "Любовь-боль" match each other.
     whereParts.push(`${TITLE_NORM_SQL} LIKE ?`)
     params.push(`%${normalizedTrackTitle}%`)
   } else if (trackId) {
@@ -560,9 +568,12 @@ export function getMusicStatsByPlatformKeyWithArtist(
 
   const whereSql = whereParts.join(" AND ")
 
-  const dailyRows = db
-    .prepare(
-      `
+  const dailyRows = await query<{
+    stat_date: string
+    total_plays: string | number
+    tracks_with_plays: string | number
+  }>(
+    `
         SELECT
           d.stat_date,
           COALESCE(SUM(d.plays), 0) AS total_plays,
@@ -575,10 +586,10 @@ export function getMusicStatsByPlatformKeyWithArtist(
         GROUP BY d.stat_date
         ORDER BY d.stat_date ASC
       `,
-    )
-    .all(...params) as Array<{ stat_date: string; total_plays: number; tracks_with_plays: number }>
+    params
+  )
 
-  const topSlice = getAdminMusicStatsTopTracksPage({
+  const topSlice = await getAdminMusicStatsTopTracksPage({
     platformKeys: [platformKey],
     artist: artistTerm,
     filters: { albumId, trackId, trackTitle: directTrackTitle },
@@ -586,9 +597,12 @@ export function getMusicStatsByPlatformKeyWithArtist(
     limit: ADMIN_TOP_TRACKS_PAGE_SIZE,
   })
 
-  const totalsRow = db
-    .prepare(
-      `
+  const totalsRow = await queryOne<{
+    total_plays: string | number
+    days_count: string | number
+    tracks_in_db: string | number
+  }>(
+    `
         SELECT
           COALESCE(SUM(d.plays), 0) AS total_plays,
           COUNT(DISTINCT d.stat_date) AS days_count,
@@ -599,12 +613,11 @@ export function getMusicStatsByPlatformKeyWithArtist(
         ${joinTracks}
         WHERE ${whereSql}
       `,
-    )
-    .get(...params) as { total_plays: number; days_count: number; tracks_in_db: number }
+    params
+  )
 
-  const countryRows = db
-    .prepare(
-      `
+  const countryRows = await query<{ date: string; country: string; plays: string | number }>(
+    `
         SELECT
           d.stat_date AS date,
           d.country,
@@ -617,8 +630,8 @@ export function getMusicStatsByPlatformKeyWithArtist(
         GROUP BY d.stat_date, d.country
         ORDER BY d.stat_date ASC, d.country ASC
       `,
-    )
-    .all(...params) as Array<{ date: string; country: string; plays: number }>
+    params
+  )
 
   return {
     source: importMeta?.source ?? null,
@@ -628,16 +641,20 @@ export function getMusicStatsByPlatformKeyWithArtist(
     }${hasReleaseFilter ? ` • filtered` : ""}`,
     exportedAt: importMeta?.exportedAt ?? null,
     totalRows: importMeta?.totalRows ?? 0,
-    totalTracksInFile: totalsRow?.tracks_in_db ?? 0,
-    totalPlays: totalsRow?.total_plays ?? 0,
-    daysCount: totalsRow?.days_count ?? 0,
+    totalTracksInFile: Number(totalsRow?.tracks_in_db ?? 0),
+    totalPlays: Number(totalsRow?.total_plays ?? 0),
+    daysCount: Number(totalsRow?.days_count ?? 0),
     dailyStats: dailyRows.map((r) => ({
       date: r.stat_date,
-      totalPlays: r.total_plays,
-      tracksWithPlays: r.tracks_with_plays,
+      totalPlays: Number(r.total_plays) || 0,
+      tracksWithPlays: Number(r.tracks_with_plays) || 0,
     })),
     topTracks: topSlice.tracks,
-    countryStatsByDate: countryRows,
+    countryStatsByDate: countryRows.map((r) => ({
+      date: r.date,
+      country: r.country,
+      plays: Number(r.plays) || 0,
+    })),
   }
 }
 
@@ -646,13 +663,12 @@ export function getMusicStatsByPlatformKeyWithArtist(
  * Использует готовую таблицу соответствий `cabinet_music_track_map` (user+platform+track_key -> cabinet_track_id),
  * чтобы не делать дорогой матчинг по строкам author/title в каждом запросе.
  */
-export function getMusicStatsForCabinetUser(
+export async function getMusicStatsForCabinetUser(
   platformKey: MusicPlatformKey,
   cabinetUserEmail: string,
-  filters?: { albumId?: string | null; trackIds?: string[] | null },
-): MusicStatsResponse {
-  const db = getDb()
-  const importMeta = getLatestMusicImportMeta(platformKey)
+  filters?: { albumId?: string | null; trackIds?: string[] | null }
+): Promise<MusicStatsResponse> {
+  const importMeta = await getLatestMusicImportMeta(platformKey)
   const email = cabinetUserEmail.trim()
   if (!email) {
     return {
@@ -670,7 +686,7 @@ export function getMusicStatsForCabinetUser(
     }
   }
 
-  ensureCabinetMusicTrackMapForPlatform(platformKey)
+  await ensureCabinetMusicTrackMapForPlatform(platformKey)
 
   const albumId = filters?.albumId?.trim() ? filters.albumId.trim() : null
   const trackIds = (filters?.trackIds ?? []).map((id) => id.trim()).filter((id) => id.length > 0)
@@ -697,9 +713,12 @@ export function getMusicStatsForCabinetUser(
   const whereSql = whereParts.join(" AND ")
   const hasReleaseFilter = !!(albumId || trackIds.length > 0)
 
-  const dailyRows = db
-    .prepare(
-      `
+  const dailyRows = await query<{
+    stat_date: string
+    total_plays: string | number
+    tracks_with_plays: string | number
+  }>(
+    `
         SELECT
           d.stat_date,
           COALESCE(SUM(d.plays), 0) AS total_plays,
@@ -710,15 +729,14 @@ export function getMusicStatsForCabinetUser(
         GROUP BY d.stat_date
         ORDER BY d.stat_date ASC
       `,
-    )
-    .all(...params) as Array<{ stat_date: string; total_plays: number; tracks_with_plays: number }>
+    params
+  )
 
-  const topRows = db
-    .prepare(
-      `
+  const topRows = await query<{ title: string; author: string; plays: string | number }>(
+    `
         SELECT
-          t.title AS title,
-          t.author AS author,
+          MAX(t.title) AS title,
+          MAX(t.author) AS author,
           SUM(d.plays) AS plays
         FROM music_platform_track_daily_plays d
         JOIN music_platform_tracks t
@@ -729,12 +747,15 @@ export function getMusicStatsForCabinetUser(
         ORDER BY SUM(d.plays) DESC
         LIMIT 10
       `,
-    )
-    .all(...params) as Array<{ title: string; author: string; plays: number }>
+    params
+  )
 
-  const totalsRow = db
-    .prepare(
-      `
+  const totalsRow = await queryOne<{
+    total_plays: string | number
+    days_count: string | number
+    tracks_in_db: string | number
+  }>(
+    `
         SELECT
           COALESCE(SUM(d.plays), 0) AS total_plays,
           COUNT(DISTINCT d.stat_date) AS days_count,
@@ -743,12 +764,11 @@ export function getMusicStatsForCabinetUser(
         ${cabinetTrackJoin}
         WHERE ${whereSql}
       `,
-    )
-    .get(...params) as { total_plays: number; days_count: number; tracks_in_db: number }
+    params
+  )
 
-  const countryRows = db
-    .prepare(
-      `
+  const countryRows = await query<{ date: string; country: string; plays: string | number }>(
+    `
         SELECT
           d.stat_date AS date,
           d.country,
@@ -759,8 +779,8 @@ export function getMusicStatsForCabinetUser(
         GROUP BY d.stat_date, d.country
         ORDER BY d.stat_date ASC, d.country ASC
       `,
-    )
-    .all(...params) as Array<{ date: string; country: string; plays: number }>
+    params
+  )
 
   return {
     source: importMeta?.source ?? null,
@@ -770,16 +790,24 @@ export function getMusicStatsForCabinetUser(
     }`,
     exportedAt: importMeta?.exportedAt ?? null,
     totalRows: importMeta?.totalRows ?? 0,
-    totalTracksInFile: totalsRow?.tracks_in_db ?? 0,
-    totalPlays: totalsRow?.total_plays ?? 0,
-    daysCount: totalsRow?.days_count ?? 0,
+    totalTracksInFile: Number(totalsRow?.tracks_in_db ?? 0),
+    totalPlays: Number(totalsRow?.total_plays ?? 0),
+    daysCount: Number(totalsRow?.days_count ?? 0),
     dailyStats: dailyRows.map((r) => ({
       date: r.stat_date,
-      totalPlays: r.total_plays,
-      tracksWithPlays: r.tracks_with_plays,
+      totalPlays: Number(r.total_plays) || 0,
+      tracksWithPlays: Number(r.tracks_with_plays) || 0,
     })),
-    topTracks: topRows.map((r) => ({ title: r.title, author: r.author, plays: r.plays })),
-    countryStatsByDate: countryRows,
+    topTracks: topRows.map((r) => ({
+      title: r.title,
+      author: r.author,
+      plays: Number(r.plays) || 0,
+    })),
+    countryStatsByDate: countryRows.map((r) => ({
+      date: r.date,
+      country: r.country,
+      plays: Number(r.plays) || 0,
+    })),
   }
 }
 
@@ -820,7 +848,6 @@ export async function importMusicStatsParsedToDb(args: {
   parsed: MusicStatsFile
   fileHash?: string
 }) {
-  const db = getDb()
   const fileHash =
     args.fileHash ?? createHash("sha256").update(JSON.stringify(args.parsed), "utf8").digest("hex")
 
@@ -829,54 +856,11 @@ export async function importMusicStatsParsedToDb(args: {
 
   const platformLabel = args.parsed.platform ?? MUSIC_PLATFORM_LABELS[args.platformKey]
 
-  const ensureMetaInserted = () => {
-    const existing = db
-      .prepare("SELECT id FROM music_stat_imports WHERE platform_key = ? AND file_hash = ?")
-      .get(args.platformKey, fileHash) as { id: string } | undefined
-
-    if (existing?.id) return
-
-    const importId = randomUUID()
-    db.prepare(
-      `
-        INSERT INTO music_stat_imports (
-          id,
-          platform_key,
-          platform_label,
-          file_name,
-          file_hash,
-          source,
-          exported_at,
-          total_rows,
-          total_tracks_in_file,
-          total_plays,
-          days_count,
-          created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-    ).run(
-      importId,
-        args.platformKey,
-      platformLabel,
-        args.fileName,
-      fileHash,
-        args.parsed.source ?? null,
-        args.parsed.exportedAt ?? null,
-      computed.totalRows,
-      computed.totalTracksInFile,
-      computed.totalPlays,
-      computed.daysCount,
-      nowIso,
-    )
-  }
-
   const COUNTRY_KEY_SEP = "\x1f"
 
-  // Parse into per-track per-date plays so we can replace only affected dates.
   const trackMeta = new Map<string, { title: string; author: string }>()
-  const trackDatePlays = new Map<string, number>() // `${trackKey}::${dateIso}` => plays
-  const trackDateCountryPlays = new Map<string, number>() // trackKey+date+country => plays
+  const trackDatePlays = new Map<string, number>()
+  const trackDateCountryPlays = new Map<string, number>()
   const statDates = new Set<string>()
 
   for (const track of args.parsed.tracks ?? []) {
@@ -908,52 +892,129 @@ export async function importMusicStatsParsedToDb(args: {
 
   const dates = [...statDates.values()].sort()
   if (dates.length === 0) {
-    // File is empty of valid points; still store import meta if needed.
-    ensureMetaInserted()
-    return getMusicStatsByPlatformKey(args.platformKey)
+    await withTransaction(async (client) => {
+      const existing = await clientQuery<{ id: string }>(
+        client,
+        "SELECT id FROM music_stat_imports WHERE platform_key = ? AND file_hash = ?",
+        [args.platformKey, fileHash]
+      )
+      if (existing.length === 0) {
+        await clientExecute(
+          client,
+          `
+        INSERT INTO music_stat_imports (
+          id,
+          platform_key,
+          platform_label,
+          file_name,
+          file_hash,
+          source,
+          exported_at,
+          total_rows,
+          total_tracks_in_file,
+          total_plays,
+          days_count,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+          [
+            randomUUID(),
+            args.platformKey,
+            platformLabel,
+            args.fileName,
+            fileHash,
+            args.parsed.source ?? null,
+            args.parsed.exportedAt ?? null,
+            computed.totalRows,
+            computed.totalTracksInFile,
+            computed.totalPlays,
+            computed.daysCount,
+            nowIso,
+          ]
+        )
+      }
+    })
+    return await getMusicStatsByPlatformKey(args.platformKey)
   }
 
   const placeholders = dates.map(() => "?").join(",")
 
-  const importTx = db.transaction(() => {
-    ensureMetaInserted()
+  await withTransaction(async (client) => {
+    const existing = await clientQuery<{ id: string }>(
+      client,
+      "SELECT id FROM music_stat_imports WHERE platform_key = ? AND file_hash = ?",
+      [args.platformKey, fileHash]
+    )
+    if (existing.length === 0) {
+      await clientExecute(
+        client,
+        `
+        INSERT INTO music_stat_imports (
+          id,
+          platform_key,
+          platform_label,
+          file_name,
+          file_hash,
+          source,
+          exported_at,
+          total_rows,
+          total_tracks_in_file,
+          total_plays,
+          days_count,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        [
+          randomUUID(),
+          args.platformKey,
+          platformLabel,
+          args.fileName,
+          fileHash,
+          args.parsed.source ?? null,
+          args.parsed.exportedAt ?? null,
+          computed.totalRows,
+          computed.totalTracksInFile,
+          computed.totalPlays,
+          computed.daysCount,
+          nowIso,
+        ]
+      )
+    }
 
-    // Upsert tracks metadata for trackKey => (title, author)
-    const upsertTrack = db.prepare(
-      `
+    for (const [trackKey, meta] of trackMeta.entries()) {
+      await clientExecute(
+        client,
+        `
         INSERT INTO music_platform_tracks (platform_key, track_key, title, author)
         VALUES (?, ?, ?, ?)
         ON CONFLICT(platform_key, track_key) DO UPDATE SET
-          title = excluded.title,
-          author = excluded.author
+          title = EXCLUDED.title,
+          author = EXCLUDED.author
       `,
-    )
-    for (const [trackKey, meta] of trackMeta.entries()) {
-      upsertTrack.run(args.platformKey, trackKey, meta.title, meta.author)
+        [args.platformKey, trackKey, meta.title, meta.author]
+      )
     }
 
-    // Replace affected dates only
-    db.prepare(
+    await clientExecute(
+      client,
       `
         DELETE FROM music_platform_track_daily_plays
         WHERE platform_key = ?
           AND stat_date IN (${placeholders})
       `,
-    ).run(args.platformKey, ...dates)
+      [args.platformKey, ...dates]
+    )
 
-    db.prepare(
+    await clientExecute(
+      client,
       `
         DELETE FROM music_platform_track_daily_plays_by_country
         WHERE platform_key = ?
           AND stat_date IN (${placeholders})
       `,
-    ).run(args.platformKey, ...dates)
-
-    const insertTrackDaily = db.prepare(
-      `
-        INSERT INTO music_platform_track_daily_plays (platform_key, track_key, stat_date, plays)
-        VALUES (?, ?, ?, ?)
-      `,
+      [args.platformKey, ...dates]
     )
 
     for (const [key, plays] of trackDatePlays.entries()) {
@@ -961,33 +1022,43 @@ export async function importMusicStatsParsedToDb(args: {
       const trackKey = lastIdx >= 0 ? key.slice(0, lastIdx) : key
       const statDate = lastIdx >= 0 ? key.slice(lastIdx + 2) : ""
       if (!statDate) continue
-      insertTrackDaily.run(args.platformKey, trackKey, statDate, plays)
-    }
-
-    const insertTrackCountry = db.prepare(
-      `
-        INSERT INTO music_platform_track_daily_plays_by_country (platform_key, track_key, stat_date, country, plays)
-        VALUES (?, ?, ?, ?, ?)
+      await clientExecute(
+        client,
+        `
+        INSERT INTO music_platform_track_daily_plays (platform_key, track_key, stat_date, plays)
+        VALUES (?, ?, ?, ?)
       `,
-    )
+        [args.platformKey, trackKey, statDate, plays]
+      )
+    }
 
     for (const [ckey, plays] of trackDateCountryPlays.entries()) {
       const parts = ckey.split(COUNTRY_KEY_SEP)
       if (parts.length !== 3) continue
       const [tk, statDate, country] = parts as [string, string, string]
       if (!tk || !statDate || !country) continue
-      insertTrackCountry.run(args.platformKey, tk, statDate, country, plays)
+      await clientExecute(
+        client,
+        `
+        INSERT INTO music_platform_track_daily_plays_by_country (platform_key, track_key, stat_date, country, plays)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+        [args.platformKey, tk, statDate, country, plays]
+      )
     }
 
-    db.prepare(
+    await clientExecute(
+      client,
       `
         DELETE FROM music_platform_daily_stats
         WHERE platform_key = ?
           AND stat_date IN (${placeholders})
       `,
-    ).run(args.platformKey, ...dates)
+      [args.platformKey, ...dates]
+    )
 
-    db.prepare(
+    await clientExecute(
+      client,
       `
         INSERT INTO music_platform_daily_stats (platform_key, stat_date, total_plays, tracks_with_plays)
         SELECT
@@ -1000,12 +1071,15 @@ export async function importMusicStatsParsedToDb(args: {
           AND d.stat_date IN (${placeholders})
         GROUP BY d.stat_date
       `,
-    ).run(args.platformKey, ...dates)
+      [args.platformKey, ...dates]
+    )
 
-    // Recompute top tracks for the whole platform (top-10)
-    db.prepare(`DELETE FROM music_platform_top_tracks WHERE platform_key = ?`).run(args.platformKey)
+    await clientExecute(client, `DELETE FROM music_platform_top_tracks WHERE platform_key = ?`, [
+      args.platformKey,
+    ])
 
-    db.prepare(
+    await clientExecute(
+      client,
       `
         INSERT INTO music_platform_top_tracks (platform_key, track_key, title, author, plays)
         SELECT
@@ -1018,18 +1092,19 @@ export async function importMusicStatsParsedToDb(args: {
         JOIN music_platform_tracks t
           ON t.platform_key = d.platform_key AND t.track_key = d.track_key
         WHERE d.platform_key = ?
-        GROUP BY d.track_key
+        GROUP BY d.track_key, d.platform_key, t.title, t.author
         ORDER BY SUM(d.plays) DESC
         LIMIT 10
       `,
-    ).run(args.platformKey)
+      [args.platformKey]
+    )
 
-    rebuildCabinetMusicTrackMapForPlatformWithDb(db, args.platformKey, nowIso)
+    await rebuildCabinetMusicTrackMapForPlatformWithClient(client, args.platformKey, nowIso)
   })
 
-  importTx()
+  rebuiltCabinetTrackMapPlatforms.add(args.platformKey)
 
-  return getMusicStatsByPlatformKey(args.platformKey)
+  return await getMusicStatsByPlatformKey(args.platformKey)
 }
 
 export * from "./music-stats-shared"

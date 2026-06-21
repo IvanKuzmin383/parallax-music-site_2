@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   if (!isTbankRecurrentTestEnabled()) return disabledResponse()
   if (!verifyTbankRecurrentTestAccess(request)) return unauthorizedResponse()
 
-  const state = getTbankReceiptTestState()
+  const state = await getTbankReceiptTestState()
 
   return NextResponse.json({
     enabled: true,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const state = resetTbankReceiptTestPayment({
+  const state = await resetTbankReceiptTestPayment({
     orderId,
     paymentId: pay.paymentId,
     receiptEmail: emailRaw,
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "T-Bank not configured" }, { status: 500 })
   }
 
-  const state = getTbankReceiptTestState()
+  const state = await getTbankReceiptTestState()
   if (!state?.paymentId) {
     return NextResponse.json(
       { error: "Сначала выполните тест №7 (оплата с Receipt)." },
@@ -159,14 +159,14 @@ export async function PUT(request: NextRequest) {
 
   if (!cancel.ok) {
     const message = cancel.message || "Cancel failed"
-    setTbankReceiptTestRefundError(message)
+    await setTbankReceiptTestRefundError(message)
     return NextResponse.json({ error: message, details: cancel.body }, { status: 500 })
   }
 
   return NextResponse.json({
     ok: true,
     paymentId: state.paymentId,
-    state: getTbankReceiptTestState(),
+    state: await getTbankReceiptTestState(),
     message:
       "Запрос Cancel отправлен. Дождитесь refund_status в статусе (REFUNDED/CANCELED), затем «Проверить» в ЛК для теста №8.",
   })

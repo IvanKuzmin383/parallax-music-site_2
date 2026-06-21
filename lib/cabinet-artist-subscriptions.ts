@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { getDb } from "@/lib/db"
+import { query, queryOne, execute } from "./database"
 
 export type CabinetArtistSubscription = {
   id: string
@@ -54,38 +54,37 @@ export async function createCabinetArtistSubscriptionSlot(params: {
   subscriptionTrackLimit?: number | null
   artistName?: string | null
 }): Promise<CabinetArtistSubscription> {
-  const db = getDb()
   const now = new Date().toISOString()
   const id = crypto.randomUUID()
-  db.prepare(
+  await execute(
     `INSERT INTO cabinet_user_artist_subscriptions
       (id, user_id, artist_name, subscription_name, subscription_expires_at, subscription_track_limit, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    id,
-    params.userId,
-    params.artistName?.trim() || null,
-    params.subscriptionName,
-    params.subscriptionExpiresAt ?? null,
-    params.subscriptionTrackLimit ?? null,
-    now,
-    now
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      params.userId,
+      params.artistName?.trim() || null,
+      params.subscriptionName,
+      params.subscriptionExpiresAt ?? null,
+      params.subscriptionTrackLimit ?? null,
+      now,
+      now,
+    ]
   )
-  const row = db
-    .prepare("SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?")
-    .get(id) as CabinetArtistSubscriptionRow
-  return rowToModel(row)
+  const row = await queryOne<CabinetArtistSubscriptionRow>(
+    "SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?",
+    [id]
+  )
+  return rowToModel(row!)
 }
 
 export async function listCabinetArtistSubscriptionsByUserId(userId: string): Promise<CabinetArtistSubscription[]> {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT * FROM cabinet_user_artist_subscriptions
-       WHERE user_id = ?
-       ORDER BY created_at ASC`
-    )
-    .all(userId) as CabinetArtistSubscriptionRow[]
+  const rows = await query<CabinetArtistSubscriptionRow>(
+    `SELECT * FROM cabinet_user_artist_subscriptions
+     WHERE user_id = ?
+     ORDER BY created_at ASC`,
+    [userId]
+  )
   return rows.map(rowToModel)
 }
 
@@ -111,18 +110,19 @@ export async function claimArtistForActiveSlot(
   const freeSlot = active.find((s) => !s.artistName || !s.artistName.trim())
   if (!freeSlot) return null
 
-  const db = getDb()
   const now = new Date().toISOString()
-  db.prepare(
+  await execute(
     `UPDATE cabinet_user_artist_subscriptions
      SET artist_name = ?, updated_at = ?
-     WHERE id = ?`
-  ).run(artistName.trim(), now, freeSlot.id)
+     WHERE id = ?`,
+    [artistName.trim(), now, freeSlot.id]
+  )
 
-  const row = db
-    .prepare("SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?")
-    .get(freeSlot.id) as CabinetArtistSubscriptionRow
-  return rowToModel(row)
+  const row = await queryOne<CabinetArtistSubscriptionRow>(
+    "SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?",
+    [freeSlot.id]
+  )
+  return row ? rowToModel(row) : null
 }
 
 export async function updateCabinetArtistSubscriptionSlot(
@@ -134,10 +134,10 @@ export async function updateCabinetArtistSubscriptionSlot(
     subscriptionTrackLimit?: number | null
   }
 ): Promise<CabinetArtistSubscription | null> {
-  const db = getDb()
-  const existing = db
-    .prepare("SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?")
-    .get(id) as CabinetArtistSubscriptionRow | undefined
+  const existing = await queryOne<CabinetArtistSubscriptionRow>(
+    "SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?",
+    [id]
+  )
   if (!existing) return null
 
   const nextArtistName =
@@ -148,20 +148,21 @@ export async function updateCabinetArtistSubscriptionSlot(
   const nextTrackLimit =
     params.subscriptionTrackLimit !== undefined ? (params.subscriptionTrackLimit ?? null) : existing.subscription_track_limit
 
-  db.prepare(
+  await execute(
     `UPDATE cabinet_user_artist_subscriptions
      SET artist_name = ?, subscription_name = ?, subscription_expires_at = ?, subscription_track_limit = ?, updated_at = ?
-     WHERE id = ?`
-  ).run(nextArtistName, nextSubscriptionName, nextExpiresAt, nextTrackLimit, new Date().toISOString(), id)
+     WHERE id = ?`,
+    [nextArtistName, nextSubscriptionName, nextExpiresAt, nextTrackLimit, new Date().toISOString(), id]
+  )
 
-  const row = db
-    .prepare("SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?")
-    .get(id) as CabinetArtistSubscriptionRow | undefined
+  const row = await queryOne<CabinetArtistSubscriptionRow>(
+    "SELECT * FROM cabinet_user_artist_subscriptions WHERE id = ?",
+    [id]
+  )
   return row ? rowToModel(row) : null
 }
 
 export async function deleteCabinetArtistSubscriptionSlot(id: string): Promise<boolean> {
-  const db = getDb()
-  const res = db.prepare("DELETE FROM cabinet_user_artist_subscriptions WHERE id = ?").run(id)
-  return res.changes > 0
+  const changes = await execute("DELETE FROM cabinet_user_artist_subscriptions WHERE id = ?", [id])
+  return changes > 0
 }

@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import bcrypt from "bcryptjs"
 import type { CounterpartyType, ProfilePatchInput } from "@/lib/cabinet-counterparty"
-import { getDb } from "./db"
+import { query, queryOne, execute, withTransaction, clientExecute } from "./database"
 
 export type { CounterpartyType }
 
@@ -61,7 +61,7 @@ interface CabinetUserRow {
   id: string
   email: string
   password_hash: string
-  is_disabled: number | null
+  is_disabled: boolean | null
   created_at: string
   artist_name: string | null
   telegram: string | null
@@ -88,9 +88,9 @@ interface CabinetUserRow {
   signatory_position: string | null
   signatory_authority_basis: string | null
   documents_email: string | null
-  vat_payer: number | null
+  vat_payer: boolean | null
   tax_system: string | null
-  edo_required: number | null
+  edo_required: boolean | null
   edo_identifier: string | null
   subscription_name: string | null
   subscription_expires_at: string | null
@@ -99,7 +99,7 @@ interface CabinetUserRow {
   streaming_balance: number | null
   yookassa_payment_method_id: string | null
   tbank_rebill_id: string | null
-  autopay_enabled: number | null
+  autopay_enabled: boolean | null
   autopay_plan_id: string | null
   autopay_period: string | null
   autopay_periods_count: number | null
@@ -111,11 +111,8 @@ interface CabinetUserDeletionRow {
   deleted_at: string
 }
 
-/** SQLite/драйверы могут отдать флаг не только как число 1 - иначе блокировка не распознаётся при логине. */
 function cabinetUserRowIsDisabled(row: Pick<CabinetUserRow, "is_disabled"> | undefined): boolean {
-  if (!row || row.is_disabled == null) return false
-  const n = Number(row.is_disabled)
-  return !Number.isNaN(n) && n !== 0
+  return row?.is_disabled === true
 }
 
 function rowToUser(row: CabinetUserRow): CabinetUser {
@@ -155,9 +152,9 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     signatoryPosition: row.signatory_position ?? undefined,
     signatoryAuthorityBasis: row.signatory_authority_basis ?? undefined,
     documentsEmail: row.documents_email ?? undefined,
-    vatPayer: row.vat_payer === 1 ? true : row.vat_payer === 0 ? false : undefined,
+    vatPayer: row.vat_payer === true ? true : row.vat_payer === false ? false : undefined,
     taxSystem: row.tax_system ?? undefined,
-    edoRequired: row.edo_required === 1,
+    edoRequired: row.edo_required === true,
     edoIdentifier: row.edo_identifier ?? undefined,
     subscriptionName: row.subscription_name ?? undefined,
     subscriptionExpiresAt: row.subscription_expires_at ?? undefined,
@@ -166,7 +163,7 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     streamingBalance: row.streaming_balance ?? undefined,
     yookassaPaymentMethodId: row.yookassa_payment_method_id ?? undefined,
     tbankRebillId: row.tbank_rebill_id ?? undefined,
-    autopayEnabled: row.autopay_enabled === 1 ? true : row.autopay_enabled === 0 ? false : undefined,
+    autopayEnabled: row.autopay_enabled === true ? true : row.autopay_enabled === false ? false : undefined,
     autopayPlanId: row.autopay_plan_id ?? undefined,
     autopayPeriod:
       row.autopay_period === "month" || row.autopay_period === "year" ? row.autopay_period : undefined,
@@ -177,26 +174,23 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
 }
 
 export async function getAllCabinetUsers(): Promise<CabinetUser[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM cabinet_users").all() as CabinetUserRow[]
+  const rows = await query<CabinetUserRow>("SELECT * FROM cabinet_users")
   return rows.map(rowToUser)
 }
 
-/** Пользователи с включённым автопродлением и сохранённым способом оплаты */
+/** Пользователи с включённым автопродлением и привязкой T-Bank RebillId */
 export async function listCabinetUsersWithActiveAutopay(): Promise<CabinetUser[]> {
-  const db = getDb()
-  const rows = db
-    .prepare(
-      `SELECT * FROM cabinet_users
-       WHERE autopay_enabled = 1
-         AND is_disabled = 0
-         AND (tbank_rebill_id IS NOT NULL OR yookassa_payment_method_id IS NOT NULL)
-         AND autopay_next_charge_at IS NOT NULL
-         AND autopay_plan_id IS NOT NULL
-         AND autopay_period IS NOT NULL
-         AND autopay_periods_count IS NOT NULL`
-    )
-    .all() as CabinetUserRow[]
+  const rows = await query<CabinetUserRow>(
+    `SELECT * FROM cabinet_users
+     WHERE autopay_enabled = true
+       AND is_disabled = false
+       AND tbank_rebill_id IS NOT NULL
+       AND TRIM(tbank_rebill_id) <> ''
+       AND autopay_next_charge_at IS NOT NULL
+       AND autopay_plan_id IS NOT NULL
+       AND autopay_period IS NOT NULL
+       AND autopay_periods_count IS NOT NULL`
+  )
   return rows.map(rowToUser)
 }
 
@@ -204,10 +198,7 @@ export async function getCabinetUserByEmail(
   email: string,
   options?: { includeDisabled?: boolean }
 ): Promise<CabinetUser | null> {
-  const db = getDb()
-  const row = db
-    .prepare("SELECT * FROM cabinet_users WHERE LOWER(email) = LOWER(?)")
-    .get(email) as CabinetUserRow | undefined
+  const row = await queryOne<CabinetUserRow>("SELECT * FROM cabinet_users WHERE LOWER(email) = LOWER(?)", [email])
   if (!options?.includeDisabled && cabinetUserRowIsDisabled(row)) {
     return null
   }
@@ -215,22 +206,19 @@ export async function getCabinetUserByEmail(
 }
 
 export async function getCabinetUserById(id: string): Promise<CabinetUser | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM cabinet_users WHERE id = ?").get(id) as CabinetUserRow | undefined
+  const row = await queryOne<CabinetUserRow>("SELECT * FROM cabinet_users WHERE id = ?", [id])
   return row ? rowToUser(row) : null
 }
 
 export async function getLastCabinetUserDeletionAt(email: string): Promise<string | null> {
-  const db = getDb()
-  const row = db
-    .prepare(
-      `SELECT deleted_at
-       FROM cabinet_user_deletions
-       WHERE LOWER(email) = LOWER(?)
-       ORDER BY deleted_at DESC
-       LIMIT 1`
-    )
-    .get(email) as CabinetUserDeletionRow | undefined
+  const row = await queryOne<CabinetUserDeletionRow>(
+    `SELECT deleted_at
+     FROM cabinet_user_deletions
+     WHERE LOWER(email) = LOWER(?)
+     ORDER BY deleted_at DESC
+     LIMIT 1`,
+    [email]
+  )
   return row?.deleted_at ?? null
 }
 
@@ -256,28 +244,30 @@ export async function createCabinetUser(params: {
     counterpartyType: "individual",
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     INSERT INTO cabinet_users (
       id, email, password_hash, is_disabled, created_at, artist_name, telegram,
       counterparty_type,
       subscription_name, subscription_expires_at, subscription_track_limit, purchased_tracks_balance, streaming_balance
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    user.id,
-    user.email,
-    user.passwordHash,
-    0,
-    user.createdAt,
-    user.artistName ?? null,
-    user.telegram ?? null,
-    "individual",
-    null,
-    null,
-    null,
-    null,
-    null
+  `,
+    [
+      user.id,
+      user.email,
+      user.passwordHash,
+      false,
+      user.createdAt,
+      user.artistName ?? null,
+      user.telegram ?? null,
+      "individual",
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]
   )
 
   if (process.env.NODE_ENV === "development") {
@@ -292,8 +282,7 @@ export async function updateCabinetUserPassword(id: string, newPassword: string)
   if (!user) return null
 
   const passwordHash = await bcrypt.hash(newPassword, 10)
-  const db = getDb()
-  db.prepare("UPDATE cabinet_users SET password_hash = ? WHERE id = ?").run(passwordHash, id)
+  await execute("UPDATE cabinet_users SET password_hash = ? WHERE id = ?", [passwordHash, id])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Updated password for user", { id, email: user.email })
@@ -303,8 +292,7 @@ export async function updateCabinetUserPassword(id: string, newPassword: string)
 }
 
 export async function touchAutopayReminderSent(userId: string, sentAtIso: string): Promise<void> {
-  const db = getDb()
-  db.prepare(`UPDATE cabinet_users SET autopay_last_reminder_sent_at = ? WHERE id = ?`).run(sentAtIso, userId)
+  await execute(`UPDATE cabinet_users SET autopay_last_reminder_sent_at = ? WHERE id = ?`, [sentAtIso, userId])
 }
 
 export async function setCabinetUserAutopay(
@@ -330,8 +318,7 @@ export async function setCabinetUserAutopay(
       ? params.yookassaPaymentMethodId
       : user.yookassaPaymentMethodId ?? null
 
-  const db = getDb()
-  db.prepare(
+  await execute(
     `
     UPDATE cabinet_users SET
       tbank_rebill_id = ?,
@@ -343,24 +330,25 @@ export async function setCabinetUserAutopay(
       autopay_next_charge_at = ?,
       autopay_last_reminder_sent_at = ?
     WHERE id = ?
-  `
-  ).run(
-    tbankRebillId,
-    yookassaPaymentMethodId,
-    params.autopayEnabled ? 1 : 0,
-    params.autopayPlanId,
-    params.autopayPeriod,
-    params.autopayPeriodsCount,
-    params.autopayNextChargeAt,
-    params.autopayLastReminderSentAt,
-    id
+  `,
+    [
+      tbankRebillId,
+      yookassaPaymentMethodId,
+      params.autopayEnabled,
+      params.autopayPlanId,
+      params.autopayPeriod,
+      params.autopayPeriodsCount,
+      params.autopayNextChargeAt,
+      params.autopayLastReminderSentAt,
+      id,
+    ]
   )
 
   return getCabinetUserById(id)
 }
 
-export function cabinetUserHasAutopayBinding(user: Pick<CabinetUser, "tbankRebillId" | "yookassaPaymentMethodId">): boolean {
-  return Boolean(user.tbankRebillId?.trim() || user.yookassaPaymentMethodId?.trim())
+export function cabinetUserHasAutopayBinding(user: Pick<CabinetUser, "tbankRebillId">): boolean {
+  return Boolean(user.tbankRebillId?.trim())
 }
 
 export async function updateCabinetUserSubscription(
@@ -372,15 +360,12 @@ export async function updateCabinetUserSubscription(
   const user = await getCabinetUserById(id)
   if (!user) return null
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     UPDATE cabinet_users SET subscription_name = ?, subscription_expires_at = ?, subscription_track_limit = ?
     WHERE id = ?
-  `).run(
-    subscriptionName ?? null,
-    subscriptionExpiresAt ?? null,
-    subscriptionTrackLimit ?? null,
-    id
+  `,
+    [subscriptionName ?? null, subscriptionExpiresAt ?? null, subscriptionTrackLimit ?? null, id]
   )
 
   if (process.env.NODE_ENV === "development") {
@@ -396,8 +381,7 @@ export async function updateCabinetUserPurchasedTracks(userId: string, addTracks
 
   const current = user.purchasedTracksBalance ?? 0
   const next = Math.max(0, current + addTracks)
-  const db = getDb()
-  db.prepare("UPDATE cabinet_users SET purchased_tracks_balance = ? WHERE id = ?").run(next, userId)
+  await execute("UPDATE cabinet_users SET purchased_tracks_balance = ? WHERE id = ?", [next, userId])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Updated purchasedTracksBalance for user", { id: userId, email: user.email, addTracks, newBalance: next })
@@ -410,8 +394,7 @@ export async function updateCabinetUserBalance(id: string, balance: number): Pro
   const user = await getCabinetUserById(id)
   if (!user) return null
 
-  const db = getDb()
-  db.prepare("UPDATE cabinet_users SET streaming_balance = ? WHERE id = ?").run(balance, id)
+  await execute("UPDATE cabinet_users SET streaming_balance = ? WHERE id = ?", [balance, id])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Updated balance for user", { id, email: user.email, balance })
@@ -427,8 +410,7 @@ export async function updateCabinetUserCounterpartyType(
   const user = await getCabinetUserById(id)
   if (!user) return null
 
-  const db = getDb()
-  db.prepare("UPDATE cabinet_users SET counterparty_type = ? WHERE id = ?").run(counterpartyType, id)
+  await execute("UPDATE cabinet_users SET counterparty_type = ? WHERE id = ?", [counterpartyType, id])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Updated counterparty type", { id, email: user.email, counterpartyType })
@@ -441,8 +423,7 @@ export async function updateCabinetUserArtistName(id: string, artistName: string
   const user = await getCabinetUserById(id)
   if (!user) return null
 
-  const db = getDb()
-  db.prepare("UPDATE cabinet_users SET artist_name = ? WHERE id = ?").run(artistName?.trim() || null, id)
+  await execute("UPDATE cabinet_users SET artist_name = ? WHERE id = ?", [artistName?.trim() || null, id])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Updated artistName for user", { id, email: user.email, artistName: artistName?.trim() || null })
@@ -458,8 +439,7 @@ export async function updateCabinetUserDisabled(
   const user = await getCabinetUserById(id)
   if (!user) return null
 
-  const db = getDb()
-  db.prepare("UPDATE cabinet_users SET is_disabled = ? WHERE id = ?").run(isDisabled ? 1 : 0, id)
+  await execute("UPDATE cabinet_users SET is_disabled = ? WHERE id = ?", [isDisabled, id])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Updated disabled status for user", { id, email: user.email, isDisabled })
@@ -488,17 +468,16 @@ export async function updateCabinetUserProfile(
     documents_email: nullIfEmpty(
       "documentsEmail" in params ? (params.documentsEmail as string | undefined) : null
     ),
-    vat_payer:
-      "vatPayer" in params && params.vatPayer != null ? (params.vatPayer ? 1 : 0) : null,
+    vat_payer: "vatPayer" in params && params.vatPayer != null ? params.vatPayer : null,
     tax_system: "taxSystem" in params ? nullIfEmpty(params.taxSystem ?? null) : null,
-    edo_required: "edoRequired" in params && params.edoRequired ? 1 : 0,
+    edo_required: "edoRequired" in params ? Boolean(params.edoRequired) : false,
     edo_identifier:
       "edoRequired" in params && params.edoRequired
         ? nullIfEmpty(params.edoIdentifier ?? null)
         : null,
   }
 
-  let typeFields: Record<string, string | number | null>
+  let typeFields: Record<string, string | boolean | null>
 
   if (params.counterpartyType === "individual") {
     typeFields = {
@@ -571,8 +550,8 @@ export async function updateCabinetUserProfile(
     }
   }
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     UPDATE cabinet_users
     SET
       counterparty_type = ?,
@@ -605,37 +584,39 @@ export async function updateCabinetUserProfile(
       edo_required = ?,
       edo_identifier = ?
     WHERE id = ?
-  `).run(
-    shared.counterparty_type,
-    typeFields.last_name,
-    typeFields.first_name,
-    typeFields.patronymic,
-    shared.phone,
-    shared.telegram,
-    typeFields.registration_address,
-    shared.artist_name,
-    typeFields.bank_account_number,
-    typeFields.bank_bic,
-    typeFields.bank_name,
-    typeFields.bank_correspondent_account,
-    typeFields.company_full_name,
-    typeFields.company_short_name,
-    typeFields.inn,
-    typeFields.kpp,
-    typeFields.ogrn,
-    typeFields.ogrnip,
-    typeFields.legal_address,
-    typeFields.postal_address,
-    typeFields.ip_full_name,
-    typeFields.signatory_full_name,
-    typeFields.signatory_position,
-    typeFields.signatory_authority_basis,
-    shared.documents_email,
-    shared.vat_payer,
-    shared.tax_system,
-    shared.edo_required,
-    shared.edo_identifier,
-    id
+  `,
+    [
+      shared.counterparty_type,
+      typeFields.last_name,
+      typeFields.first_name,
+      typeFields.patronymic,
+      shared.phone,
+      shared.telegram,
+      typeFields.registration_address,
+      shared.artist_name,
+      typeFields.bank_account_number,
+      typeFields.bank_bic,
+      typeFields.bank_name,
+      typeFields.bank_correspondent_account,
+      typeFields.company_full_name,
+      typeFields.company_short_name,
+      typeFields.inn,
+      typeFields.kpp,
+      typeFields.ogrn,
+      typeFields.ogrnip,
+      typeFields.legal_address,
+      typeFields.postal_address,
+      typeFields.ip_full_name,
+      typeFields.signatory_full_name,
+      typeFields.signatory_position,
+      typeFields.signatory_authority_basis,
+      shared.documents_email,
+      shared.vat_payer,
+      shared.tax_system,
+      shared.edo_required,
+      shared.edo_identifier,
+      id,
+    ]
   )
 
   if (process.env.NODE_ENV === "development") {
@@ -650,21 +631,18 @@ export async function updateCabinetUserProfile(
 }
 
 export async function deleteCabinetUser(id: string): Promise<boolean> {
-  const db = getDb()
-  const existing = db
-    .prepare("SELECT email FROM cabinet_users WHERE id = ?")
-    .get(id) as { email: string } | undefined
+  const existing = await queryOne<{ email: string }>("SELECT email FROM cabinet_users WHERE id = ?", [id])
   if (!existing) return false
 
   const deletedAt = new Date().toISOString()
-  const tx = db.transaction(() => {
-    db.prepare("DELETE FROM cabinet_users WHERE id = ?").run(id)
-    db.prepare(
-      "INSERT INTO cabinet_user_deletions (id, email, deleted_at) VALUES (?, ?, ?)"
-    ).run(crypto.randomUUID(), existing.email, deletedAt)
+  await withTransaction(async (client) => {
+    await clientExecute(client, "DELETE FROM cabinet_users WHERE id = ?", [id])
+    await clientExecute(
+      client,
+      "INSERT INTO cabinet_user_deletions (id, email, deleted_at) VALUES (?, ?, ?)",
+      [crypto.randomUUID(), existing.email, deletedAt]
+    )
   })
-
-  tx()
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Deleted user", { id, email: existing.email, deletedAt })

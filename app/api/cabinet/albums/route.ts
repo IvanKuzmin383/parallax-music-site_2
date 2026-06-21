@@ -11,10 +11,10 @@ import {
   isTrackUploadWithinLimit,
   subscriptionTrackLimitError,
 } from "@/lib/subscription-track-limits"
-import { createTrack, getAudioDir, getCoversDir, GENRES, TRACK_MOODS, getTracksByUserId } from "@/lib/tracks"
+import { createTrack, getAudioDir, getCoversDir, GENRES, TRACK_MOODS, getTracksByUserId, type Track } from "@/lib/tracks"
 import { musicRightsRequiresAiService } from "@/lib/track-constants"
 import { createAlbum, getAlbumsByUserId } from "@/lib/albums"
-import { getDb } from "@/lib/db"
+import { withTransaction } from "@/lib/database"
 import { getClientIp, getUserAgent, tryRecordLicenseAcceptanceForTrack } from "@/lib/legal-acceptance"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
 import { isYyyyMmDdReleaseWeekend } from "@/lib/release-date-validation"
@@ -352,7 +352,7 @@ export async function POST(request: NextRequest) {
       releaseDate,
     })
 
-    const createdTracks = []
+    const createdTracks: Track[] = []
     for (const meta of tracksMeta) {
       const audioFile = multipart.getFile(`audio_${meta.tempId}`)
       if (!audioFile) continue
@@ -389,18 +389,19 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const db = getDb()
       const clientIp = getClientIp(request)
       const userAgent = getUserAgent(request)
-      for (const t of createdTracks) {
-        tryRecordLicenseAcceptanceForTrack(db, {
-          userEmail: t.userId,
-          trackId: t.id,
-          occurredAtIso: t.createdAt,
-          clientIp,
-          userAgent,
-        })
-      }
+      await withTransaction(async (client) => {
+        for (const t of createdTracks) {
+          await tryRecordLicenseAcceptanceForTrack(client, {
+            userEmail: t.userId,
+            trackId: t.id,
+            occurredAtIso: t.createdAt,
+            clientIp,
+            userAgent,
+          })
+        }
+      })
     } catch (legalErr) {
       console.error("[cabinet/albums] legal acceptance log failed:", legalErr)
     }

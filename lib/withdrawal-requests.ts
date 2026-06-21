@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { getDb } from "./db"
+import { query, queryOne, execute } from "./database"
 
 export type WithdrawalStatus = "pending" | "rejected" | "completed"
 
@@ -48,20 +48,17 @@ function rowToWithdrawal(row: WithdrawalRequestRow): WithdrawalRequest {
 }
 
 export async function getAllWithdrawalRequests(): Promise<WithdrawalRequest[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM withdrawal_requests").all() as WithdrawalRequestRow[]
+  const rows = await query<WithdrawalRequestRow>("SELECT * FROM withdrawal_requests")
   return rows.map(rowToWithdrawal)
 }
 
 export async function getWithdrawalRequestsByUserId(userId: string): Promise<WithdrawalRequest[]> {
-  const db = getDb()
-  const rows = db.prepare("SELECT * FROM withdrawal_requests WHERE user_id = ?").all(userId) as WithdrawalRequestRow[]
+  const rows = await query<WithdrawalRequestRow>("SELECT * FROM withdrawal_requests WHERE user_id = ?", [userId])
   return rows.map(rowToWithdrawal)
 }
 
 export async function getWithdrawalRequestById(id: string): Promise<WithdrawalRequest | null> {
-  const db = getDb()
-  const row = db.prepare("SELECT * FROM withdrawal_requests WHERE id = ?").get(id) as WithdrawalRequestRow | undefined
+  const row = await queryOne<WithdrawalRequestRow>("SELECT * FROM withdrawal_requests WHERE id = ?", [id])
   return row ? rowToWithdrawal(row) : null
 }
 
@@ -77,17 +74,19 @@ export async function createWithdrawalRequest(
   const now = new Date().toISOString()
   const id = crypto.randomUUID()
 
-  const db = getDb()
-  db.prepare(`
+  await execute(
+    `
     INSERT INTO withdrawal_requests (id, user_id, amount, type, phone, card_number, bank, recipient_name, status, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
-  `).run(id, userId, amount, type, phone ?? null, cardNumber ?? null, bank ?? null, recipientName, now, now)
+  `,
+    [id, userId, amount, type, phone ?? null, cardNumber ?? null, bank ?? null, recipientName, now, now]
+  )
 
   if (process.env.NODE_ENV === "development") {
     console.log("[withdrawal-requests] Created withdrawal request", { id, userId, amount, type })
   }
 
-  return getWithdrawalRequestById(id) as Promise<WithdrawalRequest>
+  return (await getWithdrawalRequestById(id)) as WithdrawalRequest
 }
 
 export async function updateWithdrawalRequestStatus(
@@ -98,8 +97,7 @@ export async function updateWithdrawalRequestStatus(
   if (!current) return null
 
   const now = new Date().toISOString()
-  const db = getDb()
-  db.prepare("UPDATE withdrawal_requests SET status = ?, updated_at = ? WHERE id = ?").run(status, now, id)
+  await execute("UPDATE withdrawal_requests SET status = ?, updated_at = ? WHERE id = ?", [status, now, id])
 
   if (process.env.NODE_ENV === "development") {
     console.log("[withdrawal-requests] Updated withdrawal request status", { id, status })
@@ -109,12 +107,11 @@ export async function updateWithdrawalRequestStatus(
 }
 
 export async function deleteWithdrawalRequest(id: string): Promise<boolean> {
-  const db = getDb()
-  const result = db.prepare("DELETE FROM withdrawal_requests WHERE id = ?").run(id)
+  const changes = await execute("DELETE FROM withdrawal_requests WHERE id = ?", [id])
 
-  if (process.env.NODE_ENV === "development" && result.changes > 0) {
+  if (process.env.NODE_ENV === "development" && changes > 0) {
     console.log("[withdrawal-requests] Deleted withdrawal request", { id })
   }
 
-  return result.changes > 0
+  return changes > 0
 }

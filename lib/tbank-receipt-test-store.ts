@@ -1,4 +1,4 @@
-import { getDb } from "./db"
+import { execute, queryOne } from "./database"
 
 export const TBANK_RECEIPT_TEST_AMOUNT_KOPECKS = 10_000
 
@@ -38,58 +38,57 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
-export function getTbankReceiptTestState(): TbankReceiptTestState | null {
-  const db = getDb()
-  const row = db.prepare(`SELECT * FROM tbank_receipt_test_state WHERE id = 1`).get() as Row | undefined
+export async function getTbankReceiptTestState(): Promise<TbankReceiptTestState | null> {
+  const row = await queryOne<Row>(`SELECT * FROM tbank_receipt_test_state WHERE id = 1`)
   return row ? rowToState(row) : null
 }
 
-export function resetTbankReceiptTestPayment(params: {
+export async function resetTbankReceiptTestPayment(params: {
   orderId: string
   paymentId: string
   receiptEmail: string
-}): TbankReceiptTestState {
-  const db = getDb()
+}): Promise<TbankReceiptTestState> {
   const t = nowIso()
-  db.prepare(
+  await execute(
     `INSERT INTO tbank_receipt_test_state (
       id, order_id, payment_id, receipt_email, payment_status, refund_status, last_refund_error, updated_at
     ) VALUES (1, ?, ?, ?, 'initiated', NULL, NULL, ?)
     ON CONFLICT(id) DO UPDATE SET
-      order_id = excluded.order_id,
-      payment_id = excluded.payment_id,
-      receipt_email = excluded.receipt_email,
+      order_id = EXCLUDED.order_id,
+      payment_id = EXCLUDED.payment_id,
+      receipt_email = EXCLUDED.receipt_email,
       payment_status = 'initiated',
       refund_status = NULL,
       last_refund_error = NULL,
-      updated_at = excluded.updated_at`
-  ).run(params.orderId, params.paymentId, params.receiptEmail, t)
-  return getTbankReceiptTestState()!
+      updated_at = EXCLUDED.updated_at`,
+    [params.orderId, params.paymentId, params.receiptEmail, t]
+  )
+  return (await getTbankReceiptTestState())!
 }
 
-export function findTbankReceiptTestByOrderId(orderId: string): TbankReceiptTestState | null {
-  const state = getTbankReceiptTestState()
+export async function findTbankReceiptTestByOrderId(orderId: string): Promise<TbankReceiptTestState | null> {
+  const state = await getTbankReceiptTestState()
   if (!state?.orderId || state.orderId !== orderId) return null
   return state
 }
 
-export function updateTbankReceiptTestPaymentStatus(status: string): void {
-  const db = getDb()
-  db.prepare(
-    `UPDATE tbank_receipt_test_state SET payment_status = ?, updated_at = ? WHERE id = 1`
-  ).run(status, nowIso())
+export async function updateTbankReceiptTestPaymentStatus(status: string): Promise<void> {
+  await execute(`UPDATE tbank_receipt_test_state SET payment_status = ?, updated_at = ? WHERE id = 1`, [
+    status,
+    nowIso(),
+  ])
 }
 
-export function updateTbankReceiptTestRefundStatus(status: string): void {
-  const db = getDb()
-  db.prepare(
-    `UPDATE tbank_receipt_test_state SET refund_status = ?, updated_at = ? WHERE id = 1`
-  ).run(status, nowIso())
+export async function updateTbankReceiptTestRefundStatus(status: string): Promise<void> {
+  await execute(`UPDATE tbank_receipt_test_state SET refund_status = ?, updated_at = ? WHERE id = 1`, [
+    status,
+    nowIso(),
+  ])
 }
 
-export function setTbankReceiptTestRefundError(message: string): void {
-  const db = getDb()
-  db.prepare(
-    `UPDATE tbank_receipt_test_state SET last_refund_error = ?, updated_at = ? WHERE id = 1`
-  ).run(message.slice(0, 500), nowIso())
+export async function setTbankReceiptTestRefundError(message: string): Promise<void> {
+  await execute(`UPDATE tbank_receipt_test_state SET last_refund_error = ?, updated_at = ? WHERE id = 1`, [
+    message.slice(0, 500),
+    nowIso(),
+  ])
 }

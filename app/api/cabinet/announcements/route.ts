@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
     }
 
-    const announcements = listPendingAnnouncementsForUser(user.id)
+    const announcements = await listPendingAnnouncementsForUser(user.id)
     return NextResponse.json({ announcements })
   } catch (error) {
     console.error("Error listing cabinet announcements:", error)

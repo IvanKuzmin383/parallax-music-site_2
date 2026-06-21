@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { getDb } from "@/lib/db"
+import { execute, query } from "@/lib/database"
 import type { SubscriptionBillingRunResult } from "@/lib/subscription-billing"
 
 export type SubscriptionBillingRunLog = {
@@ -60,34 +60,36 @@ function rowToLog(row: SubscriptionBillingRunRow): SubscriptionBillingRunLog {
   }
 }
 
-export function createSubscriptionBillingRunLog(params: {
+export async function createSubscriptionBillingRunLog(params: {
   source: string
   triggerIp?: string | null
   triggerUserAgent?: string | null
   triggerNote?: string | null
-}): string {
-  const db = getDb()
+}): Promise<string> {
   const id = crypto.randomUUID()
-  db.prepare(
+  await execute(
     `INSERT INTO subscription_billing_runs (
       id, source, started_at, users_considered, reminders_sent, charges_initiated, errors_count, errors_json, trigger_ip, trigger_user_agent, trigger_note
-    ) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?)`
-  ).run(
-    id,
-    params.source,
-    new Date().toISOString(),
-    JSON.stringify([]),
-    params.triggerIp ?? null,
-    params.triggerUserAgent ?? null,
-    params.triggerNote ?? null
+    ) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?)`,
+    [
+      id,
+      params.source,
+      new Date().toISOString(),
+      JSON.stringify([]),
+      params.triggerIp ?? null,
+      params.triggerUserAgent ?? null,
+      params.triggerNote ?? null,
+    ]
   )
   return id
 }
 
-export function finalizeSubscriptionBillingRunLog(runId: string, result: SubscriptionBillingRunResult): void {
-  const db = getDb()
+export async function finalizeSubscriptionBillingRunLog(
+  runId: string,
+  result: SubscriptionBillingRunResult
+): Promise<void> {
   const errors = result.errors ?? []
-  db.prepare(
+  await execute(
     `UPDATE subscription_billing_runs
      SET finished_at = ?,
          users_considered = ?,
@@ -95,39 +97,38 @@ export function finalizeSubscriptionBillingRunLog(runId: string, result: Subscri
          charges_initiated = ?,
          errors_count = ?,
          errors_json = ?
-     WHERE id = ?`
-  ).run(
-    new Date().toISOString(),
-    result.usersConsidered,
-    result.remindersSent,
-    result.chargesInitiated,
-    errors.length,
-    JSON.stringify(errors),
-    runId
+     WHERE id = ?`,
+    [
+      new Date().toISOString(),
+      result.usersConsidered,
+      result.remindersSent,
+      result.chargesInitiated,
+      errors.length,
+      JSON.stringify(errors),
+      runId,
+    ]
   )
 }
 
-export function markSubscriptionBillingRunFailed(runId: string, errorMessage: string): void {
-  const db = getDb()
-  db.prepare(
+export async function markSubscriptionBillingRunFailed(runId: string, errorMessage: string): Promise<void> {
+  await execute(
     `UPDATE subscription_billing_runs
      SET finished_at = ?,
          errors_count = ?,
          errors_json = ?
-     WHERE id = ?`
-  ).run(new Date().toISOString(), 1, JSON.stringify([errorMessage]), runId)
+     WHERE id = ?`,
+    [new Date().toISOString(), 1, JSON.stringify([errorMessage]), runId]
+  )
 }
 
-export function listSubscriptionBillingRuns(limit = 20): SubscriptionBillingRunLog[] {
-  const db = getDb()
+export async function listSubscriptionBillingRuns(limit = 20): Promise<SubscriptionBillingRunLog[]> {
   const safeLimit = Math.max(1, Math.min(200, Math.trunc(limit)))
-  const rows = db
-    .prepare(
-      `SELECT id, source, started_at, finished_at, users_considered, reminders_sent, charges_initiated, errors_count, errors_json, trigger_ip, trigger_user_agent, trigger_note
-       FROM subscription_billing_runs
-       ORDER BY started_at DESC
-       LIMIT ?`
-    )
-    .all(safeLimit) as SubscriptionBillingRunRow[]
+  const rows = await query<SubscriptionBillingRunRow>(
+    `SELECT id, source, started_at, finished_at, users_considered, reminders_sent, charges_initiated, errors_count, errors_json, trigger_ip, trigger_user_agent, trigger_note
+     FROM subscription_billing_runs
+     ORDER BY started_at DESC
+     LIMIT ?`,
+    [safeLimit]
+  )
   return rows.map(rowToLog)
 }

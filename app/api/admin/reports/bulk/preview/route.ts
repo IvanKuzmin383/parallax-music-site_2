@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         try {
           const buffer = await readFile(file.tempFilePath)
           const parsed = await parseStreamingReportBuffer(buffer, file.originalFilename)
-          const match = matchStreamingReportFileName(file.originalFilename)
+          const match = await matchStreamingReportFileName(file.originalFilename)
 
           const warnings = [...match.warnings]
           if (parsed.amountRub == null) {
