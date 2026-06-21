@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
   })
-  const returnUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const returnUrl = `${siteBase}/cabinet/design/vertical-videos?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=fail&orderId=${encodeURIComponent(order.id)}`
   const description = "Разработка видеоконтента для социальных сетей и видеоплатформ"
 

@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
   })
-  const returnUrl = `${siteBase}/cabinet/promotion/yandex-videoshot?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const returnUrl = `${siteBase}/cabinet/design/video-shots?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/yandex-videoshot?payment=fail&orderId=${encodeURIComponent(order.id)}`
 
   const pay = await createCabinetTbankPayment({

@@ -662,17 +662,11 @@ export default function CabinetMusicStatsPage() {
 
 
   return (
-    <div className="min-h-screen bg-background pt-20">
-      <div className="container mx-auto px-4 space-y-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 space-y-4 max-w-6xl">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Button variant="ghost" size="sm" className="-ml-2 mb-1" asChild>
-              <Link href="/cabinet">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                В личный кабинет
-              </Link>
-            </Button>
-            <h1 className="text-2xl font-bold">Статистика прослушиваний</h1>
+            <h1 className="text-2xl font-bold">Роялти и статистика</h1>
             <p className="text-sm text-muted-foreground max-w-3xl mt-2">
               Почему количество стримов на площадках может отличаться от статистики, которая отражена в личном
               кабинете?{" "}
