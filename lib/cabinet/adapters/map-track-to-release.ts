@@ -24,10 +24,14 @@ const DRAFT_STATUS_LABELS: Record<string, string> = {
 export function mapTrackToRelease(track: Track): ReleaseView {
   const platforms: string[] = []
   if (track.platformLinks) {
-    if (track.platformLinks.yandex) platforms.push("Яндекс Музыка")
-    if (track.platformLinks.spotify) platforms.push("Spotify")
-    if (track.platformLinks.vk) platforms.push("VK Музыка")
-    if (track.platformLinks.apple) platforms.push("Apple Music")
+    const links = track.platformLinks
+    if (links.yandex) platforms.push("Яндекс Музыка")
+    if (links.spotify) platforms.push("Spotify")
+    if (links.vk) platforms.push("VK Музыка")
+    if (links.appleMusic) platforms.push("Apple Music")
+    if (links.youtubeMusic) platforms.push("YouTube Music")
+    if (links.sberzvuk) platforms.push("СберЗвук")
+    if (links.kion) platforms.push("КИОН")
   }
   return {
     id: track.id,
