@@ -722,7 +722,7 @@ export async function getCabinetMusicStatsTopTracks(args: {
         WHERE ${whereSql}
         GROUP BY m.cabinet_track_id, c.track_name, c.artist_name
         HAVING SUM(d.plays) > 0
-        ORDER BY plays DESC
+        ORDER BY SUM(d.plays) DESC
       `,
     params
   )
