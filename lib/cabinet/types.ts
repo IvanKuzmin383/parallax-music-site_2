@@ -82,6 +82,8 @@ export interface ReleaseView {
   releaseDate?: string
   platforms?: string[]
   kind: "track" | "album" | "draft"
+  wizardStep?: number
+  releaseStatus?: string
 }
 
 export interface CabinetUserView {

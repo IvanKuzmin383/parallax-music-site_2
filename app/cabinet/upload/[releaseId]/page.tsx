@@ -1,14 +1,17 @@
 "use client"
 
 import { Suspense } from "react"
+import { useParams } from "next/navigation"
 import { Spinner } from "@/components/ui/spinner"
 import { ReleaseUploadWizard } from "@/components/cabinet/upload/release-upload-wizard"
 
-function UploadPageContent() {
-  return <ReleaseUploadWizard />
+function UploadReleasePageContent() {
+  const params = useParams()
+  const releaseId = typeof params.releaseId === "string" ? params.releaseId : undefined
+  return <ReleaseUploadWizard releaseId={releaseId} />
 }
 
-export default function CabinetUploadPage() {
+export default function CabinetUploadReleasePage() {
   return (
     <Suspense
       fallback={
@@ -17,7 +20,7 @@ export default function CabinetUploadPage() {
         </div>
       }
     >
-      <UploadPageContent />
+      <UploadReleasePageContent />
     </Suspense>
   )
 }

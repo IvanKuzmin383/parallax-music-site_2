@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { CabinetSubscriptionExpiredGuard } from "@/components/cabinet-subscription-expired-guard"
 import { CabinetRouteShell } from "@/components/cabinet/shell/cabinet-route-shell"
+import { CabinetSessionProvider } from "@/lib/cabinet/hooks/cabinet-session-provider"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +16,9 @@ export default function CabinetLayout({
 }) {
   return (
     <CabinetSubscriptionExpiredGuard>
-      <CabinetRouteShell>{children}</CabinetRouteShell>
+      <CabinetSessionProvider>
+        <CabinetRouteShell>{children}</CabinetRouteShell>
+      </CabinetSessionProvider>
     </CabinetSubscriptionExpiredGuard>
   )
 }

@@ -52,7 +52,7 @@ export function CabinetSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="cabinet-sidebar-scroll">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

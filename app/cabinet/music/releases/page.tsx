@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
+import { releaseContinueHref } from "@/lib/cabinet/adapters/map-track-to-release"
 import { Spinner } from "@/components/ui/spinner"
 
 export default function MusicReleasesPage() {
@@ -16,12 +17,9 @@ export default function MusicReleasesPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <PageHeader title="Мои релизы" description="Треки, альбомы и черновики загрузки">
+      <PageHeader title="Мои релизы" description="Черновики и опубликованные релизы">
         <Button asChild>
-          <Link href="/cabinet/upload"><Upload className="h-4 w-4 mr-2" />Загрузить трек</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/cabinet/upload/album">Альбом</Link>
+          <Link href="/cabinet/upload"><Upload className="h-4 w-4 mr-2" />Загрузить релиз</Link>
         </Button>
       </PageHeader>
 
@@ -30,11 +28,11 @@ export default function MusicReleasesPage() {
       ) : releases.length === 0 ? (
         <EmptyState
           title="Релизов пока нет"
-          description="Загрузите первый трек или альбом"
+          description="Загрузите первый релиз"
           icon={Music}
           action={
             <Button asChild>
-              <Link href="/cabinet/upload">Загрузить трек</Link>
+              <Link href="/cabinet/upload">Загрузить релиз</Link>
             </Button>
           }
         />
@@ -46,7 +44,7 @@ export default function MusicReleasesPage() {
                 <div className="flex gap-3">
                   <div className="h-16 w-16 rounded bg-muted shrink-0 overflow-hidden relative">
                     {release.coverUrl ? (
-                      <Image src={release.coverUrl} alt="" fill className="object-cover" sizes="64px" />
+                      <Image src={release.coverUrl} alt="" fill className="object-cover" sizes="64px" unoptimized />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Music className="h-6 w-6 text-muted-foreground" />
@@ -64,8 +62,8 @@ export default function MusicReleasesPage() {
                 </div>
                 {release.kind === "draft" ? (
                   <Button size="sm" className="w-full mt-3" variant="outline" asChild>
-                    <Link href={release.title.includes("Альбом") ? "/cabinet/upload/album" : "/cabinet/upload"}>
-                      Продолжить
+                    <Link href={releaseContinueHref(release)}>
+                      {release.status.includes("Ожидает оплаты") ? "Оплатить" : "Продолжить"}
                     </Link>
                   </Button>
                 ) : null}

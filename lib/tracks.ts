@@ -8,6 +8,7 @@ import { query, queryOne, execute } from "./database"
 export { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "./track-constants"
 
 export type TrackStatus =
+  | "draft"
   | "upload_pending"
   | "on_moderation"
   | "sent_to_platforms"
@@ -20,6 +21,8 @@ export interface Track {
   id: string
   userId: string
   albumId?: string
+  releaseId?: string
+  trackOrder?: number
   trackName: string
   artistName: string
   labelName: string
@@ -56,6 +59,8 @@ export interface TrackRow {
   id: string
   user_id: string
   album_id: string | null
+  release_id: string | null
+  track_order: number | null
   track_name: string
   artist_name: string
   label_name: string | null
@@ -99,6 +104,8 @@ export function rowToTrack(row: TrackRow): Track {
     id: row.id,
     userId: row.user_id,
     albumId: row.album_id ?? undefined,
+    releaseId: row.release_id ?? undefined,
+    trackOrder: row.track_order ?? undefined,
     trackName: row.track_name,
     artistName: row.artist_name,
     labelName: row.label_name ?? "Parallax Music",
@@ -197,6 +204,26 @@ export async function getTracksByAlbumId(albumId: string): Promise<Track[]> {
   return rows.map(rowToTrack)
 }
 
+export async function getTracksByReleaseId(releaseId: string): Promise<Track[]> {
+  const rows = await query<TrackRow>(
+    "SELECT * FROM tracks WHERE release_id = ? ORDER BY track_order ASC, created_at ASC",
+    [releaseId]
+  )
+  return rows.map(rowToTrack)
+}
+
+export async function reorderReleaseTracks(releaseId: string, trackIds: string[]): Promise<Track[]> {
+  for (let i = 0; i < trackIds.length; i++) {
+    await execute("UPDATE tracks SET track_order = ?, updated_at = ? WHERE id = ? AND release_id = ?", [
+      i,
+      new Date().toISOString(),
+      trackIds[i],
+      releaseId,
+    ])
+  }
+  return getTracksByReleaseId(releaseId)
+}
+
 export async function updateTracksByAlbumId(
   albumId: string,
   partial: {
@@ -259,13 +286,15 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
       track.userId,
       track.albumId ?? null,
+      track.releaseId ?? null,
+      track.trackOrder ?? 0,
       track.trackName,
       track.artistName,
       track.labelName,
@@ -342,12 +371,14 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, updated_at = ?
     WHERE id = ?
   `,
     [
       updated.userId,
       updated.albumId ?? null,
+      updated.releaseId ?? null,
+      updated.trackOrder ?? 0,
       updated.trackName,
       updated.artistName,
       updated.labelName,

@@ -26,10 +26,7 @@ export default function MusicDistributionPage() {
           </ul>
           <div className="flex flex-wrap gap-2 pt-2">
             <Button asChild>
-              <Link href="/cabinet/upload">Загрузить трек</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/cabinet/upload/album">Загрузить альбом</Link>
+              <Link href="/cabinet/upload">Загрузить релиз</Link>
             </Button>
             <Button variant="ghost" asChild>
               <Link href="/cabinet/publishing-rules">Правила публикации</Link>

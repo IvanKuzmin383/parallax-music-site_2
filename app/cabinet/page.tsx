@@ -18,7 +18,7 @@ function CabinetPageInner() {
   }
 
   if (!authenticated) {
-    return <CabinetAuthPage onAuthenticated={() => void refresh()} />
+    return <CabinetAuthPage onAuthenticated={() => void refresh({ silent: true })} />
   }
 
   return <CabinetDashboardPage />

@@ -1,8 +1,9 @@
 import type { ReleaseView } from "../types"
 import type { Track } from "@/lib/tracks"
-import type { UploadDraft } from "@/lib/upload-drafts"
+import type { Release } from "@/lib/releases"
 
 const TRACK_STATUS_LABELS: Record<string, string> = {
+  draft: "Черновик",
   upload_pending: "Ожидает загрузки",
   on_moderation: "На модерации",
   sent_to_platforms: "Отправлен на площадки",
@@ -12,13 +13,15 @@ const TRACK_STATUS_LABELS: Record<string, string> = {
   postponed: "Отложен",
 }
 
-const DRAFT_STATUS_LABELS: Record<string, string> = {
-  collecting: "Черновик",
+const RELEASE_STATUS_LABELS: Record<string, string> = {
+  draft: "Черновик",
   awaiting_payment: "Ожидает оплаты",
-  paid: "Оплачен",
-  finalized: "Отправлен",
-  expired: "Истёк",
-  cancelled: "Отменён",
+  on_moderation: "На модерации",
+  sent_to_platforms: "Отправлен на площадки",
+  approved_by_platforms: "Одобрен площадками",
+  released: "Выпущен",
+  rejected: "Отклонён",
+  postponed: "Отложен",
 }
 
 export function mapTrackToRelease(track: Track): ReleaseView {
@@ -33,6 +36,19 @@ export function mapTrackToRelease(track: Track): ReleaseView {
     if (links.sberzvuk) platforms.push("СберЗвук")
     if (links.kion) platforms.push("КИОН")
   }
+
+  if (track.status === "draft") {
+    return {
+      id: track.releaseId ?? track.id,
+      coverUrl: track.coverPath ? `/api/cabinet/releases/${track.releaseId}/cover` : undefined,
+      title: track.trackName,
+      artist: track.artistName,
+      status: "Черновик",
+      releaseDate: track.releaseDate,
+      kind: "draft" as const,
+    }
+  }
+
   return {
     id: track.id,
     coverUrl: track.coverPath ? `/api/cabinet/uploads/cover/${track.id}` : undefined,
@@ -41,22 +57,21 @@ export function mapTrackToRelease(track: Track): ReleaseView {
     status: TRACK_STATUS_LABELS[track.status] ?? track.status,
     releaseDate: track.releaseDate,
     platforms,
-    kind: "track",
+    kind: track.albumId ? "album" : "track",
   }
 }
 
-export function mapDraftToRelease(draft: UploadDraft): ReleaseView {
-  const payload = draft.payload
-  const title =
-    draft.kind === "album"
-      ? payload.albumTitle ?? "Альбом (черновик)"
-      : payload.trackName ?? "Трек (черновик)"
+export function mapReleaseEntityToView(release: Release): ReleaseView {
   return {
-    id: draft.id,
-    title,
-    artist: payload.artistName ?? "—",
-    status: DRAFT_STATUS_LABELS[draft.status] ?? draft.status,
-    kind: "draft",
+    id: release.id,
+    coverUrl: release.coverPath ? `/api/cabinet/releases/${release.id}/cover` : undefined,
+    title: release.title || (release.kind === "album" ? "Альбом (черновик)" : "Релиз (черновик)"),
+    artist: release.artistName || "—",
+    status: RELEASE_STATUS_LABELS[release.status] ?? release.status,
+    releaseDate: release.releaseDate,
+    kind: release.status === "draft" || release.status === "awaiting_payment" ? "draft" : release.kind === "album" ? "album" : "track",
+    wizardStep: release.wizardStep,
+    releaseStatus: release.status,
   }
 }
 
@@ -65,6 +80,15 @@ export function isReleaseInProgress(release: ReleaseView): boolean {
     release.kind === "draft" ||
     release.status.includes("модерац") ||
     release.status.includes("Ожидает") ||
-    release.status.includes("Отправлен")
+    release.status.includes("Черновик")
   )
+}
+
+export function releaseContinueHref(release: ReleaseView): string {
+  if (release.kind !== "draft") return "/cabinet/music/releases"
+  const step = release.wizardStep ?? 1
+  if (release.releaseStatus === "awaiting_payment") {
+    return `/cabinet/upload/${release.id}?step=5`
+  }
+  return `/cabinet/upload/${release.id}?step=${step}`
 }

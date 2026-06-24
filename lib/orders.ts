@@ -30,6 +30,7 @@ export interface OrderBase {
   status: OrderStatus
   paymentId?: string
   draftId?: string
+  releaseId?: string
   createdAt: string
   paidAt?: string
 }
@@ -118,7 +119,8 @@ export interface OrderUploadAddonBundle extends OrderBase {
   orderType: "upload_addon_bundle"
   userId: string
   totalAmount: string
-  draftId: string
+  draftId?: string
+  releaseId?: string
   tracksCount: number
   uploadAddonBundlePayloadJson?: string
 }
@@ -160,6 +162,7 @@ interface OrderRow {
   tracks_count: number | null
   is_recurring_renewal: boolean | null
   draft_id: string | null
+  release_id: string | null
   upload_addon_bundle_payload_json: string | null
 }
 
@@ -169,6 +172,7 @@ function rowToOrder(row: OrderRow): Order {
     status: row.status as OrderStatus,
     paymentId: row.payment_id ?? undefined,
     draftId: row.draft_id ?? undefined,
+    releaseId: row.release_id ?? undefined,
     createdAt: row.created_at,
     paidAt: row.paid_at ?? undefined,
   }
@@ -178,7 +182,8 @@ function rowToOrder(row: OrderRow): Order {
       orderType: "upload_addon_bundle",
       userId: row.user_id ?? "",
       totalAmount: row.total_amount,
-      draftId: row.draft_id ?? "",
+      draftId: row.draft_id ?? undefined,
+      releaseId: row.release_id ?? undefined,
       tracksCount: row.tracks_count ?? 0,
       uploadAddonBundlePayloadJson: row.upload_addon_bundle_payload_json ?? undefined,
     }
@@ -277,8 +282,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     const o = order as Omit<OrderUploadAddonBundle, "id" | "status" | "createdAt">
     await execute(
       `
-      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, draft_id, upload_addon_bundle_payload_json)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, draft_id, release_id, upload_addon_bundle_payload_json)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         id,
@@ -294,7 +299,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         totalAmount,
         o.userId,
         o.tracksCount,
-        o.draftId,
+        o.draftId ?? null,
+        o.releaseId ?? null,
         o.uploadAddonBundlePayloadJson ?? null,
       ]
     )

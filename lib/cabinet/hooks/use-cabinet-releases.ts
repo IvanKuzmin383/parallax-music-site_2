@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import type { ReleaseView } from "../types"
-import { mapDraftToRelease, mapTrackToRelease } from "../adapters/map-track-to-release"
+import { mapReleaseEntityToView, mapTrackToRelease } from "../adapters/map-track-to-release"
 import type { Track } from "@/lib/tracks"
-import type { UploadDraft } from "@/lib/upload-drafts"
+import type { Release } from "@/lib/releases"
 
 export function useCabinetReleases() {
   const [releases, setReleases] = useState<ReleaseView[]>([])
@@ -13,21 +13,35 @@ export function useCabinetReleases() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [tracksRes, draftsRes] = await Promise.all([
+      const [tracksRes, releasesRes] = await Promise.all([
         fetch("/api/cabinet/tracks", { credentials: "include" }),
-        fetch("/api/cabinet/upload-drafts", { credentials: "include" }),
+        fetch("/api/cabinet/releases", { credentials: "include" }),
       ])
+
+      const releaseEntities: ReleaseView[] = []
+      if (releasesRes.ok) {
+        const data = (await releasesRes.json()) as { releases?: Release[] }
+        const active = (data.releases ?? []).filter(
+          (r) => r.status === "draft" || r.status === "awaiting_payment"
+        )
+        releaseEntities.push(...active.map(mapReleaseEntityToView))
+      }
+
+      const activeReleaseIds = new Set(releaseEntities.map((r) => r.id))
+
       const trackItems: ReleaseView[] = []
       if (tracksRes.ok) {
         const data = (await tracksRes.json()) as { tracks?: Track[] }
-        trackItems.push(...(data.tracks ?? []).map(mapTrackToRelease))
+        for (const track of data.tracks ?? []) {
+          if (track.status === "draft" && track.releaseId && activeReleaseIds.has(track.releaseId)) {
+            continue
+          }
+          if (track.status === "draft") continue
+          trackItems.push(mapTrackToRelease(track))
+        }
       }
-      const draftItems: ReleaseView[] = []
-      if (draftsRes.ok) {
-        const data = (await draftsRes.json()) as { drafts?: UploadDraft[] }
-        draftItems.push(...(data.drafts ?? []).map(mapDraftToRelease))
-      }
-      const merged = [...draftItems, ...trackItems].sort((a, b) => {
+
+      const merged = [...releaseEntities, ...trackItems].sort((a, b) => {
         const da = a.releaseDate ?? a.title
         const db = b.releaseDate ?? b.title
         return db.localeCompare(da)

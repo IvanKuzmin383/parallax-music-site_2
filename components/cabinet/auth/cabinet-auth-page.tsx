@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Lock } from "lucide-react"
 import { Turnstile } from "@marsidev/react-turnstile"
 import { toast } from "sonner"
@@ -31,7 +31,6 @@ interface CabinetAuthPageProps {
 }
 
 export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -82,7 +81,6 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
       if (response.ok) {
         toast.success("Вход выполнен успешно")
         onAuthenticated()
-        router.refresh()
       } else if (response.status === 429) {
         toast.error(data.error || "Слишком много попыток. Попробуйте позже.")
       } else if (response.status === 403) {
@@ -135,7 +133,6 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
       if (response.ok) {
         toast.success("Регистрация выполнена успешно")
         onAuthenticated()
-        router.refresh()
       } else if (response.status === 403 && data.code === "SUBSCRIPTION_REQUIRED") {
         setSubscriptionRequiredDialogOpen(true)
       } else {
@@ -168,9 +165,7 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
                 </Link>
                 , затем создайте аккаунт на тот же email.
               </>
-            ) : (
-              "Войдите, чтобы управлять релизами и услугами"
-            )}
+            ) : null}
           </CardDescription>
         </CardHeader>
         <CardContent>
