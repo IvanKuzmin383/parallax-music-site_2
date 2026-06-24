@@ -53,17 +53,19 @@ export async function PATCH(
       }
     }
 
-    const updated = await updateRelease(id, {
-      kind: body.kind === "album" ? "album" : body.kind === "single" ? "single" : undefined,
-      title: typeof body.title === "string" ? body.title : undefined,
-      artistName,
-      labelName: typeof body.labelName === "string" ? body.labelName : undefined,
+    const patch: Parameters<typeof updateRelease>[1] = {
       releaseDate: typeof body.releaseDate === "string" ? body.releaseDate : body.releaseDate === null ? null : undefined,
       upc: typeof body.upc === "string" ? body.upc : body.upc === null ? null : undefined,
-      wizardStep: typeof body.wizardStep === "number" ? body.wizardStep : undefined,
-      addons: body.addons && typeof body.addons === "object" ? (body.addons as typeof release.addons) : undefined,
-      requestAiCover: typeof body.requestAiCover === "boolean" ? body.requestAiCover : undefined,
-    })
+    }
+    if (body.kind === "album" || body.kind === "single") patch.kind = body.kind
+    if (typeof body.title === "string") patch.title = body.title
+    if (typeof body.artistName === "string") patch.artistName = body.artistName.trim()
+    if (typeof body.labelName === "string") patch.labelName = body.labelName.trim()
+    if (typeof body.wizardStep === "number") patch.wizardStep = body.wizardStep
+    if (body.addons && typeof body.addons === "object") patch.addons = body.addons as typeof release.addons
+    if (typeof body.requestAiCover === "boolean") patch.requestAiCover = body.requestAiCover
+
+    const updated = await updateRelease(id, patch)
 
     return NextResponse.json({ release: updated })
   } catch (error) {

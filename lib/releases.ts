@@ -215,7 +215,14 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
 
   const updated: Release = {
     ...current,
-    ...partial,
+    kind: partial.kind ?? current.kind,
+    title: partial.title ?? current.title,
+    artistName: partial.artistName ?? current.artistName,
+    labelName: partial.labelName ?? current.labelName,
+    coverPath: partial.coverPath ?? current.coverPath,
+    status: partial.status ?? current.status,
+    wizardStep: partial.wizardStep ?? current.wizardStep,
+    requestAiCover: partial.requestAiCover ?? current.requestAiCover,
     releaseDate: partial.releaseDate === null ? undefined : (partial.releaseDate ?? current.releaseDate),
     upc: partial.upc === null ? undefined : (partial.upc ?? current.upc),
     bundleOrderId: partial.bundleOrderId === null ? undefined : (partial.bundleOrderId ?? current.bundleOrderId),
