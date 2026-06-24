@@ -3,8 +3,9 @@ import { MUSIC_PLATFORM_LABELS } from "@/lib/music-platform"
 import {
   CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS,
   type MusicStatsResponse,
+  type TopTrack,
 } from "@/lib/music-stats-shared"
-import { getMusicStatsForCabinetUser } from "@/lib/music-stats"
+import { getCabinetMusicStatsTopTracks, getMusicStatsForCabinetUser } from "@/lib/music-stats"
 
 export { CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS }
 
@@ -22,6 +23,7 @@ export function parseMusicPlatformKeysList(raw: string | null): MusicPlatformKey
 
 export type CabinetMusicStatsBatchResult = {
   chart: MusicStatsResponse[]
+  topTracks: TopTrack[]
   compare: Array<{ trackId: string; platforms: MusicStatsResponse[] }>
 }
 
@@ -52,6 +54,12 @@ export async function getMusicStatsBatchForCabinetUser(
     )
   }
 
+  const topTracks = await getCabinetMusicStatsTopTracks({
+    cabinetUserEmail,
+    platformKeys,
+    filters: { trackIds: chartFilter },
+  })
+
   const compare: CabinetMusicStatsBatchResult["compare"] = []
   for (const trackId of compareIds) {
     const platforms: MusicStatsResponse[] = []
@@ -63,5 +71,5 @@ export async function getMusicStatsBatchForCabinetUser(
     compare.push({ trackId, platforms })
   }
 
-  return { chart, compare }
+  return { chart, topTracks, compare }
 }
