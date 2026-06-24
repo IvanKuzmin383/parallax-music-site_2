@@ -1069,7 +1069,7 @@ export async function importMusicStatsParsedToDb(args: {
         FROM music_platform_track_daily_plays d
         WHERE d.platform_key = ?
           AND d.stat_date IN (${placeholders})
-        GROUP BY d.stat_date
+        GROUP BY d.platform_key, d.stat_date
       `,
       [args.platformKey, ...dates]
     )
