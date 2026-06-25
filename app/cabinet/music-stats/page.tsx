@@ -665,7 +665,7 @@ export default function CabinetMusicStatsPage() {
 
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>

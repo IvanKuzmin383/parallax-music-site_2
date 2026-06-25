@@ -106,7 +106,7 @@ export default function MyServicesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 pt-20">
+    <div className="min-h-screen bg-background p-4">
       <div className="container mx-auto max-w-3xl space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="ghost" size="icon" asChild>

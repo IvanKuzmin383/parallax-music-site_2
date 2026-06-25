@@ -59,7 +59,7 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full text-center space-y-4">
           <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
           <h1 className="text-2xl font-bold">Неверная ссылка</h1>
@@ -75,7 +75,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen pt-20 flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full space-y-4">
           <div className="text-center space-y-2">
             <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
@@ -137,7 +137,7 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen pt-20 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <p className="text-muted-foreground">Загрузка...</p>
         </div>
       }

@@ -142,14 +142,14 @@ export default function CabinetProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-4 pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
         <Spinner className="h-6 w-6" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 pt-20">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">

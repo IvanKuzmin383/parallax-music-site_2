@@ -64,7 +64,7 @@ export function CabinetSubscriptionExpiredGuard({ children }: { children: React.
 
   if (gate === "redirecting") {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Spinner className="h-8 w-8" />
       </div>
     )
@@ -75,7 +75,7 @@ export function CabinetSubscriptionExpiredGuard({ children }: { children: React.
       return <>{children}</>
     }
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Spinner className="h-8 w-8" />
       </div>
     )
