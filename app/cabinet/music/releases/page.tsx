@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { Music, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
-import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { releaseContinueHref } from "@/lib/cabinet/adapters/map-track-to-release"
+import { releaseDetailHref } from "@/lib/cabinet/release-presenters"
+import { ReleaseCoverCard } from "@/components/cabinet/dashboard/cabinet-dashboard-hero"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Tooltip,
@@ -84,7 +83,7 @@ export default function MusicReleasesPage() {
   const { releases, loading } = useCabinetReleases()
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="max-w-6xl space-y-6">
       <PageHeader title="Мои релизы" description="Черновики и опубликованные релизы">
         <UploadReleaseButton />
       </PageHeader>
@@ -99,38 +98,22 @@ export default function MusicReleasesPage() {
           action={<UploadReleaseButton />}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {releases.map((release) => (
-            <Card key={release.id}>
-              <CardContent className="pt-4">
-                <div className="flex gap-3">
-                  <div className="h-16 w-16 rounded bg-muted shrink-0 overflow-hidden relative">
-                    {release.coverUrl ? (
-                      <Image src={release.coverUrl} alt="" fill className="object-cover" sizes="64px" unoptimized />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <Music className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="font-medium truncate">{release.title}</p>
-                    <p className="text-sm text-muted-foreground truncate">{release.artist}</p>
-                    <StatusBadge status={release.status} kind="generic" />
-                    {release.platforms && release.platforms.length > 0 ? (
-                      <p className="text-xs text-muted-foreground truncate">{release.platforms.join(", ")}</p>
-                    ) : null}
-                  </div>
-                </div>
-                {release.kind === "draft" ? (
-                  <Button size="sm" className="w-full mt-3" variant="outline" asChild>
-                    <Link href={releaseContinueHref(release)}>
-                      {release.status.includes("Ожидает оплаты") ? "Оплатить" : "Продолжить"}
-                    </Link>
-                  </Button>
-                ) : null}
-              </CardContent>
-            </Card>
+            <div key={release.id} className="space-y-2">
+              <ReleaseCoverCard release={release} size="md" />
+              {release.kind === "draft" ? (
+                <Button size="sm" className="w-full" variant="outline" asChild>
+                  <Link href={releaseContinueHref(release)}>
+                    {release.status.includes("Ожидает оплаты") ? "Оплатить" : "Продолжить"}
+                  </Link>
+                </Button>
+              ) : (
+                <Button size="sm" className="w-full" variant="ghost" asChild>
+                  <Link href={releaseDetailHref(release)}>Открыть релиз</Link>
+                </Button>
+              )}
+            </div>
           ))}
         </div>
       )}
