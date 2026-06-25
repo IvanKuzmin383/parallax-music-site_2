@@ -25,6 +25,7 @@ export {
 } from "@/lib/admin-tracks-query-shared"
 
 const ALL_TRACK_STATUSES: TrackStatus[] = [
+  "draft",
   "upload_pending",
   "on_moderation",
   "sent_to_platforms",

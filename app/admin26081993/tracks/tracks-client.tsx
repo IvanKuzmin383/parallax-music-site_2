@@ -111,6 +111,7 @@ type AdminAlbum = {
 const EMPTY_TRACKS_STATS: AdminTracksStats = {
   total: 0,
   byStatus: {
+    draft: 0,
     upload_pending: 0,
     on_moderation: 0,
     sent_to_platforms: 0,
