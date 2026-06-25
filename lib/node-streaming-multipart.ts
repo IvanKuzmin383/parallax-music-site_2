@@ -26,6 +26,29 @@ export type ParsedMultipartFile = {
   tempFilePath: string
 }
 
+/** Декодирует имя файла из multipart (UTF-8 в filename* или latin1→utf8). */
+export function decodeMultipartFilename(raw: string): string {
+  if (!raw) return ""
+  const starMatch = raw.match(/(?:UTF-8''|utf-8'')(.*)$/i)
+  if (starMatch?.[1]) {
+    try {
+      return decodeURIComponent(starMatch[1])
+    } catch {
+      // fall through
+    }
+  }
+  try {
+    const decoded = Buffer.from(raw, "latin1").toString("utf8")
+    if (decoded.includes("\uFFFD")) return raw
+    const hasCyrillic = /[\u0400-\u04FF]/.test(decoded)
+    const rawHasMojibake = /[ÐÑ]/.test(raw)
+    if (hasCyrillic || rawHasMojibake) return decoded
+  } catch {
+    // ignore
+  }
+  return raw
+}
+
 export type ParsedMultipartBody = {
   fields: Record<string, string[]>
   files: ParsedMultipartFile[]
@@ -84,7 +107,7 @@ export async function parseMultipartRequestStream(
     const target = createWriteStream(tempFilePath, { flags: "wx" })
     const item: ParsedMultipartFile = {
       fieldName,
-      originalFilename: info.filename ?? "",
+      originalFilename: decodeMultipartFilename(info.filename ?? ""),
       mimeType: info.mimeType ?? "",
       size: 0,
       tempFilePath,

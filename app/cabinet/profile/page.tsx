@@ -142,19 +142,29 @@ export default function CabinetProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="min-h-screen bg-background p-4 pt-20 flex items-center justify-center">
         <Spinner className="h-6 w-6" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-3xl space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold">Настройки</h1>
-          <p className="text-muted-foreground text-sm">
-            Профиль, тариф и реквизиты для договора
-          </p>
+    <div className="min-h-screen bg-background p-4 pt-20">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/cabinet">
+                <span aria-hidden="true">←</span>
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Профиль</h1>
+              <p className="text-muted-foreground text-sm">
+                Заполните обязательные данные для договора
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -384,6 +394,7 @@ export default function CabinetProfilePage() {
             )}
           </CardContent>
         </Card>
+      </div>
     </div>
   )
 }

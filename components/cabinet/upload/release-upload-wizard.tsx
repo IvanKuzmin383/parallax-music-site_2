@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Spinner } from "@/components/ui/spinner"
+import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -50,6 +51,15 @@ import type { Track } from "@/lib/tracks"
 import { ReleaseUploadStepper } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
+import { uploadReleaseTrackAudio } from "@/lib/cabinet-release-audio-upload"
+
+type AudioUploadItem = {
+  id: string
+  fileName: string
+  progress: number
+  status: "pending" | "uploading" | "done" | "error"
+  error?: string
+}
 
 type WizardProps = {
   releaseId?: string
@@ -67,6 +77,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [loading, setLoading] = useState(Boolean(initialReleaseId))
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [profileCompleteForUpload, setProfileCompleteForUpload] = useState<boolean | null>(null)
+  const [uploadQueue, setUploadQueue] = useState<AudioUploadItem[]>([])
 
   const [kind, setKind] = useState<ReleaseKind>("single")
   const [title, setTitle] = useState("")
@@ -116,6 +128,35 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       addonSpotifyVideoshot,
     ]
   )
+
+  const isUploadingAudio = uploadQueue.some((item) => item.status === "pending" || item.status === "uploading")
+  const formDisabled = saving || submitting || isUploadingAudio || profileCompleteForUpload === false
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/cabinet/user", { credentials: "include" })
+        if (!res.ok) {
+          setProfileCompleteForUpload(false)
+          return
+        }
+        const data = (await res.json()) as { user?: { profileCompleteForUpload?: boolean } }
+        setProfileCompleteForUpload(data.user?.profileCompleteForUpload === true)
+      } catch {
+        setProfileCompleteForUpload(false)
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (!isUploadingAudio) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [isUploadingAudio])
 
   const syncFromRelease = useCallback((r: Release, t: Track[]) => {
     setRelease(r)
@@ -195,6 +236,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }, [stepFromUrl])
 
   const goToStep = (next: number) => {
+    if (isUploadingAudio) {
+      toast.error("Дождитесь завершения загрузки аудио")
+      return
+    }
     const clamped = Math.min(5, Math.max(1, next))
     setStep(clamped)
     setMaxStep((prev) => Math.max(prev, clamped))
@@ -251,6 +296,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }
 
   const handleCoverFile = async (file: File) => {
+    if (profileCompleteForUpload === false) {
+      toast.error("Заполните обязательные поля в профиле")
+      return
+    }
     if (isHeicCoverFile(file)) {
       toast.error(COVER_HEIC_ERROR)
       return
@@ -298,38 +347,94 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
-  const handleAudioFile = async (file: File) => {
+  const handleAudioFiles = async (fileList: FileList | File[]) => {
     if (!releaseId) {
       toast.error("Сначала заполните основную информацию и загрузите обложку")
       return
     }
-    if (!isLikelyWavFile(file)) {
-      toast.error("Аудио должно быть в формате WAV")
-      return
-    }
-    if (file.size > 80 * 1024 * 1024) {
-      toast.error("Размер аудио не должен превышать 80 MB")
+    if (profileCompleteForUpload === false) {
+      toast.error("Заполните обязательные поля в профиле")
       return
     }
 
-    const fd = new FormData()
-    fd.append("audio", file)
-    setSaving(true)
-    try {
-      const res = await fetch(`/api/cabinet/releases/${releaseId}/tracks`, {
-        method: "POST",
-        credentials: "include",
-        body: fd,
-      })
-      const data = await parseCabinetApiJson<{ tracks?: Track[] }>(res)
-      if (!res.ok) {
-        toast.error(data.error ?? "Не удалось загрузить аудио")
+    const wavFiles = Array.from(fileList).filter((f) => isLikelyWavFile(f))
+    if (wavFiles.length === 0) {
+      toast.error("Выберите файлы в формате WAV")
+      return
+    }
+
+    if (kind === "single") {
+      if (tracks.length >= 1) {
+        toast.error("Сингл может содержать только один трек")
         return
       }
-      setTracks(data.tracks ?? [])
-      toast.success("Аудио загружено")
-    } finally {
-      setSaving(false)
+      if (wavFiles.length > 1) {
+        toast.error("Для сингла можно загрузить только один файл")
+        return
+      }
+    }
+
+    for (const file of wavFiles) {
+      if (file.size > 80 * 1024 * 1024) {
+        toast.error(`«${file.name}»: размер не должен превышать 80 MB`)
+        return
+      }
+    }
+
+    const queueItems: AudioUploadItem[] = wavFiles.map((file) => ({
+      id: crypto.randomUUID(),
+      fileName: file.name.replace(/\.[^.]+$/, "").trim() || file.name,
+      progress: 0,
+      status: "pending" as const,
+    }))
+    setUploadQueue((prev) => [...prev, ...queueItems])
+
+    let latestTracks = tracks
+
+    let successCount = 0
+    for (let i = 0; i < wavFiles.length; i++) {
+      const file = wavFiles[i]
+      const queueId = queueItems[i].id
+
+      setUploadQueue((prev) =>
+        prev.map((item) =>
+          item.id === queueId ? { ...item, status: "uploading", progress: 0 } : item
+        )
+      )
+
+      try {
+        const data = await uploadReleaseTrackAudio(releaseId, file, (percent) => {
+          setUploadQueue((prev) =>
+            prev.map((item) => (item.id === queueId ? { ...item, progress: percent } : item))
+          )
+        })
+        if (data.tracks) {
+          latestTracks = data.tracks
+          setTracks(data.tracks)
+        } else if (data.track) {
+          latestTracks = [...latestTracks, data.track]
+          setTracks(latestTracks)
+        }
+        setUploadQueue((prev) =>
+          prev.map((item) =>
+            item.id === queueId ? { ...item, status: "done", progress: 100 } : item
+          )
+        )
+        successCount += 1
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Не удалось загрузить аудио"
+        setUploadQueue((prev) =>
+          prev.map((item) =>
+            item.id === queueId ? { ...item, status: "error", error: message } : item
+          )
+        )
+        toast.error(message)
+      }
+    }
+
+    const uploadedCount = successCount
+    if (uploadedCount > 0) {
+      toast.success(uploadedCount === 1 ? "Аудио загружено" : `Загружено файлов: ${uploadedCount}`)
     }
   }
 
@@ -415,6 +520,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }
 
   const handleNext = async () => {
+    if (isUploadingAudio) {
+      toast.error("Дождитесь завершения загрузки аудио")
+      return
+    }
     if (step === 1) {
       const err = validateStep1()
       if (err) {
@@ -493,6 +602,113 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
+  const reviewChecks = useMemo(() => {
+    const items: { ok: boolean; label: string; value?: string }[] = [
+      {
+        ok: Boolean(artistName.trim()),
+        label: "Артист",
+        value: artistName.trim() || undefined,
+      },
+      {
+        ok: Boolean(title.trim()),
+        label: "Название релиза",
+        value: title.trim() || undefined,
+      },
+      {
+        ok: Boolean(releaseDate),
+        label: "Дата релиза",
+        value: releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : undefined,
+      },
+      {
+        ok: kind === "single" || kind === "album",
+        label: "Тип",
+        value: kind === "single" ? "Сингл" : "Альбом",
+      },
+      {
+        ok: Boolean(release?.coverPath || coverPreview),
+        label: "Обложка",
+        value: release?.coverPath || coverPreview ? "Загружена" : undefined,
+      },
+    ]
+
+    if (upc.trim()) {
+      items.push({ ok: true, label: "UPC / EAN", value: upc.trim() })
+    }
+
+    const minTracks = kind === "album" ? 2 : 1
+    items.push({
+      ok: tracks.length >= minTracks,
+      label: "Треки",
+      value:
+        tracks.length > 0
+          ? tracks.map((t, i) => `${i + 1}. ${t.trackName}`).join("; ")
+          : undefined,
+    })
+
+    for (const t of tracks) {
+      const metaOk = Boolean(t.genre && t.mood && t.shortDescription.trim().length >= 2)
+      items.push({
+        ok: metaOk,
+        label: `Метаданные: ${t.trackName}`,
+        value: metaOk
+          ? [t.genre, t.mood].filter(Boolean).join(" · ")
+          : undefined,
+      })
+    }
+
+    if (requestAiCover) {
+      items.push({ ok: true, label: "Услуга", value: "AI обложка для трека" })
+    }
+    if (addonVerticalVideo) {
+      items.push({
+        ok: true,
+        label: "Услуга",
+        value: `Видео для трека × ${addonVerticalVideoCount}`,
+      })
+    }
+    if (addonAiMastering) {
+      items.push({
+        ok: true,
+        label: "Услуга",
+        value: `AI мастеринг × ${addonAiMasteringCount}`,
+      })
+    }
+    if (addonYandexVideoshot) items.push({ ok: true, label: "Услуга", value: "Яндекс видеошот" })
+    if (addonYandexVideoshotCreation) {
+      items.push({ ok: true, label: "Услуга", value: "Создание видеошота Яндекс" })
+    }
+    if (addonYandexVideoavatar) items.push({ ok: true, label: "Услуга", value: "Яндекс видеоаватар" })
+    if (addonSpotifyVideoshot) items.push({ ok: true, label: "Услуга", value: "Spotify видеошот" })
+    if (paymentTotal > 0) {
+      items.push({
+        ok: true,
+        label: "К оплате",
+        value: `${paymentTotal.toLocaleString("ru-RU")} ₽`,
+      })
+    }
+
+    return items
+  }, [
+    artistName,
+    title,
+    releaseDate,
+    kind,
+    release?.coverPath,
+    coverPreview,
+    upc,
+    tracks,
+    requestAiCover,
+    addonVerticalVideo,
+    addonVerticalVideoCount,
+    addonAiMastering,
+    addonAiMasteringCount,
+    addonYandexVideoshot,
+    addonYandexVideoshotCreation,
+    addonYandexVideoavatar,
+    addonSpotifyVideoshot,
+    paymentTotal,
+  ])
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -500,18 +716,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       </div>
     )
   }
-
-  const reviewChecks = [
-    { ok: Boolean(artistName.trim()), label: "Имя артиста / группа" },
-    { ok: Boolean(title.trim()), label: "Название релиза" },
-    { ok: Boolean(releaseDate), label: "Дата релиза" },
-    { ok: Boolean(release?.coverPath || coverPreview), label: "Обложка загружена" },
-    { ok: tracks.length >= (kind === "album" ? 2 : 1), label: `Треков: ${tracks.length}` },
-    ...tracks.map((t) => ({
-      ok: Boolean(t.genre && t.mood && t.shortDescription.trim().length >= 2),
-      label: `Метаданные: ${t.trackName}`,
-    })),
-  ]
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
@@ -522,7 +726,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         <h1 className="text-xl font-semibold">Новый релиз</h1>
       </div>
 
-      <CabinetUploadProfileGateBanner />
+      {profileCompleteForUpload === false ? <CabinetUploadProfileGateBanner /> : null}
 
       <ReleaseUploadStepper currentStep={step} maxReachedStep={maxStep} />
 
@@ -537,6 +741,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   type="button"
                   variant={kind === k ? "default" : "outline"}
                   onClick={() => setKind(k)}
+                  disabled={formDisabled}
                 >
                   {k === "single" ? "Сингл" : "Альбом"}
                 </Button>
@@ -545,17 +750,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           </div>
           <div>
             <Label>Название релиза *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} disabled={formDisabled} />
           </div>
           <div>
             <Label>Имя артиста / название группы *</Label>
-            <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} />
+            <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
           </div>
           <div>
             <Label>Желаемая дата релиза *</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start", !releaseDate && "text-muted-foreground")}>
+                <Button variant="outline" className={cn("w-full justify-start", !releaseDate && "text-muted-foreground")} disabled={formDisabled}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
                 </Button>
@@ -584,7 +789,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             <div className="flex gap-4 mt-1">
               <div
                 className="h-32 w-32 rounded-md border border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 cursor-pointer shrink-0"
-                onClick={() => coverInputRef.current?.click()}
+                onClick={() => !formDisabled && coverInputRef.current?.click()}
               >
                 {coverPreview ? (
                   <Image src={coverPreview} alt="" width={128} height={128} className="object-cover h-full w-full" unoptimized />
@@ -594,7 +799,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={saving}>
+                <Button type="button" variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={formDisabled}>
                   {saving ? <Spinner className="h-4 w-4" /> : "Выбрать файл"}
                 </Button>
               </div>
@@ -613,7 +818,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           </div>
           <div>
             <Label>UPC / EAN</Label>
-            <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" />
+            <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
             <p className="text-xs text-muted-foreground mt-1">
               Укажите UPC / EAN релиза, если переносите релиз от другого дистрибьютора
             </p>
@@ -625,50 +830,83 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Формат файла: *.wav · Частота дискретизации: 44 100 Гц · Стерео · до 80 MB
+            {kind === "album" ? " · можно выбрать или перетащить несколько файлов" : ""}
           </p>
           <div
-            className="border border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-muted/30 transition-colors"
+            className={cn(
+              "border border-dashed border-border rounded-lg p-8 text-center transition-colors",
+              formDisabled ? "opacity-50 pointer-events-none" : "cursor-pointer hover:bg-muted/30",
+              isUploadingAudio && "border-primary/50 bg-primary/5"
+            )}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault()
-              const f = e.dataTransfer.files[0]
-              if (f) void handleAudioFile(f)
+              if (formDisabled) return
+              void handleAudioFiles(e.dataTransfer.files)
             }}
-            onClick={() => audioInputRef.current?.click()}
+            onClick={() => !formDisabled && audioInputRef.current?.click()}
           >
-            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm">Перетащите WAV сюда или нажмите для выбора</p>
+            {isUploadingAudio ? (
+              <Spinner className="h-10 w-10 mx-auto text-primary mb-2" />
+            ) : (
+              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+            )}
+            <p className="text-sm">
+              {isUploadingAudio
+                ? "Идёт загрузка — не закрывайте страницу"
+                : "Перетащите WAV сюда или нажмите для выбора"}
+            </p>
           </div>
           <input
             ref={audioInputRef}
             type="file"
             accept=".wav,audio/wav"
+            multiple={kind === "album"}
             className="hidden"
+            disabled={formDisabled}
             onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) void handleAudioFile(f)
+              if (e.target.files?.length) void handleAudioFiles(e.target.files)
               e.target.value = ""
             }}
           />
+          {uploadQueue.length > 0 ? (
+            <ul className="space-y-2">
+              {uploadQueue.map((item) => (
+                <li key={item.id} className="rounded-md border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate">{item.fileName}</span>
+                    <span className="text-muted-foreground shrink-0">
+                      {item.status === "pending" && "В очереди"}
+                      {item.status === "uploading" && `${item.progress}%`}
+                      {item.status === "done" && "Готово"}
+                      {item.status === "error" && "Ошибка"}
+                    </span>
+                  </div>
+                  {item.status === "uploading" ? <Progress value={item.progress} /> : null}
+                  {item.error ? <p className="text-xs text-destructive">{item.error}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <ul className="space-y-2">
             {tracks.map((track, index) => (
               <li key={track.id} className="flex items-center gap-2 rounded-md border border-border p-3">
                 <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
                 <span className="flex-1 truncate text-sm">{track.trackName}</span>
-                <Button type="button" size="icon" variant="ghost" onClick={() => togglePlay(track.id)}>
+                <Button type="button" size="icon" variant="ghost" disabled={formDisabled} onClick={() => togglePlay(track.id)}>
                   {playingTrackId === track.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
                 {kind === "album" ? (
                   <>
-                    <Button type="button" size="icon" variant="ghost" disabled={index === 0} onClick={() => void moveTrack(index, -1)}>
+                    <Button type="button" size="icon" variant="ghost" disabled={index === 0 || formDisabled} onClick={() => void moveTrack(index, -1)}>
                       <ArrowUp className="h-4 w-4" />
                     </Button>
-                    <Button type="button" size="icon" variant="ghost" disabled={index === tracks.length - 1} onClick={() => void moveTrack(index, 1)}>
+                    <Button type="button" size="icon" variant="ghost" disabled={index === tracks.length - 1 || formDisabled} onClick={() => void moveTrack(index, 1)}>
                       <ArrowDown className="h-4 w-4" />
                     </Button>
                   </>
                 ) : null}
-                <Button type="button" size="icon" variant="ghost" onClick={() => void deleteTrack(track.id)}>
+                <Button type="button" size="icon" variant="ghost" disabled={formDisabled} onClick={() => void deleteTrack(track.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </li>
@@ -688,6 +926,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 track={track}
                 onChange={(patch) => void updateTrackLocal(track.id, patch)}
                 showTransferFields={Boolean(upc.trim())}
+                disabled={formDisabled}
               />
             </div>
           ))}
@@ -696,7 +935,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
       {step === 4 ? (
         <CabinetUploadAdditionalServicesSection
-          formDisabled={saving}
+          formDisabled={formDisabled}
+          layout="plain"
           requestAiCover={requestAiCover}
           renderAiCoverRow={(openAddonInfo) => (
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
@@ -705,13 +945,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   className="mt-0.5 shrink-0"
                   checked={requestAiCover}
                   onCheckedChange={(c) => setRequestAiCover(c === true)}
-                  disabled={saving}
+                  disabled={formDisabled}
                 />
                 <span>AI обложка для трека</span>
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
                 <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">500 руб. / шт.</span>
-                <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("aiCover")}>
+                <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("aiCover")} disabled={formDisabled}>
                   Подробнее
                 </Button>
               </div>
@@ -759,15 +999,18 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               </div>
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
-            {reviewChecks.map((c) => (
-              <div key={c.label} className="flex items-center gap-2 text-sm">
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+            {reviewChecks.map((c, idx) => (
+              <div key={`${c.label}-${idx}`} className="flex items-start gap-2 text-sm">
                 {c.ok ? (
-                  <Check className="h-4 w-4 text-green-500 shrink-0" />
+                  <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 )}
-                <span>{c.label}</span>
+                <div className="min-w-0">
+                  <span className="text-muted-foreground">{c.label}: </span>
+                  <span className={cn(!c.ok && "text-amber-200")}>{c.value ?? (c.ok ? "OK" : "Не заполнено")}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -789,20 +1032,20 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
-        <Button type="button" variant="outline" disabled={step <= 1} onClick={() => goToStep(step - 1)}>
+        <Button type="button" variant="outline" disabled={step <= 1 || formDisabled} onClick={() => goToStep(step - 1)}>
           <ChevronLeft className="h-4 w-4 mr-1" /> Назад
         </Button>
         <div className="flex gap-2">
-          <Button type="button" variant="ghost" disabled={saving || !releaseId} onClick={() => void saveDraft()}>
+          <Button type="button" variant="ghost" disabled={formDisabled || !releaseId} onClick={() => void saveDraft()}>
             {saving ? <Spinner className="h-4 w-4 mr-1" /> : <Save className="h-4 w-4 mr-1" />}
             Сохранить черновик
           </Button>
           {step < 5 ? (
-            <Button type="button" onClick={() => void handleNext()} disabled={saving}>
+            <Button type="button" onClick={() => void handleNext()} disabled={formDisabled}>
               Далее
             </Button>
           ) : (
-            <Button type="button" onClick={() => void handleSubmit()} disabled={submitting || !consentOffer}>
+            <Button type="button" onClick={() => void handleSubmit()} disabled={submitting || !consentOffer || formDisabled}>
               {submitting ? (
                 <Spinner className="h-4 w-4 mr-1" />
               ) : paymentTotal > 0 ? (

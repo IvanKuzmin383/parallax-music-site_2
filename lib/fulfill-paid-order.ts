@@ -7,7 +7,6 @@ import { updateOrderStatus } from "@/lib/orders"
 import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service-fulfillments"
 import { escapeHtml } from "@/lib/telegram"
 import { markUploadDraftPaid } from "@/lib/upload-drafts"
-import { submitReleaseAfterPayment } from "@/lib/release-submit"
 import { getUploadsBasePath } from "@/lib/tracks"
 
 async function tryRecordServiceFulfillment(orderId: string, orderType: string) {
@@ -264,9 +263,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
   if (order.orderType === "upload_addon_bundle") {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
     await tryRecordServiceFulfillment(orderId, order.orderType)
-    if (order.releaseId) {
-      await submitReleaseAfterPayment(order.releaseId, orderId)
-    } else if (order.draftId) {
+    if (order.draftId) {
       await markUploadDraftPaid(order.draftId, orderId)
     }
     return

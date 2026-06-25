@@ -9,7 +9,6 @@ import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/fo
 import { fetchYooKassaPayment, type YooKassaPaymentObject } from "@/lib/yookassa-subscription"
 import { fulfillSubscriptionOrder } from "@/lib/fulfill-subscription-order"
 import { markUploadDraftPaid } from "@/lib/upload-drafts"
-import { submitReleaseAfterPayment } from "@/lib/release-submit"
 import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service-fulfillments"
 
 async function tryRecordServiceFulfillment(orderId: string, orderType: string) {
@@ -371,9 +370,7 @@ export async function POST(request: NextRequest) {
   if (order.orderType === "upload_addon_bundle") {
     await updateOrderStatus(orderId, "paid", { paidAt })
     await tryRecordServiceFulfillment(orderId, order.orderType)
-    if (order.releaseId) {
-      await submitReleaseAfterPayment(order.releaseId, orderId)
-    } else if (order.draftId) {
+    if (order.draftId) {
       await markUploadDraftPaid(order.draftId, orderId)
     }
     return NextResponse.json({ received: true })

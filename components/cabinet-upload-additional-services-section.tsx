@@ -264,6 +264,8 @@ export type CabinetUploadAdditionalServicesSectionProps = {
   /** Подсказка под итогом: «трек» или «альбом» */
   afterPaymentSubject: "трек" | "альбом"
   sectionClassName?: string
+  /** plain — без рамки и заголовка, всегда развёрнуто (wizard) */
+  layout?: "card" | "plain"
 }
 
 export function CabinetUploadAdditionalServicesSection({
@@ -288,8 +290,10 @@ export function CabinetUploadAdditionalServicesSection({
   setAddonSpotifyVideoshot,
   afterPaymentSubject,
   sectionClassName,
+  layout = "card",
 }: CabinetUploadAdditionalServicesSectionProps) {
-  const [isAdditionalOpen, setIsAdditionalOpen] = useState(false)
+  const isPlain = layout === "plain"
+  const [isAdditionalOpen, setIsAdditionalOpen] = useState(isPlain)
   const [addonInfoOpen, setAddonInfoOpen] = useState(false)
   const [addonInfoKey, setAddonInfoKey] = useState<CabinetUploadAddonInfoKey>("aiCover")
   const [addonInfoImageIndex, setAddonInfoImageIndex] = useState(0)
@@ -335,17 +339,19 @@ export function CabinetUploadAdditionalServicesSection({
     <>
       <section
         className={cn(
-          "rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4",
+          isPlain ? "space-y-4" : "rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4",
           sectionClassName
         )}
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-bold">Дополнительно</h2>
-          <Button type="button" variant="outline" size="sm" onClick={() => setIsAdditionalOpen((prev) => !prev)}>
-            {isAdditionalOpen ? "Свернуть" : "Развернуть"}
-          </Button>
-        </div>
-        {isAdditionalOpen ? (
+        {!isPlain ? (
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-2xl font-bold">Дополнительно</h2>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsAdditionalOpen((prev) => !prev)}>
+              {isAdditionalOpen ? "Свернуть" : "Развернуть"}
+            </Button>
+          </div>
+        ) : null}
+        {isPlain || isAdditionalOpen ? (
           <>
             {renderAiCoverRow(openAddonInfo)}
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">

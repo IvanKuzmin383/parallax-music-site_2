@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
   const trackTitlesJoined = displayNames.join(" | ")
   const trackSummary = trackTitlesJoined.slice(0, 200)
-  const returnUrl = `${siteBase}/cabinet/design/mastering?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const returnUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=fail&orderId=${encodeURIComponent(order.id)}`
   const description = `AI мастеринг: ${trackSummary.slice(0, 60)}${trackSummary.length > 60 ? "…" : ""}, ${tracksCount} тр., ${user.email}`
 

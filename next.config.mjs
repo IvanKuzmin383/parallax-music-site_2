@@ -90,22 +90,6 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
   },
-  async redirects() {
-    return [
-      { source: "/cabinet/profile", destination: "/cabinet/settings", permanent: false },
-      { source: "/cabinet/my-services", destination: "/cabinet/orders", permanent: false },
-      { source: "/cabinet/music-stats", destination: "/cabinet/music/royalties", permanent: false },
-      { source: "/cabinet/promotion", destination: "/cabinet/design/covers", permanent: false },
-      { source: "/cabinet/promotion/ai-cover", destination: "/cabinet/design/covers", permanent: false },
-      { source: "/cabinet/promotion/vertical-video", destination: "/cabinet/design/vertical-videos", permanent: false },
-      { source: "/cabinet/promotion/ai-mastering", destination: "/cabinet/design/mastering", permanent: false },
-      { source: "/cabinet/promotion/yandex-videoshot", destination: "/cabinet/design/video-shots", permanent: false },
-      { source: "/cabinet/promotion/yandex-videoshot-creation", destination: "/cabinet/design/video-shots-publishing", permanent: false },
-      { source: "/cabinet/promotion/yandex-videoavatar", destination: "/cabinet/design/video-avatar", permanent: false },
-      { source: "/cabinet/promotion/spotify-videoshot", destination: "/cabinet/design/video-shots", permanent: false },
-      { source: "/cabinet/promotion/track-cover", destination: "/cabinet/design/covers", permanent: false },
-    ]
-  },
   async headers() {
     return [
       {

@@ -127,9 +127,11 @@ function resolvePeriodRangeForCompare(
   return { startIso, endIso }
 }
 
-function buildAllPlatformsChartStats(statsList: MusicStatsResponse[]): AggregatedStats {
+function buildAllPlatformsChartStats(
+  statsList: MusicStatsResponse[],
+  topTracks: Array<{ title: string; author: string; plays: number }>,
+): AggregatedStats {
   const byDate = new Map<string, Record<string, number>>()
-  const byTrack = new Map<string, { title: string; author: string; plays: number }>()
   const byDateCountry = new Map<string, Map<string, number>>()
   let totalPlays = 0
 
@@ -145,13 +147,6 @@ function buildAllPlatformsChartStats(statsList: MusicStatsResponse[]): Aggregate
       const day = byDateCountry.get(row.date) ?? new Map<string, number>()
       day.set(row.country, (day.get(row.country) ?? 0) + row.plays)
       byDateCountry.set(row.date, day)
-    }
-
-    for (const track of stats.topTracks) {
-      const key = `${track.author}__${track.title}`.toLowerCase()
-      const prevTrack = byTrack.get(key)
-      if (prevTrack) prevTrack.plays += track.plays
-      else byTrack.set(key, { title: track.title, author: track.author, plays: track.plays })
     }
   }
 
@@ -169,7 +164,7 @@ function buildAllPlatformsChartStats(statsList: MusicStatsResponse[]): Aggregate
       ...platformValues,
     }
   })
-  const topTracks = [...byTrack.values()].sort((a, b) => b.plays - a.plays)
+  const topTracksSorted = [...topTracks].sort((a, b) => b.plays - a.plays)
 
   const countryStatsByDate: CountryPlaysByDate[] = []
   for (const [date, m] of byDateCountry.entries()) {
@@ -186,12 +181,15 @@ function buildAllPlatformsChartStats(statsList: MusicStatsResponse[]): Aggregate
     totalPlays,
     daysCount: dailyPoints.length,
     dailyPoints,
-    topTracks,
+    topTracks: topTracksSorted,
     countryStatsByDate,
   }
 }
 
-function buildSinglePlatformChartStats(res: MusicStatsResponse): AggregatedStats {
+function buildSinglePlatformChartStats(
+  res: MusicStatsResponse,
+  topTracks: Array<{ title: string; author: string; plays: number }>,
+): AggregatedStats {
   const dailyPoints: ChartDailyPoint[] = res.dailyStats.map((item) => {
     const platformValues = Object.fromEntries(
       PLATFORM_KEYS.map((k) => [k, k === res.platformKey ? item.totalPlays : 0]),
@@ -211,13 +209,14 @@ function buildSinglePlatformChartStats(res: MusicStatsResponse): AggregatedStats
     totalPlays: res.totalPlays,
     daysCount: res.daysCount,
     dailyPoints,
-    topTracks: [...res.topTracks].sort((a, b) => b.plays - a.plays),
+    topTracks: [...topTracks].sort((a, b) => b.plays - a.plays),
     countryStatsByDate: res.countryStatsByDate ?? [],
   }
 }
 
 type CabinetMusicStatsBatchPayload = {
   chart: MusicStatsResponse[]
+  topTracks: Array<{ title: string; author: string; plays: number }>
   compare: Array<{ trackId: string; platforms: MusicStatsResponse[] }>
 }
 
@@ -545,7 +544,11 @@ export default function CabinetMusicStatsPage() {
 
         if (cancelled) return
 
-        setStats(buildAllPlatformsChartStats(batch.chart))
+        const aggregated =
+          platformKeysForChart.length === 1 && batch.chart[0]
+            ? buildSinglePlatformChartStats(batch.chart[0], batch.topTracks)
+            : buildAllPlatformsChartStats(batch.chart, batch.topTracks)
+        setStats(aggregated)
         setPerTrackPlatformResponses(null)
       } catch (e) {
         if (cancelled) return
@@ -662,11 +665,17 @@ export default function CabinetMusicStatsPage() {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 space-y-4 max-w-6xl">
+    <div className="min-h-screen bg-background pt-20">
+      <div className="container mx-auto px-4 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Роялти и статистика</h1>
+            <Button variant="ghost" size="sm" className="-ml-2 mb-1" asChild>
+              <Link href="/cabinet">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                В личный кабинет
+              </Link>
+            </Button>
+            <h1 className="text-2xl font-bold">Статистика прослушиваний</h1>
             <p className="text-sm text-muted-foreground max-w-3xl mt-2">
               Почему количество стримов на площадках может отличаться от статистики, которая отражена в личном
               кабинете?{" "}

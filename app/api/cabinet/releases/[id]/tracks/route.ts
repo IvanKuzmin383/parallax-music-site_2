@@ -63,7 +63,8 @@ export async function POST(
       await copyFileToPathAtomic(audio.tempFilePath, audioPath)
 
       const baseName = audio.originalFilename.replace(/\.[^.]+$/, "").trim()
-      const trackName = multipart.getField("trackName")?.trim() || baseName || `Трек ${existingTracks.length + 1}`
+      const fieldTrackName = multipart.getField("trackName")?.trim()
+      const trackName = fieldTrackName || baseName || `Трек ${existingTracks.length + 1}`
 
       const track = await createTrack({
         userId: session.email,

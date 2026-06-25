@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Music, Upload } from "lucide-react"
@@ -11,6 +12,73 @@ import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { releaseContinueHref } from "@/lib/cabinet/adapters/map-track-to-release"
 import { Spinner } from "@/components/ui/spinner"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+function UploadReleaseButton({ variant = "default" }: { variant?: "default" | "outline" }) {
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/cabinet/user", { credentials: "include" })
+        if (!res.ok) {
+          setProfileComplete(false)
+          return
+        }
+        const data = (await res.json()) as { user?: { profileCompleteForUpload?: boolean } }
+        setProfileComplete(data.user?.profileCompleteForUpload === true)
+      } catch {
+        setProfileComplete(false)
+      }
+    })()
+  }, [])
+
+  const disabled = profileComplete === false
+  const loading = profileComplete === null
+
+  const buttonInner = (
+    <>
+      <Upload className="h-4 w-4 mr-2" />
+      Загрузить релиз
+    </>
+  )
+
+  if (loading) {
+    return (
+      <Button variant={variant} disabled>
+        {buttonInner}
+      </Button>
+    )
+  }
+
+  if (disabled) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant={variant} disabled>
+              {buttonInner}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Заполните обязательные поля в профиле, чтобы загрузить релиз
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
+
+  return (
+    <Button asChild variant={variant}>
+      <Link href="/cabinet/upload">{buttonInner}</Link>
+    </Button>
+  )
+}
 
 export default function MusicReleasesPage() {
   const { releases, loading } = useCabinetReleases()
@@ -18,9 +86,7 @@ export default function MusicReleasesPage() {
   return (
     <div className="max-w-5xl space-y-6">
       <PageHeader title="Мои релизы" description="Черновики и опубликованные релизы">
-        <Button asChild>
-          <Link href="/cabinet/upload"><Upload className="h-4 w-4 mr-2" />Загрузить релиз</Link>
-        </Button>
+        <UploadReleaseButton />
       </PageHeader>
 
       {loading ? (
@@ -30,11 +96,7 @@ export default function MusicReleasesPage() {
           title="Релизов пока нет"
           description="Загрузите первый релиз"
           icon={Music}
-          action={
-            <Button asChild>
-              <Link href="/cabinet/upload">Загрузить релиз</Link>
-            </Button>
-          }
+          action={<UploadReleaseButton />}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
