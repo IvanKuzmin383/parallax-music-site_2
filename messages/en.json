@@ -396,6 +396,159 @@
       ]
     }
   },
+  "stihiLanding": {
+    "defaultVariant": "hear",
+    "hero": {
+      "imageAlt": "Poet working on a poem in a creative atmosphere",
+      "cta": "Order",
+      "ctaPricing": "View pricing"
+    },
+    "variants": {
+      "hear": {
+        "title": "Want to hear\nyour poems?",
+        "subtitle": "We'll turn them into an AI song and release it on all major streaming platforms"
+      },
+      "write": {
+        "title": "Do you write poetry?",
+        "subtitle": "Thousands of people can listen to your poems — not just read them"
+      },
+      "worthy": {
+        "title": "Your poems\ndeserve a song",
+        "subtitle": "We'll create an AI song from your text with modern sound and vocals"
+      },
+      "income": {
+        "title": "Your poems can\ngenerate income",
+        "subtitle": "We'll create a song, release it on platforms — earn royalties from streams"
+      }
+    },
+    "benefits": {
+      "title": "What you get",
+      "description": "Full cycle: from your poem to a song on streaming services",
+      "items": {
+        "creation": {
+          "title": "AI song from your text",
+          "description": "We create music and vocals based on your poem — no studio or musicians needed"
+        },
+        "distribution": {
+          "title": "Platform release",
+          "description": "We release your track on Spotify, Apple Music, Yandex Music, VK Music and more"
+        },
+        "royalties": {
+          "title": "Streaming royalties",
+          "description": "Your songs can generate income — like regular releases on streaming platforms"
+        }
+      }
+    },
+    "steps": {
+      "title": "How it works",
+      "description": "A simple path from poem to release — we guide you at every step",
+      "items": [
+        {
+          "id": "send",
+          "title": "Send your poem",
+          "description": "Message us on Telegram, VK or email — send your poem text and style preferences."
+        },
+        {
+          "id": "create",
+          "title": "We create 2 versions",
+          "description": "We prepare two AI song versions from your text — you pick the one that fits best."
+        },
+        {
+          "id": "cover",
+          "title": "Cover art & prep",
+          "description": "We design cover art and prepare materials for platform release."
+        },
+        {
+          "id": "release",
+          "title": "Release",
+          "description": "We publish your song on streaming services — Spotify, Yandex Music, Apple Music and more."
+        },
+        {
+          "id": "royalties",
+          "title": "Streams & royalties",
+          "description": "Your track gains listeners — you earn royalties from each platform."
+        }
+      ]
+    },
+    "pricing": {
+      "title": "Pricing",
+      "description": "Includes song creation, cover art and platform release",
+      "footnote": "Exact timeline and details confirmed after your request",
+      "single": {
+        "title": "1 song",
+        "price": "3,000",
+        "priceSuffix": "₽",
+        "features": [
+          "AI song from your poem",
+          "2 versions to choose from",
+          "Track cover art",
+          "Release on streaming platforms"
+        ]
+      },
+      "bundle": {
+        "title": "5+ songs",
+        "price": "2,000",
+        "priceSuffix": "₽ / track",
+        "priceNote": "from 10,000 ₽ for 5 songs",
+        "popular": "Best value",
+        "features": [
+          "Everything in the «1 song» plan",
+          "Discount when ordering 5+ poems",
+          "Great for collections and poetry cycles"
+        ]
+      },
+      "cta": "Order"
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "Common questions poets ask before ordering",
+      "items": [
+        {
+          "id": "need-singing",
+          "question": "Do I need to sing or play an instrument?",
+          "answer": "No. Just send your poem text — we'll create an AI song with vocals and arrangement."
+        },
+        {
+          "id": "two-variants",
+          "question": "What does «2 versions to choose from» mean?",
+          "answer": "We prepare two different song versions from your text — with different mood or arrangement. You pick the one you prefer for release."
+        },
+        {
+          "id": "whats-included",
+          "question": "What's included in the price?",
+          "answer": "AI song creation (2 versions), cover art and release on streaming platforms. Additional services discussed separately."
+        },
+        {
+          "id": "platforms",
+          "question": "Which platforms do you release on?",
+          "answer": "Major streaming services: Yandex Music, VK Music, Spotify, Apple Music, YouTube Music and more."
+        },
+        {
+          "id": "royalties",
+          "question": "How do I earn from streams?",
+          "answer": "After release your track earns royalties from platforms — like a regular music release. Payment details discussed when ordering."
+        },
+        {
+          "id": "how-to-order",
+          "question": "How do I order?",
+          "answer": "Click «Order» on this page and message us on Telegram, VK or email. Send your poem — our manager will follow up with details."
+        }
+      ]
+    },
+    "finalCta": {
+      "title": "Ready to hear your poems?",
+      "description": "Message us — we'll discuss your text and start working on your AI song",
+      "cta": "Order AI song"
+    },
+    "orderDialog": {
+      "title": "Order AI song",
+      "description": "Choose how to reach us — our manager will reply and confirm order details",
+      "telegram": "Message on Telegram",
+      "vk": "Message on VK",
+      "email": "Send email",
+      "prefillMessage": "Hello! I'd like to order an AI song from my poem.\nPage: parallaxmusic.ru/stihi"
+    }
+  },
   "validation": {
     "nameMin": "Name must be at least 2 characters",
     "nameMax": "Name must be less than 100 characters",
