@@ -439,6 +439,32 @@
         }
       }
     },
+    "expertise": {
+      "title": "Trusted by artists",
+      "description": "Parallax Music is a label and distributor with experience in releasing, promoting and monetizing music on streaming platforms",
+      "items": [
+        {
+          "id": "releases",
+          "value": "2000+",
+          "label": "releases published"
+        },
+        {
+          "id": "tracks",
+          "value": "500+",
+          "label": "tracks and covers created"
+        },
+        {
+          "id": "platforms",
+          "value": "50+",
+          "label": "streaming platforms"
+        },
+        {
+          "id": "stores",
+          "value": "150+",
+          "label": "digital services worldwide"
+        }
+      ]
+    },
     "steps": {
       "title": "How it works",
       "description": "A simple path from poem to release — we guide you at every step",

@@ -163,6 +163,12 @@ function StihiLandingContent() {
     answer: string
   }>
 
+  const expertiseItems = t.stihiLanding.expertise.items as Array<{
+    id: string
+    value: string
+    label: string
+  }>
+
   const pricingFeatures = useMemo(
     () => ({
       single: t.stihiLanding.pricing.single.features as string[],
@@ -295,6 +301,27 @@ function StihiLandingContent() {
                 {t.stihiLanding.benefits.items.royalties.description}
               </p>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 bg-background/60 border-t border-border">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mb-12 mx-auto text-center">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">{t.stihiLanding.expertise.title}</h2>
+            <p className="text-lg text-muted-foreground text-pretty">{t.stihiLanding.expertise.description}</p>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+            {expertiseItems.map((item) => (
+              <Card
+                key={item.id}
+                className="p-6 md:p-8 bg-card border-border text-center hover:border-primary/40 transition-colors"
+              >
+                <p className="text-3xl md:text-5xl font-bold text-primary tabular-nums">{item.value}</p>
+                <p className="text-sm md:text-base text-muted-foreground mt-3 leading-snug">{item.label}</p>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
