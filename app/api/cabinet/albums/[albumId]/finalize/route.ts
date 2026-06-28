@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import {
-  assertFixPackCreditsAvailable,
-  deductFixPackCreditsOnUpload,
+  assertFixPackCreditsForTracks,
 } from "@/lib/fix-pack-credits"
+import { deductAndMarkFixPackCreditsForTracks } from "@/lib/fix-pack-moderation-credits"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { getTracksByAlbumId } from "@/lib/tracks"
 import { updateTrack } from "@/lib/tracks"
@@ -75,8 +75,8 @@ export async function POST(
       return NextResponse.json({ error: "У альбома нет треков" }, { status: 400 })
     }
 
-    const pendingCount = tracks.filter((t) => t.status === "upload_pending").length
-    const creditsGate = assertFixPackCreditsAvailable(user, pendingCount)
+    const pendingTracks = tracks.filter((t) => t.status === "upload_pending")
+    const creditsGate = assertFixPackCreditsForTracks(user, pendingTracks)
     if (!creditsGate.ok) {
       return NextResponse.json({ error: creditsGate.error }, { status: 403 })
     }
@@ -110,8 +110,9 @@ export async function POST(
       await markUploadDraftFinalized(albumDraft.id)
     }
 
-    if (pendingCount > 0) {
-      await deductFixPackCreditsOnUpload(user, pendingCount)
+    const toCharge = pendingTracks.filter((t) => !t.fixPackCreditsCharged)
+    if (toCharge.length > 0) {
+      await deductAndMarkFixPackCreditsForTracks(user, toCharge)
     }
 
     return NextResponse.json({

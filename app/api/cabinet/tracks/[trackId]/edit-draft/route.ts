@@ -27,8 +27,11 @@ export async function POST(
     if (!track || track.userId.toLowerCase() !== session.email.toLowerCase()) {
       return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
     }
-    if (track.status !== "upload_pending") {
-      return NextResponse.json({ error: "Редактирование доступно только для статуса «Черновик»" }, { status: 400 })
+    if (track.status !== "upload_pending" && track.status !== "rejected") {
+      return NextResponse.json(
+        { error: "Редактирование доступно только для статуса «Черновик» или «Отклонено»" },
+        { status: 400 }
+      )
     }
 
     const payload: UploadDraftPayload = {

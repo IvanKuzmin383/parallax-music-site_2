@@ -4,8 +4,8 @@ import crypto from "crypto"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import {
   assertFixPackCreditsAvailable,
-  deductFixPackCreditsOnUpload,
 } from "@/lib/fix-pack-credits"
+import { deductAndMarkFixPackCreditsForTracks } from "@/lib/fix-pack-moderation-credits"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
 import { assertUploadDraftBundlePayment } from "@/lib/cabinet-upload-draft-addons"
 import {
@@ -33,24 +33,26 @@ export type FinalizeUploadDraftContext = {
   userAgent?: string | null
 }
 
-async function resolveDraftFinalizeTracksCount(draft: UploadDraft): Promise<number> {
+async function countFixPackCreditsNeededForDraft(draft: UploadDraft): Promise<number> {
+  const payload = draft.payload
   if (draft.kind === "album") {
     if (draft.albumId) {
       const tracks = await getTracksByAlbumId(draft.albumId)
-      return tracks.filter((t) => t.status === "upload_pending").length
+      return tracks.filter((t) => t.status === "upload_pending" && !t.fixPackCreditsCharged).length
     }
-    const tracksRaw = Array.isArray(draft.payload.albumTracks) ? draft.payload.albumTracks : []
+    const tracksRaw = Array.isArray(payload.albumTracks) ? payload.albumTracks : []
     return tracksRaw.length
   }
+  const sourceTrackId =
+    typeof payload.sourceTrackId === "string" && payload.sourceTrackId.trim().length > 0
+      ? payload.sourceTrackId.trim()
+      : null
+  if (sourceTrackId) {
+    const source = await getTrackById(sourceTrackId)
+    if (!source || source.fixPackCreditsCharged) return 0
+    return 1
+  }
   return 1
-}
-
-async function applyFixPackCreditsAfterFinalize(
-  user: Awaited<ReturnType<typeof getCabinetUserByEmail>>,
-  tracksToAdd: number
-): Promise<void> {
-  if (!user) return
-  await deductFixPackCreditsOnUpload(user, tracksToAdd)
 }
 
 async function logLicenseAcceptancesForTracks(
@@ -159,12 +161,12 @@ export async function finalizeUploadDraftCore(
     return { ok: false, error: paymentGate.error, status: 400 }
   }
 
-  const tracksToFinalize = await resolveDraftFinalizeTracksCount(draft)
+  const creditsNeeded = await countFixPackCreditsNeededForDraft(draft)
   const cabinetUser = await getCabinetUserByEmail(ownerEmail)
   if (!cabinetUser) {
     return { ok: false, error: "Пользователь не найден", status: 404 }
   }
-  const creditsGate = assertFixPackCreditsAvailable(cabinetUser, tracksToFinalize)
+  const creditsGate = assertFixPackCreditsAvailable(cabinetUser, creditsNeeded)
   if (!creditsGate.ok) {
     return { ok: false, error: creditsGate.error, status: 403 }
   }
@@ -191,6 +193,9 @@ export async function finalizeUploadDraftCore(
   if (draft.kind === "album") {
     if (draft.albumId) {
       const tracks = await getTracksByAlbumId(draft.albumId)
+      const toCharge = tracks.filter(
+        (t) => t.status === "upload_pending" && !t.fixPackCreditsCharged
+      )
       for (const t of tracks) {
         if (t.status === "upload_pending") {
           await updateTrack(t.id, { status: "on_moderation" })
@@ -201,7 +206,7 @@ export async function finalizeUploadDraftCore(
       await removeUploadDraftFiles(draft)
       const updated = await markUploadDraftFinalized(draft.id)
       if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
-      await applyFixPackCreditsAfterFinalize(cabinetUser, tracksToFinalize)
+      await deductAndMarkFixPackCreditsForTracks(cabinetUser, toCharge)
       return { ok: true, draft: updated, albumId: draft.albumId }
     }
 
@@ -382,7 +387,7 @@ export async function finalizeUploadDraftCore(
     await removeUploadDraftFiles(draft)
     const updated = await updateUploadDraft(draft.id, { status: "finalized", albumId: album.id })
     if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
-    await applyFixPackCreditsAfterFinalize(cabinetUser, tracksToFinalize)
+    await deductAndMarkFixPackCreditsForTracks(cabinetUser, createdTracks)
     return { ok: true, draft: updated, album, tracks: createdTracks }
   }
 
@@ -420,10 +425,10 @@ export async function finalizeUploadDraftCore(
     if (!sourceTrack || sourceTrack.userId.toLowerCase() !== ownerEmail.toLowerCase()) {
       return { ok: false, error: "Исходный трек для редактирования не найден", status: 404 }
     }
-    if (sourceTrack.status !== "upload_pending") {
+    if (sourceTrack.status !== "upload_pending" && sourceTrack.status !== "rejected") {
       return {
         ok: false,
-        error: "Редактирование доступно только для треков в статусе «Черновик»",
+        error: "Редактирование доступно только для треков в статусе «Черновик» или «Отклонён»",
         status: 400,
       }
     }
@@ -491,7 +496,7 @@ export async function finalizeUploadDraftCore(
     await removeUploadDraftFiles(draft)
     const updated = await markUploadDraftFinalized(draft.id)
     if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
-    await applyFixPackCreditsAfterFinalize(cabinetUser, tracksToFinalize)
+    await deductAndMarkFixPackCreditsForTracks(cabinetUser, [sourceTrack])
     return { ok: true, draft: updated, track }
   }
 
@@ -562,6 +567,6 @@ export async function finalizeUploadDraftCore(
   await removeUploadDraftFiles(draft)
   const updated = await markUploadDraftFinalized(draft.id)
   if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
-  await applyFixPackCreditsAfterFinalize(cabinetUser, tracksToFinalize)
+  await deductAndMarkFixPackCreditsForTracks(cabinetUser, [track])
   return { ok: true, draft: updated, track }
 }

@@ -48,6 +48,8 @@ export interface Track {
   transferFromOtherDistributor?: boolean
   smartlinkSlug?: string
   platformLinks?: PlatformLinks
+  /** Списан ли Fix-слот при отправке на модерацию (новый тариф Fix). */
+  fixPackCreditsCharged: boolean
   createdAt: string
   updatedAt: string
 }
@@ -82,6 +84,7 @@ export interface TrackRow {
   transfer_from_other_distributor?: boolean | null
   smartlink_slug: string | null
   platform_links: string | null
+  fix_pack_credits_charged?: boolean | null
   created_at: string
   updated_at: string
 }
@@ -125,6 +128,7 @@ export function rowToTrack(row: TrackRow): Track {
     transferFromOtherDistributor: row.transfer_from_other_distributor === true,
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
+    fixPackCreditsCharged: row.fix_pack_credits_charged === true,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -242,8 +246,21 @@ export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string
   return true
 }
 
-export type CreateTrackInput = Omit<Track, "id" | "createdAt" | "updatedAt" | "needsAiCover"> & {
+export type CreateTrackInput = Omit<
+  Track,
+  "id" | "createdAt" | "updatedAt" | "needsAiCover" | "fixPackCreditsCharged"
+> & {
   needsAiCover?: boolean
+  fixPackCreditsCharged?: boolean
+}
+
+export async function setTrackFixPackCreditsCharged(id: string, charged: boolean): Promise<void> {
+  const now = new Date().toISOString()
+  await execute("UPDATE tracks SET fix_pack_credits_charged = ?, updated_at = ? WHERE id = ?", [
+    charged,
+    now,
+    id,
+  ])
 }
 
 export async function createTrack(data: CreateTrackInput): Promise<Track> {
@@ -252,6 +269,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
     ...data,
     needsAiCover: data.needsAiCover ?? false,
     transferFromOtherDistributor: data.transferFromOtherDistributor ?? false,
+    fixPackCreditsCharged: data.fixPackCreditsCharged ?? false,
     id: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
@@ -259,8 +277,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -292,6 +310,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.smartlinkSlug ?? null,
       track.platformLinks ? JSON.stringify(track.platformLinks) : null,
       track.needsAiCover,
+      track.fixPackCreditsCharged,
       track.createdAt,
       track.updatedAt,
     ]
@@ -310,6 +329,16 @@ export async function updateTrack(
 ): Promise<Track | null> {
   const current = await getTrackById(id)
   if (!current) return null
+
+  if (partial.status !== undefined && partial.status !== current.status) {
+    const { handleFixPackCreditsOnTrackStatusChange } = await import(
+      "@/lib/fix-pack-moderation-credits"
+    )
+    await handleFixPackCreditsOnTrackStatusChange(current, partial.status)
+    if (partial.status === "rejected" && current.fixPackCreditsCharged) {
+      partial = { ...partial, fixPackCreditsCharged: false }
+    }
+  }
 
   const hasIncomingSmartlinkSlug = Object.prototype.hasOwnProperty.call(partial, "smartlinkSlug")
   const incomingSmartlinkSlug = hasIncomingSmartlinkSlug
@@ -342,7 +371,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -374,6 +403,7 @@ export async function updateTrack(
       updated.smartlinkSlug ?? null,
       updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
       updated.needsAiCover,
+      updated.fixPackCreditsCharged,
       updated.updatedAt,
       id,
     ]
