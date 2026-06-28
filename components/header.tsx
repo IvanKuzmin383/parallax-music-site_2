@@ -1,6 +1,7 @@
  "use client"
  
  import Link from "next/link"
+ import { usePathname } from "next/navigation"
  import { useState, useEffect } from "react"
  import { Button } from "@/components/ui/button"
  import { Menu, X } from "lucide-react"
@@ -8,6 +9,8 @@ import { LanguageSwitcher } from "@/components/language-switcher"
  import { useI18n } from "@/lib/i18n-context"
  
  export function Header() {
+  const pathname = usePathname()
+  const hideLogin = pathname === "/stihi"
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { t } = useI18n()
@@ -59,13 +62,15 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 
         <div className="hidden md:flex items-center gap-4 justify-end flex-shrink-0">
           <LanguageSwitcher />
-          <Button
-            size="sm"
-            className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
-            asChild
-          >
-            <Link href="/cabinet" prefetch={false}>{t.header.login}</Link>
-          </Button>
+          {!hideLogin && (
+            <Button
+              size="sm"
+              className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+              asChild
+            >
+              <Link href="/cabinet" prefetch={false}>{t.header.login}</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -131,15 +136,17 @@ import { LanguageSwitcher } from "@/components/language-switcher"
             </Link>
             <div className="flex items-center gap-4">
               <LanguageSwitcher />
-              <Button
-                size="sm"
-                className="uppercase tracking-wider bg-primary text-primary-foreground flex-1"
-                asChild
-              >
-                <Link href="/cabinet" prefetch={false} onClick={() => setIsMobileMenuOpen(false)}>
-                  {t.header.login}
-                </Link>
-              </Button>
+              {!hideLogin && (
+                <Button
+                  size="sm"
+                  className="uppercase tracking-wider bg-primary text-primary-foreground flex-1"
+                  asChild
+                >
+                  <Link href="/cabinet" prefetch={false} onClick={() => setIsMobileMenuOpen(false)}>
+                    {t.header.login}
+                  </Link>
+                </Button>
+              )}
             </div>
           </nav>
         </div>

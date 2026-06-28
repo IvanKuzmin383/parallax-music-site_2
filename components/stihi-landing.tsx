@@ -8,9 +8,11 @@ import {
   Wallet,
   Check,
   Mail,
+  Copy,
 } from "lucide-react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { Minus, Plus } from "lucide-react"
+import { toast } from "sonner"
 import { HeroBackgroundImage } from "@/components/hero-background-image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -71,9 +73,20 @@ function OrderDialog({
 }) {
   const { t } = useI18n()
   const dialog = t.stihiLanding.orderDialog
+  const [emailCopied, setEmailCopied] = useState(false)
 
   const telegramHref = `${TELEGRAM_URL}?text=${encodeURIComponent(dialog.prefillMessage)}`
-  const emailHref = `mailto:${EMAIL}?subject=${encodeURIComponent(dialog.title)}&body=${encodeURIComponent(dialog.prefillMessage)}`
+
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(EMAIL)
+      toast.success(dialog.emailCopied)
+      setEmailCopied(true)
+      window.setTimeout(() => setEmailCopied(false), 2000)
+    } catch {
+      toast.error(dialog.emailCopyError)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,12 +108,31 @@ function OrderDialog({
               {dialog.vk}
             </a>
           </Button>
-          <Button asChild variant="outline" size="lg" className="w-full justify-start gap-3 h-auto py-4">
-            <a href={emailHref}>
-              <Mail className="size-5 shrink-0" aria-hidden />
-              {dialog.email}
-            </a>
-          </Button>
+          <div className="rounded-lg border border-border bg-card/60 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Mail className="size-5 shrink-0 text-primary" aria-hidden />
+              <a
+                href={`mailto:${EMAIL}`}
+                className="text-sm font-medium break-all hover:text-primary transition-colors"
+              >
+                {EMAIL}
+              </a>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 gap-2"
+              onClick={() => void handleCopyEmail()}
+            >
+              {emailCopied ? (
+                <Check className="size-4" aria-hidden />
+              ) : (
+                <Copy className="size-4" aria-hidden />
+              )}
+              {emailCopied ? dialog.emailCopied : dialog.copyEmail}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -334,8 +366,7 @@ function StihiLandingContent() {
                   {t.stihiLanding.pricing.bundle.priceSuffix}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">{t.stihiLanding.pricing.bundle.priceNote}</p>
-              <ul className="space-y-3 mb-8 flex-1">
+              <ul className="space-y-3 mb-8 flex-1 mt-6">
                 {pricingFeatures.bundle.map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-muted-foreground">
                     <Check className="size-5 text-primary shrink-0 mt-0.5" aria-hidden />
