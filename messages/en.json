@@ -4,6 +4,7 @@
     "process": "Process",
     "blog": "Blog",
     "aiMusic": "AI Music",
+    "promotion": "Promotion",
     "pricing": "Pricing",
     "contact": "Contact",
     "login": "Sign in"
@@ -574,6 +575,249 @@
       "emailCopied": "Email copied",
       "emailCopyError": "Could not copy email",
       "prefillMessage": "Hello! I'd like to order an AI song from my poem.\nPage: parallaxmusic.ru/stihi"
+    }
+  },
+  "promotionLanding": {
+    "hero": {
+      "imageAlt": "Music promotion for artists — analytics and stream growth",
+      "cta": "Promote your track",
+      "ctaServices": "All promotion options"
+    },
+    "orderDialog": {
+      "title": "Order promotion",
+      "description": "Choose a convenient way to contact us — a manager will reply and clarify details",
+      "telegram": "Message on Telegram",
+      "vk": "Message on VK",
+      "copyEmail": "Copy",
+      "emailCopied": "Email copied",
+      "emailCopyError": "Failed to copy email"
+    },
+    "hub": {
+      "title": "Promotion for",
+      "titleHighlight": "your releases",
+      "subtitle": "Even if the release was not issued through our service",
+      "tagline": "Wide reach • New audience • Real growth",
+      "ctaCaption": "Choose the right promotion method and achieve new results",
+      "servicesTitle": "Promotion methods",
+      "servicesDescription": "We pick the right tool for your goal: quick start, reach, ads or viral content",
+      "casesTitle": "Real results",
+      "casesDescription": "See how we promoted releases via VK, Yandex Direct and playlists",
+      "casesLink": "View case study",
+      "casesHref": "/cases/where-mountains-dream",
+      "finalCta": {
+        "title": "Ready to promote your release?",
+        "description": "Contact us — we'll discuss your goal and suggest the best promotion method",
+        "cta": "Submit request"
+      },
+      "orderPrefill": "Hello! I'd like to discuss promotion for my release.\nPage: parallaxmusic.ru/promotion",
+      "services": [
+        {
+          "id": "tiktok-shorts",
+          "slug": "tiktok-shorts",
+          "title": "TikTok / Shorts",
+          "description": "Vertical videos for reach and engagement growth"
+        },
+        {
+          "id": "yandex-playlists",
+          "slug": "yandex-playlists",
+          "title": "Yandex Music playlists",
+          "description": "The fastest way to start promoting a new release"
+        },
+        {
+          "id": "yandex-direct",
+          "slug": "yandex-direct",
+          "title": "Yandex Direct",
+          "description": "Precise promotion for your goals and audience"
+        },
+        {
+          "id": "vk-ads",
+          "slug": "vk-ads",
+          "title": "VKontakte",
+          "description": "We attract new audiences and increase streams"
+        }
+      ]
+    },
+    "pages": {
+      "first-listeners": {
+        "title": "Track released,",
+        "titleHighlight": "but no listeners?",
+        "subtitle": "We promote your track in playlists and attract real listeners",
+        "ctaCaption": "We bring real streams and grow your audience",
+        "mockupType": "streams",
+        "badge": "Quick start",
+        "orderPrefill": "Hello! My track is out — I need promotion and first listeners.\nPage: parallaxmusic.ru/promotion/first-listeners",
+        "features": [
+          { "id": "fast", "icon": "zap", "title": "Quick start", "description": "We launch promotion right after placement" },
+          { "id": "playlists", "icon": "play", "title": "Playlists with traffic", "description": "We place tracks in our and partner playlists" },
+          { "id": "growth", "icon": "chart", "title": "More listeners", "description": "We attract a new audience and increase activity" },
+          { "id": "forever", "icon": "infinity", "title": "Permanent placement", "description": "The track is not removed from playlists" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "A simple path from request to stream growth",
+          "items": [
+            { "id": "contact", "title": "Request", "description": "Message us on Telegram, VK or email — send a link to your track" },
+            { "id": "plan", "title": "Plan", "description": "We choose a promotion method for your release and budget" },
+            { "id": "launch", "title": "Launch", "description": "Playlist placement and/or ad campaigns" },
+            { "id": "results", "title": "Results", "description": "We track stream dynamics and adjust strategy" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "Common questions about release promotion",
+          "items": [
+            { "id": "not-our-release", "question": "Can you promote a track not released via Parallax Music?", "answer": "Yes. We promote releases regardless of distribution service" },
+            { "id": "how-fast", "question": "How fast does promotion start?", "answer": "Playlist placement can start quickly after approval. Ad campaigns are set up individually" },
+            { "id": "real-listeners", "question": "Are these real streams?", "answer": "Yes — playlists with traffic, targeted ads and organic reach" },
+            { "id": "how-to-order", "question": "How to order?", "answer": "Click the CTA and message us with a link to your track" }
+          ]
+        },
+        "finalCta": { "title": "Time to find your first listeners", "description": "Submit a request — we'll pick the right promotion method", "cta": "Promote your track" }
+      },
+      "yandex-playlists": {
+        "title": "Placement in",
+        "titleHighlight": "Yandex Music playlists",
+        "subtitle": "The fastest way to start promoting a new release",
+        "ctaCaption": "Great for a quick start and increasing release streams",
+        "mockupType": "streams",
+        "badge": "Quick start",
+        "orderPrefill": "Hello! I'd like playlist placement on Yandex Music.\nPage: parallaxmusic.ru/promotion/yandex-playlists",
+        "features": [
+          { "id": "launch", "icon": "zap", "title": "Quick launch", "description": "No long preparation" },
+          { "id": "first", "icon": "play", "title": "First streams", "description": "Right after placement" },
+          { "id": "forever", "icon": "infinity", "title": "Permanent placement", "description": "Track stays in playlists" },
+          { "id": "network", "icon": "users", "title": "Own & partner playlists", "description": "Wide coverage for your music" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From request to first playlist streams",
+          "items": [
+            { "id": "send", "title": "Request", "description": "Send a track link and brief release info" },
+            { "id": "match", "title": "Playlist matching", "description": "We pick playlists with relevant audience" },
+            { "id": "place", "title": "Placement", "description": "We add your track — placement is permanent" },
+            { "id": "stats", "title": "Stats", "description": "We track stream growth and listener activity" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About Yandex Music playlist placement",
+          "items": [
+            { "id": "when", "question": "When will first streams appear?", "answer": "Usually right after playlist placement" },
+            { "id": "removed", "question": "Can the track be removed?", "answer": "We place tracks permanently in our and partner playlists" },
+            { "id": "any-release", "question": "Works for already released tracks?", "answer": "Yes — new and existing releases" },
+            { "id": "order", "question": "How to order?", "answer": "Click Quick start and send your Yandex Music track link" }
+          ]
+        },
+        "finalCta": { "title": "Start playlist promotion", "description": "Submit a request — we'll place your track and attract listeners", "cta": "Quick start" }
+      },
+      "vk-ads": {
+        "title": "Promotion",
+        "titleHighlight": "in VK Music",
+        "subtitle": "More listeners. More reach. More results.",
+        "ctaCaption": "Great for growing subscribers, streams and release activity",
+        "mockupType": "vk",
+        "badge": "Audience growth",
+        "orderPrefill": "Hello! I'd like VK Ads / VK Music promotion.\nPage: parallaxmusic.ru/promotion/vk-ads",
+        "features": [
+          { "id": "target", "icon": "target", "title": "Precise targeting", "description": "Ads shown to people interested in your music" },
+          { "id": "audience", "icon": "users", "title": "Audience growth", "description": "More subscribers and streams around your release" },
+          { "id": "reach", "icon": "chart", "title": "More reach", "description": "We promote releases and attract new listeners" },
+          { "id": "ai", "icon": "zap", "title": "AI creatives", "description": "Catchy AI-powered ads that deliver results" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From brief to VK metrics growth",
+          "items": [
+            { "id": "brief", "title": "Brief", "description": "We discuss goals: streams, subscribers, clicks" },
+            { "id": "setup", "title": "Setup", "description": "Targeting and creatives for VK Ads" },
+            { "id": "launch", "title": "Launch", "description": "Campaigns in feed, VK Music, Stories and more" },
+            { "id": "optimize", "title": "Optimization", "description": "Daily analysis of impressions, clicks and CTR" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About VK promotion",
+          "items": [
+            { "id": "budget", "question": "What budget is needed?", "answer": "Discussed individually based on goals and scale" },
+            { "id": "formats", "question": "Where will ads appear?", "answer": "VK Music, feed, Stories, clips and other placements" },
+            { "id": "analytics", "question": "Will I get a report?", "answer": "Yes — impressions, clicks, CTR and dynamics" },
+            { "id": "order", "question": "How to order?", "answer": "Click Audience growth and send your track or community link" }
+          ]
+        },
+        "finalCta": { "title": "Attract audience from VK", "description": "Submit a request — we'll set up ads for your release", "cta": "Audience growth" }
+      },
+      "yandex-direct": {
+        "title": "Promotion",
+        "titleHighlight": "in Yandex Direct",
+        "subtitle": "Precise promotion for your goals and audience",
+        "ctaCaption": "For tasks where concrete results and ROI matter",
+        "mockupType": "yandex",
+        "badge": "Precise ads",
+        "orderPrefill": "Hello! I'd like Yandex Direct promotion.\nPage: parallaxmusic.ru/promotion/yandex-direct",
+        "features": [
+          { "id": "setup", "icon": "target", "title": "Custom setup", "description": "Campaign tailored to your goals" },
+          { "id": "audience", "icon": "users", "title": "New audience", "description": "Targeting by interests and behavior" },
+          { "id": "goals", "icon": "link", "title": "Any goals", "description": "Track, concert, merch, website, socials and more" },
+          { "id": "optimize", "icon": "chart", "title": "Optimization", "description": "Constant analysis and campaign improvement" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From goal to measurable result",
+          "items": [
+            { "id": "goals", "title": "Goals", "description": "What we promote: track, concert, merch, etc." },
+            { "id": "campaign", "title": "Campaign", "description": "Ads, audiences and budget in Yandex Direct" },
+            { "id": "launch", "title": "Launch", "description": "Search, ad network and other channels" },
+            { "id": "roi", "title": "ROI", "description": "We track clicks, conversions and optimize" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About Yandex Direct ads",
+          "items": [
+            { "id": "not-only-music", "question": "Not only music tracks?", "answer": "Yes — concerts, merch, websites, socials and more" },
+            { "id": "budget", "question": "How is budget set?", "answer": "Agreed individually with your manager" },
+            { "id": "reporting", "question": "What metrics do you track?", "answer": "Impressions, clicks, CTR, conversions and daily dynamics" },
+            { "id": "order", "question": "How to order?", "answer": "Click Precise ads and describe your task" }
+          ]
+        },
+        "finalCta": { "title": "Launch precise ads", "description": "Submit a request — we'll set up a campaign for your goal", "cta": "Precise ads" }
+      },
+      "tiktok-shorts": {
+        "title": "TikTok / Shorts",
+        "titleHighlight": "promotion",
+        "subtitle": "Use short-form video power to promote your music",
+        "ctaCaption": "For fast reach, awareness and listener growth",
+        "mockupType": "tiktok",
+        "badge": "Viral reach",
+        "orderPrefill": "Hello! I'd like TikTok / Shorts promotion.\nPage: parallaxmusic.ru/promotion/tiktok-shorts",
+        "features": [
+          { "id": "hook", "icon": "video", "title": "Videos that hook", "description": "Vertical videos adapted for platform algorithms" },
+          { "id": "audience", "icon": "users", "title": "New audience", "description": "Reach millions beyond streaming platforms" },
+          { "id": "awareness", "icon": "chart", "title": "Awareness growth", "description": "More reach, mentions and interest in your music" },
+          { "id": "viral", "icon": "flame", "title": "Viral potential", "description": "A chance to hit recommendations and go viral" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From track to vertical content with reach",
+          "items": [
+            { "id": "brief", "title": "Brief", "description": "We discuss track, style and reach goals" },
+            { "id": "video", "title": "Video", "description": "Vertical videos for TikTok, Reels and Shorts" },
+            { "id": "publish", "title": "Publishing", "description": "We publish content and run promotion if needed" },
+            { "id": "growth", "title": "Growth", "description": "We track views, reach and engagement" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About short-form video promotion",
+          "items": [
+            { "id": "platforms", "question": "Which platforms?", "answer": "TikTok, Instagram Reels, YouTube Shorts and VK Clips" },
+            { "id": "need-video", "question": "Do I need to send video?", "answer": "No — we create vertical videos for your track" },
+            { "id": "cabinet", "question": "Available in artist cabinet?", "answer": "Yes — Vertical videos from 99 ₽/each in the cabinet" },
+            { "id": "order", "question": "How to order?", "answer": "Click Viral reach and send your track link" }
+          ]
+        },
+        "finalCta": { "title": "Launch viral reach", "description": "Submit a request — we'll create content and attract a new audience", "cta": "Viral reach" }
+      }
     }
   },
   "validation": {

@@ -10,7 +10,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
  
  export function Header() {
   const pathname = usePathname()
-  const hideLogin = pathname === "/stihi"
+  const hideLogin = pathname === "/stihi" || pathname?.startsWith("/promotion")
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { t } = useI18n()
@@ -51,6 +51,9 @@ import { LanguageSwitcher } from "@/components/language-switcher"
           </Link>
           <Link href="/ai" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
             {t.header.aiMusic}
+          </Link>
+          <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
+            {t.header.promotion}
           </Link>
           <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.pricing}
@@ -119,6 +122,14 @@ import { LanguageSwitcher } from "@/components/language-switcher"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t.header.aiMusic}
+            </Link>
+            <Link
+              href="/promotion"
+              prefetch={false}
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.promotion}
             </Link>
             <Link
               href="/#pricing"

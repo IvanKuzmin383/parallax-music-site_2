@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { getPublishedArticles } from '@/lib/articles'
 import { getAllCaseStudies } from '@/data/cases'
+import { PROMOTION_SLUGS } from '@/lib/promotion-pages'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parallaxmusic.ru'
@@ -41,6 +42,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/promotion`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    ...PROMOTION_SLUGS.map((slug) => ({
+      url: `${baseUrl}/promotion/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.85,
+    })),
     {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),
