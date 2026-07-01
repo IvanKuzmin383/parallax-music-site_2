@@ -37,6 +37,15 @@ export function PromotionHubLanding() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (window.location.hash !== "#promotion-services") return
+    const target = document.getElementById("promotion-services")
+    if (!target) return
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }, [])
+
   return (
     <>
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -99,7 +108,7 @@ export function PromotionHubLanding() {
                 <p className="text-muted-foreground leading-relaxed flex-1 text-sm">{service.description}</p>
                 <Button variant="ghost" className="mt-6 justify-start px-0 hover:bg-transparent" asChild>
                   <Link href={`/promotion/${service.slug}`}>
-                    {shared.hero.cta}
+                    {hub.serviceCardLink}
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>

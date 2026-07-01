@@ -41,6 +41,7 @@ type PageContent = {
   titleHighlight?: string
   subtitle: string
   ctaCaption: string
+  price?: string
   mockupType: "streams" | "vk" | "yandex" | "tiktok"
   badge: string
   orderPrefill: string
@@ -88,10 +89,6 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const scrollToFeatures = () => {
-    document.getElementById("promotion-features")?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
-
   return (
     <>
       <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -115,6 +112,9 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
                 </h1>
               </div>
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl text-pretty">{page.subtitle}</p>
+              {page.price ? (
+                <p className="text-2xl md:text-3xl font-bold text-primary">{page.price}</p>
+              ) : null}
 
               <div className="grid sm:grid-cols-2 gap-4" id="promotion-features">
                 {page.features.map((feature) => {
@@ -218,15 +218,10 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
               >
                 {page.finalCta.cta}
               </Button>
-              <Button size="lg" variant="outline" className="uppercase tracking-wider" onClick={scrollToFeatures}>
-                {shared.hero.ctaServices}
+              <Button size="lg" variant="outline" className="uppercase tracking-wider" asChild>
+                <Link href="/promotion#promotion-services">{shared.hero.ctaServices}</Link>
               </Button>
             </div>
-            <p className="text-sm">
-              <Link href="/promotion" className="text-primary hover:underline">
-                {shared.hero.ctaServices}
-              </Link>
-            </p>
           </div>
         </div>
       </section>

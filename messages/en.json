@@ -599,6 +599,7 @@
       "tagline": "Wide reach • New audience • Real growth",
       "servicesTitle": "Promotion methods",
       "servicesDescription": "We pick the right tool for your goal: quick start, reach, ads or viral content",
+      "serviceCardLink": "Learn more",
       "finalCta": {
         "title": "Ready to promote your release?",
         "description": "Contact us - we'll discuss your goal and suggest the best promotion method",
@@ -676,6 +677,7 @@
         "ctaCaption": "Great for a quick start and increasing release streams",
         "mockupType": "streams",
         "badge": "Quick start",
+        "price": "from 350 ₽ / playlist",
         "orderPrefill": "Hello! I'd like playlist placement on Yandex Music.\nPage: parallaxmusic.ru/promotion/yandex-playlists",
         "features": [
           { "id": "launch", "icon": "zap", "title": "Quick launch", "description": "No long preparation" },
@@ -784,6 +786,7 @@
         "ctaCaption": "For fast reach, awareness and listener growth",
         "mockupType": "tiktok",
         "badge": "Viral reach",
+        "price": "from 199 ₽ / video",
         "orderPrefill": "Hello! I'd like TikTok / Shorts promotion.\nPage: parallaxmusic.ru/promotion/tiktok-shorts",
         "features": [
           { "id": "hook", "icon": "video", "title": "Videos that hook", "description": "Vertical videos adapted for platform algorithms" },
@@ -807,7 +810,6 @@
           "items": [
             { "id": "platforms", "question": "Which platforms?", "answer": "TikTok, Instagram Reels, YouTube Shorts and VK Clips" },
             { "id": "need-video", "question": "Do I need to send video?", "answer": "No - we create vertical videos for your track" },
-            { "id": "cabinet", "question": "Available in artist cabinet?", "answer": "Yes - Vertical videos from 99 ₽/each in the cabinet" },
             { "id": "order", "question": "How to order?", "answer": "Click Viral reach and send your track link" }
           ]
         },
