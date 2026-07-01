@@ -139,7 +139,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
       hasAutopayBinding ?
         user
           ? "<b>Автосписание:</b> подключено (Т‑Банк)"
-          : "<b>Автосписание:</b> включается при регистрации в кабинете с этим email — привязка сохранена"
+          : "<b>Автосписание:</b> включается при регистрации в кабинете с этим email - привязка сохранена"
       : "<b>Автосписание:</b> не подключено (карта не привязана для рекуррентов)"
 
     const messageLines = [

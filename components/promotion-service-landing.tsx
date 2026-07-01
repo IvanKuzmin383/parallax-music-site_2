@@ -12,14 +12,12 @@ import {
   Link2,
   Video,
   Flame,
-  ArrowRight,
   Rocket,
 } from "lucide-react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { Minus, Plus } from "lucide-react"
 import { HeroBackgroundImage } from "@/components/hero-background-image"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { PromotionOrderDialog } from "@/components/promotion-order-dialog"
 import { PromotionAnalyticsMockup } from "@/components/promotion-analytics-mockup"
 import { PartnerMarquee } from "@/components/partner-marquee"
@@ -177,36 +175,6 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
         </div>
       </section>
 
-      <section className="py-20 bg-background/60 border-t border-border">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">{t.promotionLanding.hub.casesTitle}</h2>
-              <p className="text-muted-foreground mt-2 max-w-2xl">{t.promotionLanding.hub.casesDescription}</p>
-            </div>
-            <Button variant="outline" asChild className="shrink-0">
-              <Link href={t.promotionLanding.hub.casesHref}>
-                {t.promotionLanding.hub.casesLink}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          <Card className="p-6 md:p-8 bg-card border-border">
-            <div className="grid sm:grid-cols-3 gap-6 text-center">
-              {[
-                { value: "8 355", label: "кликов за неделю" },
-                { value: "302", label: "слушателей VK Музыки" },
-                { value: "+37%", label: "рост прослушиваний" },
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <p className="text-3xl md:text-4xl font-bold text-primary tabular-nums">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </section>
 
       <section className="py-20 bg-background border-t border-border">
         <div className="container mx-auto px-4 max-w-5xl">

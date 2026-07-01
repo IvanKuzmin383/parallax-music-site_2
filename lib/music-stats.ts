@@ -668,7 +668,7 @@ const CABINET_TRACK_JOIN = `
 
 /**
  * Полный рейтинг треков кабинета: SUM по всем дням, группировка по релизу (cabinet_track_id).
- * Без LIMIT на площадку — в отличие от устаревшего среза top-10 по track_key.
+ * Без LIMIT на площадку - в отличие от устаревшего среза top-10 по track_key.
  */
 export async function getCabinetMusicStatsTopTracks(args: {
   cabinetUserEmail: string

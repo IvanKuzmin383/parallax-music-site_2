@@ -200,7 +200,7 @@
   }
 }
 
-/* Markdown/Prose styles — бледный основной текст, яркий белый на заголовках и акцентах */
+/* Markdown/Prose styles - бледный основной текст, яркий белый на заголовках и акцентах */
 .prose {
   font-family: var(--font-article);
   @apply text-muted-foreground;

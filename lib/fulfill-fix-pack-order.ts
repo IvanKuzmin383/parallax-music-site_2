@@ -116,7 +116,7 @@ export async function applyFixPackCreditsOnRegister(
   )
   const totalFromPending = await sumPendingFixCredits(email)
   // Берём максимум: pending может содержать корректное число, если в заказе tracks_count = 0.
-  // Не суммируем оба источника — один заказ может быть и в orders, и в pending.
+  // Не суммируем оба источника - один заказ может быть и в orders, и в pending.
   const totalTracks = Math.max(totalFromOrders, totalFromPending)
 
   await updateCabinetUserSubscription(userId, "Fix", null, 0)

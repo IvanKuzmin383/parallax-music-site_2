@@ -1,4 +1,4 @@
--- Parallax Music — initial PostgreSQL schema (from SQLite lib/db.ts)
+-- Parallax Music - initial PostgreSQL schema (from SQLite lib/db.ts)
 CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TABLE IF NOT EXISTS schema_migrations (

@@ -59,7 +59,7 @@ export function PurchaseTracksDialog({
   const resolvedDescription =
     description ??
     (useFixPackPricing
-      ? "Оплата пакета треков: 1–5 шт. — 500 ₽/трек, 6–10 — 400 ₽, 11+ — 350 ₽."
+      ? "Оплата пакета треков: 1–5 шт. - 500 ₽/трек, 6–10 - 400 ₽, 11+ - 350 ₽."
       : `Чтобы загрузить больше треков, оплатите дополнительные. Цена за один трек - ${trackPriceRub} ₽.`)
 
   useEffect(() => {

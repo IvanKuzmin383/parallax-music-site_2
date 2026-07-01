@@ -10,7 +10,7 @@ export type CaseStudyMeta = {
   slug: string
   title: string
   excerpt: string
-  /** SEO description (если не задан — используется excerpt) */
+  /** SEO description (если не задан - используется excerpt) */
   metaDescription?: string
   /** SEO keywords */
   keywords?: string[]
@@ -20,7 +20,7 @@ export type CaseStudyMeta = {
   services?: string[]
   /** Показывать в секции на главной. По умолчанию true */
   featured?: boolean
-  /** Меньше — выше в списке */
+  /** Меньше - выше в списке */
   sortOrder?: number
   /** Для sitemap (YYYY-MM-DD или ISO) */
   updatedAt?: string
@@ -29,11 +29,11 @@ export type CaseStudyMeta = {
 export const caseStudies: CaseStudyMeta[] = [
   {
     slug: "nova-wave",
-    title: "Nova Wave — рост с 800 до 45 000 прослушиваний",
+    title: "Nova Wave - рост с 800 до 45 000 прослушиваний",
     excerpt:
       "Дистрибуция, питчинг и визуальный контент: как indie pop-сингл вышел на editorial-плейлисты за 6 месяцев.",
     metaDescription:
-      "Кейс Parallax Music: indie pop-сингл Nova Wave вырос с 800 до 45 000 прослушиваний за 6 месяцев — дистрибуция, питчинг Spotify и Яндекс Музыки, editorial-плейлисты.",
+      "Кейс Parallax Music: indie pop-сингл Nova Wave вырос с 800 до 45 000 прослушиваний за 6 месяцев - дистрибуция, питчинг Spotify и Яндекс Музыки, editorial-плейлисты.",
     keywords: [
       "продвижение indie pop",
       "питчинг Spotify",
@@ -52,11 +52,11 @@ export const caseStudies: CaseStudyMeta[] = [
   },
   {
     slug: "where-mountains-dream",
-    title: "Дмитрий Крюков — продвижение оркестрового релиза",
+    title: "Дмитрий Крюков - продвижение оркестрового релиза",
     excerpt:
       "VK Ads, Яндекс Директ и BandLink: как авторское оркестровое произведение вышло на массовую аудиторию за неделю рекламы.",
     metaDescription:
-      "Кейс продвижения оркестрового релиза «Where the Mountains Dream»: VK Ads, Яндекс Директ, BandLink — 8 355 кликов, 302 слушателя VK Музыки, тест эмоциональных креативов.",
+      "Кейс продвижения оркестрового релиза «Where the Mountains Dream»: VK Ads, Яндекс Директ, BandLink - 8 355 кликов, 302 слушателя VK Музыки, тест эмоциональных креативов.",
     keywords: [
       "продвижение оркестровой музыки",
       "VK Ads музыка",

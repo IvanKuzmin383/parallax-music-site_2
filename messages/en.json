@@ -78,7 +78,7 @@
     "description": "Choose the pricing plan that suits your music project",
     "modeOnetime": "One-time payment",
     "modeSubscription": "Subscription",
-    "onetimeIntro": "Fix plan — pay only for the tracks you need, no subscription or auto-renewal",
+    "onetimeIntro": "Fix plan - pay only for the tracks you need, no subscription or auto-renewal",
     "perTrack": "₽/track",
     "periodMonth": "Month",
     "periodYear": "Year",
@@ -165,14 +165,14 @@
     ]
   },
   "payFix": {
-    "title": "Fix plan — pay per track",
+    "title": "Fix plan - pay per track",
     "description": "No subscription: pay for a track pack and register in the dashboard with the same email to upload releases.",
     "backToPricing": "Back to pricing",
     "planInfo": "Fix plan",
     "planSubtitle": "One-time payment, no auto-renewal",
-    "tier1": "1–5 tracks per order — 500 ₽ per track",
-    "tier2": "6–10 tracks — 400 ₽ per track (−20%)",
-    "tier3": "11+ tracks — 350 ₽ per track (−30%)",
+    "tier1": "1–5 tracks per order - 500 ₽ per track",
+    "tier2": "6–10 tracks - 400 ₽ per track (−20%)",
+    "tier3": "11+ tracks - 350 ₽ per track (−30%)",
     "tracksCountLabel": "Number of tracks",
     "tracksCountHint": "From 1 to {max} tracks per payment",
     "royaltyNote": "100% royalties to the artist. We take zero commission from your earnings."
@@ -411,7 +411,7 @@
       },
       "write": {
         "title": "Do you write poetry?",
-        "subtitle": "Thousands of people can listen to your poems — not just read them"
+        "subtitle": "Thousands of people can listen to your poems - not just read them"
       },
       "worthy": {
         "title": "Your poems\ndeserve a song",
@@ -419,7 +419,7 @@
       },
       "income": {
         "title": "Your poems can\ngenerate income",
-        "subtitle": "We'll create a song, release it on platforms — earn royalties from streams"
+        "subtitle": "We'll create a song, release it on platforms - earn royalties from streams"
       }
     },
     "benefits": {
@@ -428,7 +428,7 @@
       "items": {
         "creation": {
           "title": "AI song from your text",
-          "description": "We create music and vocals based on your poem — no studio or musicians needed"
+          "description": "We create music and vocals based on your poem - no studio or musicians needed"
         },
         "distribution": {
           "title": "Platform release",
@@ -436,7 +436,7 @@
         },
         "royalties": {
           "title": "Streaming royalties",
-          "description": "Your songs can generate income — like regular releases on streaming platforms"
+          "description": "Your songs can generate income - like regular releases on streaming platforms"
         }
       }
     },
@@ -468,17 +468,17 @@
     },
     "steps": {
       "title": "How it works",
-      "description": "A simple path from poem to release — we guide you at every step",
+      "description": "A simple path from poem to release - we guide you at every step",
       "items": [
         {
           "id": "send",
           "title": "Send your poem",
-          "description": "Message us on Telegram, VK or email — send your poem text and style preferences."
+          "description": "Message us on Telegram, VK or email - send your poem text and style preferences."
         },
         {
           "id": "create",
           "title": "We create 2 versions",
-          "description": "We prepare two AI song versions from your text — you pick the one that fits best."
+          "description": "We prepare two AI song versions from your text - you pick the one that fits best."
         },
         {
           "id": "cover",
@@ -488,7 +488,7 @@
         {
           "id": "release",
           "title": "Release",
-          "description": "We publish your song on streaming services — Spotify, Yandex Music, Apple Music and more."
+          "description": "We publish your song on streaming services - Spotify, Yandex Music, Apple Music and more."
         },
         {
           "id": "royalties",
@@ -532,12 +532,12 @@
         {
           "id": "need-singing",
           "question": "Do I need to sing or play an instrument?",
-          "answer": "No. Just send your poem text — we'll create an AI song with vocals and arrangement."
+          "answer": "No. Just send your poem text - we'll create an AI song with vocals and arrangement."
         },
         {
           "id": "two-variants",
           "question": "What does «2 versions to choose from» mean?",
-          "answer": "We prepare two different song versions from your text — with different mood or arrangement. You pick the one you prefer for release."
+          "answer": "We prepare two different song versions from your text - with different mood or arrangement. You pick the one you prefer for release."
         },
         {
           "id": "whats-included",
@@ -552,23 +552,23 @@
         {
           "id": "royalties",
           "question": "How do I earn from streams?",
-          "answer": "After release your track earns royalties from platforms — like a regular music release. Payment details discussed when ordering."
+          "answer": "After release your track earns royalties from platforms - like a regular music release. Payment details discussed when ordering."
         },
         {
           "id": "how-to-order",
           "question": "How do I order?",
-          "answer": "Click «Order» on this page and message us on Telegram, VK or email. Send your poem — our manager will follow up with details."
+          "answer": "Click «Order» on this page and message us on Telegram, VK or email. Send your poem - our manager will follow up with details."
         }
       ]
     },
     "finalCta": {
       "title": "Ready to hear your poems?",
-      "description": "Message us — we'll discuss your text and start working on your AI song",
+      "description": "Message us - we'll discuss your text and start working on your AI song",
       "cta": "Order AI song"
     },
     "orderDialog": {
       "title": "Order AI song",
-      "description": "Choose how to reach us — our manager will reply and confirm order details",
+      "description": "Choose how to reach us - our manager will reply and confirm order details",
       "telegram": "Message on Telegram",
       "vk": "Message on VK",
       "copyEmail": "Copy",
@@ -579,13 +579,13 @@
   },
   "promotionLanding": {
     "hero": {
-      "imageAlt": "Music promotion for artists — analytics and stream growth",
-      "cta": "Promote your track",
+      "imageAlt": "Music promotion for artists - analytics and stream growth",
+      "cta": "Order promotion",
       "ctaServices": "All promotion options"
     },
     "orderDialog": {
       "title": "Order promotion",
-      "description": "Choose a convenient way to contact us — a manager will reply and clarify details",
+      "description": "Choose a convenient way to contact us - a manager will reply and clarify details",
       "telegram": "Message on Telegram",
       "vk": "Message on VK",
       "copyEmail": "Copy",
@@ -597,16 +597,11 @@
       "titleHighlight": "your releases",
       "subtitle": "Even if the release was not issued through our service",
       "tagline": "Wide reach • New audience • Real growth",
-      "ctaCaption": "Choose the right promotion method and achieve new results",
       "servicesTitle": "Promotion methods",
       "servicesDescription": "We pick the right tool for your goal: quick start, reach, ads or viral content",
-      "casesTitle": "Real results",
-      "casesDescription": "See how we promoted releases via VK, Yandex Direct and playlists",
-      "casesLink": "View case study",
-      "casesHref": "/cases/where-mountains-dream",
       "finalCta": {
         "title": "Ready to promote your release?",
-        "description": "Contact us — we'll discuss your goal and suggest the best promotion method",
+        "description": "Contact us - we'll discuss your goal and suggest the best promotion method",
         "cta": "Submit request"
       },
       "orderPrefill": "Hello! I'd like to discuss promotion for my release.\nPage: parallaxmusic.ru/promotion",
@@ -645,7 +640,7 @@
         "ctaCaption": "We bring real streams and grow your audience",
         "mockupType": "streams",
         "badge": "Quick start",
-        "orderPrefill": "Hello! My track is out — I need promotion and first listeners.\nPage: parallaxmusic.ru/promotion/first-listeners",
+        "orderPrefill": "Hello! My track is out - I need promotion and first listeners.\nPage: parallaxmusic.ru/promotion/first-listeners",
         "features": [
           { "id": "fast", "icon": "zap", "title": "Quick start", "description": "We launch promotion right after placement" },
           { "id": "playlists", "icon": "play", "title": "Playlists with traffic", "description": "We place tracks in our and partner playlists" },
@@ -656,7 +651,7 @@
           "title": "How it works",
           "description": "A simple path from request to stream growth",
           "items": [
-            { "id": "contact", "title": "Request", "description": "Message us on Telegram, VK or email — send a link to your track" },
+            { "id": "contact", "title": "Request", "description": "Message us on Telegram, VK or email - send a link to your track" },
             { "id": "plan", "title": "Plan", "description": "We choose a promotion method for your release and budget" },
             { "id": "launch", "title": "Launch", "description": "Playlist placement and/or ad campaigns" },
             { "id": "results", "title": "Results", "description": "We track stream dynamics and adjust strategy" }
@@ -668,11 +663,11 @@
           "items": [
             { "id": "not-our-release", "question": "Can you promote a track not released via Parallax Music?", "answer": "Yes. We promote releases regardless of distribution service" },
             { "id": "how-fast", "question": "How fast does promotion start?", "answer": "Playlist placement can start quickly after approval. Ad campaigns are set up individually" },
-            { "id": "real-listeners", "question": "Are these real streams?", "answer": "Yes — playlists with traffic, targeted ads and organic reach" },
+            { "id": "real-listeners", "question": "Are these real streams?", "answer": "Yes - playlists with traffic, targeted ads and organic reach" },
             { "id": "how-to-order", "question": "How to order?", "answer": "Click the CTA and message us with a link to your track" }
           ]
         },
-        "finalCta": { "title": "Time to find your first listeners", "description": "Submit a request — we'll pick the right promotion method", "cta": "Promote your track" }
+        "finalCta": { "title": "Time to find your first listeners", "description": "Submit a request - we'll pick the right promotion method", "cta": "Order promotion" }
       },
       "yandex-playlists": {
         "title": "Placement in",
@@ -694,7 +689,7 @@
           "items": [
             { "id": "send", "title": "Request", "description": "Send a track link and brief release info" },
             { "id": "match", "title": "Playlist matching", "description": "We pick playlists with relevant audience" },
-            { "id": "place", "title": "Placement", "description": "We add your track — placement is permanent" },
+            { "id": "place", "title": "Placement", "description": "We add your track - placement is permanent" },
             { "id": "stats", "title": "Stats", "description": "We track stream growth and listener activity" }
           ]
         },
@@ -704,11 +699,11 @@
           "items": [
             { "id": "when", "question": "When will first streams appear?", "answer": "Usually right after playlist placement" },
             { "id": "removed", "question": "Can the track be removed?", "answer": "We place tracks permanently in our and partner playlists" },
-            { "id": "any-release", "question": "Works for already released tracks?", "answer": "Yes — new and existing releases" },
+            { "id": "any-release", "question": "Works for already released tracks?", "answer": "Yes - new and existing releases" },
             { "id": "order", "question": "How to order?", "answer": "Click Quick start and send your Yandex Music track link" }
           ]
         },
-        "finalCta": { "title": "Start playlist promotion", "description": "Submit a request — we'll place your track and attract listeners", "cta": "Quick start" }
+        "finalCta": { "title": "Start playlist promotion", "description": "Submit a request - we'll place your track and attract listeners", "cta": "Quick start" }
       },
       "vk-ads": {
         "title": "Promotion",
@@ -740,11 +735,11 @@
           "items": [
             { "id": "budget", "question": "What budget is needed?", "answer": "Discussed individually based on goals and scale" },
             { "id": "formats", "question": "Where will ads appear?", "answer": "VK Music, feed, Stories, clips and other placements" },
-            { "id": "analytics", "question": "Will I get a report?", "answer": "Yes — impressions, clicks, CTR and dynamics" },
+            { "id": "analytics", "question": "Will I get a report?", "answer": "Yes - impressions, clicks, CTR and dynamics" },
             { "id": "order", "question": "How to order?", "answer": "Click Audience growth and send your track or community link" }
           ]
         },
-        "finalCta": { "title": "Attract audience from VK", "description": "Submit a request — we'll set up ads for your release", "cta": "Audience growth" }
+        "finalCta": { "title": "Attract audience from VK", "description": "Submit a request - we'll set up ads for your release", "cta": "Audience growth" }
       },
       "yandex-direct": {
         "title": "Promotion",
@@ -774,13 +769,13 @@
           "title": "FAQ",
           "description": "About Yandex Direct ads",
           "items": [
-            { "id": "not-only-music", "question": "Not only music tracks?", "answer": "Yes — concerts, merch, websites, socials and more" },
+            { "id": "not-only-music", "question": "Not only music tracks?", "answer": "Yes - concerts, merch, websites, socials and more" },
             { "id": "budget", "question": "How is budget set?", "answer": "Agreed individually with your manager" },
             { "id": "reporting", "question": "What metrics do you track?", "answer": "Impressions, clicks, CTR, conversions and daily dynamics" },
             { "id": "order", "question": "How to order?", "answer": "Click Precise ads and describe your task" }
           ]
         },
-        "finalCta": { "title": "Launch precise ads", "description": "Submit a request — we'll set up a campaign for your goal", "cta": "Precise ads" }
+        "finalCta": { "title": "Launch precise ads", "description": "Submit a request - we'll set up a campaign for your goal", "cta": "Precise ads" }
       },
       "tiktok-shorts": {
         "title": "TikTok / Shorts",
@@ -811,12 +806,12 @@
           "description": "About short-form video promotion",
           "items": [
             { "id": "platforms", "question": "Which platforms?", "answer": "TikTok, Instagram Reels, YouTube Shorts and VK Clips" },
-            { "id": "need-video", "question": "Do I need to send video?", "answer": "No — we create vertical videos for your track" },
-            { "id": "cabinet", "question": "Available in artist cabinet?", "answer": "Yes — Vertical videos from 99 ₽/each in the cabinet" },
+            { "id": "need-video", "question": "Do I need to send video?", "answer": "No - we create vertical videos for your track" },
+            { "id": "cabinet", "question": "Available in artist cabinet?", "answer": "Yes - Vertical videos from 99 ₽/each in the cabinet" },
             { "id": "order", "question": "How to order?", "answer": "Click Viral reach and send your track link" }
           ]
         },
-        "finalCta": { "title": "Launch viral reach", "description": "Submit a request — we'll create content and attract a new audience", "cta": "Viral reach" }
+        "finalCta": { "title": "Launch viral reach", "description": "Submit a request - we'll create content and attract a new audience", "cta": "Viral reach" }
       }
     }
   },

@@ -14,7 +14,7 @@ const outputPath = path.join(publicDir, path.basename(HERO_BACKGROUND.webp))
 async function main(): Promise<void> {
   if (!fs.existsSync(inputPath)) {
     console.warn(`[generate-hero-webp] JPG not found: ${inputPath}`)
-    console.warn("Положите файл в public/ или пропустите — сайт использует JPG как fallback.")
+    console.warn("Положите файл в public/ или пропустите - сайт использует JPG как fallback.")
     process.exit(0)
   }
 
@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   const inStat = fs.statSync(inputPath)
   const outStat = fs.statSync(outputPath)
   console.log(
-    `[generate-hero-webp] ${path.basename(outputPath)} — ${Math.round(outStat.size / 1024)} KiB (from ${Math.round(inStat.size / 1024)} KiB JPG)`,
+    `[generate-hero-webp] ${path.basename(outputPath)} - ${Math.round(outStat.size / 1024)} KiB (from ${Math.round(inStat.size / 1024)} KiB JPG)`,
   )
 }
 

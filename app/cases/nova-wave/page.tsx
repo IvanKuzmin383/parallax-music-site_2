@@ -56,14 +56,14 @@ export default function NovaWaveCasePage() {
             ["Прослушивания / мес.", "800", "45 000"],
             ["Editorial плейлисты", "0", "3"],
             ["Подписчики Spotify", "120", "2 400"],
-            ["Яндекс Музыка — прослушивания", "350 / мес.", "18 000 / мес."],
+            ["Яндекс Музыка - прослушивания", "350 / мес.", "18 000 / мес."],
           ]}
           caption="Данные за период кампании. Цифры предоставлены артистом."
         />
 
         <CaseBarChartPreview
           title="Динамика прослушиваний (Spotify)"
-          caption="Spotify for Artists, январь — июнь 2025"
+          caption="Spotify for Artists, январь - июнь 2025"
           data={[
             { label: "Янв", value: 800 },
             { label: "Фев", value: 4200 },
@@ -82,7 +82,7 @@ export default function NovaWaveCasePage() {
       </CaseSection>
 
       <CaseSection title="Плейлисты">
-        <p>Трек попал в editorial-плейлисты Spotify и подборки Яндекс Музыки — это дало основной
+        <p>Трек попал в editorial-плейлисты Spotify и подборки Яндекс Музыки - это дало основной
           прирост прослушиваний в первые 8 недель после питчинга.</p>
         <CaseTable
           headers={["Площадка", "Плейлист", "Период"]}
@@ -95,7 +95,7 @@ export default function NovaWaveCasePage() {
       </CaseSection>
 
       <CaseQuote
-        text="Parallax помогли не просто выложить трек, а выстроить стратегию. Через пару месяцев цифры стали совсем другими — и это не случайность."
+        text="Parallax помогли не просто выложить трек, а выстроить стратегию. Через пару месяцев цифры стали совсем другими - и это не случайность."
         author="Nova Wave"
       />
     </CaseStudyLayout>

@@ -350,7 +350,7 @@ export function AdminReportsBulkUpload({ users, onCommitted }: AdminReportsBulkU
                         {row.fileName}
                       </TableCell>
                       <TableCell className="max-w-[160px] truncate" title={row.artistFromFile}>
-                        {row.artistFromFile || "—"}
+                        {row.artistFromFile || "-"}
                       </TableCell>
                       <TableCell className="min-w-[240px]">
                         {!row.ok ? (
@@ -386,7 +386,7 @@ export function AdminReportsBulkUpload({ users, onCommitted }: AdminReportsBulkU
                             disabled={commitLoading}
                           />
                         ) : (
-                          "—"
+                          "-"
                         )}
                         {row.ok && (row.amountUsd != null || row.amountEur != null) ? (
                           <p className="text-xs text-muted-foreground mt-1">
@@ -396,7 +396,7 @@ export function AdminReportsBulkUpload({ users, onCommitted }: AdminReportsBulkU
                           </p>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{row.ok ? row.rowCount : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.ok ? row.rowCount : "-"}</TableCell>
                       <TableCell>
                         {row.ok ? (
                           rowReady ? (

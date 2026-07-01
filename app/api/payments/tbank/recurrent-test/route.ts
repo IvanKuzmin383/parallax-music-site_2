@@ -53,13 +53,13 @@ export async function GET(request: NextRequest) {
     },
     instructions: {
       test5: [
-        "POST /api/payments/tbank/recurrent-test — создать родительский платёж (Recurrent=Y).",
+        "POST /api/payments/tbank/recurrent-test - создать родительский платёж (Recurrent=Y).",
         "Оплатить картой 4000 0000 0000 0333, 12/30, 111.",
         "Webhook сохранит RebillId из уведомления.",
         "В ЛК Т-Бизнес нажать «Проверить» для теста №5.",
       ],
       test6: [
-        "PUT /api/payments/tbank/recurrent-test — Init child + Charge по RebillId.",
+        "PUT /api/payments/tbank/recurrent-test - Init child + Charge по RebillId.",
         "Дождаться child_status = CONFIRMED в статусе ниже.",
         "В ЛК Т-Бизнес нажать «Проверить» для теста №6.",
       ],

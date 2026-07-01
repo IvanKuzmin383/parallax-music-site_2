@@ -57,7 +57,7 @@ export function isHeicCoverFile(file: File): boolean {
   return ext === "heic" || ext === "heif" || type === "image/heic" || type === "image/heif"
 }
 
-/** JPEG/PNG по имени или MIME; HEIC и WebP — нет. */
+/** JPEG/PNG по имени или MIME; HEIC и WebP - нет. */
 export function isLikelyCoverImage(file: File): boolean {
   if (isHeicCoverFile(file)) return false
   const name = (file.name ?? "").toLowerCase()

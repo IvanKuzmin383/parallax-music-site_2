@@ -138,7 +138,7 @@ ufw status
 ```bash
 mkdir -p /data/uploads
 chmod 755 /data
-# Отзывы на главной (если ещё нет — создастся при первом сохранении в админке)
+# Отзывы на главной (если ещё нет - создастся при первом сохранении в админке)
 touch /data/reviews.json
 echo '{"reviews":[]}' > /data/reviews.json
 chmod 644 /data/reviews.json
@@ -426,7 +426,7 @@ pnpm build
 pm2 restart parallaxmusic
 ```
 
-**Не коммитьте в Git:** `/data/app.db`, `data/app.db`, `.env`, бэкапы архивов с БД. Бэкап продакшена — `scp` / tar на ПК (см. раздел про `/data/app.db` выше).
+**Не коммитьте в Git:** `/data/app.db`, `data/app.db`, `.env`, бэкапы архивов с БД. Бэкап продакшена - `scp` / tar на ПК (см. раздел про `/data/app.db` выше).
 
 ---
 

@@ -22,7 +22,7 @@ export type PromotionSeo = {
 
 export const PROMOTION_SEO: Record<"hub" | PromotionSlug, PromotionSeo> = {
   hub: {
-    title: "Продвижение музыки для артистов — плейлисты, реклама, TikTok | Parallax Music",
+    title: "Продвижение музыки для артистов - плейлисты, реклама, TikTok | Parallax Music",
     description:
       "Продвигаем релизы артистов: размещение в плейлистах Яндекс Музыки, VK Реклама, Яндекс Директ, TikTok и Shorts. Реальные прослушивания и рост аудитории.",
     keywords: [
@@ -34,7 +34,7 @@ export const PROMOTION_SEO: Record<"hub" | PromotionSlug, PromotionSeo> = {
     ],
   },
   "first-listeners": {
-    title: "Продвижение трека — привлечь первых слушателей | Parallax Music",
+    title: "Продвижение трека - привлечь первых слушателей | Parallax Music",
     description:
       "Вышел трек, а слушателей нет? Размещаем в плейлистах, запускаем рекламу и привлекаем реальную аудиторию. Быстрый старт продвижения релиза.",
     keywords: [
@@ -46,7 +46,7 @@ export const PROMOTION_SEO: Record<"hub" | PromotionSlug, PromotionSeo> = {
     ],
   },
   "yandex-playlists": {
-    title: "Размещение в плейлистах Яндекс Музыки — продвижение релиза | Parallax Music",
+    title: "Размещение в плейлистах Яндекс Музыки - продвижение релиза | Parallax Music",
     description:
       "Быстрый запуск размещения трека в плейлистах Яндекс Музыки. Первые прослушивания после размещения, бессрочное размещение в своих и партнёрских плейлистах.",
     keywords: [
@@ -58,7 +58,7 @@ export const PROMOTION_SEO: Record<"hub" | PromotionSlug, PromotionSeo> = {
     ],
   },
   "vk-ads": {
-    title: "Продвижение в VK Реклама и VK Музыка — рост слушателей | Parallax Music",
+    title: "Продвижение в VK Реклама и VK Музыка - рост слушателей | Parallax Music",
     description:
       "Точный таргетинг, AI-креативы и аналитика кампаний. Привлекаем новую аудиторию во ВКонтакте и увеличиваем прослушивания релиза.",
     keywords: [
@@ -70,7 +70,7 @@ export const PROMOTION_SEO: Record<"hub" | PromotionSlug, PromotionSeo> = {
     ],
   },
   "yandex-direct": {
-    title: "Продвижение в Яндекс Директ — реклама музыки и релизов | Parallax Music",
+    title: "Продвижение в Яндекс Директ - реклама музыки и релизов | Parallax Music",
     description:
       "Точная реклама под ваши цели: трек, концерт, мерч или соцсети. Индивидуальная настройка, таргетинг и ежедневная оптимизация кампании.",
     keywords: [
@@ -82,7 +82,7 @@ export const PROMOTION_SEO: Record<"hub" | PromotionSlug, PromotionSeo> = {
     ],
   },
   "tiktok-shorts": {
-    title: "TikTok и Shorts продвижение музыки — вирусный охват | Parallax Music",
+    title: "TikTok и Shorts продвижение музыки - вирусный охват | Parallax Music",
     description:
       "Вертикальные видео для TikTok, Reels и YouTube Shorts. Рост узнаваемости артиста, новая аудитория за пределами стримингов и вирусный потенциал.",
     keywords: [

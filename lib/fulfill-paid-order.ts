@@ -55,7 +55,7 @@ export type FulfillPaidOrderParams = {
 }
 
 /**
- * Бизнес-логика после успешной оплаты (кроме подписки — она только в ЮKassa webhook).
+ * Бизнес-логика после успешной оплаты (кроме подписки - она только в ЮKassa webhook).
  */
 export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<void> {
   const { order, paymentId, paidAt } = params

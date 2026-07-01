@@ -5,7 +5,7 @@ import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 
 /**
- * OG/Twitter для /s/[slug]. connection() — metadata в <head> до стрима HTML
+ * OG/Twitter для /s/[slug]. connection() - metadata в <head> до стрима HTML
  * (иначе Telegram и др. html-limited боты не видят теги в body).
  */
 export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {

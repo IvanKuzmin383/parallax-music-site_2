@@ -12,7 +12,7 @@ export function countTracksNeedingFixPackCharge(
 
 /**
  * При смене статуса: возврат слота при отклонении.
- * При переводе в upload_pending (доработка) слот не возвращаем — повторная отправка без списания.
+ * При переводе в upload_pending (доработка) слот не возвращаем - повторная отправка без списания.
  */
 export async function handleFixPackCreditsOnTrackStatusChange(
   track: Track,

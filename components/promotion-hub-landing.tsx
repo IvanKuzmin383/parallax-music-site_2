@@ -119,31 +119,6 @@ export function PromotionHubLanding() {
         </div>
       </section>
 
-      <section className="py-20 bg-background/60 border-t border-border">
-        <div className="container mx-auto px-4 max-w-5xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">{hub.casesTitle}</h2>
-          <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">{hub.casesDescription}</p>
-          <Button asChild>
-            <Link href={hub.casesHref}>
-              {hub.casesLink}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-      </section>
-
-      <section className="py-16 bg-background border-t border-border">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto rounded-2xl border border-primary/40 bg-card/40 p-6 md:p-8 flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
-            <Rocket className="h-8 w-8 text-primary shrink-0" aria-hidden />
-            <p className="text-muted-foreground flex-1">{hub.ctaCaption}</p>
-            <Button onClick={() => setOrderOpen(true)} className="shrink-0 uppercase tracking-wider">
-              {hub.finalCta.cta}
-            </Button>
-          </div>
-        </div>
-      </section>
-
       <section className="py-24 bg-background border-t border-border">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-2xl mx-auto space-y-6">

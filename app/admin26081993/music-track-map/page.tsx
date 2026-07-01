@@ -323,7 +323,7 @@ export default function AdminMusicTrackMapPage() {
                           </TableCell>
                           <TableCell className="max-w-[320px] break-all text-xs">{row.trackKey}</TableCell>
                           <TableCell className="max-w-[260px] text-xs">
-                            {row.importTrackAuthor || "—"} • {row.importTrackTitle || "—"}
+                            {row.importTrackAuthor || "-"} • {row.importTrackTitle || "-"}
                           </TableCell>
                           <TableCell className="min-w-[260px]">
                             {isEditing ? (
@@ -337,7 +337,7 @@ export default function AdminMusicTrackMapPage() {
                             )}
                           </TableCell>
                           <TableCell className="max-w-[260px] text-xs">
-                            {row.cabinetArtistName || "—"} • {row.cabinetTrackName || "—"}
+                            {row.cabinetArtistName || "-"} • {row.cabinetTrackName || "-"}
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-xs">
                             {new Date(row.matchedAt).toLocaleString("ru-RU")}
