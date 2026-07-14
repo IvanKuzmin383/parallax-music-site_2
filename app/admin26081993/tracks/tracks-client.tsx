@@ -2281,7 +2281,7 @@ export default function TracksPageClient() {
                     {selectedTrack ? (
                       <div className="md:col-span-2 space-y-2">
                         <Label htmlFor="admin-mod-note">
-                          Комментарий модерации (при «Отклонено» / «Отложено»)
+                          Комментарий модерации (при «Отклонено» / «Отложено» / «Черновик»)
                         </Label>
                         <Textarea
                           id="admin-mod-note"

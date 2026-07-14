@@ -1363,7 +1363,9 @@ export default function CabinetPage() {
                                           {STATUS_LABELS[track.status] ?? track.status}
                                         </span>
                                       </div>
-                                      {(track.status === "rejected" || track.status === "postponed") &&
+                                      {(track.status === "rejected" ||
+                                        track.status === "postponed" ||
+                                        track.status === "upload_pending") &&
                                         (track as any).moderationNote &&
                                         (track as any).moderationNote.trim() && (
                                           <div className="mt-1 flex items-start gap-2 text-xs text-destructive">
@@ -1488,7 +1490,9 @@ export default function CabinetPage() {
                                       {STATUS_LABELS[track.status] ?? track.status}
                                     </span>
                                   </div>
-                                  {(track.status === "rejected" || track.status === "postponed") &&
+                                  {(track.status === "rejected" ||
+                                    track.status === "postponed" ||
+                                    track.status === "upload_pending") &&
                                     (track as any).moderationNote &&
                                     (track as any).moderationNote.trim() && (
                                       <div className="mt-1 flex items-start gap-2 text-xs text-destructive">
@@ -1710,7 +1714,9 @@ export default function CabinetPage() {
                               {format(new Date(selectedTrack.createdAt), "d MMMM yyyy, HH:mm", { locale: ru })}
                             </p>
                           </div>
-                          {(selectedTrack.status === "rejected" || selectedTrack.status === "postponed") &&
+                          {(selectedTrack.status === "rejected" ||
+                            selectedTrack.status === "postponed" ||
+                            selectedTrack.status === "upload_pending") &&
                             (selectedTrack as any).moderationNote &&
                             (selectedTrack as any).moderationNote.trim() && (
                               <div className="space-y-1 sm:col-span-2">
