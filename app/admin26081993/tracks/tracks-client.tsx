@@ -32,6 +32,8 @@ import {
   CalendarIcon,
   Users,
   Info,
+  Loader2,
+  Wand2,
 } from "lucide-react"
 import { AdminSectionNav } from "@/components/admin-section-nav"
 import {
@@ -378,6 +380,8 @@ export default function TracksPageClient() {
   const [albumBulkUpc, setAlbumBulkUpc] = useState("")
   const [albumBulkPlatformLinks, setAlbumBulkPlatformLinks] = useState<PlatformLinks>({})
   const [albumBulkSaving, setAlbumBulkSaving] = useState(false)
+  const [resolvingTrackLinks, setResolvingTrackLinks] = useState(false)
+  const [resolvingAlbumLinks, setResolvingAlbumLinks] = useState(false)
   const [albumModOpen, setAlbumModOpen] = useState(false)
   const [albumModAlbumId, setAlbumModAlbumId] = useState<string | null>(null)
   const [albumModTrackCount, setAlbumModTrackCount] = useState(0)
@@ -860,6 +864,70 @@ export default function TracksPageClient() {
     void navigator.clipboard.writeText(url).then(() => {
       toast.success("Ссылка скопирована")
     })
+  }
+
+  const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
+    const trimmed = upc.trim()
+    if (!trimmed) {
+      toast.error("Сначала укажите UPC")
+      return null
+    }
+    const response = await fetch("/api/admin/platform-links/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ upc: trimmed }),
+      credentials: "include",
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      toast.error(
+        typeof data.error === "string" ? data.error : "Не удалось подтянуть ссылки"
+      )
+      return null
+    }
+    const links = (data.links ?? {}) as PlatformLinks
+    const count = Object.values(links).filter(
+      (v) => typeof v === "string" && v.trim().length > 0
+    ).length
+    toast.success(`Найдено ссылок: ${count}`)
+    return links
+  }
+
+  const handleResolveTrackPlatformLinks = async () => {
+    if (!trackDraft) return
+    setResolvingTrackLinks(true)
+    try {
+      const links = await resolveLinksByUpc(trackDraft.upc)
+      if (!links) return
+      setTrackDraft((d) =>
+        d
+          ? {
+              ...d,
+              platformLinks: {
+                ...d.platformLinks,
+                ...links,
+              },
+            }
+          : d
+      )
+    } catch {
+      toast.error("Ошибка при поиске ссылок")
+    } finally {
+      setResolvingTrackLinks(false)
+    }
+  }
+
+  const handleResolveAlbumBulkPlatformLinks = async () => {
+    setResolvingAlbumLinks(true)
+    try {
+      const links = await resolveLinksByUpc(albumBulkUpc)
+      if (!links) return
+      setAlbumBulkPlatformLinks((prev) => ({ ...prev, ...links }))
+    } catch {
+      toast.error("Ошибка при поиске ссылок")
+    } finally {
+      setResolvingAlbumLinks(false)
+    }
   }
 
   const openAlbumBulkDialog = (albumId: string, albumTracks: Track[]) => {
@@ -2727,7 +2795,27 @@ export default function TracksPageClient() {
 
                 {selectedTrack ? (
                 <div className="md:col-span-2 pt-4 border-t space-y-3">
-                  <Label>Ссылки на стриминговые платформы</Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label>Ссылки на стриминговые платформы</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={resolvingTrackLinks || !trackDraft.upc.trim()}
+                      onClick={() => void handleResolveTrackPlatformLinks()}
+                    >
+                      {resolvingTrackLinks ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-1" />
+                      )}
+                      {resolvingTrackLinks ? "Ищем…" : "Подтянуть по UPC"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Apple / Яндекс / Spotify / YouTube — из каталогов; МТС — по album id Яндекса.
+                    VK и Звук — вручную. Не забудьте сохранить трек.
+                  </p>
                   <div className="grid gap-2">
                     {SMARTLINK_PLATFORMS.map(({ key, label }) => (
                       <div key={key} className="flex flex-col gap-1">
@@ -3019,9 +3107,25 @@ export default function TracksPageClient() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Ссылки на стриминговые платформы
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Ссылки на стриминговые платформы
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={resolvingAlbumLinks || !albumBulkUpc.trim()}
+                    onClick={() => void handleResolveAlbumBulkPlatformLinks()}
+                  >
+                    {resolvingAlbumLinks ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-4 w-4 mr-1" />
+                    )}
+                    {resolvingAlbumLinks ? "Ищем…" : "Подтянуть по UPC"}
+                  </Button>
+                </div>
                 <div className="grid gap-2">
                   {SMARTLINK_PLATFORMS.map(({ key, label }) => (
                     <div key={key} className="flex flex-col gap-1">
