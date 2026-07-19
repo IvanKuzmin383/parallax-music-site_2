@@ -1,6 +1,6 @@
 import type { PlatformLinks } from "@/lib/smartlink-platforms"
 
-const FETCH_TIMEOUT_MS = 12_000
+const FETCH_TIMEOUT_MS = 15_000
 
 export type ResolvePlatformLinksResult = {
   links: PlatformLinks
@@ -14,12 +14,14 @@ export type ResolvePlatformLinksResult = {
     itunes?: boolean
     deezer?: boolean
     odesli?: boolean
+    yandexSearch?: boolean
   }
   errors: string[]
 }
 
 type ItunesResult = {
   wrapperType?: string
+  collectionId?: number
   collectionViewUrl?: string
   trackViewUrl?: string
   collectionName?: string
@@ -56,8 +58,31 @@ type OdesliResponse = {
   >
 }
 
+type YandexSearchAlbum = {
+  id?: number
+  title?: string
+  artists?: Array<{ name?: string }>
+}
+
+type YandexSearchResponse = {
+  result?: {
+    albums?: {
+      results?: YandexSearchAlbum[]
+    }
+  }
+}
+
 function normalizeUpc(raw: string): string {
   return raw.replace(/\D/g, "")
+}
+
+function normalizeMatchText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\s*-\s*single\b/gi, "")
+    .replace(/[«»"']/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -78,15 +103,23 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
+/** Stable Apple Music album URL by numeric id (no Cyrillic slug — better for Odesli). */
+function appleMusicAlbumUrl(collectionId: number | string, country = "ru"): string {
+  return `https://music.apple.com/${country}/album/${collectionId}`
+}
+
 function cleanAppleMusicUrl(url: string): string {
   try {
     const u = new URL(url)
-    // Drop iTunes affiliate / geo junk; keep path with album id.
     u.search = ""
     u.hash = ""
+    const idMatch = u.pathname.match(/\/album\/(?:[^/]+\/)?(\d+)/)
+    if (idMatch?.[1]) {
+      const country = u.pathname.split("/")[1] || "ru"
+      return appleMusicAlbumUrl(idMatch[1], country.length === 2 ? country : "ru")
+    }
     if (u.hostname.includes("music.apple.com") || u.hostname.includes("geo.music.apple.com")) {
       u.hostname = "music.apple.com"
-      // geo.music.apple.com/nl/... → prefer /us/ or keep path as-is without geo host
       return u.toString().replace(/\/$/, "")
     }
     return u.toString().replace(/\/$/, "")
@@ -102,6 +135,12 @@ function yandexAlbumIdFromUrl(url: string): string | undefined {
 
 function mtsUrlFromYandexAlbumId(albumId: string): string {
   return `https://music.mts.ru/album/${albumId}`
+}
+
+function applyYandexAlbumId(links: PlatformLinks, albumId: string) {
+  links.yandex = `https://music.yandex.ru/album/${albumId}`
+  // Project convention: kion field stores МТС Music URL
+  links.kion = mtsUrlFromYandexAlbumId(albumId)
 }
 
 async function lookupItunes(upc: string, country: string): Promise<ItunesLookupResponse | null> {
@@ -126,20 +165,84 @@ async function lookupDeezer(upc: string): Promise<DeezerAlbumResponse | null> {
 
 async function lookupOdesli(seedUrl: string): Promise<OdesliResponse | null> {
   try {
-    return await fetchJson<OdesliResponse>(
-      `https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(seedUrl)}`
-    )
+    const qs = new URLSearchParams({
+      url: seedUrl,
+      userCountry: "RU",
+    })
+    return await fetchJson<OdesliResponse>(`https://api.song.link/v1-alpha.1/links?${qs}`)
   } catch {
     return null
+  }
+}
+
+async function searchYandexAlbum(
+  title: string,
+  artistName: string
+): Promise<string | undefined> {
+  const query = `${title} ${artistName}`.trim()
+  if (!query) return undefined
+  try {
+    const data = await fetchJson<YandexSearchResponse>(
+      `https://api.music.yandex.net/search?text=${encodeURIComponent(query)}&type=album&page=0`
+    )
+    const results = data.result?.albums?.results ?? []
+    if (!results.length) return undefined
+
+    const wantTitle = normalizeMatchText(title)
+    const wantArtist = normalizeMatchText(artistName)
+
+    const exact = results.find((album) => {
+      const albumTitle = normalizeMatchText(album.title ?? "")
+      const albumArtist = normalizeMatchText(album.artists?.[0]?.name ?? "")
+      return albumTitle === wantTitle && (!wantArtist || albumArtist === wantArtist)
+    })
+    if (exact?.id != null) return String(exact.id)
+
+    const titleOnly = results.find(
+      (album) => normalizeMatchText(album.title ?? "") === wantTitle
+    )
+    if (titleOnly?.id != null) return String(titleOnly.id)
+
+    // Artist match + title contained (handles slight naming differences)
+    const fuzzy = results.find((album) => {
+      const albumTitle = normalizeMatchText(album.title ?? "")
+      const albumArtist = normalizeMatchText(album.artists?.[0]?.name ?? "")
+      return (
+        albumArtist === wantArtist &&
+        (albumTitle.includes(wantTitle) || wantTitle.includes(albumTitle))
+      )
+    })
+    if (fuzzy?.id != null) return String(fuzzy.id)
+
+    return undefined
+  } catch {
+    return undefined
   }
 }
 
 function pickItunesCollection(data: ItunesLookupResponse | null): ItunesResult | undefined {
   if (!data?.results?.length) return undefined
   return (
-    data.results.find((r) => r.wrapperType === "collection" && r.collectionViewUrl) ??
-    data.results.find((r) => r.collectionViewUrl || r.trackViewUrl)
+    data.results.find((r) => r.wrapperType === "collection" && (r.collectionId || r.collectionViewUrl)) ??
+    data.results.find((r) => r.collectionViewUrl || r.trackViewUrl || r.collectionId)
   )
+}
+
+function applyOdesliLinks(links: PlatformLinks, odesli: OdesliResponse) {
+  const by = odesli.linksByPlatform
+  if (!by) return
+
+  if (by.spotify?.url) links.spotify = by.spotify.url
+  if (by.appleMusic?.url && !links.appleMusic) {
+    links.appleMusic = cleanAppleMusicUrl(by.appleMusic.url)
+  }
+  if (by.yandex?.url) {
+    const albumId = yandexAlbumIdFromUrl(by.yandex.url)
+    if (albumId) applyYandexAlbumId(links, albumId)
+    else links.yandex = by.yandex.url.split("?")[0] ?? by.yandex.url
+  }
+  const yt = by.youtubeMusic?.url || by.youtube?.url
+  if (yt) links.youtubeMusic = yt.split("?")[0] ?? yt
 }
 
 /**
@@ -168,15 +271,21 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
   ])
 
   const itunesHit = pickItunesCollection(itunesRu) ?? pickItunesCollection(itunesUs)
-  let appleUrl: string | undefined
+  let appleSeedUrl: string | undefined
   let meta: ResolvePlatformLinksResult["meta"]
 
   if (itunesHit) {
     sources.itunes = true
-    const raw = itunesHit.collectionViewUrl || itunesHit.trackViewUrl
-    if (raw) {
-      appleUrl = cleanAppleMusicUrl(raw)
-      links.appleMusic = appleUrl
+    const collectionId = itunesHit.collectionId
+    if (collectionId) {
+      appleSeedUrl = appleMusicAlbumUrl(collectionId, itunesRu?.resultCount ? "ru" : "us")
+      links.appleMusic = appleSeedUrl
+    } else {
+      const raw = itunesHit.collectionViewUrl || itunesHit.trackViewUrl
+      if (raw) {
+        appleSeedUrl = cleanAppleMusicUrl(raw)
+        links.appleMusic = appleSeedUrl
+      }
     }
     meta = {
       title: itunesHit.collectionName || itunesHit.trackName,
@@ -202,49 +311,54 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
     errors.push("Deezer: релиз не найден")
   }
 
-  const seedUrl = appleUrl || deezerUrl
-  if (!seedUrl) {
+  const seedCandidates = [appleSeedUrl, deezerUrl].filter(
+    (u): u is string => typeof u === "string" && u.length > 0
+  )
+
+  if (!seedCandidates.length) {
     return {
       links,
-      found: Object.keys(links).length > 0,
+      found: Object.values(links).some((v) => typeof v === "string" && v.trim().length > 0),
       meta,
       sources,
       errors: [...errors, "Нет seed-ссылки для Odesli (релиз ещё не в каталоге?)"],
     }
   }
 
-  const odesli = await lookupOdesli(seedUrl)
-  if (!odesli?.linksByPlatform) {
-    errors.push("Odesli: не удалось получить ссылки")
-    return { links, found: Object.keys(links).length > 0, meta, sources, errors }
-  }
+  let odesliOk = false
+  for (const seed of seedCandidates) {
+    const odesli = await lookupOdesli(seed)
+    if (!odesli?.linksByPlatform) continue
+    odesliOk = true
+    sources.odesli = true
+    applyOdesliLinks(links, odesli)
 
-  sources.odesli = true
-  const by = odesli.linksByPlatform
-
-  if (by.spotify?.url) links.spotify = by.spotify.url
-  if (by.appleMusic?.url && !links.appleMusic) {
-    links.appleMusic = cleanAppleMusicUrl(by.appleMusic.url)
-  }
-  if (by.yandex?.url) {
-    links.yandex = by.yandex.url.split("?")[0] ?? by.yandex.url
-    const albumId = yandexAlbumIdFromUrl(links.yandex)
-    if (albumId) {
-      // Project convention: КИОН field stores МТС Music URL
-      links.kion = mtsUrlFromYandexAlbumId(albumId)
-    }
-  }
-  const yt = by.youtubeMusic?.url || by.youtube?.url
-  if (yt) links.youtubeMusic = yt.split("?")[0] ?? yt
-
-  if (!meta && odesli.entitiesByUniqueId) {
-    const first = Object.values(odesli.entitiesByUniqueId)[0]
-    if (first) {
-      meta = {
-        title: first.title,
-        artistName: first.artistName,
-        artworkUrl: first.thumbnailUrl,
+    if (!meta && odesli.entitiesByUniqueId) {
+      const first = Object.values(odesli.entitiesByUniqueId)[0]
+      if (first) {
+        meta = {
+          title: first.title,
+          artistName: first.artistName,
+          artworkUrl: first.thumbnailUrl,
+        }
       }
+    }
+
+    if (links.yandex) break
+  }
+
+  if (!odesliOk) {
+    errors.push("Odesli: не удалось получить ссылки")
+  }
+
+  // Fallback: Yandex Music search by title + artist (public API, no token)
+  if (!links.yandex && meta?.title && meta?.artistName) {
+    const albumId = await searchYandexAlbum(meta.title, meta.artistName)
+    if (albumId) {
+      sources.yandexSearch = true
+      applyYandexAlbumId(links, albumId)
+    } else {
+      errors.push("Яндекс: релиз не найден поиском")
     }
   }
 
