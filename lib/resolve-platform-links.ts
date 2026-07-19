@@ -15,6 +15,8 @@ export type ResolvePlatformLinksResult = {
     deezer?: boolean
     odesli?: boolean
     yandexSearch?: boolean
+    spotify?: boolean
+    youtubeMusic?: boolean
   }
   errors: string[]
 }
@@ -72,6 +74,26 @@ type YandexSearchResponse = {
   }
 }
 
+type SpotifyTokenResponse = {
+  access_token?: string
+  expires_in?: number
+  error?: string
+}
+
+type SpotifyAlbumItem = {
+  id?: string
+  name?: string
+  external_urls?: { spotify?: string }
+  artists?: Array<{ name?: string }>
+}
+
+type SpotifySearchResponse = {
+  albums?: { items?: SpotifyAlbumItem[] }
+  error?: { message?: string; status?: number }
+}
+
+let spotifyTokenCache: { token: string; expiresAt: number } | null = null
+
 function normalizeUpc(raw: string): string {
   return raw.replace(/\D/g, "")
 }
@@ -85,13 +107,22 @@ function normalizeMatchText(value: string): string {
     .trim()
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(
+  url: string,
+  init?: RequestInit & { timeoutMs?: number }
+): Promise<T> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const timeoutMs = init?.timeoutMs ?? FETCH_TIMEOUT_MS
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   try {
+    const { timeoutMs: _t, ...rest } = init ?? {}
     const res = await fetch(url, {
+      ...rest,
       signal: controller.signal,
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        ...(rest.headers ?? {}),
+      },
       cache: "no-store",
     })
     if (!res.ok) {
@@ -203,7 +234,6 @@ async function searchYandexAlbum(
     )
     if (titleOnly?.id != null) return String(titleOnly.id)
 
-    // Artist match + title contained (handles slight naming differences)
     const fuzzy = results.find((album) => {
       const albumTitle = normalizeMatchText(album.title ?? "")
       const albumArtist = normalizeMatchText(album.artists?.[0]?.name ?? "")
@@ -218,6 +248,176 @@ async function searchYandexAlbum(
   } catch {
     return undefined
   }
+}
+
+async function getSpotifyAccessToken(): Promise<string | null> {
+  const clientId = process.env.SPOTIFY_CLIENT_ID?.trim()
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET?.trim()
+  if (!clientId || !clientSecret) return null
+
+  if (spotifyTokenCache && Date.now() < spotifyTokenCache.expiresAt - 60_000) {
+    return spotifyTokenCache.token
+  }
+
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
+  try {
+    const data = await fetchJson<SpotifyTokenResponse>("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    })
+    if (!data.access_token) return null
+    spotifyTokenCache = {
+      token: data.access_token,
+      expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+    }
+    return data.access_token
+  } catch {
+    return null
+  }
+}
+
+function pickSpotifyAlbum(
+  items: SpotifyAlbumItem[],
+  title?: string,
+  artistName?: string
+): SpotifyAlbumItem | undefined {
+  if (!items.length) return undefined
+  if (!title) return items[0]
+
+  const wantTitle = normalizeMatchText(title)
+  const wantArtist = artistName ? normalizeMatchText(artistName) : ""
+
+  const exact = items.find((album) => {
+    const albumTitle = normalizeMatchText(album.name ?? "")
+    const albumArtist = normalizeMatchText(album.artists?.[0]?.name ?? "")
+    return albumTitle === wantTitle && (!wantArtist || albumArtist === wantArtist)
+  })
+  if (exact) return exact
+
+  return items.find((album) => normalizeMatchText(album.name ?? "") === wantTitle) ?? items[0]
+}
+
+async function searchSpotifyAlbum(
+  upc: string,
+  title?: string,
+  artistName?: string
+): Promise<{ url: string } | { missingCreds: true } | null> {
+  const token = await getSpotifyAccessToken()
+  if (!token) return { missingCreds: true }
+
+  const queries: string[] = [`upc:${upc}`]
+  if (title && artistName) {
+    queries.push(`album:${normalizeMatchText(title)} artist:${artistName}`)
+    queries.push(`${title} ${artistName}`)
+  }
+
+  for (const market of ["RU", "US", "GB"]) {
+    for (const q of queries) {
+      try {
+        const qs = new URLSearchParams({
+          q,
+          type: "album",
+          limit: "5",
+          market,
+        })
+        const data = await fetchJson<SpotifySearchResponse>(
+          `https://api.spotify.com/v1/search?${qs}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        const hit = pickSpotifyAlbum(data.albums?.items ?? [], title, artistName)
+        const url = hit?.external_urls?.spotify
+        if (url) return { url: url.split("?")[0] ?? url }
+      } catch {
+        // try next query/market
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * YouTube Music / YouTube Data API search.
+ * Prefer album browse URL when possible; else watch URL.
+ */
+async function searchYoutubeMusic(
+  title: string,
+  artistName: string,
+  upc?: string
+): Promise<string | undefined> {
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim()
+  const query = `${artistName} ${normalizeMatchText(title)}`.trim()
+
+  if (apiKey) {
+    try {
+      const qs = new URLSearchParams({
+        part: "snippet",
+        type: "video",
+        maxResults: "5",
+        q: query,
+        key: apiKey,
+      })
+      const data = await fetchJson<{
+        items?: Array<{ id?: { videoId?: string }; snippet?: { title?: string; channelTitle?: string } }>
+      }>(`https://www.googleapis.com/youtube/v3/search?${qs}`)
+
+      const wantTitle = normalizeMatchText(title)
+      const wantArtist = normalizeMatchText(artistName)
+      const items = data.items ?? []
+      const best =
+        items.find((item) => {
+          const t = normalizeMatchText(item.snippet?.title ?? "")
+          const ch = normalizeMatchText(item.snippet?.channelTitle ?? "")
+          return t.includes(wantTitle) && (ch.includes(wantArtist) || t.includes(wantArtist))
+        }) ?? items[0]
+      const videoId = best?.id?.videoId
+      if (videoId) return `https://music.youtube.com/watch?v=${videoId}`
+    } catch {
+      // fall through to innertube
+    }
+  }
+
+  // Unofficial YouTube Music search (WEB_REMIX). May fail if Google is blocked.
+  try {
+    const body = {
+      context: {
+        client: {
+          clientName: "WEB_REMIX",
+          clientVersion: "1.20250317.01.00",
+          hl: "ru",
+          gl: "RU",
+        },
+      },
+      query: upc ? `${upc} ${query}` : query,
+    }
+    const data = await fetchJson<Record<string, unknown>>(
+      "https://music.youtube.com/youtubei/v1/search?prettyPrint=false",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        },
+        body: JSON.stringify(body),
+        timeoutMs: 12_000,
+      }
+    )
+    const raw = JSON.stringify(data)
+    const browseIds = [...raw.matchAll(/"browseId":"(MPREb_[^"]+)"/g)].map((m) => m[1])
+    if (browseIds[0]) return `https://music.youtube.com/browse/${browseIds[0]}`
+
+    const videoIds = [...raw.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map((m) => m[1])
+    if (videoIds[0]) return `https://music.youtube.com/watch?v=${videoIds[0]}`
+  } catch {
+    return undefined
+  }
+
+  return undefined
 }
 
 function pickItunesCollection(data: ItunesLookupResponse | null): ItunesResult | undefined {
@@ -242,7 +442,12 @@ function applyOdesliLinks(links: PlatformLinks, odesli: OdesliResponse) {
     else links.yandex = by.yandex.url.split("?")[0] ?? by.yandex.url
   }
   const yt = by.youtubeMusic?.url || by.youtube?.url
-  if (yt) links.youtubeMusic = yt.split("?")[0] ?? yt
+  if (yt) {
+    const cleaned = yt.split("?")[0] ?? yt
+    links.youtubeMusic = cleaned.includes("youtube.com")
+      ? cleaned.replace("www.youtube.com", "music.youtube.com").replace("youtube.com/watch", "music.youtube.com/watch")
+      : cleaned
+  }
 }
 
 /**
@@ -344,14 +549,13 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
       }
     }
 
-    if (links.yandex) break
+    if (links.yandex && links.spotify && links.youtubeMusic) break
   }
 
   if (!odesliOk) {
     errors.push("Odesli: не удалось получить ссылки")
   }
 
-  // Fallback: Yandex Music search by title + artist (public API, no token)
   if (!links.yandex && meta?.title && meta?.artistName) {
     const albumId = await searchYandexAlbum(meta.title, meta.artistName)
     if (albumId) {
@@ -359,6 +563,42 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
       applyYandexAlbumId(links, albumId)
     } else {
       errors.push("Яндекс: релиз не найден поиском")
+    }
+  }
+
+  // Spotify: Odesli often skips it — use Web API (Client Credentials)
+  if (!links.spotify) {
+    const spotify = await searchSpotifyAlbum(upc, meta?.title, meta?.artistName)
+    if (spotify && "missingCreds" in spotify) {
+      errors.push(
+        "Spotify: задайте SPOTIFY_CLIENT_ID и SPOTIFY_CLIENT_SECRET в .env (developer.spotify.com)"
+      )
+    } else if (spotify && "url" in spotify) {
+      sources.spotify = true
+      links.spotify = spotify.url
+      // Second Odesli pass with Spotify seed sometimes unlocks YouTube
+      if (!links.youtubeMusic) {
+        const odesliFromSpotify = await lookupOdesli(spotify.url)
+        if (odesliFromSpotify?.linksByPlatform) {
+          applyOdesliLinks(links, odesliFromSpotify)
+        }
+      }
+    } else {
+      errors.push("Spotify: релиз не найден (ещё нет в каталоге?)")
+    }
+  }
+
+  if (!links.youtubeMusic && meta?.title && meta?.artistName) {
+    const yt = await searchYoutubeMusic(meta.title, meta.artistName, upc)
+    if (yt) {
+      sources.youtubeMusic = true
+      links.youtubeMusic = yt
+    } else {
+      errors.push(
+        process.env.YOUTUBE_API_KEY?.trim()
+          ? "YouTube Music: релиз не найден"
+          : "YouTube Music: не найден (опционально задайте YOUTUBE_API_KEY)"
+      )
     }
   }
 

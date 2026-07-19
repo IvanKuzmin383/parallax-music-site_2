@@ -889,7 +889,18 @@ export default function TracksPageClient() {
     const count = Object.values(links).filter(
       (v) => typeof v === "string" && v.trim().length > 0
     ).length
-    toast.success(`Найдено ссылок: ${count}`)
+    const hints = Array.isArray(data.errors)
+      ? (data.errors as string[]).filter(
+          (e) =>
+            typeof e === "string" &&
+            (e.includes("Spotify") || e.includes("YouTube") || e.includes("SPOTIFY"))
+        )
+      : []
+    if (hints.length) {
+      toast.success(`Найдено ссылок: ${count}`, { description: hints[0] })
+    } else {
+      toast.success(`Найдено ссылок: ${count}`)
+    }
     return links
   }
 
@@ -2813,8 +2824,9 @@ export default function TracksPageClient() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Apple / Яндекс / Spotify / YouTube — из каталогов; МТС — по album id Яндекса.
-                    VK и Звук — вручную. Не забудьте сохранить трек.
+                    Apple / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
+                    .env. YouTube Music — опционально YOUTUBE_API_KEY. VK и Звук — вручную. Не
+                    забудьте сохранить трек.
                   </p>
                   <div className="grid gap-2">
                     {SMARTLINK_PLATFORMS.map(({ key, label }) => (
