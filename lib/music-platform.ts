@@ -8,6 +8,10 @@ export type MusicPlatformKey =
   | "apple_music"
   | "pandora"
   | "amazon"
+  | "tdc"
+  | "zvuk"
+  | "kion_music"
+  | "odnoklassniki"
 
 export const MUSIC_PLATFORM_LABELS: Record<MusicPlatformKey, string> = {
   yandex_music: "Yandex Music",
@@ -19,5 +23,8 @@ export const MUSIC_PLATFORM_LABELS: Record<MusicPlatformKey, string> = {
   apple_music: "Apple Music",
   pandora: "Pandora",
   amazon: "amazon",
+  tdc: "TDC (24-7)",
+  zvuk: "Звук",
+  kion_music: "KION Музыка",
+  odnoklassniki: "Одноклассники",
 }
-

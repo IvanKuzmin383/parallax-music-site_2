@@ -30,29 +30,37 @@
     );
   }
 
-  /** Подписи как на странице; если вкладки нет - пропуск (см. цикл `NOT FOUND`). */
-  const PLATFORM_TABS = [
-    "Apple Music",
-    "Pandora",
-    "Shazam",
-    "Spotify",
-    "VK / OK / BOOM",
-    "Yandex Music",
-    "YouTube Music",
-    "amazon",
-    "iTunes Store",
+  /**
+   * Группы вкладок YOGA → один upload на ключ сайта.
+   * tabs: вкладки на странице YOGA (порядок как на скрине).
+   * platform: поле platform в JSON (для detectPlatformKey на сервере).
+   * fileSlug: имя файла tracks_full_{fileSlug}_{date}.json
+   */
+  const UPLOAD_GROUPS = [
+    { platform: "Apple Music", fileSlug: "Apple_Music", tabs: ["Apple Music"] },
+    { platform: "Pandora", fileSlug: "Pandora", tabs: ["Pandora"] },
+    { platform: "Shazam", fileSlug: "Shazam", tabs: ["Shazam"] },
+    { platform: "Spotify", fileSlug: "Spotify", tabs: ["Spotify"] },
+    { platform: "TDC (24-7)", fileSlug: "TDC_24-7", tabs: ["TDC (24-7)"] },
+    {
+      platform: "VK / OK / BOOM",
+      fileSlug: "VK_OK_BOOM",
+      tabs: ["VK / OK / BOOM", "VK Музыка"],
+    },
+    {
+      platform: "Yandex Music",
+      fileSlug: "Yandex_Music",
+      tabs: ["Yandex Music", "Яндекс Музыка"],
+    },
+    { platform: "YouTube Music", fileSlug: "YouTube_Music", tabs: ["YouTube Music"] },
+    { platform: "amazon", fileSlug: "amazon", tabs: ["amazon"] },
+    { platform: "iTunes Store", fileSlug: "iTunes_Store", tabs: ["iTunes Store"] },
+    { platform: "Звук", fileSlug: "Zvuk", tabs: ["Звук"] },
+    { platform: "KION Музыка", fileSlug: "KION_Music", tabs: ["КИОН Музыка", "KION Музыка"] },
+    { platform: "Одноклассники", fileSlug: "Odnoklassniki", tabs: ["Одноклассники"] },
   ];
 
   const EXPORT_DATE = new Date().toISOString().slice(0, 10);
-
-  const slugify = (s) =>
-    (s || "")
-      .toString()
-      .trim()
-      .replace(/\s+/g, " ")
-      .replace(/[\\/:*?"<>|]+/g, "_")
-      .replace(/\s/g, "_")
-      .replace(/_+/g, "_");
 
   function clickLikeUser(el) {
     const target = el.closest("a,button,[role='button'],.btn,.button") || el;
@@ -215,26 +223,7 @@
     console.log(`Кликов: ${clicks}`);
   }
 
-  for (const PLATFORM of PLATFORM_TABS) {
-    const tab = getPlatformTab(PLATFORM);
-    if (!tab) {
-      console.log(`NOT FOUND: ${PLATFORM}`);
-      continue;
-    }
-
-    const rowCountBefore = document.querySelectorAll(ROWS).length;
-    const sigBefore = getFirstRowSignature();
-
-    console.log(`\n=== Платформа: ${PLATFORM} ===`);
-    clickLikeUser(tab);
-
-    const upd = await waitForUpdate({ rowCountBefore, sigBefore });
-    console.log(`Switch: ${upd.ok ? "OK" : "TIMEOUT"} | rows=${upd.rowCountNow} | sig=${upd.sigNow}`);
-
-    await sleep(1000);
-    await loadAll();
-
-    const rows = parseRows();
+  function rowsToTracksMap(rows, platformLabel) {
     const tracksMap = new Map();
 
     for (const r of rows) {
@@ -245,7 +234,7 @@
           title: r.title,
           author: r.author,
           href: r.href,
-          platform: PLATFORM,
+          platform: platformLabel,
           points: [],
         });
       }
@@ -256,7 +245,89 @@
       });
     }
 
-    const tracks = [...tracksMap.values()].map((t) => ({
+    return tracksMap;
+  }
+
+  function pointMergeKey(p) {
+    return `${p.date}|${p.country ?? ""}`;
+  }
+
+  /** Суммирует points одного трека (две вкладки YOGA → один ключ на сайте). */
+  function mergeTracksMaps(target, source) {
+    for (const [key, track] of source.entries()) {
+      if (!target.has(key)) {
+        target.set(key, {
+          ...track,
+          points: track.points.map((p) => ({ ...p })),
+        });
+        continue;
+      }
+
+      const existing = target.get(key);
+      const byPoint = new Map();
+      for (const p of existing.points) {
+        byPoint.set(pointMergeKey(p), { ...p });
+      }
+      for (const p of track.points) {
+        const pk = pointMergeKey(p);
+        const prev = byPoint.get(pk);
+        if (prev) {
+          prev.count += p.count;
+        } else {
+          byPoint.set(pk, { ...p });
+        }
+      }
+      existing.points = [...byPoint.values()].sort((a, b) =>
+        String(a.date).localeCompare(String(b.date))
+      );
+    }
+  }
+
+  async function scrapePlatformTab(PLATFORM) {
+    const tab = getPlatformTab(PLATFORM);
+    if (!tab) {
+      console.log(`NOT FOUND: ${PLATFORM}`);
+      return null;
+    }
+
+    const rowCountBefore = document.querySelectorAll(ROWS).length;
+    const sigBefore = getFirstRowSignature();
+
+    console.log(`\n--- Вкладка: ${PLATFORM} ---`);
+    clickLikeUser(tab);
+
+    const upd = await waitForUpdate({ rowCountBefore, sigBefore });
+    console.log(`Switch: ${upd.ok ? "OK" : "TIMEOUT"} | rows=${upd.rowCountNow} | sig=${upd.sigNow}`);
+
+    await sleep(1000);
+    await loadAll();
+
+    return parseRows();
+  }
+
+  for (const GROUP of UPLOAD_GROUPS) {
+    const mergedTracksMap = new Map();
+    let totalRows = 0;
+    let scrapedTabs = 0;
+
+    console.log(`\n=== Площадка: ${GROUP.platform} ===`);
+
+    for (const tabLabel of GROUP.tabs) {
+      const rows = await scrapePlatformTab(tabLabel);
+      if (!rows) continue;
+
+      scrapedTabs++;
+      totalRows += rows.length;
+      mergeTracksMaps(mergedTracksMap, rowsToTracksMap(rows, GROUP.platform));
+      await sleep(800);
+    }
+
+    if (scrapedTabs === 0) {
+      console.warn(`[Сайт] ${GROUP.platform}: ни одна вкладка не найдена (${GROUP.tabs.join(", ")})`);
+      continue;
+    }
+
+    const tracks = [...mergedTracksMap.values()].map((t) => ({
       ...t,
       points: t.points.sort((a, b) => String(a.date).localeCompare(String(b.date))),
     }));
@@ -264,17 +335,15 @@
     const payload = {
       source: SOURCE,
       exportedAt: new Date().toISOString(),
-      platform: PLATFORM,
-      totalRows: rows.length,
+      platform: GROUP.platform,
+      totalRows,
       totalTracks: tracks.length,
       tracks,
     };
 
     const json = JSON.stringify(payload, null, 2);
     const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
-
-    const filePlatform = slugify(PLATFORM);
-    const fileName = `tracks_full_${filePlatform}_${EXPORT_DATE}.json`;
+    const fileName = `tracks_full_${GROUP.fileSlug}_${EXPORT_DATE}.json`;
 
     if (UPLOAD.url && UPLOAD.token?.trim()) {
       uploadReport.platforms++;
@@ -290,27 +359,27 @@
 
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          console.error(`[Сайт] ${PLATFORM}: HTTP ${res.status}`, data);
+          console.error(`[Сайт] ${GROUP.platform}: HTTP ${res.status}`, data);
         } else {
           uploadReport.httpOk++;
           const r = data?.results?.[0];
           if (r?.ok) {
             uploadReport.importOk++;
             console.log(
-              `%c[Сайт] ${PLATFORM} - импорт OK`,
+              `%c[Сайт] ${GROUP.platform} - импорт OK`,
               "color:#15803d;font-weight:bold",
-              `дней: ${r?.daysCount ?? "-"}, прослушиваний: ${r?.totalPlays ?? "-"}`
+              `вкладок: ${scrapedTabs}/${GROUP.tabs.length}, дней: ${r?.daysCount ?? "-"}, прослушиваний: ${r?.totalPlays ?? "-"}`
             );
           } else {
             uploadReport.importFail++;
-            console.error(`[Сайт] ${PLATFORM}: ответ 200, но импорт не прошёл -`, r?.error ?? data);
+            console.error(`[Сайт] ${GROUP.platform}: ответ 200, но импорт не прошёл -`, r?.error ?? data);
           }
         }
       } catch (e) {
-        console.error(`[Сайт] ${PLATFORM}: сеть / CORS -`, e);
+        console.error(`[Сайт] ${GROUP.platform}: сеть / CORS -`, e);
       }
     } else {
-      console.warn(`[Сайт] ${PLATFORM}: UPLOAD.url или token не задан(ы), отправка пропущена.`);
+      console.warn(`[Сайт] ${GROUP.platform}: UPLOAD.url или token не задан(ы), отправка пропущена.`);
     }
 
     await sleep(1200);

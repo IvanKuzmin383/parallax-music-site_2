@@ -65,6 +65,10 @@ const PLATFORM_COLORS: Record<MusicPlatformKey, string> = {
   apple_music: "#ef4444", // red
   pandora: "#0f172a", // slate
   amazon: "#ff9900", // brand orange
+  tdc: "#6366f1", // indigo
+  zvuk: "#14b8a6", // teal
+  kion_music: "#7c3aed", // violet
+  odnoklassniki: "#f59e0b", // amber
 }
 
 const PLATFORM_KEYS = Object.keys(MUSIC_PLATFORM_LABELS) as MusicPlatformKey[]

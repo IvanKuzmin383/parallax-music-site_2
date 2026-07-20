@@ -74,12 +74,42 @@ function normalizePlatformString(v: string): string {
     .replace(/[^a-z0-9а-яё\s]/gi, "")
 }
 
+function matchesYandex(n: string): boolean {
+  return n.includes("yandex") || n.includes("яндекс")
+}
+
+function matchesVkOkBoom(n: string): boolean {
+  if (n.includes("однокласс") || n.includes("odnoklass")) return false
+  return n.includes("vk") || n.includes("boom") || /\bok\b/.test(n)
+}
+
+function matchesTdc(n: string): boolean {
+  return n.includes("tdc") || n.includes("247") || n.includes("24 7")
+}
+
+function matchesZvuk(n: string): boolean {
+  return n.includes("zvuk") || n.includes("звук")
+}
+
+function matchesKion(n: string): boolean {
+  return n.includes("kion") || n.includes("кион")
+}
+
+function matchesOdnoklassniki(n: string): boolean {
+  return n.includes("однокласс") || n.includes("odnoklass")
+}
+
 export function detectPlatformKeyFromFileName(fileName: string): MusicPlatformKey | null {
-  const n = fileName.toLowerCase()
-  if (n.includes("yandex")) return "yandex_music"
+  const n = normalizePlatformString(fileName)
+
+  if (matchesYandex(n)) return "yandex_music"
+  if (matchesOdnoklassniki(n)) return "odnoklassniki"
+  if (matchesKion(n)) return "kion_music"
+  if (matchesZvuk(n)) return "zvuk"
+  if (matchesTdc(n)) return "tdc"
   if (n.includes("itunes")) return "itunes"
   if (n.includes("youtube")) return "youtube_music"
-  if (n.includes("vk") || n.includes("ok") || n.includes("boom")) return "vk_ok_boom"
+  if (matchesVkOkBoom(n)) return "vk_ok_boom"
   if (n.includes("spotify")) return "spotify"
   if (n.includes("shazam")) return "shazam"
   if (n.includes("pandora")) return "pandora"
@@ -92,10 +122,14 @@ export function detectPlatformKeyFromPlatformString(platform: string | undefined
   if (!platform) return null
   const n = normalizePlatformString(String(platform))
 
-  if (n.includes("yandex")) return "yandex_music"
+  if (matchesYandex(n)) return "yandex_music"
+  if (matchesOdnoklassniki(n)) return "odnoklassniki"
+  if (matchesKion(n)) return "kion_music"
+  if (matchesZvuk(n)) return "zvuk"
+  if (matchesTdc(n)) return "tdc"
   if (n.includes("itunes")) return "itunes"
   if (n.includes("youtube")) return "youtube_music"
-  if (n.includes("vk") || n.includes("ok") || n.includes("boom")) return "vk_ok_boom"
+  if (matchesVkOkBoom(n)) return "vk_ok_boom"
   if (n.includes("spotify")) return "spotify"
   if (n.includes("shazam")) return "shazam"
   if (n.includes("pandora")) return "pandora"

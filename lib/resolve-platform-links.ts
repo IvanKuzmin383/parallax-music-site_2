@@ -210,7 +210,7 @@ async function searchYandexAlbum(
   title: string,
   artistName: string
 ): Promise<string | undefined> {
-  const query = `${title} ${artistName}`.trim()
+  const query = `${artistName} ${normalizeMatchText(title)}`.trim()
   if (!query) return undefined
   try {
     const data = await fetchJson<YandexSearchResponse>(
@@ -218,6 +218,11 @@ async function searchYandexAlbum(
     )
     const results = data.result?.albums?.results ?? []
     if (!results.length) return undefined
+
+    // Single unambiguous result — take it (same idea as YouTube fallback)
+    if (results.length === 1 && results[0]?.id != null) {
+      return String(results[0].id)
+    }
 
     const wantTitle = normalizeMatchText(title)
     const wantArtist = normalizeMatchText(artistName)
@@ -305,7 +310,12 @@ async function searchSpotifyAlbum(
   upc: string,
   title?: string,
   artistName?: string
-): Promise<{ url: string } | { missingCreds: true } | null> {
+): Promise<
+  | { url: string }
+  | { missingCreds: true }
+  | { premiumRequired: true }
+  | null
+> {
   const token = await getSpotifyAccessToken()
   if (!token) return { missingCreds: true }
 
@@ -314,6 +324,8 @@ async function searchSpotifyAlbum(
     queries.push(`album:${normalizeMatchText(title)} artist:${artistName}`)
     queries.push(`${title} ${artistName}`)
   }
+
+  let sawPremiumBlock = false
 
   for (const market of ["RU", "US", "GB"]) {
     for (const q of queries) {
@@ -324,10 +336,25 @@ async function searchSpotifyAlbum(
           limit: "5",
           market,
         })
-        const data = await fetchJson<SpotifySearchResponse>(
-          `https://api.spotify.com/v1/search?${qs}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+        const res = await fetch(`https://api.spotify.com/v1/search?${qs}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        })
+        if (!res.ok) {
+          const body = await res.text()
+          if (
+            res.status === 403 &&
+            /premium subscription required/i.test(body)
+          ) {
+            sawPremiumBlock = true
+            break
+          }
+          continue
+        }
+        const data = (await res.json()) as SpotifySearchResponse
         const hit = pickSpotifyAlbum(data.albums?.items ?? [], title, artistName)
         const url = hit?.external_urls?.spotify
         if (url) return { url: url.split("?")[0] ?? url }
@@ -335,8 +362,10 @@ async function searchSpotifyAlbum(
         // try next query/market
       }
     }
+    if (sawPremiumBlock) break
   }
 
+  if (sawPremiumBlock) return { premiumRequired: true }
   return null
 }
 
@@ -572,6 +601,10 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
     if (spotify && "missingCreds" in spotify) {
       errors.push(
         "Spotify: задайте SPOTIFY_CLIENT_ID и SPOTIFY_CLIENT_SECRET в .env (developer.spotify.com)"
+      )
+    } else if (spotify && "premiumRequired" in spotify) {
+      errors.push(
+        "Spotify: у владельца приложения в developer.spotify.com нужна активная подписка Spotify Premium (с февраля 2026 это обязательно для Search API)"
       )
     } else if (spotify && "url" in spotify) {
       sources.spotify = true
