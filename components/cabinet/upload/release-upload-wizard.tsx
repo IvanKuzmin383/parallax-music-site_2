@@ -46,8 +46,11 @@ import {
   CabinetUploadAdditionalServicesSection,
   computeSelectedUploadAddonsTotalRub,
 } from "@/components/cabinet-upload-additional-services-section"
+import { CabinetUploadAiCoverInfoDialog } from "@/components/cabinet-upload-ai-cover-info-dialog"
 import type { Release, ReleaseKind } from "@/lib/releases"
 import type { Track } from "@/lib/tracks"
+import { AI_COVER_REQUEST_PRICE_RUB } from "@/lib/track-constants"
+import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import { ReleaseUploadStepper } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
@@ -89,6 +92,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [consentOffer, setConsentOffer] = useState(false)
 
   const [requestAiCover, setRequestAiCover] = useState(false)
+  const [aiCoverInfoOpen, setAiCoverInfoOpen] = useState(false)
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
   const [addonVerticalVideoCount, setAddonVerticalVideoCount] = useState(1)
   const [addonAiMastering, setAddonAiMastering] = useState(false)
@@ -102,6 +106,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
+  const tracksRef = useRef(tracks)
+  const trackSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const trackSaveChainsRef = useRef<Record<string, Promise<boolean>>>({})
+
+  useEffect(() => {
+    tracksRef.current = tracks
+  }, [tracks])
 
   const paymentTotal = useMemo(
     () =>
@@ -269,14 +280,83 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     },
   })
 
+  const buildTrackMetadataPatch = (track: Track): TrackDraftPatch => ({
+    trackName: track.trackName,
+    genre: track.genre,
+    mood: track.mood,
+    shortDescription: track.shortDescription,
+    lyricsText: track.lyricsText,
+    lyricsAuthor: track.lyricsAuthor,
+    musicAuthor: track.musicAuthor,
+    musicRights: track.musicRights,
+    musicAiService: track.musicAiService,
+    lyricsRights: track.lyricsRights,
+    performanceRights: track.performanceRights,
+    isInstrumental: track.isInstrumental,
+    backingAuthor: track.backingAuthor,
+    isrc: track.isrc,
+    transferFromOtherDistributor: track.transferFromOtherDistributor,
+  })
+
+  const persistTrackMetadata = (trackId: string): Promise<boolean> => {
+    if (!releaseId) return Promise.resolve(false)
+
+    const prev = trackSaveChainsRef.current[trackId] ?? Promise.resolve(true)
+    const next = prev
+      .catch(() => true)
+      .then(async () => {
+        const track = tracksRef.current.find((t) => t.id === trackId)
+        if (!track || !releaseId) return false
+        const res = await fetch(`/api/cabinet/releases/${releaseId}/tracks/${trackId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildTrackMetadataPatch(track)),
+        })
+        return res.ok
+      })
+
+    trackSaveChainsRef.current[trackId] = next
+    return next
+  }
+
+  /** Сбрасывает отложенные автосохранения и пишет актуальные метаданные всех треков. */
+  const flushTrackMetadataSaves = async (): Promise<boolean> => {
+    for (const timer of Object.values(trackSaveTimersRef.current)) {
+      clearTimeout(timer)
+    }
+    trackSaveTimersRef.current = {}
+    const list = tracksRef.current
+    if (!releaseId || list.length === 0) return true
+    const results = await Promise.all(list.map((track) => persistTrackMetadata(track.id)))
+    return results.every(Boolean)
+  }
+
   const saveDraft = async (silent = false): Promise<boolean> => {
-    if (!releaseId) {
-      if (!silent) toast.error("Сначала загрузите обложку — черновик создастся автоматически")
-      return false
+    let id = releaseId
+    if (!id) {
+      if (!requestAiCover) {
+        if (!silent) toast.error("Сначала загрузите обложку — черновик создастся автоматически")
+        return false
+      }
+      setSaving(true)
+      try {
+        const createdId = await createDraftWithoutCover()
+        if (!createdId) return false
+        id = createdId
+      } finally {
+        setSaving(false)
+      }
     }
     setSaving(true)
     try {
-      const res = await fetch(`/api/cabinet/releases/${releaseId}`, {
+      const tracksOk = await flushTrackMetadataSaves()
+      if (!tracksOk) {
+        toast.error("Не удалось сохранить данные треков")
+        return false
+      }
+
+      const res = await fetch(`/api/cabinet/releases/${id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -323,6 +403,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     fd.append("artistName", artistName)
     if (releaseDate) fd.append("releaseDate", format(releaseDate, "yyyy-MM-dd"))
     if (upc) fd.append("upc", upc)
+    if (requestAiCover) fd.append("requestAiCover", "true")
     fd.append("cover", file)
 
     setSaving(true)
@@ -347,9 +428,43 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
+  const createDraftWithoutCover = async (): Promise<string | null> => {
+    if (profileCompleteForUpload === false) {
+      toast.error("Заполните обязательные поля в профиле")
+      return null
+    }
+    const fd = new FormData()
+    fd.append("kind", kind)
+    fd.append("title", title)
+    fd.append("artistName", artistName)
+    if (releaseDate) fd.append("releaseDate", format(releaseDate, "yyyy-MM-dd"))
+    if (upc) fd.append("upc", upc)
+    fd.append("requestAiCover", "true")
+
+    const res = await fetch("/api/cabinet/releases", {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    })
+    const data = await parseCabinetApiJson<{ release?: Release }>(res)
+    if (!res.ok || !data.release) {
+      toast.error(data.error ?? "Не удалось создать черновик")
+      return null
+    }
+    setReleaseId(data.release.id)
+    setRelease(data.release)
+    setRequestAiCover(true)
+    router.replace(`/cabinet/upload/${data.release.id}?step=${step}`)
+    return data.release.id
+  }
+
   const handleAudioFiles = async (fileList: FileList | File[]) => {
     if (!releaseId) {
-      toast.error("Сначала заполните основную информацию и загрузите обложку")
+      toast.error(
+        requestAiCover
+          ? "Сначала нажмите «Далее» на шаге «Основное», чтобы создать черновик"
+          : "Сначала заполните основную информацию и загрузите обложку"
+      )
       return
     }
     if (profileCompleteForUpload === false) {
@@ -438,17 +553,21 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
-  const updateTrackLocal = async (trackId: string, patch: TrackDraftPatch) => {
+  const updateTrackLocal = (trackId: string, patch: TrackDraftPatch) => {
     setTracks((prev) =>
       prev.map((t) => (t.id === trackId ? { ...t, ...patch } : t))
     )
     if (!releaseId) return
-    await fetch(`/api/cabinet/releases/${releaseId}/tracks/${trackId}`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    })
+
+    // Debounce + полный снимок трека: иначе параллельные PATCH по одному полю затирают друг друга.
+    if (trackSaveTimersRef.current[trackId]) {
+      clearTimeout(trackSaveTimersRef.current[trackId])
+    }
+    trackSaveTimersRef.current[trackId] = setTimeout(() => {
+      void persistTrackMetadata(trackId).then((ok) => {
+        if (!ok) toast.error("Не удалось сохранить поля трека")
+      })
+    }, 450)
   }
 
   const deleteTrack = async (trackId: string) => {
@@ -507,7 +626,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (isReleaseDateWeekend(releaseDate)) {
       return "Дата публикации не может приходиться на выходной"
     }
-    if (!release?.coverPath && !coverPreview) return "Загрузите обложку"
+    if (!release?.coverPath && !coverPreview && !requestAiCover) {
+      return "Загрузите обложку или закажите AI-обложку"
+    }
     return null
   }
 
@@ -515,6 +636,15 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     const min = kind === "album" ? 2 : 1
     if (tracks.length < min) {
       return kind === "album" ? "Загрузите минимум 2 трека" : "Загрузите аудиофайл"
+    }
+    return null
+  }
+
+  const validateStep3 = (): string | null => {
+    if (tracks.length === 0) return "Сначала загрузите треки на шаге «Файлы»"
+    for (const track of tracks) {
+      const err = validateTrackMetadata(track, { requireAudio: false })
+      if (err) return err
     }
     return null
   }
@@ -531,10 +661,20 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         return
       }
       if (!releaseId) {
-        toast.error("Загрузите обложку для создания черновика")
-        return
+        if (!requestAiCover) {
+          toast.error("Загрузите обложку для создания черновика")
+          return
+        }
+        setSaving(true)
+        try {
+          const createdId = await createDraftWithoutCover()
+          if (!createdId) return
+        } finally {
+          setSaving(false)
+        }
+      } else {
+        await saveDraft(true)
       }
-      await saveDraft(true)
     }
     if (step === 2) {
       const err = validateStep2()
@@ -544,7 +684,15 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       }
       await saveDraft(true)
     }
-    if (step === 3 || step === 4) {
+    if (step === 3) {
+      const err = validateStep3()
+      if (err) {
+        toast.error(err)
+        return
+      }
+      await saveDraft(true)
+    }
+    if (step === 4) {
       await saveDraft(true)
     }
     goToStep(step + 1)
@@ -625,9 +773,14 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         value: kind === "single" ? "Сингл" : "Альбом",
       },
       {
-        ok: Boolean(release?.coverPath || coverPreview),
+        ok: Boolean(release?.coverPath || coverPreview || requestAiCover),
         label: "Обложка",
-        value: release?.coverPath || coverPreview ? "Загружена" : undefined,
+        value:
+          release?.coverPath || coverPreview
+            ? "Загружена"
+            : requestAiCover
+              ? "Заказана AI-обложка"
+              : undefined,
       },
     ]
 
@@ -646,13 +799,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     })
 
     for (const t of tracks) {
-      const metaOk = Boolean(t.genre && t.mood && t.shortDescription.trim().length >= 2)
+      const metaErr = validateTrackMetadata(t, { requireAudio: false })
       items.push({
-        ok: metaOk,
+        ok: !metaErr,
         label: `Метаданные: ${t.trackName}`,
-        value: metaOk
-          ? [t.genre, t.mood].filter(Boolean).join(" · ")
-          : undefined,
+        value: metaErr
+          ? metaErr
+          : [t.genre, t.mood].filter(Boolean).join(" · ") || undefined,
       })
     }
 
@@ -781,11 +934,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               </PopoverContent>
             </Popover>
             <p className="text-xs text-muted-foreground mt-1">
-              Идеально — не ранее 14 дней после заполнения формы при заказе питчинга. Минимально — 5 рабочих дней, если без питчинга.
+              Идеально - не ранее 21 дня после заполнения формы для отправки питчинга. Минимально - 7 календарных дней, если без питчинга.
             </p>
           </div>
           <div>
-            <Label>Обложка *</Label>
+            <Label>{requestAiCover ? "Обложка" : "Обложка *"}</Label>
             <div className="flex gap-4 mt-1">
               <div
                 className="h-32 w-32 rounded-md border border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 cursor-pointer shrink-0"
@@ -815,6 +968,36 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 e.target.value = ""
               }}
             />
+            <div className="mt-3 flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
+              <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
+                <Checkbox
+                  className="mt-0.5 shrink-0"
+                  checked={requestAiCover}
+                  onCheckedChange={(c) => setRequestAiCover(c === true)}
+                  disabled={formDisabled}
+                />
+                <span>Необходимо создание AI-обложки</span>
+              </label>
+              <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
+                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">
+                  {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAiCoverInfoOpen(true)}
+                  disabled={formDisabled}
+                >
+                  Подробнее
+                </Button>
+              </div>
+            </div>
+            {requestAiCover && !coverPreview ? (
+              <p className="text-xs text-muted-foreground mt-2">
+                Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
+              </p>
+            ) : null}
           </div>
           <div>
             <Label>UPC / EAN</Label>
@@ -1036,7 +1219,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           <ChevronLeft className="h-4 w-4 mr-1" /> Назад
         </Button>
         <div className="flex gap-2">
-          <Button type="button" variant="ghost" disabled={formDisabled || !releaseId} onClick={() => void saveDraft()}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={formDisabled || (!releaseId && !requestAiCover)}
+            onClick={() => void saveDraft()}
+          >
             {saving ? <Spinner className="h-4 w-4 mr-1" /> : <Save className="h-4 w-4 mr-1" />}
             Сохранить черновик
           </Button>
@@ -1056,6 +1244,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           )}
         </div>
       </div>
+
+      <CabinetUploadAiCoverInfoDialog open={aiCoverInfoOpen} onOpenChange={setAiCoverInfoOpen} />
     </div>
   )
 }

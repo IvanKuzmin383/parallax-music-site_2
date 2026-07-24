@@ -38,12 +38,11 @@ export function CabinetDashboardHero({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/15 via-transparent to-transparent" />
         <div className="relative grid gap-8 p-6 md:p-10 lg:grid-cols-[1fr_280px] lg:items-center">
           <div className="space-y-5 max-w-xl">
-            <p className="text-sm text-muted-foreground uppercase tracking-widest">Музыкальный центр</p>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
               {greeting}, начните свой путь
             </h1>
             <p className="text-muted-foreground text-base leading-relaxed">
-              Загрузите первый релиз — обложка, треки и доставка на площадки в одном месте.
+              Загрузите первый релиз - обложка, треки и доставка на площадки в одном месте
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg">

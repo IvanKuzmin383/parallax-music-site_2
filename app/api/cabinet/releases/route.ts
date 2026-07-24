@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       const artistName = multipart.getField("artistName")?.trim() ?? ""
       const releaseDate = multipart.getField("releaseDate")?.trim() || undefined
       const upc = multipart.getField("upc")?.trim() || undefined
+      const requestAiCover = multipart.getField("requestAiCover") === "true"
       const labelName = getEffectiveReleaseLabelName(
         multipart.getField("labelName")?.trim(),
         user.subscriptionName
@@ -83,6 +84,13 @@ export async function POST(request: NextRequest) {
         await copyFileToPathAtomic(cover.tempFilePath, coverPath)
       }
 
+      if (!coverPath && !requestAiCover) {
+        return NextResponse.json(
+          { error: "Загрузите обложку или отметьте заказ AI-обложки" },
+          { status: 400 }
+        )
+      }
+
       const release = await createRelease({
         userId: session.email,
         kind,
@@ -93,6 +101,7 @@ export async function POST(request: NextRequest) {
         releaseDate,
         upc,
         wizardStep: 1,
+        requestAiCover,
       })
       return NextResponse.json({ release }, { status: 201 })
     } finally {

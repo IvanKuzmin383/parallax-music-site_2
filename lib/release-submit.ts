@@ -17,7 +17,7 @@ import {
   updateRelease,
   type Release,
 } from "@/lib/releases"
-import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
+import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import {
   getTracksByReleaseId,
   updateTrack,
@@ -35,59 +35,6 @@ import path from "path"
 export type SubmitReleaseContext = {
   clientIp?: string | null
   userAgent?: string | null
-}
-
-const MUSIC_RIGHTS_ALLOWED = [
-  "Музыка написана мной. Есть проект",
-  "Сгенерирована в ИИ (платно)",
-  "Сгенерирована в ИИ (бесплатно)",
-  "Купил музыку. Есть договор/чек",
-  "Скачал в интернете бесплатно",
-] as const
-
-const LYRICS_RIGHTS_ALLOWED = [
-  "Являюсь автором текста",
-  "Является общественным достоянием",
-  "Текст сгенерирован ИИ",
-  "Купил текст. Есть договор/чек",
-  "Скачал в интернете бесплатно",
-] as const
-
-const PERFORMANCE_RIGHTS_ALLOWED = [
-  "Являюсь исполнителем песни",
-  "Исполнитель ИИ",
-  "Исполнитель другой человек. Являюсь правообладалетелем",
-] as const
-
-function validateTrackMeta(track: Track): string | null {
-  const label = track.trackName || "Трек"
-  if (!track.trackName.trim()) return `Укажите название для «${label}»`
-  if (!GENRES.includes(track.genre as (typeof GENRES)[number])) {
-    return `Выберите жанр для «${label}»`
-  }
-  if (!TRACK_MOODS.includes(track.mood as (typeof TRACK_MOODS)[number])) {
-    return `Выберите настроение для «${label}»`
-  }
-  if (track.shortDescription.trim().length < 2) {
-    return `Заполните краткое описание для «${label}»`
-  }
-  if (!MUSIC_RIGHTS_ALLOWED.includes(track.musicRights.trim() as (typeof MUSIC_RIGHTS_ALLOWED)[number])) {
-    return `Выберите права на музыку для «${label}»`
-  }
-  if (!track.isInstrumental) {
-    if (!LYRICS_RIGHTS_ALLOWED.includes(track.lyricsRights.trim() as (typeof LYRICS_RIGHTS_ALLOWED)[number])) {
-      return `Выберите права на текст для «${label}»`
-    }
-    if (
-      !PERFORMANCE_RIGHTS_ALLOWED.includes(
-        track.performanceRights.trim() as (typeof PERFORMANCE_RIGHTS_ALLOWED)[number]
-      )
-    ) {
-      return `Выберите права на исполнение для «${label}»`
-    }
-  }
-  if (!track.audioPath) return `Добавьте аудио WAV для «${label}»`
-  return null
 }
 
 async function logLicenseAcceptances(
@@ -176,7 +123,7 @@ export async function submitReleaseToModeration(
   }
 
   for (const track of tracks) {
-    const metaError = validateTrackMeta(track)
+    const metaError = validateTrackMetadata(track)
     if (metaError) return { ok: false, error: metaError, status: 400 }
     try {
       await fs.access(track.audioPath)

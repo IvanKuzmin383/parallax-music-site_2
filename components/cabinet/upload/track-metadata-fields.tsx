@@ -26,7 +26,9 @@ import {
   TRACK_MOODS,
   musicRightsRequiresAiService,
 } from "@/lib/track-constants"
+import type { TrackMetadataFieldKey } from "@/lib/track-meta-validation"
 import type { Track } from "@/lib/tracks"
+import { cn } from "@/lib/utils"
 
 const MUSIC_RIGHTS_OPTIONS = [
   "Музыка написана мной. Есть проект",

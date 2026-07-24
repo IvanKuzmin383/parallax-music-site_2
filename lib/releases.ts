@@ -144,6 +144,7 @@ export type CreateReleaseInput = {
   releaseDate?: string
   upc?: string
   wizardStep?: number
+  requestAiCover?: boolean
 }
 
 export async function createRelease(data: CreateReleaseInput): Promise<Release> {
@@ -161,7 +162,7 @@ export async function createRelease(data: CreateReleaseInput): Promise<Release> 
     status: "draft",
     wizardStep: data.wizardStep ?? 1,
     addons: {},
-    requestAiCover: false,
+    requestAiCover: data.requestAiCover === true,
     createdAt: now,
     updatedAt: now,
   }

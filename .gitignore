@@ -20,6 +20,9 @@ yarn-error.log*
 # env files
 .env*
 
+# Локальный скрипт выгрузки статистики с YOGA (токен, не в репозитории)
+СКРИПТ.txt
+
 # SQLite (локальная dev-БД; на VPS — /data/app.db, не в репозитории)
 data/app.db
 /data/app.db
