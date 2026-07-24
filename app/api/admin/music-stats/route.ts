@@ -55,6 +55,10 @@ const DEFAULT_PLATFORM_STATS_FILE_PATHS: Record<MusicPlatformKey, string[]> = {
   ],
   pandora: [],
   amazon: [],
+  tdc: [],
+  zvuk: [],
+  kion_music: [],
+  odnoklassniki: [],
 }
 
 async function importLatestFromDiskIfPossible(platformKey: MusicPlatformKey): Promise<MusicStatsResponse | null> {

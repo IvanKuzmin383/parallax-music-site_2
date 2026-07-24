@@ -68,6 +68,10 @@ const PLATFORM_COLORS: Record<MusicPlatformKey, string> = {
   apple_music: "#ef4444", // red
   pandora: "#0f172a", // slate
   amazon: "#ff9900", // brand orange
+  tdc: "#6366f1", // indigo
+  zvuk: "#14b8a6", // teal
+  kion_music: "#7c3aed", // violet
+  odnoklassniki: "#f59e0b", // amber
 }
 
 const PLATFORM_KEYS = Object.keys(MUSIC_PLATFORM_LABELS) as MusicPlatformKey[]
@@ -665,7 +669,7 @@ export default function CabinetMusicStatsPage() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
       <div className="container mx-auto px-4 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>

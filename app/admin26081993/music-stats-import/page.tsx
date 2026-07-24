@@ -47,6 +47,14 @@ export default function MusicStatsImportPage() {
           return "Pandora"
         case "amazon":
           return "amazon"
+        case "tdc":
+          return "TDC (24-7)"
+        case "zvuk":
+          return "Звук"
+        case "kion_music":
+          return "KION Музыка"
+        case "odnoklassniki":
+          return "Одноклассники"
         default:
           return k ?? "-"
       }
