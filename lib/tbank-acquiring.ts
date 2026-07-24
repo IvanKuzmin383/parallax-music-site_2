@@ -10,6 +10,7 @@ export type TbankConfig = {
 
 export function getTbankConfig(): TbankConfig | null {
   const terminalKey = process.env.TBANK_TERMINAL_KEY?.trim()
+  // В .env значение с $ нужно в одинарных кавычках, иначе Next развернёт $VAR.
   const password = process.env.TBANK_PASSWORD?.trim()
   if (!terminalKey || !password) return null
   return { terminalKey, password }
@@ -93,11 +94,17 @@ async function postTbank<T extends Record<string, unknown>>(
   }
 
   if (!res.ok || data.Success !== true || data.ErrorCode !== "0") {
+    const details = typeof data.Details === "string" && data.Details.trim() ? data.Details.trim() : ""
+    const message = typeof data.Message === "string" && data.Message.trim() ? data.Message.trim() : ""
+    const combined =
+      message && details && details !== message
+        ? `${message}: ${details}`
+        : message || details || undefined
     return {
       ok: false,
       status: res.status,
       errorCode: data.ErrorCode,
-      message: data.Message || data.Details,
+      message: combined ? (data.ErrorCode && data.ErrorCode !== "0" ? `[${data.ErrorCode}] ${combined}` : combined) : undefined,
       body: data,
     }
   }

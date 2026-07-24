@@ -45,8 +45,21 @@ export async function createCabinetTbankPayment(
     return { ok: false, error: "Некорректная сумма заказа" }
   }
 
+  const tbank = getTbankConfig()
+  const wantReceipt = shouldSendTbankReceipt()
+  console.info(`[${params.logPrefix}] T-Bank Init prepare`, {
+    terminalKey: tbank?.terminalKey,
+    passwordLength: tbank?.password.length ?? 0,
+    passwordHasDollar: Boolean(tbank?.password.includes("$")),
+    amountKopecks,
+    orderId: params.orderId,
+    notificationUrl: getTbankNotificationUrl(),
+    successUrl: params.successUrl,
+    wantReceipt,
+  })
+
   const receipt =
-    shouldSendTbankReceipt() ?
+    wantReceipt ?
       buildTbankTestReceipt({
         email: params.receiptEmail,
         amountKopecks,
@@ -54,19 +67,29 @@ export async function createCabinetTbankPayment(
       })
     : undefined
 
-  const pay: TbankInitPaymentResult = await initTbankPayment({
+  const baseInit = {
     amountKopecks,
     orderId: params.orderId,
     description: params.description.slice(0, 140),
     successUrl: params.successUrl,
     failUrl: params.failUrl,
     notificationUrl: getTbankNotificationUrl(),
-    receipt,
     data: {
       orderId: params.orderId,
       orderType: params.orderType,
     },
+  }
+
+  let pay: TbankInitPaymentResult = await initTbankPayment({
+    ...baseInit,
+    receipt,
   })
+
+  // DEMO / касса: Init с Receipt часто отвечает «Неверные параметры» — повторяем без чека.
+  if (!pay.ok && receipt) {
+    console.warn(`[${params.logPrefix}] T-Bank Init with Receipt failed, retry without Receipt:`, pay.body)
+    pay = await initTbankPayment(baseInit)
+  }
 
   if (!pay.ok) {
     console.error(`[${params.logPrefix}] T-Bank Init error:`, pay.body)
