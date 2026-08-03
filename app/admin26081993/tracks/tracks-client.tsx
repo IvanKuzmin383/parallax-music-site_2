@@ -1797,18 +1797,26 @@ export default function TracksPageClient() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <Button variant="outline" size="sm" onClick={() => handleViewUploadDraft(d)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Подробнее
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Подробнее"
+                            aria-label="Подробнее"
+                            onClick={() => handleViewUploadDraft(d)}
+                          >
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="destructive"
-                            size="sm"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Удалить"
+                            aria-label="Удалить"
                             onClick={() => handleUploadDraftDeleteClick(d)}
                             disabled={deletingId === d.id}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Удалить
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -2047,20 +2055,24 @@ export default function TracksPageClient() {
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    size="sm"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Подробнее"
+                                    aria-label="Подробнее"
                                     onClick={() => handleViewDetails(track)}
                                   >
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    Подробнее
+                                    <Eye className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="destructive"
-                                    size="sm"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Удалить"
+                                    aria-label="Удалить"
                                     onClick={() => handleDeleteClick(track)}
                                     disabled={deletingId === track.id}
                                   >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Удалить
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </div>
@@ -2319,20 +2331,24 @@ export default function TracksPageClient() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  size="sm"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Подробнее"
+                                  aria-label="Подробнее"
                                   onClick={() => handleViewDetails(track)}
                                 >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Подробнее
+                                  <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="destructive"
-                                  size="sm"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Удалить"
+                                  aria-label="Удалить"
                                   onClick={() => handleDeleteClick(track)}
                                   disabled={deletingId === track.id}
                                 >
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Удалить
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>

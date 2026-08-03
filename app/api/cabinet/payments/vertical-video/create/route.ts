@@ -84,6 +84,13 @@ export async function POST(request: NextRequest) {
     totalAmount,
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
+    serviceDetails: {
+      trackTitle,
+      comment: comment || undefined,
+      videosCount,
+      contactType,
+      contactValue,
+    },
   })
   const returnUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=fail&orderId=${encodeURIComponent(order.id)}`

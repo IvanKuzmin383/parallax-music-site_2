@@ -24,9 +24,9 @@ import {
 import { AdminSectionNav } from "@/components/admin-section-nav"
 import { useI18n } from "@/lib/i18n-context"
 import ruMessages from "@/messages/ru.json"
-import type { FulfillmentStatus } from "@/lib/service-fulfillments"
-import type { UploadAddonBundleItem } from "@/lib/orders"
-import { formatUploadAddonBundleLine } from "@/lib/upload-addon-bundle-display"
+import type { FulfillmentStatus, UploadAddonDetailLine } from "@/lib/service-fulfillments"
+import type { OrderServiceDetails, UploadAddonBundleItem } from "@/lib/orders"
+import { formatUploadAddonBundleLine, promotionTitleForUploadAddonType } from "@/lib/upload-addon-bundle-display"
 
 type CabinetMessages = (typeof ruMessages)["cabinet"]
 type FilterKey = "all" | "in_work" | "done"
@@ -49,6 +49,10 @@ interface AdminServiceItem {
   aiMasteringAudioFiles: string[]
   uploadAddonBundleItems?: UploadAddonBundleItem[]
   uploadAddonAiCoverRequested?: boolean
+  serviceDetails?: OrderServiceDetails | null
+  uploadAddonDetails?: UploadAddonDetailLine[]
+  draftTrackName?: string | null
+  draftArtistName?: string | null
 }
 
 function serviceTitle(orderType: string, t: CabinetMessages): string {
@@ -328,6 +332,16 @@ export default function AdminServiceFulfillmentsPage() {
             <div className="space-y-4 text-sm">
               <div className="grid md:grid-cols-2 gap-3">
                 <div>
+                  <p className="text-muted-foreground">{locale === "en" ? "Service" : "Услуга"}</p>
+                  <p className="font-medium">{serviceTitle(detailsItem.orderType, t.cabinet)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{locale === "en" ? "Amount" : "Сумма"}</p>
+                  <p className="font-medium">
+                    {parseFloat(detailsItem.totalAmount).toLocaleString(locale === "en" ? "en-US" : "ru-RU")} ₽
+                  </p>
+                </div>
+                <div>
                   <p className="text-muted-foreground">{mt.orderLabel}</p>
                   <p className="font-mono text-xs break-all">{detailsItem.orderId}</p>
                 </div>
@@ -338,6 +352,10 @@ export default function AdminServiceFulfillmentsPage() {
                 <div>
                   <p className="text-muted-foreground">{mt.paymentStatusLabel}</p>
                   <p className="font-medium">{detailsItem.paymentStatus}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{mt.adminStatusLabel}</p>
+                  <p className="font-medium">{statusBadge(detailsItem.fulfillmentStatus).label}</p>
                 </div>
                 {detailsItem.paymentId ? (
                   <div>
@@ -363,49 +381,230 @@ export default function AdminServiceFulfillmentsPage() {
                 ) : null}
                 {detailsItem.draftId ? (
                   <div>
-                    <p className="text-muted-foreground">draft_id</p>
+                    <p className="text-muted-foreground">{locale === "en" ? "Upload draft" : "Черновик загрузки"}</p>
                     <p className="font-mono text-xs break-all">{detailsItem.draftId}</p>
-                  </div>
-                ) : null}
-                {detailsItem.orderType === "upload_addon_bundle" ? (
-                  <div className="md:col-span-2 space-y-1 pt-1">
-                    <p className="text-muted-foreground">{mt.uploadAddonBundleComposition}</p>
-                    {(detailsItem.uploadAddonBundleItems ?? []).length > 0 || detailsItem.uploadAddonAiCoverRequested ? (
-                      <ul className="list-disc pl-5 space-y-0.5">
-                        {(detailsItem.uploadAddonBundleItems ?? []).map((line, idx) => (
-                          <li key={`${line.type}-${line.quantity}-${idx}`}>
-                            {formatUploadAddonBundleLine(line, t.cabinet.promotion)}
-                          </li>
-                        ))}
-                        {detailsItem.uploadAddonAiCoverRequested ? <li>{t.cabinet.promotion.aiCover.title}</li> : null}
-                      </ul>
-                    ) : (
-                      <p className="text-amber-600 dark:text-amber-500">{mt.uploadAddonBundleCompositionUnavailable}</p>
-                    )}
                   </div>
                 ) : null}
                 {detailsItem.tracksCount ? (
                   <div>
-                    <p className="text-muted-foreground">tracks_count</p>
+                    <p className="text-muted-foreground">
+                      {locale === "en" ? "Quantity / tracks" : "Количество / треков"}
+                    </p>
                     <p className="font-medium">{detailsItem.tracksCount}</p>
                   </div>
                 ) : null}
                 {detailsItem.contactEmail ? (
                   <div>
-                    <p className="text-muted-foreground">contact_email</p>
+                    <p className="text-muted-foreground">{locale === "en" ? "Contact email" : "Контакт (email)"}</p>
                     <p className="font-medium break-all">{detailsItem.contactEmail}</p>
                   </div>
                 ) : null}
                 {detailsItem.contactTelegram ? (
                   <div>
-                    <p className="text-muted-foreground">contact_telegram</p>
+                    <p className="text-muted-foreground">Telegram</p>
                     <p className="font-medium break-all">{detailsItem.contactTelegram}</p>
                   </div>
                 ) : null}
               </div>
+
+              {detailsItem.serviceDetails &&
+              (detailsItem.serviceDetails.trackTitle ||
+                detailsItem.serviceDetails.comment ||
+                detailsItem.serviceDetails.trackTitles?.length ||
+                detailsItem.serviceDetails.originalFilenames?.length ||
+                detailsItem.serviceDetails.videosCount ||
+                detailsItem.serviceDetails.contactType ||
+                detailsItem.serviceDetails.contactValue) ? (
+                <div className="rounded-md border p-3 space-y-2">
+                  <p className="font-medium">{locale === "en" ? "Order details" : "Детали заказа"}</p>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {detailsItem.serviceDetails.trackTitle ? (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">{locale === "en" ? "Track title" : "Название трека"}</p>
+                        <p className="font-medium break-words">{detailsItem.serviceDetails.trackTitle}</p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.videosCount ? (
+                      <div>
+                        <p className="text-muted-foreground">{locale === "en" ? "Videos" : "Видео"}</p>
+                        <p className="font-medium">{detailsItem.serviceDetails.videosCount}</p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.contactType || detailsItem.serviceDetails.contactValue ? (
+                      <div>
+                        <p className="text-muted-foreground">{locale === "en" ? "Preferred contact" : "Предпочтительный контакт"}</p>
+                        <p className="font-medium break-all">
+                          {[detailsItem.serviceDetails.contactType, detailsItem.serviceDetails.contactValue]
+                            .filter(Boolean)
+                            .join(": ")}
+                        </p>
+                      </div>
+                    ) : null}
+                    {(detailsItem.serviceDetails.trackTitles?.length ||
+                      detailsItem.serviceDetails.originalFilenames?.length) ? (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Uploaded files / track names" : "Загруженные файлы / названия"}
+                        </p>
+                        <ul className="list-disc pl-5 space-y-0.5">
+                          {(
+                            detailsItem.serviceDetails.originalFilenames ??
+                            detailsItem.serviceDetails.trackTitles ??
+                            []
+                          ).map((name, idx) => (
+                            <li key={`${name}-${idx}`}>{name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.comment ? (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Wishes / comments" : "Пожелания / комментарий"}
+                        </p>
+                        <p className="font-medium whitespace-pre-wrap break-words">
+                          {detailsItem.serviceDetails.comment}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {detailsItem.orderType === "upload_addon_bundle" ? (
+                <div className="rounded-md border p-3 space-y-3">
+                  <p className="font-medium">{mt.uploadAddonBundleComposition}</p>
+                  {detailsItem.draftTrackName || detailsItem.draftArtistName ? (
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {detailsItem.draftArtistName ? (
+                        <div>
+                          <p className="text-muted-foreground">{locale === "en" ? "Artist" : "Артист"}</p>
+                          <p className="font-medium break-words">{detailsItem.draftArtistName}</p>
+                        </div>
+                      ) : null}
+                      {detailsItem.draftTrackName ? (
+                        <div>
+                          <p className="text-muted-foreground">
+                            {locale === "en" ? "Track / album" : "Трек / альбом"}
+                          </p>
+                          <p className="font-medium break-words">{detailsItem.draftTrackName}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {(detailsItem.uploadAddonDetails ?? []).length > 0 ? (
+                    <div className="space-y-3">
+                      {(detailsItem.uploadAddonDetails ?? []).map((line, idx) => {
+                        const title =
+                          line.type === "ai_cover"
+                            ? t.cabinet.promotion.aiCover.title
+                            : promotionTitleForUploadAddonType(line.type, t.cabinet.promotion)
+                        return (
+                          <div key={`${line.type}-${idx}`} className="rounded-md bg-muted/40 p-3 space-y-1.5">
+                            <p className="font-medium">{title}</p>
+                            {line.trackTitle ? (
+                              <p>
+                                <span className="text-muted-foreground">
+                                  {locale === "en" ? "Track: " : "Трек: "}
+                                </span>
+                                {line.trackTitle}
+                              </p>
+                            ) : null}
+                            {line.videosCount ? (
+                              <p>
+                                <span className="text-muted-foreground">
+                                  {locale === "en" ? "Videos: " : "Видео: "}
+                                </span>
+                                {line.videosCount}
+                              </p>
+                            ) : null}
+                            {line.tracksCount ? (
+                              <p>
+                                <span className="text-muted-foreground">
+                                  {locale === "en" ? "Tracks: " : "Треков: "}
+                                </span>
+                                {line.tracksCount}
+                              </p>
+                            ) : null}
+                            {line.trackTitles?.length ? (
+                              <div>
+                                <p className="text-muted-foreground">
+                                  {locale === "en" ? "Track names" : "Названия треков"}
+                                </p>
+                                <ul className="list-disc pl-5">
+                                  {line.trackTitles.map((n, i) => (
+                                    <li key={`${n}-${i}`}>{n}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                            {(line.contactType || line.contactValue || line.contactEmail || line.contactTelegram) ? (
+                              <p>
+                                <span className="text-muted-foreground">
+                                  {locale === "en" ? "Contact: " : "Контакт: "}
+                                </span>
+                                {[
+                                  line.contactType && line.contactValue
+                                    ? `${line.contactType}: ${line.contactValue}`
+                                    : line.contactValue,
+                                  line.contactEmail,
+                                  line.contactTelegram ? `Telegram: ${line.contactTelegram}` : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            ) : null}
+                            {line.comment ? (
+                              <div>
+                                <p className="text-muted-foreground">
+                                  {locale === "en" ? "Wishes" : "Пожелания"}
+                                </p>
+                                <p className="whitespace-pre-wrap break-words">{line.comment}</p>
+                              </div>
+                            ) : null}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (detailsItem.uploadAddonBundleItems ?? []).length > 0 ||
+                    detailsItem.uploadAddonAiCoverRequested ? (
+                    <ul className="list-disc pl-5 space-y-0.5">
+                      {(detailsItem.uploadAddonBundleItems ?? []).map((line, idx) => (
+                        <li key={`${line.type}-${line.quantity}-${idx}`}>
+                          {formatUploadAddonBundleLine(line, t.cabinet.promotion)}
+                        </li>
+                      ))}
+                      {detailsItem.uploadAddonAiCoverRequested ? (
+                        <li>{t.cabinet.promotion.aiCover.title}</li>
+                      ) : null}
+                    </ul>
+                  ) : (
+                    <p className="text-amber-600 dark:text-amber-500">
+                      {mt.uploadAddonBundleCompositionUnavailable}
+                    </p>
+                  )}
+                </div>
+              ) : null}
+
               {detailsItem.orderType === "ai_mastering" ? (
                 <div className="space-y-2 pt-2">
-                  <p className="text-sm font-medium">AI mastering WAV</p>
+                  <p className="text-sm font-medium">
+                    {locale === "en" ? "AI mastering WAV" : "AI mastering WAV"}
+                  </p>
+                  {detailsItem.serviceDetails?.originalFilenames?.length ||
+                  detailsItem.serviceDetails?.trackTitles?.length ? (
+                    <ul className="list-disc pl-5 text-muted-foreground space-y-0.5">
+                      {(
+                        detailsItem.serviceDetails.originalFilenames ??
+                        detailsItem.serviceDetails.trackTitles ??
+                        []
+                      ).map((name, idx) => (
+                        <li key={`orig-${name}-${idx}`}>
+                          track-{idx + 1}.wav ← {name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {detailsItem.aiMasteringAudioFiles.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {detailsItem.aiMasteringAudioFiles.map((fileName) => (
@@ -420,9 +619,23 @@ export default function AdminServiceFulfillmentsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">WAV файлы не найдены</p>
+                    <p className="text-sm text-muted-foreground">
+                      {locale === "en" ? "WAV files not found" : "WAV файлы не найдены"}
+                    </p>
                   )}
                 </div>
+              ) : null}
+
+              {!detailsItem.serviceDetails?.trackTitle &&
+              !detailsItem.serviceDetails?.comment &&
+              !(detailsItem.uploadAddonDetails ?? []).length &&
+              detailsItem.orderType !== "ai_mastering" &&
+              detailsItem.orderType !== "upload_addon_bundle" ? (
+                <p className="text-sm text-amber-600 dark:text-amber-500">
+                  {locale === "en"
+                    ? "Track title and wishes were not saved for this order (created before this update)."
+                    : "Название трека и пожелания для этого заказа не сохранены (заказ создан до обновления)."}
+                </p>
               ) : null}
             </div>
           ) : null}

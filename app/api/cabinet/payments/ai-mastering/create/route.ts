@@ -139,6 +139,8 @@ export async function POST(request: NextRequest) {
 
   const totalAmount = (tracksCount * AI_MASTERING_PRICE_RUB).toFixed(2)
 
+  const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
+
   const order = await createOrder({
     orderType: "ai_mastering",
     userId: user.id,
@@ -146,6 +148,10 @@ export async function POST(request: NextRequest) {
     totalAmount,
     contactEmail: contactEmailRaw || undefined,
     contactTelegram: contactTelegramRaw || undefined,
+    serviceDetails: {
+      trackTitles: displayNames,
+      originalFilenames: displayNames,
+    },
   })
 
   try {
@@ -158,7 +164,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-      const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
   const trackTitlesJoined = displayNames.join(" | ")
   const trackSummary = trackTitlesJoined.slice(0, 200)
   const returnUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=return&orderId=${encodeURIComponent(order.id)}`

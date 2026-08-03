@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
       aiMasteringAudioFiles: r.aiMasteringAudioFiles,
       uploadAddonBundleItems: r.uploadAddonBundleItems,
       uploadAddonAiCoverRequested: r.uploadAddonAiCoverRequested,
+      serviceDetails: r.serviceDetails,
+      uploadAddonDetails: r.uploadAddonDetails,
+      draftTrackName: r.draftTrackName,
+      draftArtistName: r.draftArtistName,
     })),
   })
 }
