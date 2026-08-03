@@ -659,8 +659,12 @@ export default function TracksPageClient() {
       ...new Set(
         subset.map((t) => t.artistName?.trim() || "Без имени артиста")
       ),
-    ].sort((a, b) => a.localeCompare(b))
-    if (keys[0]) setExpandedArtist(keys[0])
+    ].sort((a, b) => a.localeCompare(b, "ru"))
+    const first = keys[0]
+    if (!first) return
+    setArtistSearchQuery("")
+    setGroupedLetter(getArtistIndexLetter(first))
+    setSelectedGroupedArtist(first)
   }, [userIdFilterNorm, tracks])
 
   const handleStatusChange = async (trackId: string, status: TrackStatus) => {

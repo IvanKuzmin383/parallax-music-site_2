@@ -1,0 +1,34 @@
+---
+description: Production is on Yandex Cloud (not AdminVPS/Amvera) — SSH, paths, deploy
+alwaysApply: true
+---
+
+# Production hosting
+
+**Прод = Yandex Cloud Compute VM.** Не AdminVPS, не Amvera. Документ `docs/migration-amvera-to-adminvps.md` — исторический; при вопросах про прод/деплой/логи не ссылайся на AdminVPS как на текущий хостинг.
+
+## Доступ
+
+```powershell
+ssh -i C:\Users\Admin\.ssh\id_ed25519 ubuntu@111.88.251.195
+```
+
+- User: `ubuntu`
+- App path: `/var/www/parallaxmusic`
+- Process manager: `pm2`, имя процесса: `parallaxmusic`
+- Data: `/data` (БД, uploads) — не в Git
+
+## Обновление прода
+
+Сначала commit + push в ветку, с которой крутится сервер (обычно `main`). Затем на ВМ:
+
+```bash
+cd /var/www/parallaxmusic
+git pull
+pnpm install
+pnpm generate-hero-webp
+pnpm build
+pm2 restart parallaxmusic --update-env
+```
+
+Проверка: `pm2 status`, `pm2 logs parallaxmusic --lines 50`.
