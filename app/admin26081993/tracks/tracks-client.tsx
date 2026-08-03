@@ -34,6 +34,12 @@ import {
   Info,
   Loader2,
   Wand2,
+  ChevronLeft,
+  Search,
+  FileAudio,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { AdminSectionNav } from "@/components/admin-section-nav"
 import {
@@ -258,6 +264,31 @@ function ruTracksCountLabel(n: number): string {
   return `${n} треков`
 }
 
+/** Первая буква имени артиста для алфавитного индекса (А–Я / A–Z / 0–9 / #). */
+function getArtistIndexLetter(artistName: string): string {
+  const trimmed = artistName.trim()
+  if (!trimmed || trimmed === "Без имени артиста") return "#"
+  const ch = trimmed.charAt(0).toLocaleUpperCase("ru-RU")
+  if (ch === "Ё") return "Е"
+  if (/[A-ZА-Я]/.test(ch)) return ch
+  if (/[0-9]/.test(ch)) return "0-9"
+  return "#"
+}
+
+function compareArtistIndexLetters(a: string, b: string): number {
+  const rank = (letter: string) => {
+    if (letter === "0-9") return 2
+    if (letter === "#") return 3
+    if (/[А-Я]/.test(letter)) return 0
+    if (/[A-Z]/.test(letter)) return 1
+    return 4
+  }
+  const ra = rank(a)
+  const rb = rank(b)
+  if (ra !== rb) return ra - rb
+  return a.localeCompare(b, "ru")
+}
+
 function getReleaseLabelName(labelName?: string | null): string {
   const trimmed = typeof labelName === "string" ? labelName.trim() : ""
   return trimmed || DEFAULT_RELEASE_LABEL_NAME
@@ -342,6 +373,7 @@ export default function TracksPageClient() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [lyricsExpanded, setLyricsExpanded] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null)
   const [deleteUploadDraftDialogOpen, setDeleteUploadDraftDialogOpen] = useState(false)
@@ -353,7 +385,9 @@ export default function TracksPageClient() {
   const [releaseDateToDraft, setReleaseDateToDraft] = useState("")
   const [releaseDateFromApplied, setReleaseDateFromApplied] = useState("")
   const [releaseDateToApplied, setReleaseDateToApplied] = useState("")
-  const [expandedArtist, setExpandedArtist] = useState<string | null>(null)
+  const [groupedLetter, setGroupedLetter] = useState<string | null>(null)
+  const [selectedGroupedArtist, setSelectedGroupedArtist] = useState<string | null>(null)
+  const [artistSearchQuery, setArtistSearchQuery] = useState("")
   const [trackListSortField, setTrackListSortField] = useState<TrackListSortField>("releaseDate")
   const [trackListSortDirection, setTrackListSortDirection] = useState<"asc" | "desc">("asc")
   const [simpleListVisibleCount, setSimpleListVisibleCount] = useState(SIMPLE_LIST_PAGE_SIZE)
@@ -487,8 +521,62 @@ export default function TracksPageClient() {
   )
   const simpleListHasMore = simpleListTracks.length > simpleListVisibleCount
 
+  const tracksByArtistName = useMemo(() => {
+    const map = new Map<string, Track[]>()
+    for (const track of statusFilteredTracks) {
+      const key = track.artistName?.trim() || "Без имени артиста"
+      const list = map.get(key)
+      if (list) list.push(track)
+      else map.set(key, [track])
+    }
+    return map
+  }, [statusFilteredTracks])
+
+  const artistsByLetter = useMemo(() => {
+    const map = new Map<string, { name: string; count: number }[]>()
+    for (const [name, list] of tracksByArtistName) {
+      const letter = getArtistIndexLetter(name)
+      const entry = { name, count: list.length }
+      const bucket = map.get(letter)
+      if (bucket) bucket.push(entry)
+      else map.set(letter, [entry])
+    }
+    for (const bucket of map.values()) {
+      bucket.sort((a, b) => a.name.localeCompare(b.name, "ru"))
+    }
+    return map
+  }, [tracksByArtistName])
+
+  const availableArtistLetters = useMemo(
+    () => [...artistsByLetter.keys()].sort(compareArtistIndexLetters),
+    [artistsByLetter]
+  )
+
+  const artistSearchNorm = artistSearchQuery.trim().toLowerCase()
+  const artistSearchResults = useMemo(() => {
+    if (!artistSearchNorm) return null
+    return [...tracksByArtistName.entries()]
+      .filter(([name]) => name.toLowerCase().includes(artistSearchNorm))
+      .sort(([a], [b]) => a.localeCompare(b, "ru"))
+      .map(([name, list]) => ({ name, count: list.length }))
+  }, [artistSearchNorm, tracksByArtistName])
+
+  const selectedArtistTracks = useMemo(() => {
+    if (!selectedGroupedArtist) return null
+    const list = tracksByArtistName.get(selectedGroupedArtist)
+    if (!list) return null
+    return [...list].sort((a, b) => {
+      const aDate = a.releaseDate || a.createdAt
+      const bDate = b.releaseDate || b.createdAt
+      return new Date(aDate).getTime() - new Date(bDate).getTime()
+    })
+  }, [selectedGroupedArtist, tracksByArtistName])
+
   useEffect(() => {
     setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
+    setGroupedLetter(null)
+    setSelectedGroupedArtist(null)
+    setArtistSearchQuery("")
   }, [adminTracksQuery])
 
   useEffect(() => {
@@ -601,6 +689,7 @@ export default function TracksPageClient() {
     setSelectedUploadDraft(null)
     setSelectedTrack(track)
     setTrackDraft(trackToDraft(track))
+    setLyricsExpanded(false)
     setIsDialogOpen(true)
   }
 
@@ -609,6 +698,7 @@ export default function TracksPageClient() {
     setSelectedUploadDraft(draft)
     setUploadDraftRowStatus(draft.status)
     setTrackDraft(uploadDraftToTrackDraft(draft))
+    setLyricsExpanded(false)
     setIsDialogOpen(true)
   }
 
@@ -1186,6 +1276,22 @@ export default function TracksPageClient() {
     }
   }
 
+  const handleCopyLyrics = async (track: Track) => {
+    const text = track.lyricsText?.trim() ?? ""
+    if (!text) {
+      toast.error(
+        track.isInstrumental ? "Инструментал — текста нет" : "Текст песни не заполнен"
+      )
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success("Текст песни скопирован")
+    } catch {
+      toast.error("Не удалось скопировать текст")
+    }
+  }
+
   const handleCoverUpload = async (trackId: string, file: File) => {
     setUploadingCoverId(trackId)
     try {
@@ -1714,106 +1820,101 @@ export default function TracksPageClient() {
               </TabsList>
 
               <TabsContent value="grouped" className="space-y-4">
-                {Object.entries(
-                  statusFilteredTracks.reduce<Record<string, Track[]>>((acc, track) => {
-                    const key = track.artistName?.trim() || "Без имени артиста"
-                    if (!acc[key]) acc[key] = []
-                    acc[key].push(track)
-                    return acc
-                  }, {})
-                )
-                  .sort(([aName], [bName]) => aName.localeCompare(bName))
-                  .map(([artistName, artistTracks]) => {
-                    const groupedTracks = [...artistTracks].sort((a, b) => {
-                      const aDate = a.releaseDate || a.createdAt
-                      const bDate = b.releaseDate || b.createdAt
-                      return new Date(aDate).getTime() - new Date(bDate).getTime()
-                    })
-                    const isExpanded = expandedArtist === artistName
+                <div className="relative max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={artistSearchQuery}
+                    onChange={(e) => {
+                      setArtistSearchQuery(e.target.value)
+                      setSelectedGroupedArtist(null)
+                    }}
+                    placeholder="Поиск по имени артиста…"
+                    className="pl-9"
+                  />
+                </div>
 
-                    return (
-                      <Card key={artistName} className="mb-4">
-                        <button
-                          type="button"
-                          className="w-full text-left"
-                          onClick={() => setExpandedArtist(isExpanded ? null : artistName)}
-                        >
-                          <CardHeader className="flex flex-row items-center justify-between gap-2">
-                            <div>
-                              <CardTitle className="text-lg">{artistName}</CardTitle>
-                              <p className="text-sm text-muted-foreground">
-                                Треков: {groupedTracks.length}
-                              </p>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              {isExpanded ? "Свернуть" : "Открыть"}
-                            </span>
-                          </CardHeader>
-                        </button>
-                        {isExpanded && (
-                          <CardContent className="border-t pt-4 space-y-4">
-                            {groupTracksByAlbum(groupedTracks).map(({ albumId, tracks: albumTracks }) => {
-                              const orderedAlbumTracks = sortTracksByUploadOrder(albumTracks)
-                              const albumTitle =
-                                albumId != null
-                                  ? albums.find((a) => a.id === albumId)?.title ?? null
-                                  : null
-                              return (
-                              <div key={albumId ?? "no-album"} className="space-y-2">
-                                {albumId && (
-                                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-2">
-                                    <span className="text-sm text-muted-foreground">
-                                      Альбом
-                                      {albumTitle ? (
-                                        <>
-                                          {" "}
-                                          <span className="font-medium text-foreground">
-                                            «{albumTitle}»
-                                          </span>
-                                        </>
-                                      ) : null}
-                                      <span className="text-muted-foreground">
-                                        {" "}
-                                        · {ruTracksCountLabel(orderedAlbumTracks.length)}
+                {selectedGroupedArtist && selectedArtistTracks ? (
+                  <Card>
+                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="text-lg">{selectedGroupedArtist}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {ruTracksCountLabel(selectedArtistTracks.length)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedGroupedArtist(null)}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Назад
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="border-t pt-4 space-y-4">
+                      {groupTracksByAlbum(selectedArtistTracks).map(({ albumId, tracks: albumTracks }) => {
+                        const orderedAlbumTracks = sortTracksByUploadOrder(albumTracks)
+                        const albumTitle =
+                          albumId != null
+                            ? albums.find((a) => a.id === albumId)?.title ?? null
+                            : null
+                        return (
+                          <div key={albumId ?? "no-album"} className="space-y-2">
+                            {albumId && (
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-2">
+                                <span className="text-sm text-muted-foreground">
+                                  Альбом
+                                  {albumTitle ? (
+                                    <>
+                                      {" "}
+                                      <span className="font-medium text-foreground">
+                                        «{albumTitle}»
                                       </span>
-                                    </span>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        disabled={downloadingAlbumId === albumId}
-                                        onClick={() =>
-                                          void handleDownloadAllAlbumTracks(orderedAlbumTracks)
-                                        }
-                                      >
-                                        <Download className="h-4 w-4 mr-1" />
-                                        {downloadingAlbumId === albumId
-                                          ? "Скачивание…"
-                                          : "Скачать все треки"}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                          openAlbumModDialog(albumId, orderedAlbumTracks)
-                                        }
-                                      >
-                                        Статус и комментарий
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                          openAlbumBulkDialog(albumId, orderedAlbumTracks)
-                                        }
-                                      >
-                                        <Link2 className="h-4 w-4 mr-1" />
-                                        UPC и ссылки
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                                {orderedAlbumTracks.map((track, index) => (
+                                    </>
+                                  ) : null}
+                                  <span className="text-muted-foreground">
+                                    {" "}
+                                    · {ruTracksCountLabel(orderedAlbumTracks.length)}
+                                  </span>
+                                </span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={downloadingAlbumId === albumId}
+                                    onClick={() =>
+                                      void handleDownloadAllAlbumTracks(orderedAlbumTracks)
+                                    }
+                                  >
+                                    <Download className="h-4 w-4 mr-1" />
+                                    {downloadingAlbumId === albumId
+                                      ? "Скачивание…"
+                                      : "Скачать все треки"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      openAlbumModDialog(albumId, orderedAlbumTracks)
+                                    }
+                                  >
+                                    Статус и комментарий
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      openAlbumBulkDialog(albumId, orderedAlbumTracks)
+                                    }
+                                  >
+                                    <Link2 className="h-4 w-4 mr-1" />
+                                    UPC и ссылки
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            {orderedAlbumTracks.map((track, index) => (
                               <div
                                 key={track.id}
                                 className="border rounded-md p-3 flex flex-col gap-2"
@@ -1830,13 +1931,15 @@ export default function TracksPageClient() {
                                           alt={track.trackName}
                                           className="w-full h-full object-cover"
                                           onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display =
+                                            ;(e.target as HTMLImageElement).style.display =
                                               "none"
                                           }}
                                         />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
-                                          {track.needsAiCover ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.` : "Нет"}
+                                          {track.needsAiCover
+                                            ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.`
+                                            : "Нет"}
                                         </div>
                                       )}
                                     </div>
@@ -1884,10 +1987,7 @@ export default function TracksPageClient() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       {STATUS_OPTIONS.map((opt) => (
-                                        <SelectItem
-                                          key={opt.value}
-                                          value={opt.value}
-                                        >
+                                        <SelectItem key={opt.value} value={opt.value}>
                                           {opt.label}
                                         </SelectItem>
                                       ))}
@@ -1895,6 +1995,52 @@ export default function TracksPageClient() {
                                   </Select>
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Скачать wav"
+                                    aria-label="Скачать wav"
+                                    onClick={() =>
+                                      void handleDownloadTrack(
+                                        track.id,
+                                        track.trackName,
+                                        track.artistName
+                                      )
+                                    }
+                                  >
+                                    <FileAudio className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Скачать обложку"
+                                    aria-label="Скачать обложку"
+                                    disabled={!track.coverPath?.trim()}
+                                    onClick={() =>
+                                      void handleDownloadCover(
+                                        track.id,
+                                        track.trackName,
+                                        track.artistName
+                                      )
+                                    }
+                                  >
+                                    <ImageIcon className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Скопировать текст песни"
+                                    aria-label="Скопировать текст песни"
+                                    disabled={
+                                      track.isInstrumental || !track.lyricsText?.trim()
+                                    }
+                                    onClick={() => void handleCopyLyrics(track)}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1914,15 +2060,115 @@ export default function TracksPageClient() {
                                   </Button>
                                 </div>
                               </div>
-                                ))}
-                              </div>
-                              )
-                            })}
-                          </CardContent>
-                        )}
-                      </Card>
-                    )
-                  })}
+                            ))}
+                          </div>
+                        )
+                      })}
+                    </CardContent>
+                  </Card>
+                ) : artistSearchResults ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Результаты поиска</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Найдено артистов: {artistSearchResults.length}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {artistSearchResults.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Ничего не найдено</p>
+                      ) : (
+                        artistSearchResults.map((artist) => (
+                          <button
+                            key={artist.name}
+                            type="button"
+                            className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3"
+                            onClick={() => setSelectedGroupedArtist(artist.name)}
+                          >
+                            <span className="font-medium">{artist.name}</span>
+                            <span className="text-sm text-muted-foreground shrink-0">
+                              {ruTracksCountLabel(artist.count)}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : groupedLetter ? (
+                  <Card>
+                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="text-lg">
+                          Артисты на «{groupedLetter}»
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
+                          {(artistsByLetter.get(groupedLetter) ?? []).length === 1
+                            ? "артист"
+                            : "артистов"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setGroupedLetter(null)}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        К алфавиту
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {(artistsByLetter.get(groupedLetter) ?? []).map((artist) => (
+                        <button
+                          key={artist.name}
+                          type="button"
+                          className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3"
+                          onClick={() => setSelectedGroupedArtist(artist.name)}
+                        >
+                          <span className="font-medium">{artist.name}</span>
+                          <span className="text-sm text-muted-foreground shrink-0">
+                            {ruTracksCountLabel(artist.count)}
+                          </span>
+                        </button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Алфавит артистов</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Выберите букву, чтобы открыть список артистов
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {availableArtistLetters.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {availableArtistLetters.map((letter) => {
+                            const count = artistsByLetter.get(letter)?.length ?? 0
+                            return (
+                              <Button
+                                key={letter}
+                                type="button"
+                                variant="outline"
+                                className="min-w-11"
+                                onClick={() => setGroupedLetter(letter)}
+                              >
+                                <span className="font-semibold">{letter}</span>
+                                <span className="ml-1.5 text-xs text-muted-foreground">
+                                  {count}
+                                </span>
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="simple">
@@ -2020,7 +2266,53 @@ export default function TracksPageClient() {
                               </Select>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2 flex-wrap">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Скачать wav"
+                                  aria-label="Скачать wav"
+                                  onClick={() =>
+                                    void handleDownloadTrack(
+                                      track.id,
+                                      track.trackName,
+                                      track.artistName
+                                    )
+                                  }
+                                >
+                                  <FileAudio className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Скачать обложку"
+                                  aria-label="Скачать обложку"
+                                  disabled={!track.coverPath?.trim()}
+                                  onClick={() =>
+                                    void handleDownloadCover(
+                                      track.id,
+                                      track.trackName,
+                                      track.artistName
+                                    )
+                                  }
+                                >
+                                  <ImageIcon className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Скопировать текст песни"
+                                  aria-label="Скопировать текст песни"
+                                  disabled={
+                                    track.isInstrumental || !track.lyricsText?.trim()
+                                  }
+                                  onClick={() => void handleCopyLyrics(track)}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -2071,7 +2363,10 @@ export default function TracksPageClient() {
           open={isDialogOpen}
           onOpenChange={(open) => {
             setIsDialogOpen(open)
-            if (!open) setSelectedUploadDraft(null)
+            if (!open) {
+              setSelectedUploadDraft(null)
+              setLyricsExpanded(false)
+            }
           }}
         >
           <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-4xl">
@@ -2390,17 +2685,44 @@ export default function TracksPageClient() {
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="admin-lyrics">Текст песни</Label>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="admin-lyrics">Текст песни</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 shrink-0 text-muted-foreground"
+                          onClick={() => setLyricsExpanded((v) => !v)}
+                        >
+                          {lyricsExpanded ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-1" />
+                              Свернуть
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-1" />
+                              Развернуть
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <Textarea
                         id="admin-lyrics"
                         placeholder="Вставьте полный текст песни (до 5000 символов)"
-                        rows={6}
+                        rows={lyricsExpanded ? 16 : 3}
                         value={trackDraft.lyricsText}
                         onChange={(e) =>
                           setTrackDraft((d) =>
                             d ? { ...d, lyricsText: e.target.value } : d
                           )
                         }
+                        className={cn(
+                          "field-sizing-fixed resize-y",
+                          lyricsExpanded
+                            ? "min-h-64 max-h-[50vh]"
+                            : "min-h-[4.5rem] max-h-[4.5rem] overflow-y-auto"
+                        )}
                       />
                     </div>
 
