@@ -34,7 +34,6 @@ import {
   Info,
   Loader2,
   Wand2,
-  ChevronLeft,
   Search,
   FileAudio,
   FileText,
@@ -94,7 +93,6 @@ import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { fetchAdminArtistsIndex, fetchAdminTracksAllMatching, fetchAdminTracksForArtist } from "@/lib/admin-tracks-fetch"
 import {
-  ADMIN_TRACKS_CLIENT_CAP,
   type AdminArtistIndexItem,
   type AdminTracksListQuery,
   type AdminTracksStats,
@@ -367,7 +365,6 @@ export default function TracksPageClient() {
   const [tracks, setTracks] = useState<Track[]>([])
   const [tracksTotal, setTracksTotal] = useState(0)
   const [tracksTotalInDb, setTracksTotalInDb] = useState(0)
-  const [tracksTruncated, setTracksTruncated] = useState(false)
   const [albums, setAlbums] = useState<AdminAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -483,7 +480,6 @@ export default function TracksPageClient() {
       setTracks(data.tracks)
       setTracksTotal(data.total)
       setTracksTotalInDb(data.totalInDatabase)
-      setTracksTruncated(data.truncated)
       setAlbums(
         data.albums.map((a) => ({
           id: a.id,
@@ -1578,24 +1574,13 @@ export default function TracksPageClient() {
     if (!selectedGroupedArtist) return null
     return (
       <div className="rounded-md border border-primary/40 bg-muted/20 p-3 space-y-4 mt-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">
-            {groupedArtistTracksLoading
-              ? "Загрузка треков…"
-              : selectedArtistTracks
-                ? ruTracksCountLabel(selectedArtistTracks.length)
-                : "—"}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setSelectedGroupedArtist(null)}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Скрыть треки
-          </Button>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {groupedArtistTracksLoading
+            ? "Загрузка треков…"
+            : selectedArtistTracks
+              ? ruTracksCountLabel(selectedArtistTracks.length)
+              : "—"}
+        </p>
 
                       {groupedArtistTracksLoading ? (
                         <p className="text-sm text-muted-foreground">Загрузка…</p>
@@ -1879,18 +1864,6 @@ export default function TracksPageClient() {
         <AdminSectionNav active="tracks" />
 
         <h1 className="text-2xl font-bold">Модерация треков</h1>
-
-        {tracksTruncated ? (
-          <Alert>
-            <AlertTitle>Показаны не все треки</AlertTitle>
-            <AlertDescription>
-              В «Простом списке» загружено {tracks.length} из {tracksTotal} по текущему фильтру
-              (лимит {ADMIN_TRACKS_CLIENT_CAP}). Вкладка «Группировка по артистам» использует полный
-              индекс артистов из базы — ищите там. Либо сузьте фильтр по пользователю, статусу или
-              дате.
-            </AlertDescription>
-          </Alert>
-        ) : null}
 
         {userIdFilterRaw ? (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
@@ -2197,9 +2170,6 @@ export default function TracksPageClient() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Алфавит артистов</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      По всей базе (не ограничено лимитом простого списка). Выберите букву.
-                    </p>
                   </CardHeader>
                   <CardContent>
                     {artistsIndexLoading ? (
