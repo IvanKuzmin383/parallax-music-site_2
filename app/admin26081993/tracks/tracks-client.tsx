@@ -1966,6 +1966,31 @@ export default function TracksPageClient() {
                                       <p className="text-xs text-muted-foreground">
                                         Жанр: {track.genre}
                                       </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Настроение: {track.mood?.trim() || "—"}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Автор слов:{" "}
+                                        {track.isInstrumental
+                                          ? "Инструментал"
+                                          : track.lyricsAuthor?.trim() || "—"}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Автор музыки: {track.musicAuthor?.trim() || "—"}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Права на музыку: {track.musicRights?.trim() || "—"}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Права на текст:{" "}
+                                        {track.isInstrumental
+                                          ? "Инструментал"
+                                          : track.lyricsRights?.trim() || "—"}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Права на исполнение:{" "}
+                                        {track.performanceRights?.trim() || "—"}
+                                      </p>
                                       {track.upc && (
                                         <p className="text-xs text-muted-foreground">
                                           UPC: {track.upc}
