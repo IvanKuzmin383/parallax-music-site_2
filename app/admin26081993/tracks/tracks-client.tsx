@@ -393,6 +393,7 @@ export default function TracksPageClient() {
   const [artistsIndexLoading, setArtistsIndexLoading] = useState(false)
   const [groupedArtistTracks, setGroupedArtistTracks] = useState<Track[] | null>(null)
   const [groupedArtistTracksLoading, setGroupedArtistTracksLoading] = useState(false)
+  const [expandedAlbumIds, setExpandedAlbumIds] = useState<Set<string>>(() => new Set())
   const [trackListSortField, setTrackListSortField] = useState<TrackListSortField>("releaseDate")
   const [trackListSortDirection, setTrackListSortDirection] = useState<"asc" | "desc">("asc")
   const [simpleListVisibleCount, setSimpleListVisibleCount] = useState(SIMPLE_LIST_PAGE_SIZE)
@@ -637,11 +638,13 @@ export default function TracksPageClient() {
   useEffect(() => {
     if (!selectedGroupedArtist) {
       setGroupedArtistTracks(null)
+      setExpandedAlbumIds(new Set())
       return
     }
     let cancelled = false
     void (async () => {
       if (cancelled) return
+      setExpandedAlbumIds(new Set())
       await refreshGroupedArtistTracks(selectedGroupedArtist)
     })()
     return () => {
@@ -2046,25 +2049,47 @@ export default function TracksPageClient() {
                           albumId != null
                             ? albums.find((a) => a.id === albumId)?.title ?? null
                             : null
+                        const albumExpanded = albumId == null || expandedAlbumIds.has(albumId)
                         return (
                           <div key={albumId ?? "no-album"} className="space-y-2">
-                            {albumId && (
+                            {albumId ? (
                               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-2">
-                                <span className="text-sm text-muted-foreground">
-                                  Альбом
-                                  {albumTitle ? (
-                                    <>
+                                <button
+                                  type="button"
+                                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                  onClick={() =>
+                                    setExpandedAlbumIds((prev) => {
+                                      const next = new Set(prev)
+                                      if (next.has(albumId)) next.delete(albumId)
+                                      else next.add(albumId)
+                                      return next
+                                    })
+                                  }
+                                >
+                                  <span className="inline-flex items-center gap-1">
+                                    {albumExpanded ? (
+                                      <ChevronUp className="h-4 w-4 shrink-0" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 shrink-0" />
+                                    )}
+                                    Альбом
+                                    {albumTitle ? (
+                                      <>
+                                        {" "}
+                                        <span className="font-medium text-foreground">
+                                          «{albumTitle}»
+                                        </span>
+                                      </>
+                                    ) : null}
+                                    <span className="text-muted-foreground">
                                       {" "}
-                                      <span className="font-medium text-foreground">
-                                        «{albumTitle}»
-                                      </span>
-                                    </>
-                                  ) : null}
-                                  <span className="text-muted-foreground">
-                                    {" "}
-                                    · {ruTracksCountLabel(orderedAlbumTracks.length)}
+                                      · {ruTracksCountLabel(orderedAlbumTracks.length)}
+                                    </span>
+                                    <span className="text-xs">
+                                      {albumExpanded ? "· свернуть" : "· открыть"}
+                                    </span>
                                   </span>
-                                </span>
+                                </button>
                                 <div className="flex flex-wrap items-center gap-2">
                                   <Button
                                     size="sm"
@@ -2100,8 +2125,9 @@ export default function TracksPageClient() {
                                   </Button>
                                 </div>
                               </div>
-                            )}
-                            {orderedAlbumTracks.map((track, index) => (
+                            ) : null}
+                            {albumExpanded
+                              ? orderedAlbumTracks.map((track, index) => (
                               <div
                                 key={track.id}
                                 className="border rounded-md p-3 flex flex-col gap-2"
@@ -2258,7 +2284,8 @@ export default function TracksPageClient() {
                                   </Button>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                              : null}
                           </div>
                         )
                       })
