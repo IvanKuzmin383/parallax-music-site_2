@@ -1,6 +1,6 @@
 import { isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
 
-/** Нужно удерживать пользователя на главной /cabinet и не пускать в разделы при истёкшей подписке (не Fix). */
+/** Истёкшая подписка (не Fix): блокируем только загрузку, остальной кабинет доступен. */
 export function isCabinetSubscriptionExpiredForNavigation(user: {
   subscriptionName?: string
   subscriptionExpiresAt?: string
@@ -12,11 +12,13 @@ export function isCabinetSubscriptionExpiredForNavigation(user: {
   })
 }
 
-/** Маршруты, доступные при истёкшей подписке (восстановление пароля, подтверждение автопродления). */
+/**
+ * Маршруты, доступные при истёкшей подписке.
+ * Закрыта только загрузка трека/альбома; статистика, финансы, профиль, услуги — открыты.
+ */
 export function isCabinetPathAllowedWhenSubscriptionExpired(pathname: string): boolean {
-  if (pathname === "/cabinet") return true
-  if (pathname.startsWith("/cabinet/forgot-password")) return true
-  if (pathname.startsWith("/cabinet/reset-password")) return true
-  if (pathname.startsWith("/cabinet/autopay/confirm")) return true
-  return false
+  if (pathname === "/cabinet/upload" || pathname.startsWith("/cabinet/upload/")) {
+    return false
+  }
+  return true
 }

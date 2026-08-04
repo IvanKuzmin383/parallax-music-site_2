@@ -52,7 +52,6 @@ import {
   getRepresentativeTrackLimitForDialog,
 } from "@/lib/subscription-track-limits"
 import { CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE } from "@/lib/cabinet-account-messages"
-import { isCabinetSubscriptionExpiredForNavigation } from "@/lib/cabinet-subscription-gate"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { SubscriptionLimitDialog } from "@/components/subscription-limit-dialog"
 import { format } from "date-fns"
@@ -282,21 +281,6 @@ export default function CabinetPage() {
     subscriptionExpiredEntryDialogShownRef.current = true
     setSubscriptionLimitDialogOpen(true)
   }, [isAuthenticated, loading, subscription])
-
-  useEffect(() => {
-    if (
-      !subscription ||
-      !isCabinetSubscriptionExpiredForNavigation({
-        subscriptionName: subscription.subscriptionName,
-        subscriptionExpiresAt: subscription.subscriptionExpiresAt,
-      })
-    ) {
-      return
-    }
-    if (activeTab === "promotion" || activeTab === "reports") {
-      setActiveTab("releases")
-    }
-  }, [subscription, activeTab])
 
   useEffect(() => {
     if (searchParams.get("tab") === "register") {
@@ -1096,20 +1080,6 @@ export default function CabinetPage() {
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
-            const subExpired =
-              subscription &&
-              isCabinetSubscriptionExpiredForNavigation({
-                subscriptionName: subscription.subscriptionName,
-                subscriptionExpiresAt: subscription.subscriptionExpiresAt,
-              })
-            if (subExpired) {
-              if (v === "releases") {
-                setActiveTab("releases")
-                return
-              }
-              setSubscriptionLimitDialogOpen(true)
-              return
-            }
             if (v === "stats") {
               router.push("/cabinet/music-stats")
               return
