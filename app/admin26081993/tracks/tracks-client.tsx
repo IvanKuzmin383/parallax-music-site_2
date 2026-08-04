@@ -389,6 +389,7 @@ export default function TracksPageClient() {
   const [groupedLetter, setGroupedLetter] = useState<string | null>(null)
   const [selectedGroupedArtist, setSelectedGroupedArtist] = useState<string | null>(null)
   const [artistSearchQuery, setArtistSearchQuery] = useState("")
+  const [tracksTab, setTracksTab] = useState<"grouped" | "simple">("grouped")
   const [artistsIndex, setArtistsIndex] = useState<AdminArtistIndexItem[]>([])
   const [artistsIndexLoading, setArtistsIndexLoading] = useState(false)
   const [groupedArtistTracks, setGroupedArtistTracks] = useState<Track[] | null>(null)
@@ -1572,474 +1573,30 @@ export default function TracksPageClient() {
     }
   }
 
-  const sortedAlbums = [...albums].sort((a, b) => {
-    const byArtist = a.artistName.localeCompare(b.artistName)
-    if (byArtist !== 0) return byArtist
-    return a.title.localeCompare(b.title)
-  })
 
-  if (loading) {
+  const renderSelectedArtistTracksPanel = () => {
+    if (!selectedGroupedArtist) return null
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
-        <p>Загрузка...</p>
-      </div>
-    )
-  }
+      <div className="rounded-md border border-primary/40 bg-muted/20 p-3 space-y-4 mt-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">
+            {groupedArtistTracksLoading
+              ? "Загрузка треков…"
+              : selectedArtistTracks
+                ? ruTracksCountLabel(selectedArtistTracks.length)
+                : "—"}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedGroupedArtist(null)}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Скрыть треки
+          </Button>
+        </div>
 
-  if (!isAuthenticated) {
-    router.replace("/admin26081993")
-    return null
-  }
-
-  return (
-    <div className="min-h-screen bg-background pt-20">
-      <div className="mx-auto w-full max-w-[min(100vw-2rem,1680px)] px-4 space-y-6">
-        <AdminSectionNav active="tracks" />
-
-        <h1 className="text-2xl font-bold">Модерация треков</h1>
-
-        {tracksTruncated ? (
-          <Alert>
-            <AlertTitle>Показаны не все треки</AlertTitle>
-            <AlertDescription>
-              В «Простом списке» загружено {tracks.length} из {tracksTotal} по текущему фильтру
-              (лимит {ADMIN_TRACKS_CLIENT_CAP}). Вкладка «Группировка по артистам» использует полный
-              индекс артистов из базы — ищите там. Либо сузьте фильтр по пользователю, статусу или
-              дате.
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        {userIdFilterRaw ? (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
-            <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Фильтр по пользователю</span>
-              {filterUserLabel ? (
-                <>
-                  {": "}
-                  <span className="text-foreground">{filterUserLabel}</span>
-                </>
-              ) : null}
-              <span className="block sm:inline sm:ml-1 mt-1 sm:mt-0 font-mono text-xs text-muted-foreground">
-                {filterUserLabel ? "· " : ""}
-                {userIdFilterRaw}
-              </span>
-              <span className="block sm:inline text-foreground sm:ml-2">
-                - треков: {tracksTotal}
-                {isUploadDraftsView && displayUploadDrafts.length > 0
-                  ? ` · черновиков: ${displayUploadDrafts.length}`
-                  : ""}
-              </span>
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={resetTrackListFilters}
-            >
-              Показать всех
-            </Button>
-          </div>
-        ) : null}
-
-        {tracksTotalInDb === 0 && tracksStats.uploadDraftsCount === 0 ? (
-          <div className="border rounded-lg p-12 text-center text-muted-foreground">
-            Треков и активных черновиков загрузки пока нет
-          </div>
-        ) : (
-          <>
-            <AdminTracksStatsBar
-              stats={tracksStats}
-              viewFilter={viewFilter}
-              onViewFilterChange={setViewFilter}
-            />
-
-            {!hasViewContent ? (
-              <div className="border rounded-lg p-12 text-center space-y-3">
-                <p className="text-muted-foreground">
-                  {userIdFilterRaw
-                    ? "У выбранного пользователя нет записей по текущему фильтру."
-                    : isUploadDraftsView
-                      ? "Нет активных черновиков загрузки."
-                      : viewFilter.type === "status" && viewFilter.status === "upload_pending"
-                        ? "Нет треков в статусе «Черновик (доработка пользователем)». Заявки из формы загрузки - в блоке «Черновики загрузки»."
-                        : viewFilter.type === "upcoming"
-                          ? "Нет треков с запланированной датой выхода на площадки."
-                          : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
-                </p>
-                <Button type="button" variant="outline" onClick={resetTrackListFilters}>
-                  Сбросить фильтры
-                </Button>
-              </div>
-            ) : (
-              <>
-            {!isUploadDraftsView ? (
-            <div className="flex items-center justify-end gap-2 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">Дата публикации:</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "min-w-[168px] justify-between font-normal",
-                        !releaseDateFromDraft && "text-muted-foreground"
-                      )}
-                    >
-                      {releaseDateFromDraft ? (
-                        format(
-                          parseISO(releaseDateFromDraft + "T12:00:00"),
-                          "PPP",
-                          { locale: ru }
-                        )
-                      ) : (
-                        <span>От</span>
-                      )}
-                      <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      locale={ru}
-                      selected={
-                        releaseDateFromDraft
-                          ? parseISO(releaseDateFromDraft + "T12:00:00")
-                          : undefined
-                      }
-                      onSelect={(date) =>
-                        date && setReleaseDateFromDraft(format(date, "yyyy-MM-dd"))
-                      }
-                    />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-sm text-muted-foreground">-</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "min-w-[168px] justify-between font-normal",
-                        !releaseDateToDraft && "text-muted-foreground"
-                      )}
-                    >
-                      {releaseDateToDraft ? (
-                        format(
-                          parseISO(releaseDateToDraft + "T12:00:00"),
-                          "PPP",
-                          { locale: ru }
-                        )
-                      ) : (
-                        <span>До</span>
-                      )}
-                      <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      locale={ru}
-                      selected={
-                        releaseDateToDraft
-                          ? parseISO(releaseDateToDraft + "T12:00:00")
-                          : undefined
-                      }
-                      onSelect={(date) =>
-                        date && setReleaseDateToDraft(format(date, "yyyy-MM-dd"))
-                      }
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setReleaseDateFromApplied(releaseDateFromDraft)
-                    setReleaseDateToApplied(releaseDateToDraft)
-                  }}
-                >
-                  ОК
-                </Button>
-                {(releaseDateFromDraft || releaseDateToDraft || releaseDateFromApplied || releaseDateToApplied) && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setReleaseDateFromDraft("")
-                      setReleaseDateToDraft("")
-                      setReleaseDateFromApplied("")
-                      setReleaseDateToApplied("")
-                    }}
-                  >
-                    Сбросить дату
-                  </Button>
-                )}
-              </div>
-            </div>
-            ) : null}
-
-            {isUploadDraftsView ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно
-                  открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
-                </p>
-                <div className="space-y-2">
-                  {displayUploadDrafts.map((d) => {
-                    const title = `${d.payload.trackName ?? ""}`.trim() || "Без названия"
-                    const artist = `${d.payload.artistName ?? ""}`.trim() || "-"
-                    return (
-                      <div
-                        key={d.id}
-                        className={
-                          d.status === "expired" || d.status === "cancelled"
-                            ? "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-amber-500/40 bg-amber-500/5"
-                            : "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
-                        }
-                      >
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
-                            {d.coverRelPath ? (
-                              <img
-                                src={`/api/admin/upload-drafts/${encodeURIComponent(d.id)}/cover`}
-                                alt=""
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = "none"
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
-                                {d.payload.requestAiCover ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.` : "Нет"}
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{title}</p>
-                            <p className="text-sm text-muted-foreground truncate">{artist}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              Пользователь: {d.userId}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {d.kind === "album" ? "Альбом" : "Сингл"} · обновлён{" "}
-                              {format(new Date(d.updatedAt), "d MMM yyyy, HH:mm", { locale: ru })}
-                            </p>
-                            {d.audioRelPath ? (
-                              <p className="text-xs text-muted-foreground">WAV в черновике</p>
-                            ) : (
-                              <p className="text-xs text-amber-700 dark:text-amber-300">WAV не загружен</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 flex-wrap items-center shrink-0">
-                          <Select
-                            value={d.status}
-                            onValueChange={(v) =>
-                              void handleUploadDraftStatusChange(d.id, v as UploadDraftStatus)
-                            }
-                            disabled={updatingDraftId === d.id}
-                          >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {UPLOAD_DRAFT_STATUS_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Подробнее"
-                            aria-label="Подробнее"
-                            onClick={() => handleViewUploadDraft(d)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Удалить"
-                            aria-label="Удалить"
-                            onClick={() => handleUploadDraftDeleteClick(d)}
-                            disabled={deletingId === d.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ) : (
-            <Tabs defaultValue="grouped" className="w-full">
-              <TabsList>
-                <TabsTrigger value="grouped">Группировка по артистам</TabsTrigger>
-                <TabsTrigger value="simple">Простой список</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="grouped" className="space-y-4">
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={artistSearchQuery}
-                    onChange={(e) => {
-                      setArtistSearchQuery(e.target.value)
-                      setSelectedGroupedArtist(null)
-                    }}
-                    placeholder="Поиск по имени артиста…"
-                    className="pl-9"
-                  />
-                </div>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Алфавит артистов</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      По всей базе (не ограничено лимитом простого списка). Выберите букву.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {artistsIndexLoading ? (
-                      <p className="text-sm text-muted-foreground">Загрузка артистов…</p>
-                    ) : availableArtistLetters.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {availableArtistLetters.map((letter) => {
-                          const count = artistsByLetter.get(letter)?.length ?? 0
-                          const isActive = !artistSearchNorm && groupedLetter === letter
-                          return (
-                            <Button
-                              key={letter}
-                              type="button"
-                              variant={isActive ? "default" : "outline"}
-                              className="min-w-11"
-                              onClick={() => {
-                                setArtistSearchQuery("")
-                                setGroupedLetter(letter)
-                                setSelectedGroupedArtist(null)
-                              }}
-                            >
-                              <span className="font-semibold">{letter}</span>
-                              <span
-                                className={cn(
-                                  "ml-1.5 text-xs",
-                                  isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-                                )}
-                              >
-                                {count}
-                              </span>
-                            </Button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {artistSearchResults ? (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">Результаты поиска</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Найдено артистов: {artistSearchResults.length}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {artistSearchResults.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Ничего не найдено</p>
-                      ) : (
-                        artistSearchResults.map((artist) => (
-                          <button
-                            key={artist.name}
-                            type="button"
-                            className={cn(
-                              "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
-                              selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
-                            )}
-                            onClick={() => setSelectedGroupedArtist(artist.name)}
-                          >
-                            <span className="font-medium">{artist.name}</span>
-                            <span className="text-sm text-muted-foreground shrink-0">
-                              {ruTracksCountLabel(artist.count)}
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : groupedLetter ? (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">
-                        Артисты на «{groupedLetter}»
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
-                        {(artistsByLetter.get(groupedLetter) ?? []).length === 1
-                          ? "артист"
-                          : "артистов"}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {(artistsByLetter.get(groupedLetter) ?? []).map((artist) => (
-                        <button
-                          key={artist.name}
-                          type="button"
-                          className={cn(
-                            "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
-                            selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
-                          )}
-                          onClick={() => setSelectedGroupedArtist(artist.name)}
-                        >
-                          <span className="font-medium">{artist.name}</span>
-                          <span className="text-sm text-muted-foreground shrink-0">
-                            {ruTracksCountLabel(artist.count)}
-                          </span>
-                        </button>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                {selectedGroupedArtist ? (
-                  <Card>
-                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{selectedGroupedArtist}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {groupedArtistTracksLoading
-                            ? "Загрузка треков…"
-                            : selectedArtistTracks
-                              ? ruTracksCountLabel(selectedArtistTracks.length)
-                              : "—"}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedGroupedArtist(null)}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Скрыть треки
-                      </Button>
-                    </CardHeader>
-                    <CardContent className="border-t pt-4 space-y-4">
                       {groupedArtistTracksLoading ? (
                         <p className="text-sm text-muted-foreground">Загрузка…</p>
                       ) : selectedArtistTracks && selectedArtistTracks.length > 0 ? (
@@ -2292,6 +1849,474 @@ export default function TracksPageClient() {
                       ) : (
                         <p className="text-sm text-muted-foreground">Нет треков у этого артиста</p>
                       )}
+                    
+      </div>
+    )
+  }
+
+  const sortedAlbums = [...albums].sort((a, b) => {
+    const byArtist = a.artistName.localeCompare(b.artistName)
+    if (byArtist !== 0) return byArtist
+    return a.title.localeCompare(b.title)
+  })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-20 flex items-center justify-center">
+        <p>Загрузка...</p>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    router.replace("/admin26081993")
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-background pt-20">
+      <div className="mx-auto w-full max-w-[min(100vw-2rem,1680px)] px-4 space-y-6">
+        <AdminSectionNav active="tracks" />
+
+        <h1 className="text-2xl font-bold">Модерация треков</h1>
+
+        {tracksTruncated ? (
+          <Alert>
+            <AlertTitle>Показаны не все треки</AlertTitle>
+            <AlertDescription>
+              В «Простом списке» загружено {tracks.length} из {tracksTotal} по текущему фильтру
+              (лимит {ADMIN_TRACKS_CLIENT_CAP}). Вкладка «Группировка по артистам» использует полный
+              индекс артистов из базы — ищите там. Либо сузьте фильтр по пользователю, статусу или
+              дате.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {userIdFilterRaw ? (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+            <p className="text-muted-foreground">
+              <span className="font-medium text-foreground">Фильтр по пользователю</span>
+              {filterUserLabel ? (
+                <>
+                  {": "}
+                  <span className="text-foreground">{filterUserLabel}</span>
+                </>
+              ) : null}
+              <span className="block sm:inline sm:ml-1 mt-1 sm:mt-0 font-mono text-xs text-muted-foreground">
+                {filterUserLabel ? "· " : ""}
+                {userIdFilterRaw}
+              </span>
+              <span className="block sm:inline text-foreground sm:ml-2">
+                - треков: {tracksTotal}
+                {isUploadDraftsView && displayUploadDrafts.length > 0
+                  ? ` · черновиков: ${displayUploadDrafts.length}`
+                  : ""}
+              </span>
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={resetTrackListFilters}
+            >
+              Показать всех
+            </Button>
+          </div>
+        ) : null}
+
+        {tracksTotalInDb === 0 && tracksStats.uploadDraftsCount === 0 ? (
+          <div className="border rounded-lg p-12 text-center text-muted-foreground">
+            Треков и активных черновиков загрузки пока нет
+          </div>
+        ) : (
+          <>
+            <AdminTracksStatsBar
+              stats={tracksStats}
+              viewFilter={viewFilter}
+              onViewFilterChange={setViewFilter}
+            />
+
+            {!hasViewContent ? (
+              <div className="border rounded-lg p-12 text-center space-y-3">
+                <p className="text-muted-foreground">
+                  {userIdFilterRaw
+                    ? "У выбранного пользователя нет записей по текущему фильтру."
+                    : isUploadDraftsView
+                      ? "Нет активных черновиков загрузки."
+                      : viewFilter.type === "status" && viewFilter.status === "upload_pending"
+                        ? "Нет треков в статусе «Черновик (доработка пользователем)». Заявки из формы загрузки - в блоке «Черновики загрузки»."
+                        : viewFilter.type === "upcoming"
+                          ? "Нет треков с запланированной датой выхода на площадки."
+                          : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
+                </p>
+                <Button type="button" variant="outline" onClick={resetTrackListFilters}>
+                  Сбросить фильтры
+                </Button>
+              </div>
+            ) : (
+              <>
+            {isUploadDraftsView ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно
+                  открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
+                </p>
+                <div className="space-y-2">
+                  {displayUploadDrafts.map((d) => {
+                    const title = `${d.payload.trackName ?? ""}`.trim() || "Без названия"
+                    const artist = `${d.payload.artistName ?? ""}`.trim() || "-"
+                    return (
+                      <div
+                        key={d.id}
+                        className={
+                          d.status === "expired" || d.status === "cancelled"
+                            ? "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-amber-500/40 bg-amber-500/5"
+                            : "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                        }
+                      >
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
+                            {d.coverRelPath ? (
+                              <img
+                                src={`/api/admin/upload-drafts/${encodeURIComponent(d.id)}/cover`}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = "none"
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
+                                {d.payload.requestAiCover ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.` : "Нет"}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{title}</p>
+                            <p className="text-sm text-muted-foreground truncate">{artist}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              Пользователь: {d.userId}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {d.kind === "album" ? "Альбом" : "Сингл"} · обновлён{" "}
+                              {format(new Date(d.updatedAt), "d MMM yyyy, HH:mm", { locale: ru })}
+                            </p>
+                            {d.audioRelPath ? (
+                              <p className="text-xs text-muted-foreground">WAV в черновике</p>
+                            ) : (
+                              <p className="text-xs text-amber-700 dark:text-amber-300">WAV не загружен</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 flex-wrap items-center shrink-0">
+                          <Select
+                            value={d.status}
+                            onValueChange={(v) =>
+                              void handleUploadDraftStatusChange(d.id, v as UploadDraftStatus)
+                            }
+                            disabled={updatingDraftId === d.id}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {UPLOAD_DRAFT_STATUS_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Подробнее"
+                            aria-label="Подробнее"
+                            onClick={() => handleViewUploadDraft(d)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Удалить"
+                            aria-label="Удалить"
+                            onClick={() => handleUploadDraftDeleteClick(d)}
+                            disabled={deletingId === d.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+            <Tabs
+              value={tracksTab}
+              onValueChange={(value) => setTracksTab(value as "grouped" | "simple")}
+              className="w-full"
+            >
+              <div className="flex items-center gap-3 flex-wrap justify-between">
+                <div className="flex items-center gap-3 flex-wrap min-w-0 flex-1">
+                  <TabsList>
+                    <TabsTrigger value="grouped">Группировка по артистам</TabsTrigger>
+                    <TabsTrigger value="simple">Простой список</TabsTrigger>
+                  </TabsList>
+                  {tracksTab === "grouped" ? (
+                    <div className="relative min-w-[200px] flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                      <Input
+                        value={artistSearchQuery}
+                        onChange={(e) => {
+                          setArtistSearchQuery(e.target.value)
+                          setSelectedGroupedArtist(null)
+                        }}
+                        placeholder="Поиск по имени артиста…"
+                        className="pl-9 h-9"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <span className="text-sm text-muted-foreground">Дата публикации:</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "min-w-[168px] justify-between font-normal",
+                          !releaseDateFromDraft && "text-muted-foreground"
+                        )}
+                      >
+                        {releaseDateFromDraft ? (
+                          format(
+                            parseISO(releaseDateFromDraft + "T12:00:00"),
+                            "PPP",
+                            { locale: ru }
+                          )
+                        ) : (
+                          <span>От</span>
+                        )}
+                        <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        locale={ru}
+                        selected={
+                          releaseDateFromDraft
+                            ? parseISO(releaseDateFromDraft + "T12:00:00")
+                            : undefined
+                        }
+                        onSelect={(date) =>
+                          date && setReleaseDateFromDraft(format(date, "yyyy-MM-dd"))
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-sm text-muted-foreground">-</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "min-w-[168px] justify-between font-normal",
+                          !releaseDateToDraft && "text-muted-foreground"
+                        )}
+                      >
+                        {releaseDateToDraft ? (
+                          format(
+                            parseISO(releaseDateToDraft + "T12:00:00"),
+                            "PPP",
+                            { locale: ru }
+                          )
+                        ) : (
+                          <span>До</span>
+                        )}
+                        <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        locale={ru}
+                        selected={
+                          releaseDateToDraft
+                            ? parseISO(releaseDateToDraft + "T12:00:00")
+                            : undefined
+                        }
+                        onSelect={(date) =>
+                          date && setReleaseDateToDraft(format(date, "yyyy-MM-dd"))
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setReleaseDateFromApplied(releaseDateFromDraft)
+                      setReleaseDateToApplied(releaseDateToDraft)
+                    }}
+                  >
+                    ОК
+                  </Button>
+                  {(releaseDateFromDraft ||
+                    releaseDateToDraft ||
+                    releaseDateFromApplied ||
+                    releaseDateToApplied) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setReleaseDateFromDraft("")
+                        setReleaseDateToDraft("")
+                        setReleaseDateFromApplied("")
+                        setReleaseDateToApplied("")
+                      }}
+                    >
+                      Сбросить дату
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <TabsContent value="grouped" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Алфавит артистов</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      По всей базе (не ограничено лимитом простого списка). Выберите букву.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {artistsIndexLoading ? (
+                      <p className="text-sm text-muted-foreground">Загрузка артистов…</p>
+                    ) : availableArtistLetters.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {availableArtistLetters.map((letter) => {
+                          const count = artistsByLetter.get(letter)?.length ?? 0
+                          const isActive = !artistSearchNorm && groupedLetter === letter
+                          return (
+                            <Button
+                              key={letter}
+                              type="button"
+                              variant={isActive ? "default" : "outline"}
+                              className="min-w-11"
+                              onClick={() => {
+                                setArtistSearchQuery("")
+                                setGroupedLetter(letter)
+                                setSelectedGroupedArtist(null)
+                              }}
+                            >
+                              <span className="font-semibold">{letter}</span>
+                              <span
+                                className={cn(
+                                  "ml-1.5 text-xs",
+                                  isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                                )}
+                              >
+                                {count}
+                              </span>
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {artistSearchResults ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Результаты поиска</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Найдено артистов: {artistSearchResults.length}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {artistSearchResults.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Ничего не найдено</p>
+                      ) : (
+                        artistSearchResults.map((artist) => (
+                          <div key={artist.name} className="space-y-2">
+                            <button
+                              type="button"
+                              className={cn(
+                                "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
+                                selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
+                              )}
+                              onClick={() =>
+                                setSelectedGroupedArtist((prev) =>
+                                  prev === artist.name ? null : artist.name
+                                )
+                              }
+                            >
+                              <span className="font-medium">{artist.name}</span>
+                              <span className="text-sm text-muted-foreground shrink-0">
+                                {ruTracksCountLabel(artist.count)}
+                              </span>
+                            </button>
+                            {selectedGroupedArtist === artist.name
+                              ? renderSelectedArtistTracksPanel()
+                              : null}
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : groupedLetter ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">
+                        Артисты на «{groupedLetter}»
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
+                        {(artistsByLetter.get(groupedLetter) ?? []).length === 1
+                          ? "артист"
+                          : "артистов"}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {(artistsByLetter.get(groupedLetter) ?? []).map((artist) => (
+                        <div key={artist.name} className="space-y-2">
+                          <button
+                            type="button"
+                            className={cn(
+                              "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
+                              selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
+                            )}
+                            onClick={() =>
+                              setSelectedGroupedArtist((prev) =>
+                                prev === artist.name ? null : artist.name
+                              )
+                            }
+                          >
+                            <span className="font-medium">{artist.name}</span>
+                            <span className="text-sm text-muted-foreground shrink-0">
+                              {ruTracksCountLabel(artist.count)}
+                            </span>
+                          </button>
+                          {selectedGroupedArtist === artist.name
+                            ? renderSelectedArtistTracksPanel()
+                            : null}
+                        </div>
+                      ))}
                     </CardContent>
                   </Card>
                 ) : null}
