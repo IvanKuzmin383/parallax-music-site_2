@@ -4,6 +4,7 @@ import {
   ADMIN_TRACKS_DEFAULT_LIMIT,
   ADMIN_TRACKS_MAX_LIMIT,
   getAdminTracksStats,
+  listArtistsForAdmin,
   listTrackMetaForAdmin,
   listTracksForAdmin,
   type AdminTracksListQuery,
@@ -63,12 +64,14 @@ function parseOffset(value: string | null): number | undefined {
 
 function buildListQuery(searchParams: URLSearchParams): AdminTracksListQuery {
   const status = parseStatus(searchParams.get("status"))
+  const artistNameRaw = searchParams.get("artistName")
   return {
     userId: searchParams.get("userId")?.trim() || undefined,
     status: status ?? "all",
     releaseDateFrom: searchParams.get("releaseDateFrom")?.trim() || undefined,
     releaseDateTo: searchParams.get("releaseDateTo")?.trim() || undefined,
     upcomingOnly: searchParams.get("upcomingOnly") === "1",
+    artistName: artistNameRaw != null ? artistNameRaw : undefined,
     sortField: parseSortField(searchParams.get("sortField")),
     sortDirection: parseSortDirection(searchParams.get("sortDirection")),
     limit: parseLimit(searchParams.get("limit")),
@@ -90,6 +93,18 @@ export async function GET(request: NextRequest) {
     }
 
     const listQuery = buildListQuery(searchParams)
+
+    if (searchParams.get("artists") === "1") {
+      const artists = await listArtistsForAdmin({
+        userId: listQuery.userId,
+        status: listQuery.status,
+        releaseDateFrom: listQuery.releaseDateFrom,
+        releaseDateTo: listQuery.releaseDateTo,
+        upcomingOnly: listQuery.upcomingOnly,
+      })
+      return NextResponse.json({ artists })
+    }
+
     const tracksPage = await listTracksForAdmin({
       ...listQuery,
       limit: listQuery.limit ?? ADMIN_TRACKS_DEFAULT_LIMIT,

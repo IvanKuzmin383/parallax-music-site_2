@@ -3,6 +3,7 @@ import { rowToTrack, type TrackRow } from "@/lib/tracks"
 import {
   ADMIN_TRACKS_DEFAULT_LIMIT,
   ADMIN_TRACKS_MAX_LIMIT,
+  type AdminArtistIndexItem,
   type AdminTrackMeta,
   type AdminTracksListQuery,
   type AdminTracksListResult,
@@ -16,6 +17,7 @@ export {
   ADMIN_TRACKS_CLIENT_CAP,
   ADMIN_TRACKS_DEFAULT_LIMIT,
   ADMIN_TRACKS_MAX_LIMIT,
+  type AdminArtistIndexItem,
   type AdminTrackMeta,
   type AdminTracksListQuery,
   type AdminTracksListResult,
@@ -42,6 +44,9 @@ const ADMIN_UPLOAD_DRAFT_STATUSES = [
   "cancelled",
 ] as const
 
+/** Каноническое имя артиста для группировки (как в админке). */
+export const ADMIN_ARTIST_EMPTY_LABEL = "Без имени артиста"
+
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -52,34 +57,49 @@ function clampLimit(limit: number | undefined): number {
   return Math.min(Math.floor(n), ADMIN_TRACKS_MAX_LIMIT)
 }
 
-function buildWhereClause(query: AdminTracksListQuery): { sql: string; params: unknown[] } {
+function normalizeArtistName(name: string | null | undefined): string {
+  const trimmed = typeof name === "string" ? name.trim() : ""
+  return trimmed || ADMIN_ARTIST_EMPTY_LABEL
+}
+
+function buildWhereClause(listQuery: AdminTracksListQuery): { sql: string; params: unknown[] } {
   const parts: string[] = []
   const params: unknown[] = []
 
-  if (query.userId?.trim()) {
+  if (listQuery.userId?.trim()) {
     parts.push("LOWER(user_id) = LOWER(?)")
-    params.push(query.userId.trim())
+    params.push(listQuery.userId.trim())
   }
 
-  if (query.status && query.status !== "all") {
+  if (listQuery.status && listQuery.status !== "all") {
     parts.push("status = ?")
-    params.push(query.status)
+    params.push(listQuery.status)
   }
 
-  if (query.upcomingOnly) {
+  if (listQuery.upcomingOnly) {
     parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
     parts.push("release_date::date >= ?::date")
     params.push(todayIsoDate())
     parts.push("status NOT IN ('rejected', 'postponed')")
-  } else if (query.releaseDateFrom || query.releaseDateTo) {
+  } else if (listQuery.releaseDateFrom || listQuery.releaseDateTo) {
     parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
-    if (query.releaseDateFrom) {
+    if (listQuery.releaseDateFrom) {
       parts.push("release_date::date >= ?::date")
-      params.push(query.releaseDateFrom)
+      params.push(listQuery.releaseDateFrom)
     }
-    if (query.releaseDateTo) {
+    if (listQuery.releaseDateTo) {
       parts.push("release_date::date <= ?::date")
-      params.push(query.releaseDateTo)
+      params.push(listQuery.releaseDateTo)
+    }
+  }
+
+  if (listQuery.artistName !== undefined) {
+    const name = normalizeArtistName(listQuery.artistName)
+    if (name === ADMIN_ARTIST_EMPTY_LABEL) {
+      parts.push("(artist_name IS NULL OR TRIM(artist_name) = '')")
+    } else {
+      parts.push("TRIM(artist_name) = ?")
+      params.push(name)
     }
   }
 
@@ -103,8 +123,8 @@ export async function countTracksInDatabase(): Promise<number> {
   return Number(row?.c ?? 0)
 }
 
-export async function countTracksMatching(query: AdminTracksListQuery): Promise<number> {
-  const { sql, params } = buildWhereClause(query)
+export async function countTracksMatching(listQuery: AdminTracksListQuery): Promise<number> {
+  const { sql, params } = buildWhereClause(listQuery)
   const row = await queryOne<{ c: string | number }>(
     `SELECT COUNT(*) AS c FROM tracks ${sql}`,
     params
@@ -140,6 +160,34 @@ export async function listTracksForAdmin(
     offset,
     hasMore: offset + tracks.length < total,
   }
+}
+
+/** Лёгкий индекс артистов по текущим фильтрам (без тел треков). */
+export async function listArtistsForAdmin(
+  listQuery: Omit<
+    AdminTracksListQuery,
+    "artistName" | "limit" | "offset" | "sortField" | "sortDirection"
+  >
+): Promise<AdminArtistIndexItem[]> {
+  const { sql, params } = buildWhereClause(listQuery)
+  const rows = await query<{ artist_key: string; c: string | number }>(
+    `SELECT
+       CASE
+         WHEN artist_name IS NULL OR TRIM(artist_name) = '' THEN ?
+         ELSE TRIM(artist_name)
+       END AS artist_key,
+       COUNT(*) AS c
+     FROM tracks
+     ${sql}
+     GROUP BY 1
+     ORDER BY 1 ASC`,
+    [ADMIN_ARTIST_EMPTY_LABEL, ...params]
+  )
+
+  return rows.map((row) => ({
+    name: row.artist_key,
+    count: Number(row.c) || 0,
+  }))
 }
 
 export async function getAdminTracksStats(userId?: string): Promise<AdminTracksStats> {

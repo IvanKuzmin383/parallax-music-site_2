@@ -92,9 +92,10 @@ import {
 } from "@/lib/track-constants"
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
-import { fetchAdminTracksAllMatching } from "@/lib/admin-tracks-fetch"
+import { fetchAdminArtistsIndex, fetchAdminTracksAllMatching, fetchAdminTracksForArtist } from "@/lib/admin-tracks-fetch"
 import {
   ADMIN_TRACKS_CLIENT_CAP,
+  type AdminArtistIndexItem,
   type AdminTracksListQuery,
   type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
@@ -388,6 +389,10 @@ export default function TracksPageClient() {
   const [groupedLetter, setGroupedLetter] = useState<string | null>(null)
   const [selectedGroupedArtist, setSelectedGroupedArtist] = useState<string | null>(null)
   const [artistSearchQuery, setArtistSearchQuery] = useState("")
+  const [artistsIndex, setArtistsIndex] = useState<AdminArtistIndexItem[]>([])
+  const [artistsIndexLoading, setArtistsIndexLoading] = useState(false)
+  const [groupedArtistTracks, setGroupedArtistTracks] = useState<Track[] | null>(null)
+  const [groupedArtistTracksLoading, setGroupedArtistTracksLoading] = useState(false)
   const [trackListSortField, setTrackListSortField] = useState<TrackListSortField>("releaseDate")
   const [trackListSortDirection, setTrackListSortDirection] = useState<"asc" | "desc">("asc")
   const [simpleListVisibleCount, setSimpleListVisibleCount] = useState(SIMPLE_LIST_PAGE_SIZE)
@@ -521,31 +526,19 @@ export default function TracksPageClient() {
   )
   const simpleListHasMore = simpleListTracks.length > simpleListVisibleCount
 
-  const tracksByArtistName = useMemo(() => {
-    const map = new Map<string, Track[]>()
-    for (const track of statusFilteredTracks) {
-      const key = track.artistName?.trim() || "Без имени артиста"
-      const list = map.get(key)
-      if (list) list.push(track)
-      else map.set(key, [track])
-    }
-    return map
-  }, [statusFilteredTracks])
-
   const artistsByLetter = useMemo(() => {
-    const map = new Map<string, { name: string; count: number }[]>()
-    for (const [name, list] of tracksByArtistName) {
-      const letter = getArtistIndexLetter(name)
-      const entry = { name, count: list.length }
+    const map = new Map<string, AdminArtistIndexItem[]>()
+    for (const artist of artistsIndex) {
+      const letter = getArtistIndexLetter(artist.name)
       const bucket = map.get(letter)
-      if (bucket) bucket.push(entry)
-      else map.set(letter, [entry])
+      if (bucket) bucket.push(artist)
+      else map.set(letter, [artist])
     }
     for (const bucket of map.values()) {
       bucket.sort((a, b) => a.name.localeCompare(b.name, "ru"))
     }
     return map
-  }, [tracksByArtistName])
+  }, [artistsIndex])
 
   const availableArtistLetters = useMemo(
     () => [...artistsByLetter.keys()].sort(compareArtistIndexLetters),
@@ -555,28 +548,67 @@ export default function TracksPageClient() {
   const artistSearchNorm = artistSearchQuery.trim().toLowerCase()
   const artistSearchResults = useMemo(() => {
     if (!artistSearchNorm) return null
-    return [...tracksByArtistName.entries()]
-      .filter(([name]) => name.toLowerCase().includes(artistSearchNorm))
-      .sort(([a], [b]) => a.localeCompare(b, "ru"))
-      .map(([name, list]) => ({ name, count: list.length }))
-  }, [artistSearchNorm, tracksByArtistName])
+    return artistsIndex
+      .filter((a) => a.name.toLowerCase().includes(artistSearchNorm))
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"))
+  }, [artistSearchNorm, artistsIndex])
 
   const selectedArtistTracks = useMemo(() => {
-    if (!selectedGroupedArtist) return null
-    const list = tracksByArtistName.get(selectedGroupedArtist)
-    if (!list) return null
-    return [...list].sort((a, b) => {
+    if (!selectedGroupedArtist || !groupedArtistTracks) return null
+    return [...groupedArtistTracks].sort((a, b) => {
       const aDate = a.releaseDate || a.createdAt
       const bDate = b.releaseDate || b.createdAt
       return new Date(aDate).getTime() - new Date(bDate).getTime()
     })
-  }, [selectedGroupedArtist, tracksByArtistName])
+  }, [selectedGroupedArtist, groupedArtistTracks])
+
+  const refreshArtistsIndex = useCallback(async () => {
+    setArtistsIndexLoading(true)
+    try {
+      const artists = await fetchAdminArtistsIndex({
+        userId: adminTracksQuery.userId,
+        status: adminTracksQuery.status,
+        releaseDateFrom: adminTracksQuery.releaseDateFrom,
+        releaseDateTo: adminTracksQuery.releaseDateTo,
+        upcomingOnly: adminTracksQuery.upcomingOnly,
+      })
+      setArtistsIndex(artists)
+    } catch (err) {
+      const status = (err as { status?: number }).status
+      if (status === 401) setIsAuthenticated(false)
+      else toast.error("Не удалось загрузить список артистов")
+    } finally {
+      setArtistsIndexLoading(false)
+    }
+  }, [adminTracksQuery])
+
+  const refreshGroupedArtistTracks = useCallback(
+    async (artistName: string) => {
+      setGroupedArtistTracksLoading(true)
+      try {
+        const list = await fetchAdminTracksForArtist({
+          ...adminTracksQuery,
+          artistName,
+        })
+        setGroupedArtistTracks(list)
+      } catch (err) {
+        const status = (err as { status?: number }).status
+        if (status === 401) setIsAuthenticated(false)
+        else toast.error("Не удалось загрузить треки артиста")
+        setGroupedArtistTracks([])
+      } finally {
+        setGroupedArtistTracksLoading(false)
+      }
+    },
+    [adminTracksQuery]
+  )
 
   useEffect(() => {
     setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
     setGroupedLetter(null)
     setSelectedGroupedArtist(null)
     setArtistSearchQuery("")
+    setGroupedArtistTracks(null)
   }, [adminTracksQuery])
 
   useEffect(() => {
@@ -590,6 +622,32 @@ export default function TracksPageClient() {
       cancelled = true
     }
   }, [refreshTracks])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      if (cancelled) return
+      await refreshArtistsIndex()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshArtistsIndex])
+
+  useEffect(() => {
+    if (!selectedGroupedArtist) {
+      setGroupedArtistTracks(null)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      if (cancelled) return
+      await refreshGroupedArtistTracks(selectedGroupedArtist)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedGroupedArtist, refreshGroupedArtistTracks])
 
   const displayUploadDrafts = useMemo(() => {
     let list = uploadDrafts
@@ -647,25 +705,22 @@ export default function TracksPageClient() {
 
   const loadTracks = async () => {
     await refreshTracks()
+    await refreshArtistsIndex()
+    if (selectedGroupedArtist) {
+      await refreshGroupedArtistTracks(selectedGroupedArtist)
+    }
   }
 
   useEffect(() => {
     if (!userIdFilterNorm) return
-    const subset = tracks.filter(
-      (t) => t.userId.toLowerCase() === userIdFilterNorm
-    )
-    if (subset.length === 0) return
-    const keys = [
-      ...new Set(
-        subset.map((t) => t.artistName?.trim() || "Без имени артиста")
-      ),
-    ].sort((a, b) => a.localeCompare(b, "ru"))
-    const first = keys[0]
+    if (artistsIndex.length === 0) return
+    if (selectedGroupedArtist) return
+    const first = [...artistsIndex].sort((a, b) => a.name.localeCompare(b.name, "ru"))[0]
     if (!first) return
     setArtistSearchQuery("")
-    setGroupedLetter(getArtistIndexLetter(first))
-    setSelectedGroupedArtist(first)
-  }, [userIdFilterNorm, tracks])
+    setGroupedLetter(getArtistIndexLetter(first.name))
+    setSelectedGroupedArtist(first.name)
+  }, [userIdFilterNorm, artistsIndex, selectedGroupedArtist])
 
   const handleStatusChange = async (trackId: string, status: TrackStatus) => {
     setUpdatingId(trackId)
@@ -1544,8 +1599,10 @@ export default function TracksPageClient() {
           <Alert>
             <AlertTitle>Показаны не все треки</AlertTitle>
             <AlertDescription>
-              Загружено {tracks.length} из {tracksTotal} по текущему фильтру (лимит{" "}
-              {ADMIN_TRACKS_CLIENT_CAP}). Сузьте фильтр по пользователю, статусу или дате.
+              В «Простом списке» загружено {tracks.length} из {tracksTotal} по текущему фильтру
+              (лимит {ADMIN_TRACKS_CLIENT_CAP}). Вкладка «Группировка по артистам» использует полный
+              индекс артистов из базы — ищите там. Либо сузьте фильтр по пользователю, статусу или
+              дате.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -1849,11 +1906,13 @@ export default function TracksPageClient() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Алфавит артистов</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Выберите букву, чтобы открыть список артистов
+                      По всей базе (не ограничено лимитом простого списка). Выберите букву.
                     </p>
                   </CardHeader>
                   <CardContent>
-                    {availableArtistLetters.length === 0 ? (
+                    {artistsIndexLoading ? (
+                      <p className="text-sm text-muted-foreground">Загрузка артистов…</p>
+                    ) : availableArtistLetters.length === 0 ? (
                       <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
@@ -1954,13 +2013,17 @@ export default function TracksPageClient() {
                   </Card>
                 ) : null}
 
-                {selectedGroupedArtist && selectedArtistTracks ? (
+                {selectedGroupedArtist ? (
                   <Card>
                     <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <CardTitle className="text-lg">{selectedGroupedArtist}</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          {ruTracksCountLabel(selectedArtistTracks.length)}
+                          {groupedArtistTracksLoading
+                            ? "Загрузка треков…"
+                            : selectedArtistTracks
+                              ? ruTracksCountLabel(selectedArtistTracks.length)
+                              : "—"}
                         </p>
                       </div>
                       <Button
@@ -1974,7 +2037,10 @@ export default function TracksPageClient() {
                       </Button>
                     </CardHeader>
                     <CardContent className="border-t pt-4 space-y-4">
-                      {groupTracksByAlbum(selectedArtistTracks).map(({ albumId, tracks: albumTracks }) => {
+                      {groupedArtistTracksLoading ? (
+                        <p className="text-sm text-muted-foreground">Загрузка…</p>
+                      ) : selectedArtistTracks && selectedArtistTracks.length > 0 ? (
+                      groupTracksByAlbum(selectedArtistTracks).map(({ albumId, tracks: albumTracks }) => {
                         const orderedAlbumTracks = sortTracksByUploadOrder(albumTracks)
                         const albumTitle =
                           albumId != null
@@ -2041,8 +2107,8 @@ export default function TracksPageClient() {
                                 className="border rounded-md p-3 flex flex-col gap-2"
                               >
                                 <div className="flex items-start justify-between gap-3">
-                                  <div className="flex items-start gap-3">
-                                    <span className="text-sm font-semibold mt-0.5">
+                                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                                    <span className="text-sm font-semibold mt-0.5 shrink-0">
                                       {index + 1}.
                                     </span>
                                     <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
@@ -2064,61 +2130,43 @@ export default function TracksPageClient() {
                                         </div>
                                       )}
                                     </div>
-                                    <div>
+                                    <div className="min-w-0 flex-1 space-y-1.5">
                                       <p className="font-medium">{track.trackName}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Пользователь: {track.userId}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Лейбл: {getReleaseLabelName(track.labelName)}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Жанр: {track.genre}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Настроение: {track.mood?.trim() || "—"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Автор слов:{" "}
-                                        {track.isInstrumental
-                                          ? "Инструментал"
-                                          : track.lyricsAuthor?.trim() || "—"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Автор музыки: {track.musicAuthor?.trim() || "—"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Права на музыку: {track.musicRights?.trim() || "—"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Права на текст:{" "}
-                                        {track.isInstrumental
-                                          ? "Инструментал"
-                                          : track.lyricsRights?.trim() || "—"}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Права на исполнение:{" "}
-                                        {track.performanceRights?.trim() || "—"}
-                                      </p>
-                                      {track.upc && (
-                                        <p className="text-xs text-muted-foreground">
-                                          UPC: {track.upc}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                                        <p className="break-all">Пользователь: {track.userId}</p>
+                                        <p>Лейбл: {getReleaseLabelName(track.labelName)}</p>
+                                        <p>Жанр: {track.genre}</p>
+                                        <p>Настроение: {track.mood?.trim() || "—"}</p>
+                                        <p>
+                                          Автор слов:{" "}
+                                          {track.isInstrumental
+                                            ? "Инструментал"
+                                            : track.lyricsAuthor?.trim() || "—"}
                                         </p>
-                                      )}
-                                      <p className="text-xs text-muted-foreground">
-                                        Дата публикации:{" "}
-                                        {track.releaseDate
-                                          ? format(
-                                              new Date(track.releaseDate),
-                                              "d MMM yyyy",
-                                              { locale: ru }
-                                            )
-                                          : format(
-                                              new Date(track.createdAt),
-                                              "d MMM yyyy",
-                                              { locale: ru }
-                                            )}
-                                      </p>
+                                        <p>Автор музыки: {track.musicAuthor?.trim() || "—"}</p>
+                                        <p>Права на музыку: {track.musicRights?.trim() || "—"}</p>
+                                        <p>
+                                          Права на текст:{" "}
+                                          {track.isInstrumental
+                                            ? "Инструментал"
+                                            : track.lyricsRights?.trim() || "—"}
+                                        </p>
+                                        <p>
+                                          Права на исполнение:{" "}
+                                          {track.performanceRights?.trim() || "—"}
+                                        </p>
+                                        {track.upc ? <p>UPC: {track.upc}</p> : null}
+                                        <p>
+                                          Дата публикации:{" "}
+                                          {track.releaseDate
+                                            ? format(new Date(track.releaseDate), "d MMM yyyy", {
+                                                locale: ru,
+                                              })
+                                            : format(new Date(track.createdAt), "d MMM yyyy", {
+                                                locale: ru,
+                                              })}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
                                   <Select
@@ -2213,7 +2261,10 @@ export default function TracksPageClient() {
                             ))}
                           </div>
                         )
-                      })}
+                      })
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Нет треков у этого артиста</p>
+                      )}
                     </CardContent>
                   </Card>
                 ) : null}
