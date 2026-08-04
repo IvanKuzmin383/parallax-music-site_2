@@ -1845,6 +1845,115 @@ export default function TracksPageClient() {
                   />
                 </div>
 
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Алфавит артистов</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Выберите букву, чтобы открыть список артистов
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {availableArtistLetters.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {availableArtistLetters.map((letter) => {
+                          const count = artistsByLetter.get(letter)?.length ?? 0
+                          const isActive = !artistSearchNorm && groupedLetter === letter
+                          return (
+                            <Button
+                              key={letter}
+                              type="button"
+                              variant={isActive ? "default" : "outline"}
+                              className="min-w-11"
+                              onClick={() => {
+                                setArtistSearchQuery("")
+                                setGroupedLetter(letter)
+                                setSelectedGroupedArtist(null)
+                              }}
+                            >
+                              <span className="font-semibold">{letter}</span>
+                              <span
+                                className={cn(
+                                  "ml-1.5 text-xs",
+                                  isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                                )}
+                              >
+                                {count}
+                              </span>
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {artistSearchResults ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Результаты поиска</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Найдено артистов: {artistSearchResults.length}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {artistSearchResults.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Ничего не найдено</p>
+                      ) : (
+                        artistSearchResults.map((artist) => (
+                          <button
+                            key={artist.name}
+                            type="button"
+                            className={cn(
+                              "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
+                              selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
+                            )}
+                            onClick={() => setSelectedGroupedArtist(artist.name)}
+                          >
+                            <span className="font-medium">{artist.name}</span>
+                            <span className="text-sm text-muted-foreground shrink-0">
+                              {ruTracksCountLabel(artist.count)}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : groupedLetter ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">
+                        Артисты на «{groupedLetter}»
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
+                        {(artistsByLetter.get(groupedLetter) ?? []).length === 1
+                          ? "артист"
+                          : "артистов"}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {(artistsByLetter.get(groupedLetter) ?? []).map((artist) => (
+                        <button
+                          key={artist.name}
+                          type="button"
+                          className={cn(
+                            "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
+                            selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
+                          )}
+                          onClick={() => setSelectedGroupedArtist(artist.name)}
+                        >
+                          <span className="font-medium">{artist.name}</span>
+                          <span className="text-sm text-muted-foreground shrink-0">
+                            {ruTracksCountLabel(artist.count)}
+                          </span>
+                        </button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : null}
+
                 {selectedGroupedArtist && selectedArtistTracks ? (
                   <Card>
                     <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1861,7 +1970,7 @@ export default function TracksPageClient() {
                         onClick={() => setSelectedGroupedArtist(null)}
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
-                        Назад
+                        Скрыть треки
                       </Button>
                     </CardHeader>
                     <CardContent className="border-t pt-4 space-y-4">
@@ -2107,109 +2216,7 @@ export default function TracksPageClient() {
                       })}
                     </CardContent>
                   </Card>
-                ) : artistSearchResults ? (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">Результаты поиска</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Найдено артистов: {artistSearchResults.length}
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {artistSearchResults.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Ничего не найдено</p>
-                      ) : (
-                        artistSearchResults.map((artist) => (
-                          <button
-                            key={artist.name}
-                            type="button"
-                            className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3"
-                            onClick={() => setSelectedGroupedArtist(artist.name)}
-                          >
-                            <span className="font-medium">{artist.name}</span>
-                            <span className="text-sm text-muted-foreground shrink-0">
-                              {ruTracksCountLabel(artist.count)}
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : groupedLetter ? (
-                  <Card>
-                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <CardTitle className="text-lg">
-                          Артисты на «{groupedLetter}»
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
-                          {(artistsByLetter.get(groupedLetter) ?? []).length === 1
-                            ? "артист"
-                            : "артистов"}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setGroupedLetter(null)}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        К алфавиту
-                      </Button>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {(artistsByLetter.get(groupedLetter) ?? []).map((artist) => (
-                        <button
-                          key={artist.name}
-                          type="button"
-                          className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3"
-                          onClick={() => setSelectedGroupedArtist(artist.name)}
-                        >
-                          <span className="font-medium">{artist.name}</span>
-                          <span className="text-sm text-muted-foreground shrink-0">
-                            {ruTracksCountLabel(artist.count)}
-                          </span>
-                        </button>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">Алфавит артистов</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Выберите букву, чтобы открыть список артистов
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      {availableArtistLetters.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {availableArtistLetters.map((letter) => {
-                            const count = artistsByLetter.get(letter)?.length ?? 0
-                            return (
-                              <Button
-                                key={letter}
-                                type="button"
-                                variant="outline"
-                                className="min-w-11"
-                                onClick={() => setGroupedLetter(letter)}
-                              >
-                                <span className="font-semibold">{letter}</span>
-                                <span className="ml-1.5 text-xs text-muted-foreground">
-                                  {count}
-                                </span>
-                              </Button>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
+                ) : null}
               </TabsContent>
 
               <TabsContent value="simple">
