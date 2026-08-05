@@ -99,7 +99,7 @@ import {
 } from "@/lib/admin-tracks-query-shared"
 
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
-  { value: "upload_pending", label: "Черновик (доработка пользователем)" },
+  { value: "upload_pending", label: "Требуется доработка" },
   { value: "on_moderation", label: "На модерации" },
   { value: "sent_to_platforms", label: "Модерация стриминг-сервисами" },
   { value: "approved_by_platforms", label: "Одобрен площадками" },
@@ -880,9 +880,12 @@ export default function TracksPageClient() {
     artistName?: string
   ) => {
     try {
-      const response = await fetch(`/api/admin/upload-drafts/${encodeURIComponent(draftId)}/audio`, {
-        credentials: "include",
-      })
+      const response = await fetch(
+        `/api/admin/upload-drafts/${encodeURIComponent(draftId)}/audio?download=1`,
+        {
+          credentials: "include",
+        }
+      )
       if (!response.ok) {
         toast.error("Не удалось скачать аудио черновика")
         return
@@ -1756,6 +1759,18 @@ export default function TracksPageClient() {
                                     </SelectContent>
                                   </Select>
                                 </div>
+                                <audio
+                                  controls
+                                  preload="none"
+                                  className="w-full"
+                                  src={`/api/admin/uploads/audio/${track.id}`}
+                                  onPlay={(e) => {
+                                    const current = e.currentTarget
+                                    document.querySelectorAll("audio").forEach((el) => {
+                                      if (el !== current) el.pause()
+                                    })
+                                  }}
+                                />
                                 <div className="flex gap-2 flex-wrap">
                                   <Button
                                     variant="outline"
@@ -1918,7 +1933,7 @@ export default function TracksPageClient() {
                     : isUploadDraftsView
                       ? "Нет активных черновиков загрузки."
                       : viewFilter.type === "status" && viewFilter.status === "upload_pending"
-                        ? "Нет треков в статусе «Черновик (доработка пользователем)». Заявки из формы загрузки - в блоке «Черновики загрузки»."
+                        ? "Нет треков в статусе «Требуется доработка». Заявки из формы загрузки - в блоке «Черновики загрузки»."
                         : viewFilter.type === "upcoming"
                           ? "Нет треков с запланированной датой выхода на площадки."
                           : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
@@ -2527,6 +2542,41 @@ export default function TracksPageClient() {
             ) : null}
             {(selectedTrack || selectedUploadDraft) && trackDraft && (
               <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedTrack ? (
+                      <div className="md:col-span-2 space-y-2 rounded-md border bg-muted/30 p-3">
+                        <Label>Прослушать</Label>
+                        <audio
+                          key={selectedTrack.id}
+                          controls
+                          preload="metadata"
+                          className="w-full"
+                          src={`/api/admin/uploads/audio/${selectedTrack.id}`}
+                          onPlay={(e) => {
+                            const current = e.currentTarget
+                            document.querySelectorAll("audio").forEach((el) => {
+                              if (el !== current) el.pause()
+                            })
+                          }}
+                        />
+                      </div>
+                    ) : selectedUploadDraft?.audioRelPath ? (
+                      <div className="md:col-span-2 space-y-2 rounded-md border bg-muted/30 p-3">
+                        <Label>Прослушать WAV черновика</Label>
+                        <audio
+                          key={selectedUploadDraft.id}
+                          controls
+                          preload="metadata"
+                          className="w-full"
+                          src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
+                          onPlay={(e) => {
+                            const current = e.currentTarget
+                            document.querySelectorAll("audio").forEach((el) => {
+                              if (el !== current) el.pause()
+                            })
+                          }}
+                        />
+                      </div>
+                    ) : null}
                     <div className="space-y-2">
                       <Label htmlFor="admin-track-name">Название трека</Label>
                       <Input
@@ -2780,7 +2830,7 @@ export default function TracksPageClient() {
                     {selectedTrack ? (
                       <div className="md:col-span-2 space-y-2">
                         <Label htmlFor="admin-mod-note">
-                          Комментарий модерации (при «Отклонено» / «Отложено» / «Черновик»)
+                          Комментарий модерации (при «Отклонено» / «Отложено» / «Требуется доработка»)
                         </Label>
                         <Textarea
                           id="admin-mod-note"

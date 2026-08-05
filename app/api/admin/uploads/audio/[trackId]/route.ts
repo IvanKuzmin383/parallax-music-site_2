@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
+import { createFileRangeResponse } from "@/lib/node-file-range-response"
 import { getTrackById } from "@/lib/tracks"
-import { createReadStream } from "node:fs"
 import { stat } from "node:fs/promises"
-import { Readable } from "node:stream"
 import path from "path"
 
 export async function GET(
@@ -23,8 +22,6 @@ export async function GET(
 
   try {
     const info = await stat(track.audioPath)
-    const stream = createReadStream(track.audioPath)
-    const body = Readable.toWeb(stream) as ReadableStream
     const ext = path.extname(track.audioPath).toLowerCase()
     const contentType =
       ext === ".mp3"
@@ -37,11 +34,11 @@ export async function GET(
               ? "audio/ogg"
               : "audio/mpeg"
 
-    return new NextResponse(body, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": String(info.size),
-      },
+    return createFileRangeResponse({
+      absPath: track.audioPath,
+      fileSize: info.size,
+      contentType,
+      rangeHeader: request.headers.get("range"),
     })
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {

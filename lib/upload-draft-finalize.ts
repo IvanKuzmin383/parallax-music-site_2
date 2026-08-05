@@ -428,7 +428,7 @@ export async function finalizeUploadDraftCore(
     if (sourceTrack.status !== "upload_pending" && sourceTrack.status !== "rejected") {
       return {
         ok: false,
-        error: "Редактирование доступно только для треков в статусе «Черновик» или «Отклонён»",
+        error: "Редактирование доступно только для треков в статусе «Требуется доработка» или «Отклонён»",
         status: 400,
       }
     }

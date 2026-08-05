@@ -29,7 +29,7 @@ export async function POST(
     }
     if (track.status !== "upload_pending" && track.status !== "rejected") {
       return NextResponse.json(
-        { error: "Редактирование доступно только для статуса «Черновик» или «Отклонено»" },
+        { error: "Редактирование доступно только для статуса «Требуется доработка» или «Отклонено»" },
         { status: 400 }
       )
     }

@@ -11,7 +11,7 @@ export type TracksViewFilter =
   | { type: "upload_drafts" }
 
 const STATUS_CARDS: { value: TrackStatus; label: string; shortLabel: string }[] = [
-  { value: "upload_pending", label: "Черновик (доработка)", shortLabel: "Черновик" },
+  { value: "upload_pending", label: "Требуется доработка", shortLabel: "Доработка" },
   { value: "on_moderation", label: "На модерации", shortLabel: "Модерация" },
   { value: "sent_to_platforms", label: "Модерация стриминг-сервисами", shortLabel: "Стриминги" },
   { value: "approved_by_platforms", label: "Одобрен площадками", shortLabel: "Одобрено" },
