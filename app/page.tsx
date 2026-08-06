@@ -8,6 +8,9 @@ import { Process } from "@/components/process"
 import { Advantages } from "@/components/advantages"
 
 const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Pricing))
+const ProofResults = dynamic(() =>
+  import("@/components/proof-results").then((m) => m.ProofResults)
+)
 const FaqSection = dynamic(() => import("@/components/faq-section").then((m) => m.FaqSection))
 const Reviews = dynamic(() => import("@/components/reviews").then((m) => m.Reviews))
 const Contact = dynamic(() => import("@/components/contact").then((m) => m.Contact))
@@ -16,10 +19,10 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
 
 const homeDescription =
-  "Дистрибуция ИИ-музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем, лояльная модерация нейросетевых релизов."
+  "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем, лояльная модерация нейросетевых релизов."
 
 export const metadata: Metadata = {
-  title: "Дистрибуция ИИ-музыки на площадки | Parallax Music",
+  title: "Дистрибуция и продвижение музыки | Parallax Music",
   description: homeDescription,
   keywords: [
     "ИИ-музыка",
@@ -41,14 +44,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: siteUrl,
-    title: "Дистрибуция ИИ-музыки на площадки | Parallax Music",
+    title: "Дистрибуция и продвижение музыки | Parallax Music",
     description: homeDescription,
     images: [
       {
         url: heroOgImage,
         width: 1200,
         height: 630,
-        alt: "Parallax Music - дистрибуция ИИ-музыки",
+        alt: "Parallax Music - дистрибуция и продвижение музыки",
       },
     ],
   },
@@ -139,6 +142,7 @@ export default function HomePage() {
         <Advantages />
         <Services />
         <Process />
+        <ProofResults />
         <Pricing />
         <FaqSection />
         <Reviews />

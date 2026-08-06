@@ -14,7 +14,7 @@ const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
 
 export const metadata: Metadata = {
   title: {
-    default: "Дистрибуция ИИ-музыки на площадки | Parallax Music",
+    default: "Дистрибуция и продвижение музыки | Parallax Music",
     template: "%s | Parallax Music",
   },
   description:
@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     url: siteUrl,
     siteName: "Parallax Music",
-    title: "Дистрибуция ИИ-музыки на площадки | Parallax Music",
+    title: "Дистрибуция и продвижение музыки | Parallax Music",
     description:
-      "Дистрибуция ИИ-музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем.",
+      "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем.",
     images: [
       {
         url: heroOgImage,
@@ -59,9 +59,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Дистрибуция ИИ-музыки на площадки | Parallax Music",
+    title: "Дистрибуция и продвижение музыки | Parallax Music",
     description:
-      "Дистрибуция ИИ-музыки на стриминговые площадки. 100% роялти, треки не удаляем, поддержка ИИ-релизов.",
+      "Дистрибуция музыки на стриминговые площадки. 100% роялти, треки не удаляем, поддержка музыки.",
     images: [heroOgImage],
     creator: "@parallaxmusic",
   },

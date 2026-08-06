@@ -86,10 +86,15 @@
       "Fast royalty payouts the way that works for you"
     ]
   },
+  "proofResults": {
+    "title": "Artist",
+    "titleHighlight": "results",
+    "description": "Yandex Music playlists, BandLink index, and hundreds of thousands of monthly listeners - real outcomes from Parallax Music artists."
+  },
   "pricing": {
     "title": "Our",
     "titleHighlight": "Pricing",
-    "description": "1. Choose a plan → 2. Pay → 3. Register with the same email → 4. Upload your track. Questions before paying? Message us on Telegram.",
+    "description": "1. Choose a plan → 2. Pay → 3. Register with the same email → 4. Upload your track.\nQuestions before paying? Message us on Telegram.",
     "modeOnetime": "One-time payment",
     "modeSubscription": "Subscription",
     "onetimeIntro": "Fix plan - pay only for the tracks you need, no subscription or auto-renewal",

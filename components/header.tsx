@@ -52,9 +52,6 @@ import { LanguageSwitcher } from "@/components/language-switcher"
           <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
             {t.header.promotion}
           </Link>
-          <Link href="/#reviews" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            Отзывы
-          </Link>
           <Link href="/blog" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.blog}
           </Link>
@@ -121,13 +118,6 @@ import { LanguageSwitcher } from "@/components/language-switcher"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t.header.promotion}
-            </Link>
-            <Link
-              href="/#reviews"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Отзывы
             </Link>
             <Link
               href="/blog"

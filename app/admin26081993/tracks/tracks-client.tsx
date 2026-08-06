@@ -1762,7 +1762,7 @@ export default function TracksPageClient() {
                                 <audio
                                   controls
                                   preload="none"
-                                  className="w-full"
+                                  className="admin-audio-compact"
                                   src={`/api/admin/uploads/audio/${track.id}`}
                                   onPlay={(e) => {
                                     const current = e.currentTarget
@@ -2549,7 +2549,7 @@ export default function TracksPageClient() {
                           key={selectedTrack.id}
                           controls
                           preload="metadata"
-                          className="w-full"
+                          className="admin-audio-compact"
                           src={`/api/admin/uploads/audio/${selectedTrack.id}`}
                           onPlay={(e) => {
                             const current = e.currentTarget
@@ -2566,7 +2566,7 @@ export default function TracksPageClient() {
                           key={selectedUploadDraft.id}
                           controls
                           preload="metadata"
-                          className="w-full"
+                          className="admin-audio-compact"
                           src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
                           onPlay={(e) => {
                             const current = e.currentTarget
