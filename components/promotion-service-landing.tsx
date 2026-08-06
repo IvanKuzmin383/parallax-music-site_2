@@ -44,6 +44,8 @@ type PageContent = {
   price?: string
   mockupType: "streams" | "vk" | "yandex" | "tiktok"
   badge: string
+  /** External checkout URL (e.g. PlaylistHub). When set, CTA opens this link instead of the order dialog. */
+  ctaUrl?: string
   orderPrefill: string
   features: Array<{
     id: string
@@ -75,6 +77,7 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
 
   const page = t.promotionLanding.pages[slug] as PageContent
   const shared = t.promotionLanding
+  const externalCtaUrl = page.ctaUrl?.trim() || ""
 
   useEffect(() => {
     const handleScroll = () => {
@@ -134,14 +137,27 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-                <Button
-                  size="lg"
-                  className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-8 gap-2"
-                  onClick={() => setOrderOpen(true)}
-                >
-                  <Rocket className="h-4 w-4" aria-hidden />
-                  {page.badge}
-                </Button>
+                {externalCtaUrl ? (
+                  <Button
+                    size="lg"
+                    className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-8 gap-2"
+                    asChild
+                  >
+                    <a href={externalCtaUrl} target="_blank" rel="noopener noreferrer">
+                      <Rocket className="h-4 w-4" aria-hidden />
+                      {page.badge}
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-8 gap-2"
+                    onClick={() => setOrderOpen(true)}
+                  >
+                    <Rocket className="h-4 w-4" aria-hidden />
+                    {page.badge}
+                  </Button>
+                )}
                 <p className="text-sm text-muted-foreground max-w-xs">{page.ctaCaption}</p>
               </div>
             </div>
@@ -211,13 +227,25 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
             <h2 className="text-4xl md:text-5xl font-bold text-foreground">{page.finalCta.title}</h2>
             <p className="text-lg text-muted-foreground">{page.finalCta.description}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-12"
-                onClick={() => setOrderOpen(true)}
-              >
-                {page.finalCta.cta}
-              </Button>
+              {externalCtaUrl ? (
+                <Button
+                  size="lg"
+                  className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-12"
+                  asChild
+                >
+                  <a href={externalCtaUrl} target="_blank" rel="noopener noreferrer">
+                    {page.finalCta.cta}
+                  </a>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-12"
+                  onClick={() => setOrderOpen(true)}
+                >
+                  {page.finalCta.cta}
+                </Button>
+              )}
               <Button size="lg" variant="outline" className="uppercase tracking-wider" asChild>
                 <Link href="/promotion#promotion-services">{shared.hero.ctaServices}</Link>
               </Button>
@@ -226,13 +254,15 @@ export function PromotionServiceLanding({ slug }: { slug: PromotionSlug }) {
         </div>
       </section>
 
-      <PromotionOrderDialog
-        open={orderOpen}
-        onOpenChange={setOrderOpen}
-        prefillMessage={page.orderPrefill}
-        title={shared.orderDialog.title}
-        description={shared.orderDialog.description}
-      />
+      {!externalCtaUrl ? (
+        <PromotionOrderDialog
+          open={orderOpen}
+          onOpenChange={setOrderOpen}
+          prefillMessage={page.orderPrefill}
+          title={shared.orderDialog.title}
+          description={shared.orderDialog.description}
+        />
+      ) : null}
     </>
   )
 }

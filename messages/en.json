@@ -835,9 +835,10 @@
         "title": "Placement in",
         "titleHighlight": "Yandex Music playlists",
         "subtitle": "The fastest way to start promoting a new release",
-        "ctaCaption": "Great for a quick start and increasing release streams",
+        "ctaCaption": "Checkout on the PlaylistHub playlist marketplace",
         "mockupType": "streams",
-        "badge": "Quick start",
+        "badge": "Buy on PlaylistHub",
+        "ctaUrl": "https://playlisthub.ru/",
         "price": "from 350 ₽ / playlist",
         "orderPrefill": "Hello! I'd like playlist placement on Yandex Music.\nPage: parallaxmusic.ru/promotion/yandex-playlists",
         "features": [
@@ -863,10 +864,14 @@
             { "id": "when", "question": "When will first streams appear?", "answer": "Usually right after playlist placement" },
             { "id": "removed", "question": "Can the track be removed?", "answer": "We place tracks permanently in our and partner playlists" },
             { "id": "any-release", "question": "Works for already released tracks?", "answer": "Yes - new and existing releases" },
-            { "id": "order", "question": "How to order?", "answer": "Click Quick start and send your Yandex Music track link" }
+            { "id": "order", "question": "How to order?", "answer": "Click “Buy on PlaylistHub” - playlisthub.ru opens where you can pick playlists and checkout" }
           ]
         },
-        "finalCta": { "title": "Start playlist promotion", "description": "Submit a request - we'll place your track and attract listeners", "cta": "Quick start" }
+        "finalCta": {
+          "title": "Start playlist promotion",
+          "description": "Choose playlists on PlaylistHub and place your track in a couple of minutes",
+          "cta": "Buy on PlaylistHub"
+        }
       },
       "vk-ads": {
         "title": "Promotion",
