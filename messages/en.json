@@ -1,7 +1,7 @@
 {
   "header": {
-    "services": "Services",
-    "process": "Process",
+    "services": "What you get",
+    "process": "How it works",
     "blog": "Blog",
     "aiMusic": "AI Music",
     "promotion": "Promotion",
@@ -10,72 +10,86 @@
     "login": "Sign in"
   },
   "hero": {
-    "title": "Amplify Your Sound",
-    "description": "Premier music label and promotion agency dedicated to elevating artists and creating cultural impact through innovative strategies and industry expertise.",
-    "workWithUs": "Work With Us",
-    "partnerLogoAlt": "Parallax Music partner"
+    "title": "Release AI music\nto streaming platforms",
+    "description": "Distribution and promotion for AI-generated tracks. Legal, royalty-based, with lower blocking risk.",
+    "workWithUs": "Choose a plan",
+    "ctaSecondary": "Message on Telegram",
+    "telegramUrl": "https://t.me/parallaxmusic_rt",
+    "bullets": [
+      "100% royalties to the artist - no cut from your earnings",
+      "Tracks stay live even after the subscription ends",
+      "AI releases welcome: flexible moderation and real support"
+    ],
+    "stats": [
+      { "value": "2000+", "label": "tracks released" },
+      { "value": "50+", "label": "streaming platforms" },
+      { "value": "100%", "label": "royalties to you" }
+    ],
+    "partnerLogoAlt": "Parallax Music partner",
+    "imageAlt": "Music producer working on a release in the studio"
   },
   "services": {
-    "title": "Our",
-    "titleHighlight": "Services",
-    "description": "Comprehensive music industry solutions designed to elevate your career and maximize your impact in the competitive music landscape.",
+    "title": "What",
+    "titleHighlight": "you get",
+    "description": "One dashboard: AI music distribution, analytics, and promotion - without agency runaround",
     "labelServices": {
-      "title": "Label Services",
-      "description": "Full-service label support including A&R, production, and release management for your music career."
+      "title": "AI release distribution",
+      "description": "Upload in your cabinet - we review materials and deliver to Yandex Music, VK, Spotify, Apple Music, and 50+ platforms"
     },
     "digitalMarketing": {
-      "title": "Digital Marketing",
-      "description": "Strategic digital campaigns across all platforms to maximize your reach and engagement."
+      "title": "Lower typical risks",
+      "description": "We help package the release to reduce takedown risk: metadata, artwork, rights, and platform rules"
     },
     "radioPromotion": {
       "title": "Promotion",
-      "description": "Dedicated radio promotion team with connections to major stations and playlist curators worldwide."
+      "description": "Playlists, TikTok, ads, and growth tools - even if the release was not distributed through us",
+      "href": "/promotion"
     },
     "brandPartnerships": {
-      "title": "Brand Partnerships",
-      "description": "Connect with brands and sponsors that align with your artistic vision and amplify your message."
+      "title": "Support and payouts",
+      "description": "Human support without weeks of waiting, and convenient royalty payouts. Ask us on Telegram before you pay"
     }
   },
   "process": {
-    "title": "Our",
-    "titleHighlight": "Process",
-    "description": "A proven four-step methodology that transforms emerging artists into established names in the music industry.",
+    "title": "How",
+    "titleHighlight": "it works",
+    "description": "A short path from payment to platforms. No “send a demo into the void”.",
     "steps": {
       "discovery": {
-        "title": "Discovery",
-        "description": "We evaluate your music, vision, and goals to create a tailored strategy for your success."
+        "title": "Plan",
+        "description": "Pick a subscription or one-time Fix pack. Pay, then create your cabinet with the same email."
       },
       "strategy": {
-        "title": "Strategy",
-        "description": "Our team develops a comprehensive plan covering all aspects of promotion and distribution."
+        "title": "Upload",
+        "description": "Upload the track, cover, and release details in your personal cabinet."
       },
       "execution": {
-        "title": "Execution",
-        "description": "We implement campaigns across digital platforms, radio, and strategic partnerships."
+        "title": "Moderation",
+        "description": "We review materials, suggest fixes, and prepare delivery to platforms."
       },
       "growth": {
-        "title": "Growth",
-        "description": "Continuous optimization and scaling based on data-driven insights and market response."
+        "title": "Release & royalties",
+        "description": "Your track goes live. Track stats in the cabinet and keep 100% of royalties."
       }
     }
   },
   "advantages": {
-    "title": "Our",
-    "titleHighlight": "Advantages",
-    "highlightText": "We deliver tracks to more than 50 streaming platforms: Yandex Music, VK Music, SberZvuk, KION, Apple Music, Spotify, TikTok, YouTube, and more.",
+    "title": "Why",
+    "titleHighlight": "us",
+    "highlightText": "We deliver to 50+ platforms: Yandex Music, VK Music, SberZvuk, KION, Apple Music, Spotify, TikTok, YouTube, and more. Focus: AI music and independent artists.",
     "items": [
-      "Personal and fast support without long waiting times",
-      "Flexible moderation and fast processing for AI releases",
-      "Releases remain available even after subscription ends",
-      "Full analytics from all platforms in one personal dashboard",
-      "Promotion, pitching, monetization, and additional services",
-      "Fast royalty payouts in a way that suits you"
+      "Personal, fast support - no endless ticket queues",
+      "AI-friendly moderation. Tracks usually hit platforms in about 5 days*",
+      "Releases stay live even after the subscription ends",
+      "Analytics from major platforms in one cabinet",
+      "Promotion, pitching, and extras in the same account",
+      "Fast royalty payouts the way that works for you"
     ]
   },
   "pricing": {
     "title": "Our",
     "titleHighlight": "Pricing",
-    "description": "Choose the pricing plan that suits your music project",
+    "description": "1. Choose a plan → 2. Pay → 3. Register with the same email → 4. Upload your track. Questions before paying? Message us on Telegram.",
     "modeOnetime": "One-time payment",
     "modeSubscription": "Subscription",
     "onetimeIntro": "Fix plan - pay only for the tracks you need, no subscription or auto-renewal",
@@ -211,9 +225,9 @@
     "validationConsentOfferLicense": "Please confirm that you have read and agree to the public offer and license terms"
   },
   "contact": {
-    "title": "Ready to",
-    "titleHighlight": "Elevate?",
-    "description": "Let's discuss how Parallax Music can amplify your sound and accelerate your career.",
+    "title": "Still have",
+    "titleHighlight": "questions?",
+    "description": "Message us - we will help with plans, AI releases, or promotion. Or pick a plan above.",
     "telegramCta": "For initial contact and release-related questions, you can reach our team via the Telegram channel- Parallax Music- Release Team.",
     "form": {
       "name": "Your Name",
@@ -231,7 +245,7 @@
     "errorGeneric": "An error occurred. Please try again later."
   },
   "footer": {
-    "tagline": "Amplifying artists, creating culture.",
+    "tagline": "AI music distribution: 100% royalties, tracks stay live",
     "services": "Services",
     "company": "Company",
     "followUs": "Follow Us",
@@ -357,7 +371,7 @@
         {
           "id": "how-to-release",
           "question": "How can I release music on Spotify, Yandex Music, and other platforms?",
-          "answer": "You register on our platform and upload tracks through your personal dashboard. We review them and then deliver to major streaming services like Apple Music, Spotify, YouTube Music, Yandex Music, and others. After release, you start earning from streams."
+          "answer": "Choose a plan on the site and pay. Then create your cabinet with the same email, upload tracks - we review materials and deliver to streaming services (Apple Music, Spotify, YouTube Music, Yandex Music, and others). After release, you earn from streams."
         },
         {
           "id": "upload-ai",

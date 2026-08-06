@@ -40,23 +40,23 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 
         {/* Desktop Navigation - средняя колонка растягивается (не 1/3 экрана), иначе пункты наезжают на блок справа и теряют клики */}
         <nav className="hidden md:flex min-w-0 items-center justify-center gap-x-4 gap-y-2 lg:gap-x-8 flex-wrap">
-          <Link href="/#services" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+          <Link href="/#advantages" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.services}
+          </Link>
+          <Link href="/#process" className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
+            {t.header.process}
+          </Link>
+          <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+            {t.header.pricing}
+          </Link>
+          <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
+            {t.header.promotion}
           </Link>
           <Link href="/#reviews" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             Отзывы
           </Link>
           <Link href="/blog" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.blog}
-          </Link>
-          <Link href="/ai" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
-            {t.header.aiMusic}
-          </Link>
-          <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
-            {t.header.promotion}
-          </Link>
-          <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.pricing}
           </Link>
           <Link href="/#contact" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.contact}
@@ -94,11 +94,33 @@ import { LanguageSwitcher } from "@/components/language-switcher"
         <div id="mobile-menu" className="md:hidden bg-card border-t border-border" role="menu">
           <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
             <Link
-              href="/#services"
+              href="/#advantages"
               className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t.header.services}
+            </Link>
+            <Link
+              href="/#process"
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.process}
+            </Link>
+            <Link
+              href="/#pricing"
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.pricing}
+            </Link>
+            <Link
+              href="/promotion"
+              prefetch={false}
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.promotion}
             </Link>
             <Link
               href="/#reviews"
@@ -114,29 +136,6 @@ import { LanguageSwitcher } from "@/components/language-switcher"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t.header.blog}
-            </Link>
-            <Link
-              href="/ai"
-              prefetch={false}
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.aiMusic}
-            </Link>
-            <Link
-              href="/promotion"
-              prefetch={false}
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.promotion}
-            </Link>
-            <Link
-              href="/#pricing"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.pricing}
             </Link>
             <Link
               href="/#contact"

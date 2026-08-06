@@ -28,29 +28,6 @@ export type CaseStudyMeta = {
 
 export const caseStudies: CaseStudyMeta[] = [
   {
-    slug: "nova-wave",
-    title: "Nova Wave - рост с 800 до 45 000 прослушиваний",
-    excerpt:
-      "Дистрибуция, питчинг и визуальный контент: как indie pop-сингл вышел на editorial-плейлисты за 6 месяцев.",
-    metaDescription:
-      "Кейс Parallax Music: indie pop-сингл Nova Wave вырос с 800 до 45 000 прослушиваний за 6 месяцев - дистрибуция, питчинг Spotify и Яндекс Музыки, editorial-плейлисты.",
-    keywords: [
-      "продвижение indie pop",
-      "питчинг Spotify",
-      "editorial плейлисты",
-      "дистрибуция музыки",
-      "Parallax Music кейс",
-      "продвижение релиза",
-    ],
-    coverImage: "/hero-studio.webp",
-    artistName: "Nova Wave",
-    genre: "Indie pop",
-    services: ["Дистрибуция", "Питчинг", "Spotify Canvas"],
-    featured: true,
-    sortOrder: 1,
-    updatedAt: "2026-06-01",
-  },
-  {
     slug: "where-mountains-dream",
     title: "Дмитрий Крюков - продвижение оркестрового релиза",
     excerpt:
@@ -71,7 +48,7 @@ export const caseStudies: CaseStudyMeta[] = [
     genre: "Оркестровая / cinematic",
     services: ["VK Ads", "Яндекс Директ", "BandLink"],
     featured: true,
-    sortOrder: 2,
+    sortOrder: 1,
     updatedAt: "2026-06-06",
   },
 ]

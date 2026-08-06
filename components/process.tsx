@@ -10,23 +10,28 @@ export function Process() {
     () => [
       {
         number: "01",
+        title: t.process.steps.discovery.title,
         description: t.process.steps.discovery.description,
       },
       {
         number: "02",
+        title: t.process.steps.strategy.title,
         description: t.process.steps.strategy.description,
       },
       {
         number: "03",
+        title: t.process.steps.execution.title,
         description: t.process.steps.execution.description,
       },
       {
         number: "04",
+        title: t.process.steps.growth.title,
         description: t.process.steps.growth.description,
       },
     ],
     [t]
   )
+
   return (
     <section id="process" className="py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -42,6 +47,7 @@ export function Process() {
           {steps.map((step) => (
             <div key={step.number} className="space-y-4">
               <div className="text-6xl font-bold text-primary opacity-50">{step.number}</div>
+              <h3 className="text-2xl font-bold uppercase tracking-wide">{step.title}</h3>
               <p className="text-muted-foreground leading-relaxed">{step.description}</p>
             </div>
           ))}

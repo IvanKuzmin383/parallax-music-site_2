@@ -90,6 +90,20 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
   },
+  async redirects() {
+    return [
+      {
+        source: '/ai',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/ai/:path*',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {
