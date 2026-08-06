@@ -1,8 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, ArrowUpRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ArrowUpRight } from "lucide-react"
 import { useI18n } from "@/lib/i18n-context"
 
 type CatalogItem = {
@@ -19,121 +18,116 @@ type CatalogGroup = {
   items: CatalogItem[]
 }
 
+function ItemCard({
+  item,
+  soonBadge,
+}: {
+  item: CatalogItem
+  soonBadge: string
+}) {
+  const content = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <h4
+          className={`text-base font-bold leading-snug tracking-tight ${
+            item.soon ? "text-foreground/55" : "text-foreground"
+          }`}
+        >
+          {item.name}
+        </h4>
+        {item.href && !item.soon ? (
+          <ArrowUpRight
+            className="mt-0.5 h-4 w-4 shrink-0 text-primary/70 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary"
+            aria-hidden
+          />
+        ) : null}
+      </div>
+
+      <p
+        className={`mt-2 text-sm leading-relaxed ${
+          item.soon ? "text-foreground/40" : "text-foreground/70"
+        }`}
+      >
+        {item.blurb}
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {item.soon ? (
+          <span className="rounded-md border border-primary/40 bg-primary/15 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+            {soonBadge}
+          </span>
+        ) : item.price ? (
+          <span className="rounded-md bg-foreground/10 px-2.5 py-1 text-sm font-semibold tabular-nums text-foreground">
+            {item.price}
+          </span>
+        ) : null}
+      </div>
+    </>
+  )
+
+  const className = [
+    "group block h-full rounded-xl border p-4 transition-all duration-200",
+    item.soon
+      ? "border-border/40 bg-background/30"
+      : "border-border/70 bg-card/80 hover:border-primary/50 hover:bg-card",
+  ].join(" ")
+
+  if (item.href && !item.soon) {
+    return (
+      <Link
+        href={item.href}
+        className={`${className} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className={className}>{content}</div>
+}
+
 export function ServiceCatalog() {
   const { t } = useI18n()
   const copy = t.serviceCatalog
   const groups = (copy.groups ?? []) as CatalogGroup[]
 
   return (
-    <section id="extras" className="py-24 bg-background/60 border-y border-border/40">
+    <section id="extras" className="py-20 md:py-24 bg-background">
       <div className="container mx-auto px-4">
-        <div className="max-w-3xl mb-14 md:mb-16">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6">
+        <div className="mb-10 md:mb-12 max-w-4xl">
+          <h2 className="mb-4 text-3xl font-bold whitespace-nowrap sm:text-4xl md:text-5xl">
             <span className="text-foreground">{copy.title}</span>{" "}
             <span className="text-primary">{copy.titleHighlight}</span>
           </h2>
-          <p className="text-lg text-muted-foreground text-pretty">{copy.description}</p>
+          <p className="max-w-2xl text-base md:text-lg text-foreground/75 text-pretty">
+            {copy.description}
+          </p>
         </div>
 
-        <div className="space-y-14 md:space-y-16 max-w-5xl">
+        <div className="grid gap-6 lg:grid-cols-2">
           {groups.map((group) => (
-            <div key={group.id}>
-              <div className="mb-5 flex items-baseline gap-4">
-                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-primary">
-                  {group.title}
-                </h3>
-                <div className="h-px flex-1 bg-border/60" aria-hidden />
+            <article
+              key={group.id}
+              className={`rounded-2xl border border-border/60 bg-gradient-to-b from-card to-background p-5 md:p-6 shadow-sm ${
+                group.items.length > 4 ? "lg:col-span-2" : ""
+              }`}
+            >
+              <h3 className="mb-4 text-lg font-bold uppercase tracking-wide text-primary">
+                {group.title}
+              </h3>
+              <div
+                className={`grid gap-3 ${
+                  group.items.length > 4
+                    ? "sm:grid-cols-2 lg:grid-cols-3"
+                    : "sm:grid-cols-2"
+                }`}
+              >
+                {group.items.map((item) => (
+                  <ItemCard key={item.name} item={item} soonBadge={copy.soonBadge} />
+                ))}
               </div>
-
-              <ul className="divide-y divide-border/50 border-y border-border/50">
-                {group.items.map((item) => {
-                  const rowClass =
-                    "group flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
-
-                  const body = (
-                    <>
-                      <div className="min-w-0 flex-1 text-left">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`font-semibold tracking-tight ${
-                              item.soon ? "text-muted-foreground" : "text-foreground"
-                            }`}
-                          >
-                            {item.name}
-                          </span>
-                          {item.soon ? (
-                            <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                              {copy.soonBadge}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p
-                          className={`mt-1 text-sm leading-relaxed ${
-                            item.soon ? "text-muted-foreground/70" : "text-muted-foreground"
-                          }`}
-                        >
-                          {item.blurb}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3 sm:justify-end">
-                        {item.price && !item.soon ? (
-                          <span className="text-sm font-medium text-foreground/90 tabular-nums">
-                            {item.price}
-                          </span>
-                        ) : null}
-                        {item.href && !item.soon ? (
-                          <ArrowUpRight
-                            className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary"
-                            aria-hidden
-                          />
-                        ) : null}
-                      </div>
-                    </>
-                  )
-
-                  if (item.href && !item.soon) {
-                    return (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={`${rowClass} transition-colors hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm px-1 -mx-1`}
-                        >
-                          {body}
-                        </Link>
-                      </li>
-                    )
-                  }
-
-                  return (
-                    <li key={item.name} className={`${rowClass} px-1`}>
-                      {body}
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
+            </article>
           ))}
-        </div>
-
-        <div className="mt-12 flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <Button
-            size="lg"
-            className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
-            asChild
-          >
-            <Link href="/cabinet">
-              {copy.ctaCabinet}
-              <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
-            </Link>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="uppercase tracking-wider border-border bg-background/40"
-            asChild
-          >
-            <Link href="/promotion">{copy.ctaPromotion}</Link>
-          </Button>
         </div>
       </div>
     </section>
