@@ -496,7 +496,8 @@ export async function finalizeUploadDraftCore(
     await removeUploadDraftFiles(draft)
     const updated = await markUploadDraftFinalized(draft.id)
     if (!updated) return { ok: false, error: "Не удалось обновить черновик", status: 500 }
-    await deductAndMarkFixPackCreditsForTracks(cabinetUser, [sourceTrack])
+    // Берём актуальный трек: если charged уже true (доработка), повторно не списываем.
+    await deductAndMarkFixPackCreditsForTracks(cabinetUser, [track])
     return { ok: true, draft: updated, track }
   }
 

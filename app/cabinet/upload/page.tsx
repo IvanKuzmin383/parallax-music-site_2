@@ -1051,7 +1051,10 @@ export default function CabinetUploadPage() {
       toast.error("Заполните профиль: ФИО, адрес регистрации и телефон")
       return
     }
-    if (userLimit?.hasActive && userLimit.subscriptionName) {
+    // Доработка/повторная отправка уже существующего трека (sourceTrackId): слот уже
+    // списан при первой отправке. Лимит кошелька тут не проверяем — сервер сам решит,
+    // нужны ли кредиты (upload_pending + charged → 0; rejected без charged → 1).
+    if (userLimit?.hasActive && userLimit.subscriptionName && !editingSourceTrackId) {
       const limitCheck = isTrackUploadWithinLimit(
         {
           subscriptionName: userLimit.subscriptionName,
