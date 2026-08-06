@@ -6,6 +6,7 @@
     "aiMusic": "AI Music",
     "promotion": "Promotion",
     "pricing": "Pricing",
+    "extras": "Ecosystem",
     "contact": "Contact",
     "login": "Sign in"
   },
@@ -13,8 +14,11 @@
     "title": "Release AI music\nto streaming platforms",
     "description": "Distribution and promotion for AI-generated tracks. Legal, royalty-based, with lower blocking risk.",
     "workWithUs": "Choose a plan",
-    "ctaSecondary": "Message on Telegram",
+    "ctaSecondary": "Consultation",
+    "consultTelegram": "Telegram",
+    "consultVk": "VK",
     "telegramUrl": "https://t.me/parallaxmusic_rt",
+    "vkUrl": "https://vk.com/parallaxmusic_releaseteam",
     "bullets": [
       "100% royalties to the artist - no cut from your earnings",
       "Tracks stay live even after the subscription ends",
@@ -90,6 +94,144 @@
     "title": "Artist",
     "titleHighlight": "results",
     "description": "Yandex Music playlists, BandLink index, and hundreds of thousands of monthly listeners - real outcomes from Parallax Music artists."
+  },
+  "serviceCatalog": {
+    "title": "Parallax",
+    "titleHighlight": "ecosystem",
+    "description": "Artwork, audio, video, and promotion in one place - order in the cabinet or talk to us. Distribution is covered in the plans above.",
+    "soonBadge": "Soon",
+    "ctaCabinet": "Open cabinet",
+    "ctaPromotion": "All promotion options",
+    "groups": [
+      {
+        "id": "design",
+        "title": "Artwork",
+        "items": [
+          {
+            "name": "AI cover",
+            "blurb": "Release artwork with final approval",
+            "price": "from 500 ₽",
+            "href": "/cabinet/promotion/ai-cover"
+          },
+          {
+            "name": "Apple Music / iTunes motion cover",
+            "blurb": "Animated cover for the release card",
+            "soon": true
+          }
+        ]
+      },
+      {
+        "id": "audio",
+        "title": "Audio",
+        "items": [
+          {
+            "name": "AI mastering",
+            "blurb": "Neural mastering for streaming standards",
+            "price": "from 100 ₽",
+            "href": "/cabinet/promotion/ai-mastering"
+          },
+          {
+            "name": "Karaoke and lyrics",
+            "blurb": "Lyrics and karaoke version for platforms",
+            "price": "on request",
+            "href": "/#contact"
+          }
+        ]
+      },
+      {
+        "id": "video",
+        "title": "Video",
+        "items": [
+          {
+            "name": "Vertical videos for social",
+            "blurb": "TikTok, Reels, Shorts for your track",
+            "price": "from 99 ₽",
+            "href": "/cabinet/promotion/vertical-video"
+          },
+          {
+            "name": "AI clips",
+            "blurb": "AI-assisted clips for your release",
+            "price": "on request",
+            "href": "/#contact"
+          },
+          {
+            "name": "Videoshots: creation",
+            "blurb": "Create a videoshot for Yandex Music",
+            "price": "from 3,000 ₽",
+            "href": "/cabinet/promotion/yandex-videoshot-creation"
+          },
+          {
+            "name": "Videoshots: upload",
+            "blurb": "Upload a ready videoshot to the release card",
+            "price": "from 900 ₽",
+            "href": "/cabinet/promotion/yandex-videoshot"
+          },
+          {
+            "name": "Video avatars",
+            "blurb": "Video avatar for the Yandex Music profile",
+            "price": "from 3,000 ₽",
+            "href": "/cabinet/promotion/yandex-videoavatar"
+          },
+          {
+            "name": "Music video distribution to Yandex and VK",
+            "blurb": "Deliver the clip to platform video surfaces",
+            "price": "on request",
+            "href": "/#contact"
+          }
+        ]
+      },
+      {
+        "id": "promotion",
+        "title": "Promotion",
+        "items": [
+          {
+            "name": "Yandex Music playlists",
+            "blurb": "Fast start for a new release",
+            "price": "from 350 ₽",
+            "href": "/promotion/yandex-playlists"
+          },
+          {
+            "name": "TikTok / Shorts / Reels",
+            "blurb": "Short-form video for reach and engagement",
+            "price": "from 199 ₽",
+            "href": "/promotion/tiktok-shorts"
+          },
+          {
+            "name": "Yandex Direct",
+            "blurb": "Targeted ads for your goals and audience",
+            "price": "on request",
+            "href": "/promotion/yandex-direct"
+          },
+          {
+            "name": "VK Ads",
+            "blurb": "Ads and audience growth on VK",
+            "price": "on request",
+            "href": "/promotion/vk-ads"
+          }
+        ]
+      },
+      {
+        "id": "rights",
+        "title": "Rights and content",
+        "items": [
+          {
+            "name": "Deposit / registration of rights",
+            "blurb": "Fix rights to the work",
+            "soon": true
+          },
+          {
+            "name": "Background / public performance music",
+            "blurb": "Licensing for public use",
+            "soon": true
+          },
+          {
+            "name": "AI-Lab",
+            "blurb": "AI tools lab for artists",
+            "soon": true
+          }
+        ]
+      }
+    ]
   },
   "pricing": {
     "title": "Our",

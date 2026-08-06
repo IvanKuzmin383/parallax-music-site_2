@@ -56,27 +56,27 @@ export function ProofResults() {
 
         <Carousel
           opts={{ align: "start", loop: true }}
-          className="relative w-full max-w-5xl mx-auto px-12"
+          className="relative w-full max-w-4xl mx-auto px-10 md:px-12"
         >
-          <CarouselContent>
+          <CarouselContent className="-ml-3">
             {PROOFS.map((item) => (
-              <CarouselItem key={item.src} className="md:basis-full">
-                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+              <CarouselItem key={item.src} className="pl-3 basis-1/2">
+                <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
                   <Image
                     src={item.src}
                     alt={locale === "en" ? item.altEn : item.altRu}
-                    width={1200}
-                    height={675}
+                    width={640}
+                    height={360}
                     className="h-auto w-full object-cover"
-                    sizes="(max-width: 768px) 100vw, 1024px"
+                    sizes="(max-width: 640px) 85vw, 40vw"
                   />
                 </div>
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="-left-2 md:-left-4" />
-          <CarouselNext className="-right-2 md:-right-4" />
-          <div className="mt-6 flex justify-center">
+          <CarouselPrevious className="-left-1 md:-left-3 h-8 w-8" />
+          <CarouselNext className="-right-1 md:-right-3 h-8 w-8" />
+          <div className="mt-4 flex justify-center">
             <CarouselDots />
           </div>
         </Carousel>

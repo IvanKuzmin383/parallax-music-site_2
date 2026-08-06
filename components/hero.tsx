@@ -2,7 +2,14 @@
 
 import dynamic from "next/dynamic"
 import { useEffect, useRef } from "react"
+import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { HeroBackgroundImage } from "@/components/hero-background-image"
 import { useI18n } from "@/lib/i18n-context"
 
@@ -17,6 +24,7 @@ export function Hero() {
   const bullets = (t.hero.bullets ?? []) as string[]
   const stats = (t.hero.stats ?? []) as Array<{ value: string; label: string }>
   const telegramUrl = t.hero.telegramUrl || "https://t.me/parallaxmusic_rt"
+  const vkUrl = t.hero.vkUrl || "https://vk.com/parallaxmusic_releaseteam"
 
   useEffect(() => {
     const handleScroll = () => {
@@ -101,16 +109,30 @@ export function Hero() {
             >
               {t.hero.workWithUs}
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="uppercase tracking-wider px-8 w-full sm:w-auto border-border bg-background/40 backdrop-blur-sm"
-              asChild
-            >
-              <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
-                {t.hero.ctaSecondary}
-              </a>
-            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="lg"
+                  className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-8 w-full sm:w-auto gap-2"
+                >
+                  {t.hero.ctaSecondary}
+                  <ChevronDown className="h-4 w-4 opacity-90" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-[12rem]">
+                <DropdownMenuItem asChild>
+                  <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
+                    {t.hero.consultTelegram}
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={vkUrl} target="_blank" rel="noopener noreferrer">
+                    {t.hero.consultVk}
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {stats.length > 0 && (

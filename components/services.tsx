@@ -54,26 +54,28 @@ export function Services() {
           <p className="text-lg text-muted-foreground text-pretty">{t.services.description}</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {services.map((service) => {
             const content = (
-              <>
-                <div className="mb-4">
+              <div className="flex h-full flex-col">
+                <div className="mb-4 shrink-0">
                   <service.icon className="h-10 w-10 text-primary group-hover:scale-110 transition-transform" />
                 </div>
-                <h3 className="text-xl font-bold mb-3 uppercase tracking-wide flex items-center gap-2">
-                  {service.title}
-                  {service.href ? <ArrowRight className="h-4 w-4 opacity-60" aria-hidden /> : null}
+                <h3 className="mb-3 flex min-h-[3.5rem] items-start gap-2 text-xl font-bold uppercase tracking-wide leading-tight">
+                  <span>{service.title}</span>
+                  {service.href ? (
+                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 opacity-60" aria-hidden />
+                  ) : null}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">{service.description}</p>
-              </>
+              </div>
             )
 
             if (service.href) {
               return (
                 <Card
                   key={service.title}
-                  className="p-6 bg-card border-border hover:border-primary transition-all duration-300 group"
+                  className="h-full p-6 bg-card border-border hover:border-primary transition-all duration-300 group"
                 >
                   <Link href={service.href} className="block h-full focus-visible:outline-none">
                     {content}
@@ -85,7 +87,7 @@ export function Services() {
             return (
               <Card
                 key={service.title}
-                className="p-6 bg-card border-border hover:border-primary transition-all duration-300 group"
+                className="h-full p-6 bg-card border-border hover:border-primary transition-all duration-300 group"
               >
                 {content}
               </Card>

@@ -49,6 +49,9 @@ import { LanguageSwitcher } from "@/components/language-switcher"
           <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.pricing}
           </Link>
+          <Link href="/#extras" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+            {t.header.extras}
+          </Link>
           <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
             {t.header.promotion}
           </Link>
@@ -110,6 +113,13 @@ import { LanguageSwitcher } from "@/components/language-switcher"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t.header.pricing}
+            </Link>
+            <Link
+              href="/#extras"
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.extras}
             </Link>
             <Link
               href="/promotion"

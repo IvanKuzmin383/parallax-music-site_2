@@ -11,6 +11,9 @@ const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Prici
 const ProofResults = dynamic(() =>
   import("@/components/proof-results").then((m) => m.ProofResults)
 )
+const ServiceCatalog = dynamic(() =>
+  import("@/components/service-catalog").then((m) => m.ServiceCatalog)
+)
 const FaqSection = dynamic(() => import("@/components/faq-section").then((m) => m.FaqSection))
 const Reviews = dynamic(() => import("@/components/reviews").then((m) => m.Reviews))
 const Contact = dynamic(() => import("@/components/contact").then((m) => m.Contact))
@@ -144,6 +147,7 @@ export default function HomePage() {
         <Process />
         <ProofResults />
         <Pricing />
+        <ServiceCatalog />
         <FaqSection />
         <Reviews />
         <Contact />
