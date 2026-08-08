@@ -22,6 +22,7 @@ import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
 import { createAlbum, type Album } from "@/lib/albums"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
+import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
 import { withTransaction } from "@/lib/database"
 import {
   backfillMissingTrackAcceptancesForUser,
@@ -127,6 +128,7 @@ type AlbumDraftTrackPayload = {
   performanceRights?: string
   isInstrumental?: boolean
   backingAuthor?: string
+  tiktokSoundStartSec?: number | null
   audioRelPath?: string
 }
 
@@ -374,12 +376,7 @@ export async function finalizeUploadDraftCore(
         performanceRights: Boolean(t.isInstrumental) ? "" : `${t.performanceRights ?? ""}`,
         isInstrumental: Boolean(t.isInstrumental),
         backingAuthor: `${t.backingAuthor ?? ""}`,
-        tiktokSoundStartSec:
-          typeof t.tiktokSoundStartSec === "number" && Number.isFinite(t.tiktokSoundStartSec)
-            ? Math.max(0, Math.trunc(t.tiktokSoundStartSec))
-            : typeof t.tiktokSoundStartSec === "string" && `${t.tiktokSoundStartSec}`.trim() !== ""
-              ? Math.max(0, Math.trunc(Number(t.tiktokSoundStartSec)))
-              : null,
+        tiktokSoundStartSec: parseTiktokSoundStartSec(t.tiktokSoundStartSec),
         coverPath,
         audioPath,
         status: "on_moderation",
@@ -488,13 +485,7 @@ export async function finalizeUploadDraftCore(
       performanceRights: `${payload.performanceRights ?? ""}`,
       isInstrumental: Boolean(payload.isInstrumental),
       backingAuthor: `${payload.backingAuthor ?? ""}`,
-      tiktokSoundStartSec:
-        typeof payload.tiktokSoundStartSec === "number" && Number.isFinite(payload.tiktokSoundStartSec)
-          ? Math.max(0, Math.trunc(payload.tiktokSoundStartSec))
-          : typeof payload.tiktokSoundStartSec === "string" &&
-              `${payload.tiktokSoundStartSec}`.trim() !== ""
-            ? Math.max(0, Math.trunc(Number(payload.tiktokSoundStartSec)))
-            : null,
+      tiktokSoundStartSec: parseTiktokSoundStartSec(payload.tiktokSoundStartSec),
       coverPath,
       needsAiCover: !coverPath,
       status: "on_moderation",
@@ -566,13 +557,7 @@ export async function finalizeUploadDraftCore(
     performanceRights: `${payload.performanceRights ?? ""}`,
     isInstrumental: Boolean(payload.isInstrumental),
     backingAuthor: `${payload.backingAuthor ?? ""}`,
-    tiktokSoundStartSec:
-      typeof payload.tiktokSoundStartSec === "number" && Number.isFinite(payload.tiktokSoundStartSec)
-        ? Math.max(0, Math.trunc(payload.tiktokSoundStartSec))
-        : typeof payload.tiktokSoundStartSec === "string" &&
-            `${payload.tiktokSoundStartSec}`.trim() !== ""
-          ? Math.max(0, Math.trunc(Number(payload.tiktokSoundStartSec)))
-          : null,
+    tiktokSoundStartSec: parseTiktokSoundStartSec(payload.tiktokSoundStartSec),
     coverPath,
     needsAiCover: !coverPath,
     audioPath,

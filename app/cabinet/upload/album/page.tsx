@@ -67,6 +67,7 @@ import {
 } from "@/components/cabinet-upload-additional-services-section"
 import { useI18n } from "@/lib/i18n-context"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
+import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
 
 /** Параллельная загрузка WAV; раньше файлы шли строго по одному - поздние треки ждали очередь всех предыдущих. */
 const ALBUM_AUDIO_UPLOAD_CONCURRENCY = 4
@@ -703,12 +704,7 @@ export default function CabinetUploadAlbumPage() {
             lyricsRights: (track.lyricsRights as UploadAlbumFormValues["tracks"][number]["lyricsRights"]) ?? "",
             performanceRights:
               (track.performanceRights as UploadAlbumFormValues["tracks"][number]["performanceRights"]) ?? "",
-            tiktokSoundStartSec:
-              typeof track.tiktokSoundStartSec === "number" && Number.isFinite(track.tiktokSoundStartSec)
-                ? Math.trunc(track.tiktokSoundStartSec)
-                : typeof track.tiktokSoundStartSec === "string" && `${track.tiktokSoundStartSec}`.trim() !== ""
-                  ? Math.trunc(Number(track.tiktokSoundStartSec))
-                  : 0,
+            tiktokSoundStartSec: parseTiktokSoundStartSec(track.tiktokSoundStartSec) ?? 0,
             audio: undefined,
             audioRelPath: `${track.audioRelPath ?? ""}`,
             serverDraftHasAudio: Boolean(track.audioRelPath),

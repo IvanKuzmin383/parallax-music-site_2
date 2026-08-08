@@ -87,6 +87,7 @@ import {
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import type { UploadDraftPayload, UploadDraftStatus } from "@/lib/upload-drafts"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
+import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
 import {
   CabinetUploadAdditionalServicesSection,
   computeSelectedUploadAddonsTotalRub,
@@ -752,12 +753,7 @@ export default function CabinetUploadPage() {
       isInstrumental: Boolean(p.isInstrumental),
       lyricsRights: (p.lyricsRights as UploadFormValues["lyricsRights"]) ?? "",
       performanceRights: (p.performanceRights as UploadFormValues["performanceRights"]) ?? "",
-      tiktokSoundStartSec:
-        typeof p.tiktokSoundStartSec === "number" && Number.isFinite(p.tiktokSoundStartSec)
-          ? Math.trunc(p.tiktokSoundStartSec)
-          : typeof p.tiktokSoundStartSec === "string" && p.tiktokSoundStartSec.trim() !== ""
-            ? Math.trunc(Number(p.tiktokSoundStartSec))
-            : 0,
+      tiktokSoundStartSec: parseTiktokSoundStartSec(p.tiktokSoundStartSec) ?? 0,
       releaseDate,
       requestAiCover: Boolean(p.requestAiCover),
       transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
