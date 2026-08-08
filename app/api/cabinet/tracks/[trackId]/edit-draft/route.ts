@@ -50,6 +50,7 @@ export async function POST(
       performanceRights: track.performanceRights,
       isInstrumental: track.isInstrumental,
       backingAuthor: track.backingAuthor,
+      tiktokSoundStartSec: track.tiktokSoundStartSec ?? null,
       requestAiCover: Boolean(track.needsAiCover),
       releaseDate: track.releaseDate,
       addons: {},

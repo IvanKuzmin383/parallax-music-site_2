@@ -23,6 +23,8 @@ export interface UploadDraftPayload {
   performanceRights?: string
   isInstrumental?: boolean
   backingAuthor?: string
+  /** С какой секунды начинать звук в TikTok */
+  tiktokSoundStartSec?: number | null
   requestAiCover?: boolean
   /** Перенос релиза с другого дистрибьютора: обязательны transferUpc и transferIsrc */
   transferFromOtherDistributor?: boolean

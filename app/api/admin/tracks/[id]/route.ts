@@ -30,6 +30,9 @@ const patchBodySchema = z.object({
   lyricsRights: z.string().max(500).optional().nullable(),
   performanceRights: z.string().max(500).optional().nullable(),
   backingAuthor: z.string().max(200).optional().nullable(),
+  tiktokSoundStartSec: z
+    .union([z.number().int().min(0).max(600), z.null()])
+    .optional(),
   isInstrumental: z.boolean().optional(),
   status: z
     .enum([
@@ -173,6 +176,9 @@ export async function PATCH(
     updatePayload.performanceRights = data.performanceRights?.trim() ?? ""
   }
   if (data.backingAuthor !== undefined) updatePayload.backingAuthor = data.backingAuthor?.trim() ?? ""
+  if (data.tiktokSoundStartSec !== undefined) {
+    updatePayload.tiktokSoundStartSec = data.tiktokSoundStartSec
+  }
   if (data.isInstrumental !== undefined) updatePayload.isInstrumental = data.isInstrumental
   if (data.status !== undefined) updatePayload.status = data.status
   if (data.releaseDate !== undefined) {

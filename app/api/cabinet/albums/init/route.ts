@@ -42,6 +42,7 @@ type AlbumTrackMeta = {
   performanceRights?: string
   isInstrumental?: boolean
   backingAuthor?: string
+  tiktokSoundStartSec?: number | null
 }
 
 /**
@@ -360,6 +361,10 @@ export async function POST(request: NextRequest) {
         performanceRights: meta.isInstrumental ? "" : (meta.performanceRights ?? ""),
         isInstrumental: Boolean(meta.isInstrumental),
         backingAuthor: meta.backingAuthor ?? "",
+        tiktokSoundStartSec:
+          typeof meta.tiktokSoundStartSec === "number" && Number.isFinite(meta.tiktokSoundStartSec)
+            ? Math.max(0, Math.trunc(meta.tiktokSoundStartSec))
+            : null,
         coverPath,
         audioPath,
         status: "upload_pending",

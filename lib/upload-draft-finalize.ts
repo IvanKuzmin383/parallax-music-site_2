@@ -374,6 +374,12 @@ export async function finalizeUploadDraftCore(
         performanceRights: Boolean(t.isInstrumental) ? "" : `${t.performanceRights ?? ""}`,
         isInstrumental: Boolean(t.isInstrumental),
         backingAuthor: `${t.backingAuthor ?? ""}`,
+        tiktokSoundStartSec:
+          typeof t.tiktokSoundStartSec === "number" && Number.isFinite(t.tiktokSoundStartSec)
+            ? Math.max(0, Math.trunc(t.tiktokSoundStartSec))
+            : typeof t.tiktokSoundStartSec === "string" && `${t.tiktokSoundStartSec}`.trim() !== ""
+              ? Math.max(0, Math.trunc(Number(t.tiktokSoundStartSec)))
+              : null,
         coverPath,
         audioPath,
         status: "on_moderation",
@@ -482,6 +488,13 @@ export async function finalizeUploadDraftCore(
       performanceRights: `${payload.performanceRights ?? ""}`,
       isInstrumental: Boolean(payload.isInstrumental),
       backingAuthor: `${payload.backingAuthor ?? ""}`,
+      tiktokSoundStartSec:
+        typeof payload.tiktokSoundStartSec === "number" && Number.isFinite(payload.tiktokSoundStartSec)
+          ? Math.max(0, Math.trunc(payload.tiktokSoundStartSec))
+          : typeof payload.tiktokSoundStartSec === "string" &&
+              `${payload.tiktokSoundStartSec}`.trim() !== ""
+            ? Math.max(0, Math.trunc(Number(payload.tiktokSoundStartSec)))
+            : null,
       coverPath,
       needsAiCover: !coverPath,
       status: "on_moderation",
@@ -553,6 +566,13 @@ export async function finalizeUploadDraftCore(
     performanceRights: `${payload.performanceRights ?? ""}`,
     isInstrumental: Boolean(payload.isInstrumental),
     backingAuthor: `${payload.backingAuthor ?? ""}`,
+    tiktokSoundStartSec:
+      typeof payload.tiktokSoundStartSec === "number" && Number.isFinite(payload.tiktokSoundStartSec)
+        ? Math.max(0, Math.trunc(payload.tiktokSoundStartSec))
+        : typeof payload.tiktokSoundStartSec === "string" &&
+            `${payload.tiktokSoundStartSec}`.trim() !== ""
+          ? Math.max(0, Math.trunc(Number(payload.tiktokSoundStartSec)))
+          : null,
     coverPath,
     needsAiCover: !coverPath,
     audioPath,

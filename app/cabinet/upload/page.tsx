@@ -138,6 +138,14 @@ const uploadSchema = z.object({
   isInstrumental: z.boolean().default(false),
   lyricsRights: z.union([z.enum(LYRICS_RIGHTS_OPTIONS), z.literal(EMPTY_OPTION)]).optional(),
   performanceRights: z.union([z.enum(PERFORMANCE_RIGHTS_OPTIONS), z.literal(EMPTY_OPTION)]).optional(),
+  tiktokSoundStartSec: z.coerce
+    .number({
+      required_error: "Укажите секунду начала звука в TikTok",
+      invalid_type_error: "Укажите секунду начала звука в TikTok",
+    })
+    .int("Укажите целое число секунд")
+    .min(0, "Не меньше 0")
+    .max(600, "Максимум 600 секунд"),
   releaseDate: z.date({
     required_error: "Дата публикации обязательна",
   }).refine((date) => {
@@ -385,6 +393,7 @@ export default function CabinetUploadPage() {
       isInstrumental: false,
       lyricsRights: "",
       performanceRights: "",
+      tiktokSoundStartSec: 0,
       releaseDate: undefined,
       requestAiCover: false,
       transferFromOtherDistributor: false,
@@ -588,6 +597,7 @@ export default function CabinetUploadPage() {
       isInstrumental: v.isInstrumental,
       lyricsRights: v.lyricsRights ?? "",
       performanceRights: v.performanceRights ?? "",
+      tiktokSoundStartSec: v.tiktokSoundStartSec,
       releaseDate: v.releaseDate ? format(v.releaseDate, "yyyy-MM-dd") : undefined,
       requestAiCover: v.requestAiCover,
       transferFromOtherDistributor: v.transferFromOtherDistributor,
@@ -742,6 +752,12 @@ export default function CabinetUploadPage() {
       isInstrumental: Boolean(p.isInstrumental),
       lyricsRights: (p.lyricsRights as UploadFormValues["lyricsRights"]) ?? "",
       performanceRights: (p.performanceRights as UploadFormValues["performanceRights"]) ?? "",
+      tiktokSoundStartSec:
+        typeof p.tiktokSoundStartSec === "number" && Number.isFinite(p.tiktokSoundStartSec)
+          ? Math.trunc(p.tiktokSoundStartSec)
+          : typeof p.tiktokSoundStartSec === "string" && p.tiktokSoundStartSec.trim() !== ""
+            ? Math.trunc(Number(p.tiktokSoundStartSec))
+            : 0,
       releaseDate,
       requestAiCover: Boolean(p.requestAiCover),
       transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
@@ -1481,6 +1497,35 @@ export default function CabinetUploadPage() {
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="tiktokSoundStartSec"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Начало звука в ТикТок *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={600}
+                      step={1}
+                      disabled={formDisabled}
+                      placeholder="0"
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Укажите с какой секунды должен начинаться звук в ТикТок
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="shortDescription"

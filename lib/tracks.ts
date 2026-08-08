@@ -35,6 +35,8 @@ export interface Track {
   performanceRights: string
   isInstrumental: boolean
   backingAuthor: string
+  /** С какой секунды начинать звук в TikTok (0 = с начала). */
+  tiktokSoundStartSec?: number | null
   coverPath: string
   /** Пользователь заказал ИИ-обложку; файла обложки ещё нет (coverPath может быть пустым). */
   needsAiCover: boolean
@@ -73,6 +75,7 @@ export interface TrackRow {
   performance_rights: string | null
   is_instrumental: boolean | null
   backing_author: string | null
+  tiktok_sound_start_sec: number | null
   cover_path: string
   needs_ai_cover?: boolean | null
   audio_path: string
@@ -117,6 +120,10 @@ export function rowToTrack(row: TrackRow): Track {
     performanceRights: row.performance_rights ?? "",
     isInstrumental: row.is_instrumental === true,
     backingAuthor: row.backing_author ?? "",
+    tiktokSoundStartSec:
+      row.tiktok_sound_start_sec == null || !Number.isFinite(Number(row.tiktok_sound_start_sec))
+        ? null
+        : Math.trunc(Number(row.tiktok_sound_start_sec)),
     coverPath: row.cover_path,
     needsAiCover: row.needs_ai_cover === true,
     audioPath: row.audio_path,
@@ -277,8 +284,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -299,6 +306,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.performanceRights ?? null,
       track.isInstrumental,
       track.backingAuthor ?? null,
+      track.tiktokSoundStartSec ?? null,
       track.coverPath,
       track.audioPath,
       track.status,
@@ -371,7 +379,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -392,6 +400,7 @@ export async function updateTrack(
       updated.performanceRights ?? null,
       updated.isInstrumental,
       updated.backingAuthor ?? null,
+      updated.tiktokSoundStartSec ?? null,
       updated.coverPath,
       updated.audioPath,
       updated.status,

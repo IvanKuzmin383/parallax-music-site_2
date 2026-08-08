@@ -113,6 +113,13 @@ export async function POST(request: NextRequest) {
       const lyricsRights = multipart.getField("lyricsRights")?.trim() ?? ""
       const performanceRights = multipart.getField("performanceRights")?.trim() ?? ""
       const backingAuthor = multipart.getField("backingAuthor")?.trim() ?? ""
+      const tiktokSoundStartRaw = multipart.getField("tiktokSoundStartSec")?.trim() ?? ""
+      const tiktokSoundStartSec =
+        tiktokSoundStartRaw === ""
+          ? null
+          : Number.isFinite(Number(tiktokSoundStartRaw))
+            ? Math.max(0, Math.trunc(Number(tiktokSoundStartRaw)))
+            : null
       const releaseDateStr = multipart.getField("releaseDate")
       const audioFile = multipart.getFile("audio")
       const coverFile = multipart.getFile("cover")
@@ -355,6 +362,7 @@ export async function POST(request: NextRequest) {
         performanceRights: isInstrumental ? "" : performanceRights,
         isInstrumental,
         backingAuthor,
+        tiktokSoundStartSec,
         coverPath,
         needsAiCover: requestAiCover,
         audioPath,

@@ -1670,6 +1670,12 @@ export default function CabinetPage() {
                               <p className="text-base">{selectedTrack.backingAuthor}</p>
                             </div>
                           )}
+                          {selectedTrack.tiktokSoundStartSec != null && (
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-muted-foreground">Начало звука в ТикТок</p>
+                              <p className="text-base">{selectedTrack.tiktokSoundStartSec} сек</p>
+                            </div>
+                          )}
                           {selectedTrack.releaseDate && (
                             <div className="space-y-1">
                               <p className="text-sm font-medium text-muted-foreground">Дата публикации</p>

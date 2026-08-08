@@ -17,8 +17,22 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (never commit secrets)
+.env
+.env.*
 .env*
+
+# Локальный Bandlink UPC tool (не для прода)
+bandlink-tool.bat
+bandlink-fill-links.bat
+bandlink-upc-lookup.bat
+tools/bandlink-upc-lookup/
+scripts/bandlink-tool-server.ts
+scripts/bandlink-fill-track-links.ts
+lib/bandlink-playwright.ts
+lib/parallax-admin-api.ts
+lib/parallax-admin-playwright.ts
+scripts/_tmp-*.ts
 
 # SQLite (локальная dev-БД; на VPS - /data/app.db, не в репозитории)
 data/app.db

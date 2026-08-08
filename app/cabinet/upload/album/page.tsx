@@ -180,6 +180,14 @@ const albumTrackSchema = z.object({
   isInstrumental: z.boolean().default(false),
   lyricsRights: z.union([z.enum(LYRICS_RIGHTS_OPTIONS), z.literal(EMPTY_OPTION)]).optional(),
   performanceRights: z.union([z.enum(PERFORMANCE_RIGHTS_OPTIONS), z.literal(EMPTY_OPTION)]).optional(),
+  tiktokSoundStartSec: z.coerce
+    .number({
+      required_error: "Укажите секунду начала звука в TikTok",
+      invalid_type_error: "Укажите секунду начала звука в TikTok",
+    })
+    .int("Укажите целое число секунд")
+    .min(0, "Не меньше 0")
+    .max(600, "Максимум 600 секунд"),
   audio: z.any().optional(),
   audioRelPath: z.string().optional(),
   serverDraftHasAudio: z.boolean().default(false),
@@ -343,6 +351,7 @@ type AlbumDraftTrackPayload = {
   lyricsRights?: string
   performanceRights?: string
   backingAuthor?: string
+  tiktokSoundStartSec?: number | null
   audioRelPath?: string
 }
 
@@ -367,6 +376,7 @@ function createEmptyAlbumTrack(): UploadAlbumFormValues["tracks"][number] {
     isInstrumental: false,
     lyricsRights: EMPTY_OPTION,
     performanceRights: EMPTY_OPTION,
+    tiktokSoundStartSec: 0,
     audio: undefined,
     audioRelPath: "",
     serverDraftHasAudio: false,
@@ -693,6 +703,12 @@ export default function CabinetUploadAlbumPage() {
             lyricsRights: (track.lyricsRights as UploadAlbumFormValues["tracks"][number]["lyricsRights"]) ?? "",
             performanceRights:
               (track.performanceRights as UploadAlbumFormValues["tracks"][number]["performanceRights"]) ?? "",
+            tiktokSoundStartSec:
+              typeof track.tiktokSoundStartSec === "number" && Number.isFinite(track.tiktokSoundStartSec)
+                ? Math.trunc(track.tiktokSoundStartSec)
+                : typeof track.tiktokSoundStartSec === "string" && `${track.tiktokSoundStartSec}`.trim() !== ""
+                  ? Math.trunc(Number(track.tiktokSoundStartSec))
+                  : 0,
             audio: undefined,
             audioRelPath: `${track.audioRelPath ?? ""}`,
             serverDraftHasAudio: Boolean(track.audioRelPath),
@@ -762,6 +778,7 @@ export default function CabinetUploadAlbumPage() {
       isInstrumental: track.isInstrumental,
       lyricsRights: track.lyricsRights,
       performanceRights: track.performanceRights,
+      tiktokSoundStartSec: track.tiktokSoundStartSec,
       audioRelPath: track.audioRelPath || undefined,
     }))
 
@@ -1390,6 +1407,38 @@ export default function CabinetUploadAlbumPage() {
                   </div>
 
                   <div className="grid gap-4">
+                    <FormField
+                      control={form.control}
+                      name={`tracks.${index}.tiktokSoundStartSec`}
+                      render={({ field }) => (
+                        <FormItem className="w-full">
+                          <FormLabel>Начало звука в ТикТок *</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={600}
+                              step={1}
+                              disabled={formDisabled}
+                              placeholder="0"
+                              className="w-full"
+                              value={field.value ?? ""}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === "" ? "" : Number(e.target.value))
+                              }
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Укажите с какой секунды должен начинаться звук в ТикТок
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name={`tracks.${index}.shortDescription`}

@@ -1,4 +1,5 @@
 import type { PlatformLinks } from "@/lib/smartlink-platforms"
+import { resolvePlatformLinksViaBandlink } from "@/lib/bandlink-resolve"
 
 const FETCH_TIMEOUT_MS = 15_000
 
@@ -11,6 +12,7 @@ export type ResolvePlatformLinksResult = {
     artworkUrl?: string
   }
   sources: {
+    bandlink?: boolean
     itunes?: boolean
     deezer?: boolean
     odesli?: boolean
@@ -461,17 +463,17 @@ function applyOdesliLinks(links: PlatformLinks, odesli: OdesliResponse) {
   const by = odesli.linksByPlatform
   if (!by) return
 
-  if (by.spotify?.url) links.spotify = by.spotify.url
+  if (by.spotify?.url && !links.spotify) links.spotify = by.spotify.url
   if (by.appleMusic?.url && !links.appleMusic) {
     links.appleMusic = cleanAppleMusicUrl(by.appleMusic.url)
   }
-  if (by.yandex?.url) {
+  if (by.yandex?.url && !links.yandex) {
     const albumId = yandexAlbumIdFromUrl(by.yandex.url)
     if (albumId) applyYandexAlbumId(links, albumId)
     else links.yandex = by.yandex.url.split("?")[0] ?? by.yandex.url
   }
   const yt = by.youtubeMusic?.url || by.youtube?.url
-  if (yt) {
+  if (yt && !links.youtubeMusic) {
     const cleaned = yt.split("?")[0] ?? yt
     links.youtubeMusic = cleaned.includes("youtube.com")
       ? cleaned.replace("www.youtube.com", "music.youtube.com").replace("youtube.com/watch", "music.youtube.com/watch")
@@ -498,6 +500,32 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
     }
   }
 
+  let meta: ResolvePlatformLinksResult["meta"]
+
+  const bandlinkResult = await resolvePlatformLinksViaBandlink(upc)
+  if (bandlinkResult) {
+    if (bandlinkResult.ok) {
+      sources.bandlink = true
+      for (const [key, value] of Object.entries(bandlinkResult.links) as [
+        keyof PlatformLinks,
+        string | undefined,
+      ][]) {
+        if (typeof value === "string" && value.trim()) {
+          links[key] = value.trim()
+        }
+      }
+      if (bandlinkResult.meta) {
+        meta = {
+          title: bandlinkResult.meta.title ?? meta?.title,
+          artistName: bandlinkResult.meta.artistName ?? meta?.artistName,
+          artworkUrl: bandlinkResult.meta.artworkUrl ?? meta?.artworkUrl,
+        }
+      }
+    } else if (bandlinkResult.error) {
+      errors.push(`Bandlink: ${bandlinkResult.error}`)
+    }
+  }
+
   const [itunesRu, itunesUs, deezer] = await Promise.all([
     lookupItunes(upc, "ru"),
     lookupItunes(upc, "us"),
@@ -506,9 +534,8 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
 
   const itunesHit = pickItunesCollection(itunesRu) ?? pickItunesCollection(itunesUs)
   let appleSeedUrl: string | undefined
-  let meta: ResolvePlatformLinksResult["meta"]
 
-  if (itunesHit) {
+  if (itunesHit && !links.appleMusic) {
     sources.itunes = true
     const collectionId = itunesHit.collectionId
     if (collectionId) {
@@ -526,8 +553,23 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
       artistName: itunesHit.artistName,
       artworkUrl: itunesHit.artworkUrl100,
     }
-  } else {
+  } else if (!itunesHit && !links.appleMusic) {
     errors.push("iTunes: релиз не найден")
+  } else if (itunesHit && links.appleMusic) {
+    sources.itunes = true
+    if (!meta) {
+      meta = {
+        title: itunesHit.collectionName || itunesHit.trackName,
+        artistName: itunesHit.artistName,
+        artworkUrl: itunesHit.artworkUrl100,
+      }
+    }
+    const collectionId = itunesHit.collectionId
+    if (collectionId) {
+      appleSeedUrl = appleMusicAlbumUrl(collectionId, itunesRu?.resultCount ? "ru" : "us")
+    } else {
+      appleSeedUrl = cleanAppleMusicUrl(itunesHit.collectionViewUrl || itunesHit.trackViewUrl || "")
+    }
   }
 
   let deezerUrl: string | undefined
@@ -541,48 +583,53 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
         artworkUrl: deezer.cover_medium,
       }
     }
-  } else {
+  } else if (!sources.bandlink) {
     errors.push("Deezer: релиз не найден")
   }
 
-  const seedCandidates = [appleSeedUrl, deezerUrl].filter(
+  const seedCandidates = [appleSeedUrl, deezerUrl, links.appleMusic].filter(
     (u): u is string => typeof u === "string" && u.length > 0
   )
 
-  if (!seedCandidates.length) {
-    return {
-      links,
-      found: Object.values(links).some((v) => typeof v === "string" && v.trim().length > 0),
-      meta,
-      sources,
-      errors: [...errors, "Нет seed-ссылки для Odesli (релиз ещё не в каталоге?)"],
-    }
-  }
-
-  let odesliOk = false
-  for (const seed of seedCandidates) {
-    const odesli = await lookupOdesli(seed)
-    if (!odesli?.linksByPlatform) continue
-    odesliOk = true
-    sources.odesli = true
-    applyOdesliLinks(links, odesli)
-
-    if (!meta && odesli.entitiesByUniqueId) {
-      const first = Object.values(odesli.entitiesByUniqueId)[0]
-      if (first) {
-        meta = {
-          title: first.title,
-          artistName: first.artistName,
-          artworkUrl: first.thumbnailUrl,
-        }
+  if (seedCandidates.length === 0) {
+    const foundEarly = Object.values(links).some(
+      (v) => typeof v === "string" && v.trim().length > 0
+    )
+    if (!foundEarly) {
+      return {
+        links,
+        found: false,
+        meta,
+        sources,
+        errors: [...errors, "Нет seed-ссылки для Odesli (релиз ещё не в каталоге?)"],
       }
     }
+  } else {
+    let odesliOk = false
+    for (const seed of seedCandidates) {
+      const odesli = await lookupOdesli(seed)
+      if (!odesli?.linksByPlatform) continue
+      odesliOk = true
+      sources.odesli = true
+      applyOdesliLinks(links, odesli)
 
-    if (links.yandex && links.spotify && links.youtubeMusic) break
-  }
+      if (!meta && odesli.entitiesByUniqueId) {
+        const first = Object.values(odesli.entitiesByUniqueId)[0]
+        if (first) {
+          meta = {
+            title: first.title,
+            artistName: first.artistName,
+            artworkUrl: first.thumbnailUrl,
+          }
+        }
+      }
 
-  if (!odesliOk) {
-    errors.push("Odesli: не удалось получить ссылки")
+      if (links.yandex && links.spotify && links.youtubeMusic) break
+    }
+
+    if (!odesliOk) {
+      errors.push("Odesli: не удалось получить ссылки")
+    }
   }
 
   if (!links.yandex && meta?.title && meta?.artistName) {
@@ -590,7 +637,7 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
     if (albumId) {
       sources.yandexSearch = true
       applyYandexAlbumId(links, albumId)
-    } else {
+    } else if (!sources.bandlink) {
       errors.push("Яндекс: релиз не найден поиском")
     }
   }

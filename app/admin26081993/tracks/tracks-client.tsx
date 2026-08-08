@@ -202,6 +202,12 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     musicAuthor: `${p.musicAuthor ?? ""}`,
     lyricsAuthor: `${p.lyricsAuthor ?? ""}`,
     backingAuthor: `${p.backingAuthor ?? ""}`,
+    tiktokSoundStartSec:
+      typeof p.tiktokSoundStartSec === "number" && Number.isFinite(p.tiktokSoundStartSec)
+        ? Math.trunc(p.tiktokSoundStartSec)
+        : typeof p.tiktokSoundStartSec === "string" && `${p.tiktokSoundStartSec}`.trim() !== ""
+          ? Math.trunc(Number(p.tiktokSoundStartSec))
+          : null,
     musicRights: `${p.musicRights ?? ""}`,
     musicAiService: `${p.musicAiService ?? ""}`,
     lyricsRights: `${p.lyricsRights ?? ""}`,
@@ -234,6 +240,7 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
     lyricsAuthor: d.lyricsAuthor,
     musicAuthor: d.musicAuthor,
     backingAuthor: d.backingAuthor,
+    tiktokSoundStartSec: d.tiktokSoundStartSec,
     musicRights: d.musicRights,
     musicAiService: d.musicAiService,
     lyricsRights: d.lyricsRights,
@@ -306,6 +313,7 @@ type TrackDraft = {
   musicAuthor: string
   lyricsAuthor: string
   backingAuthor: string
+  tiktokSoundStartSec: number | null
   musicRights: string
   musicAiService: string
   lyricsRights: string
@@ -344,6 +352,10 @@ function trackToDraft(t: Track): TrackDraft {
     musicAuthor: t.musicAuthor ?? "",
     lyricsAuthor: t.lyricsAuthor ?? "",
     backingAuthor: t.backingAuthor ?? "",
+    tiktokSoundStartSec:
+      t.tiktokSoundStartSec == null || !Number.isFinite(Number(t.tiktokSoundStartSec))
+        ? null
+        : Math.trunc(Number(t.tiktokSoundStartSec)),
     musicRights: t.musicRights ?? "",
     musicAiService: t.musicAiService ?? "",
     lyricsRights: t.lyricsRights ?? "",
@@ -966,6 +978,7 @@ export default function TracksPageClient() {
         musicAuthor: trackDraft.musicAuthor,
         lyricsAuthor: trackDraft.lyricsAuthor,
         backingAuthor: trackDraft.backingAuthor,
+        tiktokSoundStartSec: trackDraft.tiktokSoundStartSec,
         musicRights: trackDraft.musicRights,
         musicAiService: trackDraft.musicAiService,
         lyricsRights: trackDraft.lyricsRights,
@@ -2939,6 +2952,33 @@ export default function TracksPageClient() {
                             )
                           }
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-tiktok-start">Начало звука в ТикТок (сек)</Label>
+                        <Input
+                          id="admin-tiktok-start"
+                          type="number"
+                          min={0}
+                          max={600}
+                          step={1}
+                          value={trackDraft.tiktokSoundStartSec ?? ""}
+                          onChange={(e) =>
+                            setTrackDraft((d) =>
+                              d
+                                ? {
+                                    ...d,
+                                    tiktokSoundStartSec:
+                                      e.target.value === ""
+                                        ? null
+                                        : Math.max(0, Math.trunc(Number(e.target.value)) || 0),
+                                  }
+                                : d
+                            )
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Укажите с какой секунды должен начинаться звук в ТикТок
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label>Это инструментал</Label>
