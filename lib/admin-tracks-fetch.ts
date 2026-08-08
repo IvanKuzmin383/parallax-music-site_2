@@ -31,6 +31,7 @@ export function buildAdminTracksSearchParams(
   if (query.releaseDateFrom) params.set("releaseDateFrom", query.releaseDateFrom)
   if (query.releaseDateTo) params.set("releaseDateTo", query.releaseDateTo)
   if (query.upcomingOnly) params.set("upcomingOnly", "1")
+  if (query.releasesTodayOnly) params.set("releasesTodayOnly", "1")
   if (query.artistName !== undefined) params.set("artistName", query.artistName)
   if (query.sortField) params.set("sortField", query.sortField)
   if (query.sortDirection) params.set("sortDirection", query.sortDirection)

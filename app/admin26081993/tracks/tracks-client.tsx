@@ -126,8 +126,9 @@ const EMPTY_TRACKS_STATS: AdminTracksStats = {
     rejected: 0,
     postponed: 0,
   },
-  upcomingCount: 0,
-  uploadDraftsCount: 0,
+    upcomingCount: 0,
+    releasesTodayCount: 0,
+    uploadDraftsCount: 0,
 }
 
 const MUSIC_RIGHTS_OPTIONS = [
@@ -470,8 +471,8 @@ export default function TracksPageClient() {
       sortField: trackListSortField,
       sortDirection: trackListSortDirection,
     }
-    if (viewFilter.type === "upcoming") {
-      return { ...base, status: "all", upcomingOnly: true }
+    if (viewFilter.type === "releases_today") {
+      return { ...base, status: "all", releasesTodayOnly: true }
     }
     if (viewFilter.type === "status") {
       return { ...base, status: viewFilter.status }
@@ -581,6 +582,7 @@ export default function TracksPageClient() {
         releaseDateFrom: adminTracksQuery.releaseDateFrom,
         releaseDateTo: adminTracksQuery.releaseDateTo,
         upcomingOnly: adminTracksQuery.upcomingOnly,
+        releasesTodayOnly: adminTracksQuery.releasesTodayOnly,
       })
       setArtistsIndex(artists)
     } catch (err) {
@@ -1947,8 +1949,8 @@ export default function TracksPageClient() {
                       ? "Нет активных черновиков загрузки."
                       : viewFilter.type === "status" && viewFilter.status === "upload_pending"
                         ? "Нет треков в статусе «Требуется доработка». Заявки из формы загрузки - в блоке «Черновики загрузки»."
-                        : viewFilter.type === "upcoming"
-                          ? "Нет треков с запланированной датой выхода на площадки."
+                        : viewFilter.type === "releases_today"
+                          ? "Нет треков с датой публикации на сегодня."
                           : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
                 </p>
                 <Button type="button" variant="outline" onClick={resetTrackListFilters}>

@@ -48,7 +48,12 @@ const ADMIN_UPLOAD_DRAFT_STATUSES = [
 export const ADMIN_ARTIST_EMPTY_LABEL = "Без имени артиста"
 
 function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10)
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Moscow",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
 }
 
 function clampLimit(limit: number | undefined): number {
@@ -76,7 +81,11 @@ function buildWhereClause(listQuery: AdminTracksListQuery): { sql: string; param
     params.push(listQuery.status)
   }
 
-  if (listQuery.upcomingOnly) {
+  if (listQuery.releasesTodayOnly) {
+    parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
+    parts.push("release_date::date = ?::date")
+    params.push(todayIsoDate())
+  } else if (listQuery.upcomingOnly) {
     parts.push("release_date IS NOT NULL AND TRIM(release_date) != ''")
     parts.push("release_date::date >= ?::date")
     params.push(todayIsoDate())
@@ -213,7 +222,18 @@ export async function getAdminTracksStats(userId?: string): Promise<AdminTracksS
     }
   }
 
-  const upcomingParams: unknown[] = uid ? [uid, todayIsoDate()] : [todayIsoDate()]
+  const today = todayIsoDate()
+  const releasesTodayParams: unknown[] = uid ? [uid, today] : [today]
+  const releasesTodayWhere = uid
+    ? "LOWER(user_id) = LOWER(?) AND release_date IS NOT NULL AND TRIM(release_date) != '' AND release_date::date = ?::date"
+    : "release_date IS NOT NULL AND TRIM(release_date) != '' AND release_date::date = ?::date"
+
+  const releasesTodayRow = await queryOne<{ c: string | number }>(
+    `SELECT COUNT(*) AS c FROM tracks WHERE ${releasesTodayWhere}`,
+    releasesTodayParams
+  )
+
+  const upcomingParams: unknown[] = uid ? [uid, today] : [today]
   const upcomingWhere = uid
     ? "LOWER(user_id) = LOWER(?) AND release_date IS NOT NULL AND TRIM(release_date) != '' AND release_date::date >= ?::date AND status NOT IN ('rejected', 'postponed')"
     : "release_date IS NOT NULL AND TRIM(release_date) != '' AND release_date::date >= ?::date AND status NOT IN ('rejected', 'postponed')"
@@ -239,6 +259,7 @@ export async function getAdminTracksStats(userId?: string): Promise<AdminTracksS
     total,
     byStatus,
     upcomingCount: Number(upcomingRow?.c ?? 0) || 0,
+    releasesTodayCount: Number(releasesTodayRow?.c ?? 0) || 0,
     uploadDraftsCount: Number(draftRow?.c ?? 0) || 0,
   }
 }

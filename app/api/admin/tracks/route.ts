@@ -71,6 +71,7 @@ function buildListQuery(searchParams: URLSearchParams): AdminTracksListQuery {
     releaseDateFrom: searchParams.get("releaseDateFrom")?.trim() || undefined,
     releaseDateTo: searchParams.get("releaseDateTo")?.trim() || undefined,
     upcomingOnly: searchParams.get("upcomingOnly") === "1",
+    releasesTodayOnly: searchParams.get("releasesTodayOnly") === "1",
     artistName: artistNameRaw != null ? artistNameRaw : undefined,
     sortField: parseSortField(searchParams.get("sortField")),
     sortDirection: parseSortDirection(searchParams.get("sortDirection")),
@@ -101,6 +102,7 @@ export async function GET(request: NextRequest) {
         releaseDateFrom: listQuery.releaseDateFrom,
         releaseDateTo: listQuery.releaseDateTo,
         upcomingOnly: listQuery.upcomingOnly,
+        releasesTodayOnly: listQuery.releasesTodayOnly,
       })
       return NextResponse.json({ artists })
     }

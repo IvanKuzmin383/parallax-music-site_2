@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 export type TracksViewFilter =
   | { type: "all" }
   | { type: "status"; status: TrackStatus }
-  | { type: "upcoming" }
+  | { type: "releases_today" }
   | { type: "upload_drafts" }
 
 const STATUS_CARDS: { value: TrackStatus; label: string; shortLabel: string }[] = [
@@ -101,11 +101,12 @@ export function AdminTracksStatsBar({
         />
       ))}
       <StatCard
-        label="Ближайшие релизы"
-        count={stats.upcomingCount}
-        active={isFilterActive(viewFilter, { type: "upcoming" })}
-        onClick={() => onViewFilterChange({ type: "upcoming" })}
+        label="Релизы сегодня"
+        count={stats.releasesTodayCount}
+        active={isFilterActive(viewFilter, { type: "releases_today" })}
+        onClick={() => onViewFilterChange({ type: "releases_today" })}
         className="border-primary/20"
+        title="Треки с датой публикации на сегодня"
       />
       <StatCard
         label="Черновики загрузки"
