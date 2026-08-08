@@ -342,6 +342,7 @@ export default function CabinetUploadPage() {
   const [isSyncingCover, setIsSyncingCover] = useState(false)
   const audioSyncInFlight = useRef(false)
   const cabinetUploadAudioInputRef = useRef<HTMLInputElement | null>(null)
+  const cabinetUploadCoverInputRef = useRef<HTMLInputElement | null>(null)
   const cabinetUploadPreviewAudioRef = useRef<HTMLAudioElement | null>(null)
   const [cabinetUploadAudioPreviewPlaying, setCabinetUploadAudioPreviewPlaying] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -433,8 +434,10 @@ export default function CabinetUploadPage() {
   }, [userLimit, existingTracks, watchedArtistName])
 
   const watchedAudioFiles = useWatch({ control: form.control, name: "audio" }) as FileList | undefined
+  const watchedCoverFiles = useWatch({ control: form.control, name: "cover" }) as FileList | undefined
   const watchedServerDraftHasAudio = useWatch({ control: form.control, name: "serverDraftHasAudio" })
   const watchedServerDraftHasCover = useWatch({ control: form.control, name: "serverDraftHasCover" })
+  const watchedRequestAiCover = useWatch({ control: form.control, name: "requestAiCover" })
   const isFormDirty = form.formState.isDirty
 
   useEffect(() => {
@@ -486,6 +489,20 @@ export default function CabinetUploadPage() {
       ? "WAV сохранён в черновике"
       : "Файл не выбран"
 
+  const pickedCoverFile = useMemo(() => {
+    const list = watchedCoverFiles
+    if (!list || list.length !== 1) return undefined
+    return list[0] as File
+  }, [watchedCoverFiles])
+
+  const coverFileStatusLabel = watchedRequestAiCover
+    ? "Не требуется (ИИ-обложка)"
+    : pickedCoverFile?.name
+      ? pickedCoverFile.name
+      : watchedServerDraftHasCover
+        ? "Обложка сохранена в черновике"
+        : "Файл не выбран"
+
   useEffect(() => {
     if (!audioListenSrc) {
       setCabinetUploadAudioPreviewPlaying(false)
@@ -525,7 +542,6 @@ export default function CabinetUploadPage() {
     }
   }
 
-  const watchedRequestAiCover = form.watch("requestAiCover")
   const selectedAddonsTotal = computeSelectedUploadAddonsTotalRub({
     requestAiCover: watchedRequestAiCover,
     addonVerticalVideo,
@@ -1874,44 +1890,78 @@ export default function CabinetUploadPage() {
                     <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                       <FormLabel>
                         Обложка (JPEG/PNG, 3000×3000, до 20 MB)
-                        {!form.watch("requestAiCover") ? " *" : ""}
+                        {!watchedRequestAiCover ? " *" : ""}
                       </FormLabel>
-                      <FormDescription className={form.watch("requestAiCover") ? "" : "hidden"}>
+                      <FormDescription className={watchedRequestAiCover ? "" : "hidden"}>
                         Не требуется при заказе ИИ-обложки.
                       </FormDescription>
                     </div>
-                    <FormControl className="mt-auto w-full shrink-0">
-                      <Input
-                        key={form.watch("requestAiCover") ? "cover-off" : "cover-on"}
-                        type="file"
-                        accept="image/jpeg,image/png,.jpg,.jpeg,.png"
-                        disabled={formDisabled || form.watch("requestAiCover")}
-                        onChange={async (e) => {
-                          const files = e.target.files
-                          onChange(files)
-                          form.clearErrors("cover")
-                          setCoverFormatError(null)
-                          const f = files?.[0]
-                          if (!f || form.watch("requestAiCover")) return
-                          try {
-                            const coverErr = await validateCoverFileClient(f)
-                            if (coverErr) {
-                              showCoverValidationError(coverErr)
+                    <div
+                      className={cn(
+                        "mt-auto flex h-auto min-h-9 w-full min-w-0 flex-wrap items-center gap-2 rounded-md border border-input bg-transparent px-2 py-1.5 shadow-xs",
+                        "dark:bg-input/30",
+                        "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
+                      )}
+                    >
+                      <FormControl>
+                        <input
+                          key={watchedRequestAiCover ? "cover-off" : "cover-on"}
+                          type="file"
+                          accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                          disabled={formDisabled || Boolean(watchedRequestAiCover)}
+                          className="sr-only"
+                          onChange={async (e) => {
+                            const files = e.target.files
+                            onChange(files)
+                            form.clearErrors("cover")
+                            setCoverFormatError(null)
+                            const f = files?.[0]
+                            if (!f || watchedRequestAiCover) return
+                            try {
+                              const coverErr = await validateCoverFileClient(f)
+                              if (coverErr) {
+                                showCoverValidationError(coverErr)
+                                return
+                              }
+                            } catch (err) {
+                              showCoverValidationError(
+                                formatCabinetUploadFailure(err, "Не удалось проверить обложку", "cover")
+                              )
                               return
                             }
-                          } catch (err) {
-                            showCoverValidationError(
-                              formatCabinetUploadFailure(err, "Не удалось проверить обложку", "cover")
-                            )
-                            return
-                          }
-                          if (activeDraftId) {
-                            void syncCoverFileToDraftServer(f)
-                          }
-                        }}
-                        {...field}
-                      />
-                    </FormControl>
+                            if (activeDraftId) {
+                              void syncCoverFileToDraftServer(f)
+                            }
+                          }}
+                          {...field}
+                          ref={(el) => {
+                            field.ref(el)
+                            cabinetUploadCoverInputRef.current = el
+                          }}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 shrink-0 border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                        disabled={formDisabled || Boolean(watchedRequestAiCover)}
+                        onClick={() => cabinetUploadCoverInputRef.current?.click()}
+                      >
+                        Выберите файл
+                      </Button>
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate text-sm",
+                          pickedCoverFile || watchedServerDraftHasCover || watchedRequestAiCover
+                            ? "text-foreground"
+                            : "text-muted-foreground",
+                        )}
+                        title={coverFileStatusLabel}
+                      >
+                        {coverFileStatusLabel}
+                      </span>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
