@@ -1319,14 +1319,13 @@ export default function CabinetPage() {
                                           className={
                                             track.status === "released"
                                               ? "text-green-600"
-                                              : track.status === "upload_pending"
-                                                ? "text-muted-foreground"
+                                              : track.status === "upload_pending" ||
+                                                  track.status === "rejected"
+                                                ? "text-destructive"
                                               : track.status === "approved_by_platforms"
                                                 ? "text-green-500"
                                                 : track.status === "sent_to_platforms"
                                                   ? "text-blue-600"
-                                                  : track.status === "rejected"
-                                                    ? "text-destructive"
                                                     : "text-amber-600"
                                           }
                                         >
@@ -1446,14 +1445,13 @@ export default function CabinetPage() {
                                       className={
                                         track.status === "released"
                                           ? "text-green-600"
-                                          : track.status === "upload_pending"
-                                            ? "text-muted-foreground"
+                                          : track.status === "upload_pending" ||
+                                              track.status === "rejected"
+                                            ? "text-destructive"
                                           : track.status === "approved_by_platforms"
                                             ? "text-green-500"
                                             : track.status === "sent_to_platforms"
                                               ? "text-blue-600"
-                                              : track.status === "rejected"
-                                                ? "text-destructive"
                                                 : "text-amber-600"
                                       }
                                     >
@@ -1555,14 +1553,13 @@ export default function CabinetPage() {
                                 className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                                   selectedTrack.status === "released"
                                     ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                    : selectedTrack.status === "upload_pending"
-                                      ? "bg-muted text-muted-foreground"
+                                    : selectedTrack.status === "upload_pending" ||
+                                        selectedTrack.status === "rejected"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                                     : selectedTrack.status === "approved_by_platforms"
                                       ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
                                       : selectedTrack.status === "sent_to_platforms"
                                         ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                        : selectedTrack.status === "rejected"
-                                          ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                                           : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
                                 }`}
                               >
