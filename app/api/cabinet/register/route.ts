@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
           const expiresAt = addMonths(baseDate, monthsToAdd).toISOString()
           await createCabinetArtistSubscriptionSlot({
             userId: user.id,
+            artistName: parsed.data.artistName,
             subscriptionName,
             subscriptionExpiresAt: expiresAt,
             subscriptionTrackLimit: user.subscriptionTrackLimit ?? null,

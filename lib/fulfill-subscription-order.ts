@@ -5,7 +5,7 @@ import {
   setCabinetUserAutopay,
   updateCabinetUserSubscription,
 } from "@/lib/cabinet-users"
-import { createCabinetArtistSubscriptionSlot } from "@/lib/cabinet-artist-subscriptions"
+import { applyPaidSubscriptionToArtistSlots } from "@/lib/cabinet-artist-subscriptions"
 import { isEmailConfigured, sendSubscriptionRegistrationEmail } from "@/lib/email"
 import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import type { OrderSubscription } from "@/lib/orders"
@@ -17,6 +17,7 @@ import {
   upsertPendingSubscriptionAutopay,
 } from "@/lib/pending-subscription-autopay"
 import { escapeHtml } from "@/lib/telegram"
+import { getTracksByUserId } from "@/lib/tracks"
 
 export type FulfillSubscriptionOrderParams = {
   order: OrderSubscription
@@ -76,11 +77,16 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
     newExpiresAt = addMonths(baseDate, monthsToAdd).toISOString()
 
     await updateCabinetUserSubscription(user.id, subscriptionName, newExpiresAt, user.subscriptionTrackLimit ?? null)
-    await createCabinetArtistSubscriptionSlot({
+    const tracks = await getTracksByUserId(user.email)
+    const latestTrackArtist = [...tracks]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .find((t) => t.artistName?.trim())?.artistName
+    await applyPaidSubscriptionToArtistSlots({
       userId: user.id,
       subscriptionName,
       subscriptionExpiresAt: newExpiresAt,
       subscriptionTrackLimit: user.subscriptionTrackLimit ?? null,
+      preferredArtistNames: [user.artistName, latestTrackArtist],
     })
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId, userId: user.id })
 
