@@ -67,6 +67,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
+import { AdminModerationNoteTemplates } from "@/components/admin-moderation-note-templates"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -2844,9 +2845,16 @@ export default function TracksPageClient() {
                     </div>
                     {selectedTrack ? (
                       <div className="md:col-span-2 space-y-2">
-                        <Label htmlFor="admin-mod-note">
-                          Комментарий модерации (при «Отклонено» / «Отложено» / «Требуется доработка»)
-                        </Label>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <Label htmlFor="admin-mod-note">
+                            Комментарий модерации (при «Отклонено» / «Отложено» / «Требуется доработка»)
+                          </Label>
+                          <AdminModerationNoteTemplates
+                            onApply={(text) =>
+                              setTrackDraft((d) => (d ? { ...d, moderationNote: text } : d))
+                            }
+                          />
+                        </div>
                         <Textarea
                           id="admin-mod-note"
                           className="min-h-[80px]"
@@ -3577,7 +3585,13 @@ export default function TracksPageClient() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="album-mod-note">Комментарий модерации</Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Label htmlFor="album-mod-note">Комментарий модерации</Label>
+                  <AdminModerationNoteTemplates
+                    disabled={albumModSaving}
+                    onApply={(text) => setAlbumModNote(text)}
+                  />
+                </div>
                 <Textarea
                   id="album-mod-note"
                   className="min-h-[100px]"
