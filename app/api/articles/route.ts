@@ -15,6 +15,11 @@ const articleSchema = z.object({
     .optional()
     .refine(isValidArticleOgImage, 'OG image: URL, /blog/filename или /api/blog-covers/filename')
     .or(z.literal('')),
+  heroImage: z
+    .string()
+    .optional()
+    .refine(isValidArticleOgImage, 'Hero image: URL, /blog/filename или /api/blog-covers/filename')
+    .or(z.literal('')),
   category: z.string().min(1, 'Category is required').max(50, 'Category must be less than 50 characters'),
   tags: z.array(z.string()).optional().default([]),
   published: z.boolean().optional().default(false),

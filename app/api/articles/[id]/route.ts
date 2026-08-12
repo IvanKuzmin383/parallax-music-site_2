@@ -15,6 +15,11 @@ const updateArticleSchema = z.object({
     .refine(isValidArticleOgImage, 'OG image: URL, /blog/filename или /api/blog-covers/filename')
     .optional()
     .or(z.literal('')),
+  heroImage: z
+    .string()
+    .refine(isValidArticleOgImage, 'Hero image: URL, /blog/filename или /api/blog-covers/filename')
+    .optional()
+    .or(z.literal('')),
   category: z.string().min(1).max(50).optional(),
   tags: z.array(z.string()).optional(),
   published: z.boolean().optional(),

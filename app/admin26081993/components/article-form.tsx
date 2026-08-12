@@ -24,6 +24,20 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Upload, X } from "lucide-react"
 
+const imagePathSchema = z
+  .string()
+  .optional()
+  .refine(
+    (v) =>
+      !v ||
+      v.startsWith("http://") ||
+      v.startsWith("https://") ||
+      v.startsWith("/api/blog-covers/") ||
+      /^[a-zA-Z0-9._\-\/]+$/.test(v.trim()),
+    "Загрузите файл, укажите /api/blog-covers/... или полный URL"
+  )
+  .transform((v) => v?.trim() ?? "")
+
 const articleFormSchema = z.object({
   title: z.string().min(1, "Заголовок обязателен").max(200, "Заголовок должен быть менее 200 символов"),
   slug: z.string().optional(),
@@ -31,19 +45,8 @@ const articleFormSchema = z.object({
   excerpt: z.string().max(500, "Краткое описание должно быть менее 500 символов").optional().default(""),
   metaDescription: z.string().max(300, "Мета-описание должно быть менее 300 символов").optional().default(""),
   keywords: z.string().optional().default(""), // Будет преобразовано в массив
-  ogImage: z
-    .string()
-    .optional()
-    .refine(
-      (v) =>
-        !v ||
-        v.startsWith("http://") ||
-        v.startsWith("https://") ||
-        v.startsWith("/api/blog-covers/") ||
-        /^[a-zA-Z0-9._\-\/]+$/.test(v.trim()),
-      "Загрузите файл, укажите /api/blog-covers/... или полный URL"
-    )
-    .transform((v) => v?.trim() ?? ""),
+  ogImage: imagePathSchema,
+  heroImage: imagePathSchema,
   category: z.string().min(1, "Категория обязательна").max(50, "Категория должна быть менее 50 символов"),
   tags: z.string().optional().default(""), // Будет преобразовано в массив
   published: z.boolean().optional().default(false),
@@ -77,8 +80,10 @@ function normalizeOgImageForSave(raw: string): string {
 
 export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [coverUploading, setCoverUploading] = useState(false)
-  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [listCoverUploading, setListCoverUploading] = useState(false)
+  const [heroCoverUploading, setHeroCoverUploading] = useState(false)
+  const listCoverInputRef = useRef<HTMLInputElement>(null)
+  const heroCoverInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<ArticleFormValues>({
     resolver: zodResolver(articleFormSchema),
@@ -90,6 +95,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
       metaDescription: article?.metaDescription || "",
       keywords: article?.keywords?.join(", ") || "",
       ogImage: article?.ogImage || "",
+      heroImage: article?.heroImage || "",
       category: article?.category || "",
       tags: article?.tags?.join(", ") || "",
       published: article?.published || false,
@@ -98,8 +104,14 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
   })
 
   const ogImageValue = form.watch("ogImage")
+  const heroImageValue = form.watch("heroImage")
 
-  const handleCoverFileChange = async (file: File | null) => {
+  const uploadCover = async (
+    file: File | null,
+    field: "ogImage" | "heroImage",
+    setUploading: (v: boolean) => void,
+    inputRef: { current: HTMLInputElement | null }
+  ) => {
     if (!file) return
     const name = file.name.toLowerCase()
     if (!name.endsWith(".jpg") && !name.endsWith(".jpeg") && !name.endsWith(".png")) {
@@ -111,7 +123,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
       return
     }
 
-    setCoverUploading(true)
+    setUploading(true)
     try {
       const body = new FormData()
       body.append("cover", file)
@@ -125,14 +137,14 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
         toast.error(data.error || "Не удалось загрузить обложку")
         return
       }
-      form.setValue("ogImage", data.ogImage, { shouldDirty: true, shouldValidate: true })
-      toast.success("Обложка загружена")
+      form.setValue(field, data.ogImage, { shouldDirty: true, shouldValidate: true })
+      toast.success(field === "heroImage" ? "Обложка статьи загружена" : "Превью для списка загружено")
     } catch (error) {
       console.error("Article cover upload error:", error)
       toast.error("Не удалось загрузить обложку")
     } finally {
-      setCoverUploading(false)
-      if (coverInputRef.current) coverInputRef.current.value = ""
+      setUploading(false)
+      if (inputRef.current) inputRef.current.value = ""
     }
   }
 
@@ -140,10 +152,10 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
     setIsSubmitting(true)
     try {
       const rawDate = (data.publishedAt ?? "").trim()
-      const ogImage = normalizeOgImageForSave(data.ogImage ?? "")
       const formattedData: ArticleApiData = {
         ...data,
-        ogImage,
+        ogImage: normalizeOgImageForSave(data.ogImage ?? ""),
+        heroImage: normalizeOgImageForSave(data.heroImage ?? ""),
         keywords: data.keywords
           ? data.keywords.split(",").map((k) => k.trim()).filter(Boolean)
           : [],
@@ -308,31 +320,38 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
           name="ogImage"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Превью (картинка статьи)</FormLabel>
+              <FormLabel>Превью для списка (1:1)</FormLabel>
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <input
-                    ref={coverInputRef}
+                    ref={listCoverInputRef}
                     type="file"
                     accept="image/jpeg,image/png,.jpg,.jpeg,.png"
                     className="hidden"
-                    onChange={(e) => void handleCoverFileChange(e.target.files?.[0] ?? null)}
+                    onChange={(e) =>
+                      void uploadCover(
+                        e.target.files?.[0] ?? null,
+                        "ogImage",
+                        setListCoverUploading,
+                        listCoverInputRef
+                      )
+                    }
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={coverUploading || isSubmitting}
-                    onClick={() => coverInputRef.current?.click()}
+                    disabled={listCoverUploading || isSubmitting}
+                    onClick={() => listCoverInputRef.current?.click()}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    {coverUploading ? "Загрузка..." : "Выбрать файл"}
+                    {listCoverUploading ? "Загрузка..." : "Выбрать файл"}
                   </Button>
                   {field.value ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      disabled={coverUploading || isSubmitting}
+                      disabled={listCoverUploading || isSubmitting}
                       onClick={() => field.onChange("")}
                     >
                       <X className="mr-1 h-4 w-4" />
@@ -341,25 +360,87 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
                   ) : null}
                 </div>
                 {ogImageValue ? (
-                  <div className="relative w-full max-w-md overflow-hidden rounded-md border bg-muted flex items-center justify-center min-h-[160px]">
+                  <div className="relative w-40 aspect-square overflow-hidden rounded-md border bg-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={normalizeOgImageForSave(ogImageValue) || ogImageValue}
                       alt=""
-                      className="max-h-72 w-full object-contain"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                 ) : null}
                 <FormControl>
-                  <Input
-                    placeholder="/api/blog-covers/... или https://..."
-                    {...field}
-                  />
+                  <Input placeholder="/api/blog-covers/... или https://..." {...field} />
                 </FormControl>
               </div>
               <FormDescription>
-                Выберите JPEG/PNG с компьютера (до 10 MB) — файл сохранится на сервере без деплоя.
-                Можно оставить старый путь /blog/... или вставить полный URL.
+                Квадратная картинка для карточек в списке блога. JPEG/PNG до 10 MB.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="heroImage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Обложка на странице статьи (16:9)</FormLabel>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={heroCoverInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) =>
+                      void uploadCover(
+                        e.target.files?.[0] ?? null,
+                        "heroImage",
+                        setHeroCoverUploading,
+                        heroCoverInputRef
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={heroCoverUploading || isSubmitting}
+                    onClick={() => heroCoverInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {heroCoverUploading ? "Загрузка..." : "Выбрать файл"}
+                  </Button>
+                  {field.value ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={heroCoverUploading || isSubmitting}
+                      onClick={() => field.onChange("")}
+                    >
+                      <X className="mr-1 h-4 w-4" />
+                      Убрать
+                    </Button>
+                  ) : null}
+                </div>
+                {heroImageValue ? (
+                  <div className="relative w-full max-w-md aspect-video overflow-hidden rounded-md border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={normalizeOgImageForSave(heroImageValue) || heroImageValue}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+                <FormControl>
+                  <Input placeholder="/api/blog-covers/... или https://..." {...field} />
+                </FormControl>
+              </div>
+              <FormDescription>
+                Широкая обложка 16:9 только для страницы статьи (не для списка). JPEG/PNG до 10 MB.
               </FormDescription>
               <FormMessage />
             </FormItem>

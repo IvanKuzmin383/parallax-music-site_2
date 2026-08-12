@@ -54,7 +54,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
   const defaultOg = getHeroBackgroundOgUrl(siteUrl)
-  const ogImage = resolveOgImageUrl(article.ogImage, siteUrl, defaultOg)
+  // Для соцсетей предпочтительна 16:9 обложка страницы
+  const ogImage = resolveOgImageUrl(article.heroImage || article.ogImage, siteUrl, defaultOg)
 
   return {
     title: article.title,
@@ -96,7 +97,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
   const defaultOg = getHeroBackgroundOgUrl(siteUrl)
-  const ogImage = resolveOgImageUrl(article.ogImage, siteUrl, defaultOg)
+  // Для соцсетей предпочтительна 16:9 обложка страницы
+  const ogImage = resolveOgImageUrl(article.heroImage || article.ogImage, siteUrl, defaultOg)
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -151,14 +153,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </nav>
           </div>
 
-          {/* Превью-обложка: целиком, без crop (подходит и 1:1, и 16:9) */}
-          {article.ogImage && (
-            <div className="relative w-full max-w-3xl mx-auto rounded-lg overflow-hidden bg-muted mb-8 flex items-center justify-center">
+          {/* Обложка страницы статьи: 16:9 (heroImage), иначе fallback на ogImage */}
+          {(article.heroImage || article.ogImage) && (
+            <div className="relative w-full aspect-video max-h-[420px] rounded-lg overflow-hidden bg-muted mb-8">
               <img
-                src={article.ogImage}
+                src={article.heroImage || article.ogImage}
                 alt=""
-                className="w-full h-auto max-h-[min(70vh,720px)] object-contain"
-                sizes="(max-width: 1024px) 100vw, 768px"
+                className="object-cover w-full h-full"
+                sizes="(max-width: 1024px) 100vw, 896px"
               />
             </div>
           )}
