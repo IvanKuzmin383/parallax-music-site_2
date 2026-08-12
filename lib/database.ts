@@ -91,3 +91,15 @@ export async function closePool(): Promise<void> {
     pool = null
   }
 }
+
+/** pg driver returns TIMESTAMPTZ as Date; app types expect ISO strings. */
+export function normalizePgTimestamptz(value: unknown): string {
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value === "string" && value.trim()) return value
+  return ""
+}
+
+/** Sort helper: newest first (works with Date or string from PostgreSQL). */
+export function compareTimestampsDesc(a: unknown, b: unknown): number {
+  return normalizePgTimestamptz(b).localeCompare(normalizePgTimestamptz(a))
+}

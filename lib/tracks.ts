@@ -4,7 +4,7 @@ import crypto from "crypto"
 import { nanoid } from "nanoid"
 import type { TrackGenre, TrackMood } from "./track-constants"
 import type { PlatformLinks } from "./smartlink-platforms"
-import { query, queryOne, execute } from "./database"
+import { query, queryOne, execute, normalizePgTimestamptz } from "./database"
 export { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "./track-constants"
 
 export type TrackStatus =
@@ -136,8 +136,8 @@ export function rowToTrack(row: TrackRow): Track {
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
     fixPackCreditsCharged: row.fix_pack_credits_charged === true,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: normalizePgTimestamptz(row.created_at),
+    updatedAt: normalizePgTimestamptz(row.updated_at),
   }
 }
 

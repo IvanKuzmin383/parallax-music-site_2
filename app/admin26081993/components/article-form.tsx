@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -22,6 +22,7 @@ import { Article } from "@/lib/articles"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { Upload, X } from "lucide-react"
 
 const articleFormSchema = z.object({
   title: z.string().min(1, "Заголовок обязателен").max(200, "Заголовок должен быть менее 200 символов"),
@@ -38,8 +39,9 @@ const articleFormSchema = z.object({
         !v ||
         v.startsWith("http://") ||
         v.startsWith("https://") ||
+        v.startsWith("/api/blog-covers/") ||
         /^[a-zA-Z0-9._\-\/]+$/.test(v.trim()),
-      "Укажите имя файла из каталога blog (например cover.jpg) или полный URL"
+      "Загрузите файл, укажите /api/blog-covers/... или полный URL"
     )
     .transform((v) => v?.trim() ?? ""),
   category: z.string().min(1, "Категория обязательна").max(50, "Категория должна быть менее 50 символов"),
@@ -63,8 +65,20 @@ interface ArticleFormProps {
   onCancel?: () => void
 }
 
+function normalizeOgImageForSave(raw: string): string {
+  const ogImage = raw.trim()
+  if (!ogImage) return ""
+  if (ogImage.startsWith("http://") || ogImage.startsWith("https://")) return ogImage
+  if (ogImage.startsWith("/api/blog-covers/")) return ogImage
+  if (ogImage.startsWith("/blog/")) return ogImage
+  const name = ogImage.replace(/^\/?blog\/?/i, "")
+  return name ? `/blog/${name}` : ""
+}
+
 export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const coverInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<ArticleFormValues>({
     resolver: zodResolver(articleFormSchema),
@@ -75,9 +89,7 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
       excerpt: article?.excerpt || "",
       metaDescription: article?.metaDescription || "",
       keywords: article?.keywords?.join(", ") || "",
-      ogImage: article?.ogImage?.startsWith("/blog/")
-        ? article.ogImage.replace(/^\/blog\/?/, "")
-        : article?.ogImage || "",
+      ogImage: article?.ogImage || "",
       category: article?.category || "",
       tags: article?.tags?.join(", ") || "",
       published: article?.published || false,
@@ -85,16 +97,50 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
     },
   })
 
+  const ogImageValue = form.watch("ogImage")
+
+  const handleCoverFileChange = async (file: File | null) => {
+    if (!file) return
+    const name = file.name.toLowerCase()
+    if (!name.endsWith(".jpg") && !name.endsWith(".jpeg") && !name.endsWith(".png")) {
+      toast.error("Нужен JPEG или PNG")
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Размер обложки не должен превышать 10 MB")
+      return
+    }
+
+    setCoverUploading(true)
+    try {
+      const body = new FormData()
+      body.append("cover", file)
+      const response = await fetch("/api/admin/articles/cover", {
+        method: "POST",
+        body,
+        credentials: "include",
+      })
+      const data = (await response.json().catch(() => ({}))) as { ogImage?: string; error?: string }
+      if (!response.ok || !data.ogImage) {
+        toast.error(data.error || "Не удалось загрузить обложку")
+        return
+      }
+      form.setValue("ogImage", data.ogImage, { shouldDirty: true, shouldValidate: true })
+      toast.success("Обложка загружена")
+    } catch (error) {
+      console.error("Article cover upload error:", error)
+      toast.error("Не удалось загрузить обложку")
+    } finally {
+      setCoverUploading(false)
+      if (coverInputRef.current) coverInputRef.current.value = ""
+    }
+  }
+
   const handleSubmit = async (data: ArticleFormValues) => {
     setIsSubmitting(true)
     try {
       const rawDate = (data.publishedAt ?? "").trim()
-      // Имя файла из public/blog → сохраняем как /blog/имя-файла
-      let ogImage = (data.ogImage ?? "").trim()
-      if (ogImage && !ogImage.startsWith("http://") && !ogImage.startsWith("https://")) {
-        const name = ogImage.replace(/^\/?blog\/?/i, "")
-        ogImage = name ? `/blog/${name}` : ""
-      }
+      const ogImage = normalizeOgImageForSave(data.ogImage ?? "")
       const formattedData: ArticleApiData = {
         ...data,
         ogImage,
@@ -263,11 +309,57 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Превью (картинка статьи)</FormLabel>
-              <FormControl>
-                <Input placeholder="cover.jpg или https://..." {...field} />
-              </FormControl>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => void handleCoverFileChange(e.target.files?.[0] ?? null)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={coverUploading || isSubmitting}
+                    onClick={() => coverInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {coverUploading ? "Загрузка..." : "Выбрать файл"}
+                  </Button>
+                  {field.value ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={coverUploading || isSubmitting}
+                      onClick={() => field.onChange("")}
+                    >
+                      <X className="mr-1 h-4 w-4" />
+                      Убрать
+                    </Button>
+                  ) : null}
+                </div>
+                {ogImageValue ? (
+                  <div className="relative w-full max-w-md aspect-video overflow-hidden rounded-md border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={normalizeOgImageForSave(ogImageValue) || ogImageValue}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+                <FormControl>
+                  <Input
+                    placeholder="/api/blog-covers/... или https://..."
+                    {...field}
+                  />
+                </FormControl>
+              </div>
               <FormDescription>
-                Имя файла из каталога public/blog (например cover.jpg) или полный URL. Файлы из blog показываются в списке статей и на странице статьи.
+                Выберите JPEG/PNG с компьютера (до 10 MB) — файл сохранится на сервере без деплоя.
+                Можно оставить старый путь /blog/... или вставить полный URL.
               </FormDescription>
               <FormMessage />
             </FormItem>

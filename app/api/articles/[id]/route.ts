@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getArticleById, updateArticle, deleteArticle, generateSlug } from '@/lib/articles'
 import { getAdminToken, verifySession } from '@/lib/auth'
+import { isValidArticleOgImage } from '@/lib/blog-covers'
 
 const updateArticleSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -11,14 +12,7 @@ const updateArticleSchema = z.object({
   keywords: z.array(z.string()).optional(),
   ogImage: z
     .string()
-    .refine(
-      (v) =>
-        !v ||
-        v.startsWith('http://') ||
-        v.startsWith('https://') ||
-        (v.startsWith('/blog/') && v.length > 6),
-      'OG image: full URL or path /blog/filename'
-    )
+    .refine(isValidArticleOgImage, 'OG image: URL, /blog/filename или /api/blog-covers/filename')
     .optional()
     .or(z.literal('')),
   category: z.string().min(1).max(50).optional(),

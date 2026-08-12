@@ -17,6 +17,7 @@ import {
   upsertPendingSubscriptionAutopay,
 } from "@/lib/pending-subscription-autopay"
 import { escapeHtml } from "@/lib/telegram"
+import { compareTimestampsDesc } from "@/lib/database"
 import { getTracksByUserId } from "@/lib/tracks"
 
 export type FulfillSubscriptionOrderParams = {
@@ -79,7 +80,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
     await updateCabinetUserSubscription(user.id, subscriptionName, newExpiresAt, user.subscriptionTrackLimit ?? null)
     const tracks = await getTracksByUserId(user.email)
     const latestTrackArtist = [...tracks]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .sort((a, b) => compareTimestampsDesc(a.createdAt, b.createdAt))
       .find((t) => t.artistName?.trim())?.artistName
     await applyPaidSubscriptionToArtistSlots({
       userId: user.id,

@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { query, queryOne, execute } from "./database"
+import { query, queryOne, execute, normalizePgTimestamptz, compareTimestampsDesc } from "./database"
 
 export type CabinetArtistSubscription = {
   id: string
@@ -29,10 +29,10 @@ function rowToModel(row: CabinetArtistSubscriptionRow): CabinetArtistSubscriptio
     userId: row.user_id,
     artistName: row.artist_name,
     subscriptionName: row.subscription_name,
-    subscriptionExpiresAt: row.subscription_expires_at,
+    subscriptionExpiresAt: normalizePgTimestamptz(row.subscription_expires_at) || null,
     subscriptionTrackLimit: row.subscription_track_limit,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: normalizePgTimestamptz(row.created_at),
+    updatedAt: normalizePgTimestamptz(row.updated_at),
   }
 }
 
@@ -173,7 +173,7 @@ function pickInferredArtistName(
 ): string | null {
   const named = slots
     .filter((s) => s.artistName?.trim())
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .sort((a, b) => compareTimestampsDesc(a.createdAt, b.createdAt))
 
   if (named.length > 0) {
     const distinct = new Map<string, string>()
@@ -211,7 +211,10 @@ function pickSlotToRenewForPayment(
   const expired = slots
     .filter((s) => !isSlotActive(s.subscriptionExpiresAt, now))
     .sort((a, b) =>
-      (b.subscriptionExpiresAt ?? b.createdAt).localeCompare(a.subscriptionExpiresAt ?? a.createdAt)
+      compareTimestampsDesc(
+        b.subscriptionExpiresAt ?? b.createdAt,
+        a.subscriptionExpiresAt ?? a.createdAt
+      )
     )
 
   if (artistName) {
