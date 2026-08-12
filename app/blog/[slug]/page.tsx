@@ -151,14 +151,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </nav>
           </div>
 
-          {/* Превью-обложка */}
+          {/* Превью-обложка: целиком, без crop (подходит и 1:1, и 16:9) */}
           {article.ogImage && (
-            <div className="relative w-full aspect-video max-h-[420px] rounded-lg overflow-hidden bg-muted mb-8">
+            <div className="relative w-full max-w-3xl mx-auto rounded-lg overflow-hidden bg-muted mb-8 flex items-center justify-center">
               <img
                 src={article.ogImage}
                 alt=""
-                className="object-cover w-full h-full"
-                sizes="(max-width: 1024px) 100vw, 896px"
+                className="w-full h-auto max-h-[min(70vh,720px)] object-contain"
+                sizes="(max-width: 1024px) 100vw, 768px"
               />
             </div>
           )}

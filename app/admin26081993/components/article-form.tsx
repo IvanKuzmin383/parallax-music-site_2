@@ -341,12 +341,12 @@ export function ArticleForm({ article, onSubmit, onCancel }: ArticleFormProps) {
                   ) : null}
                 </div>
                 {ogImageValue ? (
-                  <div className="relative w-full max-w-md aspect-video overflow-hidden rounded-md border bg-muted">
+                  <div className="relative w-full max-w-md overflow-hidden rounded-md border bg-muted flex items-center justify-center min-h-[160px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={normalizeOgImageForSave(ogImageValue) || ogImageValue}
                       alt=""
-                      className="h-full w-full object-cover"
+                      className="max-h-72 w-full object-contain"
                     />
                   </div>
                 ) : null}
