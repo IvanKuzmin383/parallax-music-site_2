@@ -2,10 +2,20 @@ import { promises as fs } from "fs"
 import path from "path"
 import crypto from "crypto"
 import { nanoid } from "nanoid"
-import type { TrackGenre, TrackMood } from "./track-constants"
+import type { TrackGenre, TrackMood, TrackStreamingScope } from "./track-constants"
+import { normalizeStreamingScope } from "./track-constants"
 import type { PlatformLinks } from "./smartlink-platforms"
 import { query, queryOne, execute, normalizePgTimestamptz } from "./database"
-export { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "./track-constants"
+export {
+  GENRES,
+  TRACK_MOODS,
+  STREAMING_SCOPES,
+  STREAMING_SCOPE_OPTIONS,
+  normalizeStreamingScope,
+  type TrackGenre,
+  type TrackMood,
+  type TrackStreamingScope,
+} from "./track-constants"
 
 export type TrackStatus =
   | "upload_pending"
@@ -48,6 +58,8 @@ export interface Track {
   isrc?: string | null
   /** Релиз перенесён с другого дистрибьютора (ожидаются UPC и ISRC) */
   transferFromOtherDistributor?: boolean
+  /** Область дистрибуции на стриминг-площадках */
+  streamingScope: TrackStreamingScope
   smartlinkSlug?: string
   platformLinks?: PlatformLinks
   /** Списан ли Fix-слот при отправке на модерацию (новый тариф Fix). */
@@ -85,6 +97,7 @@ export interface TrackRow {
   upc: string | null
   isrc: string | null
   transfer_from_other_distributor?: boolean | null
+  streaming_scope?: string | null
   smartlink_slug: string | null
   platform_links: string | null
   fix_pack_credits_charged?: boolean | null
@@ -133,6 +146,7 @@ export function rowToTrack(row: TrackRow): Track {
     upc: row.upc ?? undefined,
     isrc: row.isrc ?? undefined,
     transferFromOtherDistributor: row.transfer_from_other_distributor === true,
+    streamingScope: normalizeStreamingScope(row.streaming_scope),
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
     fixPackCreditsCharged: row.fix_pack_credits_charged === true,
@@ -255,10 +269,11 @@ export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string
 
 export type CreateTrackInput = Omit<
   Track,
-  "id" | "createdAt" | "updatedAt" | "needsAiCover" | "fixPackCreditsCharged"
+  "id" | "createdAt" | "updatedAt" | "needsAiCover" | "fixPackCreditsCharged" | "streamingScope"
 > & {
   needsAiCover?: boolean
   fixPackCreditsCharged?: boolean
+  streamingScope?: TrackStreamingScope
 }
 
 export async function setTrackFixPackCreditsCharged(id: string, charged: boolean): Promise<void> {
@@ -276,6 +291,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
     ...data,
     needsAiCover: data.needsAiCover ?? false,
     transferFromOtherDistributor: data.transferFromOtherDistributor ?? false,
+    streamingScope: data.streamingScope ?? "all",
     fixPackCreditsCharged: data.fixPackCreditsCharged ?? false,
     id: crypto.randomUUID(),
     createdAt: now,
@@ -284,8 +300,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -315,6 +331,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.upc ?? null,
       track.isrc ?? null,
       track.transferFromOtherDistributor,
+      track.streamingScope,
       track.smartlinkSlug ?? null,
       track.platformLinks ? JSON.stringify(track.platformLinks) : null,
       track.needsAiCover,
@@ -379,7 +396,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -409,6 +426,7 @@ export async function updateTrack(
       updated.upc ?? null,
       updated.isrc ?? null,
       updated.transferFromOtherDistributor,
+      updated.streamingScope,
       updated.smartlinkSlug ?? null,
       updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
       updated.needsAiCover,

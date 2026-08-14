@@ -10,7 +10,7 @@ import {
 } from "@/lib/tracks"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getAlbumById } from "@/lib/albums"
-import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
+import { GENRES, TRACK_MOODS, STREAMING_SCOPES } from "@/lib/track-constants"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 
 const optionalUrl = z.union([z.string().url(), z.literal("")]).optional()
@@ -56,6 +56,7 @@ const patchBodySchema = z.object({
   upc: z.string().max(32).optional().nullable(),
   isrc: z.string().max(32).optional().nullable(),
   transferFromOtherDistributor: z.boolean().optional(),
+  streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).optional(),
   smartlinkSlug: z.string().max(80).optional().nullable(),
   albumId: z.string().uuid().optional().nullable(),
   platformLinks: z
@@ -198,6 +199,9 @@ export async function PATCH(
   if (data.isrc !== undefined) updatePayload.isrc = data.isrc?.trim() || null
   if (data.transferFromOtherDistributor !== undefined) {
     updatePayload.transferFromOtherDistributor = data.transferFromOtherDistributor
+  }
+  if (data.streamingScope !== undefined) {
+    updatePayload.streamingScope = data.streamingScope as Track["streamingScope"]
   }
   if (data.smartlinkSlug !== undefined) {
     const s = data.smartlinkSlug?.trim()

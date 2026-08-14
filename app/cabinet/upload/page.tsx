@@ -46,8 +46,10 @@ import {
 import {
   GENRES,
   LYRICS_TEXT_UPLOAD_HINT,
+  STREAMING_SCOPES,
   TRACK_MOODS,
   musicRightsRequiresAiService,
+  normalizeStreamingScope,
 } from "@/lib/track-constants"
 import { isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
 import type { CabinetArtistSubscription } from "@/lib/cabinet-artist-subscriptions"
@@ -92,6 +94,7 @@ import {
   CabinetUploadAdditionalServicesSection,
   computeSelectedUploadAddonsTotalRub,
 } from "@/components/cabinet-upload-additional-services-section"
+import { StreamingServicesField } from "@/components/streaming-services-field"
 
 const genreKeys = [...GENRES]
 const moodKeys = [...TRACK_MOODS]
@@ -161,6 +164,7 @@ const uploadSchema = z.object({
     message: "Дата публикации не может приходиться на выходной день (суббота или воскресенье)",
   }),
   requestAiCover: z.boolean().default(false),
+  streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).default("all"),
   transferFromOtherDistributor: z.boolean().default(false),
   transferUpc: z.string().max(32, "Максимум 32 символа").optional().default(""),
   transferIsrc: z.string().max(32, "Максимум 32 символа").optional().default(""),
@@ -398,6 +402,7 @@ export default function CabinetUploadPage() {
       tiktokSoundStartSec: 0,
       releaseDate: undefined,
       requestAiCover: false,
+      streamingScope: "all",
       transferFromOtherDistributor: false,
       transferUpc: "",
       transferIsrc: "",
@@ -617,6 +622,7 @@ export default function CabinetUploadPage() {
       tiktokSoundStartSec: v.tiktokSoundStartSec,
       releaseDate: v.releaseDate ? format(v.releaseDate, "yyyy-MM-dd") : undefined,
       requestAiCover: v.requestAiCover,
+      streamingScope: normalizeStreamingScope(v.streamingScope),
       transferFromOtherDistributor: v.transferFromOtherDistributor,
       transferUpc: v.transferFromOtherDistributor ? v.transferUpc.trim() : "",
       transferIsrc: v.transferFromOtherDistributor ? v.transferIsrc.trim() : "",
@@ -772,6 +778,7 @@ export default function CabinetUploadPage() {
       tiktokSoundStartSec: parseTiktokSoundStartSec(p.tiktokSoundStartSec) ?? 0,
       releaseDate,
       requestAiCover: Boolean(p.requestAiCover),
+      streamingScope: normalizeStreamingScope(p.streamingScope),
       transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
       transferUpc: `${p.transferUpc ?? ""}`,
       transferIsrc: `${p.transferIsrc ?? ""}`,
@@ -1423,6 +1430,23 @@ export default function CabinetUploadPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="streamingScope"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormControl>
+                    <StreamingServicesField
+                      value={field.value as "all" | "ru" | "foreign"}
+                      onChange={field.onChange}
+                      disabled={formDisabled}
+                      idPrefix="upload-streaming"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

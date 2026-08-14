@@ -88,8 +88,11 @@ import {
   AI_COVER_REQUEST_PRICE_RUB,
   GENRES,
   TRACK_MOODS,
+  normalizeStreamingScope,
   musicRightsRequiresAiService,
+  type TrackStreamingScope,
 } from "@/lib/track-constants"
+import { StreamingServicesField } from "@/components/streaming-services-field"
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { fetchAdminArtistsIndex, fetchAdminTracksAllMatching, fetchAdminTracksForArtist } from "@/lib/admin-tracks-fetch"
@@ -217,6 +220,7 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     isInstrumental: Boolean(p.isInstrumental),
     status: "on_moderation",
     releaseDate: releaseDateStr,
+    streamingScope: normalizeStreamingScope(p.streamingScope),
     transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
     upc: `${p.transferUpc ?? ""}`,
     isrc: `${p.transferIsrc ?? ""}`,
@@ -249,6 +253,7 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
     performanceRights: d.performanceRights,
     isInstrumental: d.isInstrumental,
     releaseDate: d.releaseDate.trim() === "" ? undefined : d.releaseDate.trim(),
+    streamingScope: normalizeStreamingScope(d.streamingScope),
     requestAiCover: prev.requestAiCover,
     transferFromOtherDistributor: d.transferFromOtherDistributor,
     transferUpc: d.transferFromOtherDistributor ? d.upc.trim() : "",
@@ -323,6 +328,7 @@ type TrackDraft = {
   isInstrumental: boolean
   status: TrackStatus
   releaseDate: string
+  streamingScope: TrackStreamingScope
   transferFromOtherDistributor: boolean
   upc: string
   isrc: string
@@ -365,6 +371,7 @@ function trackToDraft(t: Track): TrackDraft {
     isInstrumental: t.isInstrumental,
     status: t.status,
     releaseDate: releaseDateStr,
+    streamingScope: t.streamingScope,
     transferFromOtherDistributor: Boolean(t.transferFromOtherDistributor),
     upc: t.upc ?? "",
     isrc: t.isrc ?? "",
@@ -989,6 +996,7 @@ export default function TracksPageClient() {
         isInstrumental: trackDraft.isInstrumental,
         status: trackDraft.status,
         releaseDate: trackDraft.releaseDate.trim() === "" ? null : trackDraft.releaseDate.trim(),
+        streamingScope: trackDraft.streamingScope,
         upc: trackDraft.upc.trim() || null,
         isrc: trackDraft.isrc.trim() || null,
         transferFromOtherDistributor: trackDraft.transferFromOtherDistributor,
@@ -2679,6 +2687,13 @@ export default function TracksPageClient() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <StreamingServicesField
+                      value={trackDraft.streamingScope}
+                      onChange={(value) =>
+                        setTrackDraft((d) => d && { ...d, streamingScope: value })
+                      }
+                      idPrefix="admin-track-streaming"
+                    />
                     <div className="flex flex-col gap-2">
                       <Label>Дата публикации на площадки</Label>
                       <Popover>

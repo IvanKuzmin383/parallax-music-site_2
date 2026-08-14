@@ -18,7 +18,7 @@ import {
 } from "@/lib/upload-drafts"
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { createTrack, getAudioDir, getCoversDir, getTrackById, getTracksByAlbumId, updateTrack, type Track } from "@/lib/tracks"
-import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
+import { GENRES, TRACK_MOODS, normalizeStreamingScope } from "@/lib/track-constants"
 import { createAlbum, type Album } from "@/lib/albums"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
@@ -129,6 +129,7 @@ type AlbumDraftTrackPayload = {
   isInstrumental?: boolean
   backingAuthor?: string
   tiktokSoundStartSec?: number | null
+  streamingScope?: string
   audioRelPath?: string
 }
 
@@ -377,6 +378,7 @@ export async function finalizeUploadDraftCore(
         isInstrumental: Boolean(t.isInstrumental),
         backingAuthor: `${t.backingAuthor ?? ""}`,
         tiktokSoundStartSec: parseTiktokSoundStartSec(t.tiktokSoundStartSec),
+        streamingScope: normalizeStreamingScope(t.streamingScope),
         coverPath,
         audioPath,
         status: "on_moderation",
@@ -486,6 +488,7 @@ export async function finalizeUploadDraftCore(
       isInstrumental: Boolean(payload.isInstrumental),
       backingAuthor: `${payload.backingAuthor ?? ""}`,
       tiktokSoundStartSec: parseTiktokSoundStartSec(payload.tiktokSoundStartSec),
+      streamingScope: normalizeStreamingScope(payload.streamingScope),
       coverPath,
       needsAiCover: !coverPath,
       status: "on_moderation",
@@ -558,6 +561,7 @@ export async function finalizeUploadDraftCore(
     isInstrumental: Boolean(payload.isInstrumental),
     backingAuthor: `${payload.backingAuthor ?? ""}`,
     tiktokSoundStartSec: parseTiktokSoundStartSec(payload.tiktokSoundStartSec),
+    streamingScope: normalizeStreamingScope(payload.streamingScope),
     coverPath,
     needsAiCover: !coverPath,
     audioPath,

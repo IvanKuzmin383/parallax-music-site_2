@@ -13,6 +13,7 @@ import {
 } from "@/lib/subscription-track-limits"
 import { getTracksByUserId } from "@/lib/tracks"
 import { createTrack, getAudioDir, getCoversDir, GENRES, TRACK_MOODS } from "@/lib/tracks"
+import { normalizeStreamingScope, STREAMING_SCOPES } from "@/lib/track-constants"
 import { musicRightsRequiresAiService } from "@/lib/track-constants"
 import { withTransaction } from "@/lib/database"
 import { getClientIp, getUserAgent, tryRecordLicenseAcceptanceForTrack } from "@/lib/legal-acceptance"
@@ -121,6 +122,8 @@ export async function POST(request: NextRequest) {
             ? Math.max(0, Math.trunc(Number(tiktokSoundStartRaw)))
             : null
       const releaseDateStr = multipart.getField("releaseDate")
+      const streamingScopeRaw = multipart.getField("streamingScope")?.trim() ?? "all"
+      const streamingScope = normalizeStreamingScope(streamingScopeRaw)
       const audioFile = multipart.getFile("audio")
       const coverFile = multipart.getFile("cover")
       const requestAiCover = multipart.getField("requestAiCover") === "true"
@@ -295,6 +298,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      if (!STREAMING_SCOPES.includes(streamingScope)) {
+        return NextResponse.json(
+          { error: "Неверное значение поля «Стриминг-сервисы»" },
+          { status: 400 }
+        )
+      }
+
       const audioExt = audioFile.originalFilename.toLowerCase().split(".").pop()
       if (audioExt !== "wav") {
         return NextResponse.json(
@@ -368,6 +378,7 @@ export async function POST(request: NextRequest) {
         audioPath,
         status: "on_moderation",
         releaseDate,
+        streamingScope,
       })
 
       try {

@@ -38,8 +38,10 @@ import { toast } from "sonner"
 import {
   GENRES,
   LYRICS_TEXT_UPLOAD_HINT,
+  STREAMING_SCOPES,
   TRACK_MOODS,
   musicRightsRequiresAiService,
+  normalizeStreamingScope,
 } from "@/lib/track-constants"
 import { isSubscriptionActiveForUpload } from "@/lib/subscription-plans"
 import type { CabinetArtistSubscription } from "@/lib/cabinet-artist-subscriptions"
@@ -68,6 +70,7 @@ import {
 import { useI18n } from "@/lib/i18n-context"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
 import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
+import { StreamingServicesField } from "@/components/streaming-services-field"
 
 /** Параллельная загрузка WAV; раньше файлы шли строго по одному - поздние треки ждали очередь всех предыдущих. */
 const ALBUM_AUDIO_UPLOAD_CONCURRENCY = 4
@@ -189,6 +192,7 @@ const albumTrackSchema = z.object({
     .int("Укажите целое число секунд")
     .min(0, "Не меньше 0")
     .max(600, "Максимум 600 секунд"),
+  streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).default("all"),
   audio: z.any().optional(),
   audioRelPath: z.string().optional(),
   serverDraftHasAudio: z.boolean().default(false),
@@ -353,6 +357,7 @@ type AlbumDraftTrackPayload = {
   performanceRights?: string
   backingAuthor?: string
   tiktokSoundStartSec?: number | null
+  streamingScope?: string
   audioRelPath?: string
 }
 
@@ -378,6 +383,7 @@ function createEmptyAlbumTrack(): UploadAlbumFormValues["tracks"][number] {
     lyricsRights: EMPTY_OPTION,
     performanceRights: EMPTY_OPTION,
     tiktokSoundStartSec: 0,
+    streamingScope: "all",
     audio: undefined,
     audioRelPath: "",
     serverDraftHasAudio: false,
@@ -705,6 +711,7 @@ export default function CabinetUploadAlbumPage() {
             performanceRights:
               (track.performanceRights as UploadAlbumFormValues["tracks"][number]["performanceRights"]) ?? "",
             tiktokSoundStartSec: parseTiktokSoundStartSec(track.tiktokSoundStartSec) ?? 0,
+            streamingScope: normalizeStreamingScope(track.streamingScope),
             audio: undefined,
             audioRelPath: `${track.audioRelPath ?? ""}`,
             serverDraftHasAudio: Boolean(track.audioRelPath),
@@ -775,6 +782,7 @@ export default function CabinetUploadAlbumPage() {
       lyricsRights: track.lyricsRights,
       performanceRights: track.performanceRights,
       tiktokSoundStartSec: track.tiktokSoundStartSec,
+      streamingScope: normalizeStreamingScope(track.streamingScope),
       audioRelPath: track.audioRelPath || undefined,
     }))
 
@@ -1400,6 +1408,23 @@ export default function CabinetUploadAlbumPage() {
                         )}
                       />
                     </div>
+                    <FormField
+                      control={form.control}
+                      name={`tracks.${index}.streamingScope`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <StreamingServicesField
+                              value={field.value as "all" | "ru" | "foreign"}
+                              onChange={field.onChange}
+                              disabled={formDisabled}
+                              idPrefix={`album-track-${index}-streaming`}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <div className="grid gap-4">

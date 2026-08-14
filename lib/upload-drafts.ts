@@ -30,6 +30,8 @@ export interface UploadDraftPayload {
   transferFromOtherDistributor?: boolean
   transferUpc?: string
   transferIsrc?: string
+  /** Область дистрибуции: all | ru | foreign */
+  streamingScope?: string
   albumTitle?: string
   albumArtistName?: string
   releaseDate?: string
