@@ -1378,9 +1378,9 @@ export default function CabinetUploadPage() {
               name="artistName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Исполнитель *</FormLabel>
+                  <FormLabel>Имя артиста *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Исполнитель" disabled={formDisabled} {...field} />
+                    <Input placeholder="Имя артиста" disabled={formDisabled} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
