@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { getTrackById, updateTrack, getCoversDir } from "@/lib/tracks"
+import { applySharedAlbumCover, buildAlbumCoverAbsolutePath } from "@/lib/album-cover-sync"
 import { createReadStream } from "node:fs"
 import { stat, unlink } from "fs/promises"
 import { Readable } from "node:stream"
@@ -107,10 +108,7 @@ export async function POST(
       }
 
       const coversDir = await getCoversDir()
-      const oldCoverPath = track.coverPath
-
-      // Определяем путь для новой обложки (сохраняем расширение из имени файла)
-      const newCoverPath = path.join(coversDir, `${trackId}.${coverExt}`)
+      const coverExtNormalized = coverExt === "jpeg" ? "jpg" : (coverExt as string)
 
       const coverValidationError = await validateCabinetCoverImageFromFilePath(
         coverFile.tempFilePath,
@@ -121,28 +119,54 @@ export async function POST(
         return NextResponse.json({ error: coverValidationError }, { status: 400 })
       }
 
+      if (track.albumId) {
+        const newCoverPath = buildAlbumCoverAbsolutePath(coversDir, track.albumId, coverExtNormalized)
+        await copyFileToPathAtomic(coverFile.tempFilePath, newCoverPath)
+        try {
+          await applySharedAlbumCover({
+            albumId: track.albumId,
+            newCoverPath,
+          })
+        } catch (error) {
+          console.error("Error syncing album cover:", error)
+          try {
+            await unlink(newCoverPath)
+          } catch {
+            // ignore
+          }
+          return NextResponse.json(
+            { error: "Не удалось обновить обложку альбома у всех треков" },
+            { status: 500 }
+          )
+        }
+        const updated = await getTrackById(trackId)
+        if (!updated) {
+          return NextResponse.json({ error: "Не удалось обновить трек" }, { status: 500 })
+        }
+        return NextResponse.json({ track: updated, success: true, albumCoverSynced: true })
+      }
+
+      const oldCoverPath = track.coverPath
+      const newCoverPath = path.join(coversDir, `${trackId}.${coverExtNormalized}`)
+
       await copyFileToPathAtomic(coverFile.tempFilePath, newCoverPath)
 
-      // Удаляем старую обложку, если она существует и отличается от новой
       if (oldCoverPath && oldCoverPath !== newCoverPath) {
         try {
           await unlink(oldCoverPath)
         } catch (error) {
-          // Игнорируем ошибку, если файл уже не существует
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
             console.error("Error deleting old cover:", error)
           }
         }
       }
 
-      // Обновляем путь к обложке в базе данных
       const updated = await updateTrack(trackId, { coverPath: newCoverPath, needsAiCover: false })
       if (!updated) {
-        // Если не удалось обновить запись, удаляем загруженный файл
         try {
           await unlink(newCoverPath)
         } catch {
-          // Игнорируем ошибку удаления
+          // ignore
         }
         return NextResponse.json(
           { error: "Не удалось обновить трек" },

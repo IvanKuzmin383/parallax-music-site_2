@@ -26,13 +26,21 @@ yarn-error.log*
 bandlink-tool.bat
 bandlink-fill-links.bat
 bandlink-upc-lookup.bat
+bandlink-cleanup.bat
+bandlink-cleanup-last-error.txt
+bandlink-debug-*.json
 tools/bandlink-upc-lookup/
 scripts/bandlink-tool-server.ts
 scripts/bandlink-fill-track-links.ts
+scripts/bandlink-cleanup.ts
 lib/bandlink-playwright.ts
 lib/parallax-admin-api.ts
 lib/parallax-admin-playwright.ts
 scripts/_tmp-*.ts
+
+# Локальные выгрузки стримингов (Excel/CSV)
+streaming-releases*
+streaming-tracks*
 
 # SQLite (локальная dev-БД; на VPS - /data/app.db, не в репозитории)
 data/app.db

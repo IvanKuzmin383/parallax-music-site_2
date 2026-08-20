@@ -20,6 +20,7 @@ import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-valid
 import { createTrack, getAudioDir, getCoversDir, getTrackById, getTracksByAlbumId, updateTrack, type Track } from "@/lib/tracks"
 import { GENRES, TRACK_MOODS, normalizeStreamingScope } from "@/lib/track-constants"
 import { createAlbum, type Album } from "@/lib/albums"
+import { applySharedAlbumCover, buildAlbumCoverAbsolutePath } from "@/lib/album-cover-sync"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
 import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
@@ -450,7 +451,7 @@ export async function finalizeUploadDraftCore(
     }
     await fs.copyFile(draftAudio.absPath, sourceTrack.audioPath)
 
-    let coverPath = ""
+    let coverPath: string | undefined
     if (draft.coverRelPath) {
       const coverSrc = path.join(draftsDir, draft.coverRelPath)
       let coverStat: { size: number }
@@ -462,8 +463,23 @@ export async function finalizeUploadDraftCore(
       const coverExt = path.extname(draft.coverRelPath).replace(".", "").toLowerCase() || "jpg"
       const coverError = await validateCabinetCoverImageFromFilePath(coverSrc, coverExt, coverStat.size)
       if (coverError) return { ok: false, error: coverError, status: 400 }
-      coverPath = path.join(coversDir, `${sourceTrack.id}.${coverExt}`)
-      await fs.copyFile(coverSrc, coverPath)
+
+      if (sourceTrack.albumId) {
+        coverPath = buildAlbumCoverAbsolutePath(coversDir, sourceTrack.albumId, coverExt)
+        await fs.copyFile(coverSrc, coverPath)
+        try {
+          await applySharedAlbumCover({
+            albumId: sourceTrack.albumId,
+            newCoverPath: coverPath,
+          })
+        } catch (error) {
+          console.error("[finalize] album cover sync failed:", error)
+          return { ok: false, error: "Не удалось обновить обложку альбома у всех треков", status: 500 }
+        }
+      } else {
+        coverPath = path.join(coversDir, `${sourceTrack.id}.${coverExt}`)
+        await fs.copyFile(coverSrc, coverPath)
+      }
     }
 
     const xfer = readSingleTrackTransferFromPayload(payload)
@@ -489,8 +505,9 @@ export async function finalizeUploadDraftCore(
       backingAuthor: `${payload.backingAuthor ?? ""}`,
       tiktokSoundStartSec: parseTiktokSoundStartSec(payload.tiktokSoundStartSec),
       streamingScope: normalizeStreamingScope(payload.streamingScope),
-      coverPath,
-      needsAiCover: !coverPath,
+      ...(coverPath !== undefined
+        ? { coverPath, needsAiCover: false }
+        : {}),
       status: "on_moderation",
       releaseDate: typeof payload.releaseDate === "string" ? payload.releaseDate : undefined,
       upc: xfer.upc,
