@@ -1,7 +1,47 @@
 import crypto from "crypto"
+import https from "https"
 import type { TbankReceiptPayload } from "./tbank-receipt"
 
 const TBANK_API_BASE = (process.env.TBANK_API_URL || "https://securepay.tinkoff.ru/v2").replace(/\/$/, "")
+
+/** Node fetch/undici на проде с CA Минцифры ломается (timeout :81); https.request — ок. */
+function postJsonHttps(
+  url: string,
+  body: string
+): Promise<{ status: number; raw: string }> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url)
+    const req = https.request(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || 443,
+        path: `${parsed.pathname}${parsed.search}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        const chunks: Buffer[] = []
+        res.on("data", (chunk: Buffer) => chunks.push(chunk))
+        res.on("end", () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            raw: Buffer.concat(chunks).toString("utf8"),
+          })
+        })
+      }
+    )
+    req.on("error", reject)
+    req.setTimeout(30_000, () => {
+      req.destroy(new Error("tbank_request_timeout"))
+    })
+    req.write(body)
+    req.end()
+  })
+}
 
 export type TbankConfig = {
   terminalKey: string
@@ -72,19 +112,18 @@ async function postTbank<T extends Record<string, unknown>>(
 
   requestBody.Token = buildTbankToken(tokenParams, config.password)
 
-  let res: Response
+  let status = 0
+  let raw = ""
   try {
-    res = await fetch(`${TBANK_API_BASE}/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    })
+    const res = await postJsonHttps(`${TBANK_API_BASE}/${endpoint}`, JSON.stringify(requestBody))
+    status = res.status
+    raw = res.raw
   } catch (err) {
     console.error(`[tbank] ${endpoint} request failed:`, err)
     return { ok: false, status: 500, message: "network_error", body: { error: String(err) } }
   }
 
-  const data = (await res.json().catch(() => ({}))) as T & {
+  let data: T & {
     Success?: boolean
     ErrorCode?: string
     Message?: string
@@ -92,8 +131,13 @@ async function postTbank<T extends Record<string, unknown>>(
     PaymentId?: number | string
     PaymentURL?: string
   }
+  try {
+    data = (raw ? JSON.parse(raw) : {}) as typeof data
+  } catch {
+    data = {} as typeof data
+  }
 
-  if (!res.ok || data.Success !== true || data.ErrorCode !== "0") {
+  if (status < 200 || status >= 300 || data.Success !== true || data.ErrorCode !== "0") {
     const details = typeof data.Details === "string" && data.Details.trim() ? data.Details.trim() : ""
     const message = typeof data.Message === "string" && data.Message.trim() ? data.Message.trim() : ""
     const combined =
@@ -102,7 +146,7 @@ async function postTbank<T extends Record<string, unknown>>(
         : message || details || undefined
     return {
       ok: false,
-      status: res.status,
+      status: status || 500,
       errorCode: data.ErrorCode,
       message: combined ? (data.ErrorCode && data.ErrorCode !== "0" ? `[${data.ErrorCode}] ${combined}` : combined) : undefined,
       body: data,

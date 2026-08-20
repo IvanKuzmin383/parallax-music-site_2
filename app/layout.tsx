@@ -14,18 +14,19 @@ const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
 
 export const metadata: Metadata = {
   title: {
-    default: "Parallax Music - Label & Promotion Agency",
+    default: "Дистрибуция и продвижение музыки | Parallax Music",
     template: "%s | Parallax Music",
   },
   description:
-    "Дистрибьютор музыки, лейбл и продюсерский центр. Мы знаем, как сделать так, чтобы твою музыку услышали все",
+    "Дистрибуция ИИ-музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем, лояльная модерация нейросетевых релизов.",
   keywords: [
-    "music label",
-    "music promotion",
-    "artist management",
-    "music agency",
-    "record label",
-    "music marketing",
+    "ИИ-музыка",
+    "дистрибуция ИИ-музыки",
+    "нейросетевая музыка",
+    "выпустить трек на Spotify",
+    "Яндекс Музыка дистрибуция",
+    "AI music distribution",
+    "Parallax Music",
   ],
   authors: [{ name: "Parallax Music" }],
   creator: "Parallax Music",
@@ -44,23 +45,23 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     url: siteUrl,
     siteName: "Parallax Music",
-    title: "Parallax Music - Label & Promotion Agency",
+    title: "Дистрибуция и продвижение музыки | Parallax Music",
     description:
-      "Дистрибьютор музыки, лейбл и продюсерский центр. Мы знаем, как сделать так, чтобы твою музыку услышали все",
+      "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем.",
     images: [
       {
         url: heroOgImage,
         width: 1200,
         height: 630,
-        alt: "Parallax Music - Professional Music Studio",
+        alt: "Parallax Music - дистрибуция ИИ-музыки",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Parallax Music - Label & Promotion Agency",
+    title: "Дистрибуция и продвижение музыки | Parallax Music",
     description:
-      "Дистрибьютор музыки, лейбл и продюсерский центр. Мы знаем, как сделать так, чтобы твою музыку услышали все",
+      "Дистрибуция музыки на стриминговые площадки. 100% роялти, треки не удаляем, поддержка музыки.",
     images: [heroOgImage],
     creator: "@parallaxmusic",
   },

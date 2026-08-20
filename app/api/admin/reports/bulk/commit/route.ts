@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         results.push({
           tempFileId: item.tempFileId,
           ok: false,
-          error: "Сессия превью истекла — загрузите файл снова",
+          error: "Сессия превью истекла - загрузите файл снова",
         })
         continue
       }

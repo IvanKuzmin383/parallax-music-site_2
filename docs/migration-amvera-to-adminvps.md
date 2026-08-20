@@ -68,6 +68,17 @@ NEXT_PUBLIC_TURNSTILE_ENABLED=...
 NEXT_PUBLIC_YANDEX_METRIKA_ID=...
 
 MUSIC_STATS_IMPORT_TOKEN=...
+
+# Автосбор ссылок смартлинка по UPC (админка → «Подтянуть по UPC»)
+# Bandlink — основной источник (Яндекс, VK, Звук, МТС и др.)
+BANDLINK_TOKEN=...
+BANDLINK_ARTIST_ID=642528
+# Cookie целиком из DevTools (обязателен _yasc; обновлять при 403)
+BANDLINK_COOKIES=...
+SPOTIFY_CLIENT_ID=...
+SPOTIFY_CLIENT_SECRET=...
+# опционально, для YouTube Music:
+# YOUTUBE_API_KEY=...
 ```
 
 На VPS можно **не** ставить `AMVERA_DATA_PATH` - достаточно папки `/data` (код в `lib/db.ts` и `lib/tracks.ts` подхватит её автоматически, если каталог существует).
@@ -138,7 +149,7 @@ ufw status
 ```bash
 mkdir -p /data/uploads
 chmod 755 /data
-# Отзывы на главной (если ещё нет — создастся при первом сохранении в админке)
+# Отзывы на главной (если ещё нет - создастся при первом сохранении в админке)
 touch /data/reviews.json
 echo '{"reviews":[]}' > /data/reviews.json
 chmod 644 /data/reviews.json
@@ -426,7 +437,7 @@ pnpm build
 pm2 restart parallaxmusic
 ```
 
-**Не коммитьте в Git:** `/data/app.db`, `data/app.db`, `.env`, бэкапы архивов с БД. Бэкап продакшена — `scp` / tar на ПК (см. раздел про `/data/app.db` выше).
+**Не коммитьте в Git:** `/data/app.db`, `data/app.db`, `.env`, бэкапы архивов с БД. Бэкап продакшена - `scp` / tar на ПК (см. раздел про `/data/app.db` выше).
 
 ---
 

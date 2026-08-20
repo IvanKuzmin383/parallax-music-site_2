@@ -18,7 +18,7 @@ export function payloadForUploadDraftPricing(payload: UploadDraftPayload): Uploa
   return payload
 }
 
-/** Платные услуги из payload черновика (без single `requestAiCover` — см. {@link uploadDraftRequiredPaymentRub}). */
+/** Платные услуги из payload черновика (без single `requestAiCover` - см. {@link uploadDraftRequiredPaymentRub}). */
 export function addonBundleItemsFromUploadDraftPayload(payload: UploadDraftPayload): UploadAddonBundleItem[] {
   const priced = payloadForUploadDraftPricing(payload)
   const items: UploadAddonBundleItem[] = []

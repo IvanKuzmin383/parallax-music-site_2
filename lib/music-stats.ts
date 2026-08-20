@@ -658,6 +658,82 @@ export async function getMusicStatsByPlatformKeyWithArtist(
   }
 }
 
+const CABINET_TRACK_JOIN = `
+    JOIN cabinet_music_track_map m
+      ON m.platform_key = d.platform_key
+     AND m.track_key = d.track_key
+    JOIN tracks c
+      ON c.id = m.cabinet_track_id
+  `
+
+/**
+ * Полный рейтинг треков кабинета: SUM по всем дням, группировка по релизу (cabinet_track_id).
+ * Без LIMIT на площадку - в отличие от устаревшего среза top-10 по track_key.
+ */
+export async function getCabinetMusicStatsTopTracks(args: {
+  cabinetUserEmail: string
+  platformKeys: MusicPlatformKey[]
+  filters?: { albumId?: string | null; trackIds?: string[] | null }
+}): Promise<TopTrack[]> {
+  const email = args.cabinetUserEmail.trim()
+  const platformKeys = [...new Set(args.platformKeys)].filter((k) => k in MUSIC_PLATFORM_LABELS)
+  if (!email || platformKeys.length === 0) return []
+
+  for (const platformKey of platformKeys) {
+    await ensureCabinetMusicTrackMapForPlatform(platformKey)
+  }
+
+  const albumId = args.filters?.albumId?.trim() ? args.filters.albumId.trim() : null
+  const trackIds = (args.filters?.trackIds ?? []).map((id) => id.trim()).filter((id) => id.length > 0)
+  const userId = email.toLowerCase()
+
+  const whereParts: string[] = []
+  const params: string[] = []
+
+  if (platformKeys.length === 1) {
+    whereParts.push("d.platform_key = ?")
+    params.push(platformKeys[0]!)
+  } else {
+    whereParts.push(`d.platform_key IN (${platformKeys.map(() => "?").join(",")})`)
+    params.push(...platformKeys)
+  }
+
+  whereParts.push("m.user_id = ?")
+  params.push(userId)
+
+  if (trackIds.length > 0) {
+    whereParts.push(`c.id IN (${trackIds.map(() => "?").join(",")})`)
+    params.push(...trackIds)
+  } else if (albumId) {
+    whereParts.push("c.album_id = ?")
+    params.push(albumId)
+  }
+
+  const whereSql = whereParts.join(" AND ")
+
+  const rows = await query<{ title: string; author: string; plays: string | number }>(
+    `
+        SELECT
+          c.track_name AS title,
+          c.artist_name AS author,
+          SUM(d.plays) AS plays
+        FROM music_platform_track_daily_plays d
+        ${CABINET_TRACK_JOIN}
+        WHERE ${whereSql}
+        GROUP BY m.cabinet_track_id, c.track_name, c.artist_name
+        HAVING SUM(d.plays) > 0
+        ORDER BY SUM(d.plays) DESC
+      `,
+    params
+  )
+
+  return rows.map((r) => ({
+    title: r.title,
+    author: r.author,
+    plays: Number(r.plays) || 0,
+  }))
+}
+
 /**
  * Статистика только по трекам кабинета.
  * Использует готовую таблицу соответствий `cabinet_music_track_map` (user+platform+track_key -> cabinet_track_id),
@@ -691,13 +767,7 @@ export async function getMusicStatsForCabinetUser(
   const albumId = filters?.albumId?.trim() ? filters.albumId.trim() : null
   const trackIds = (filters?.trackIds ?? []).map((id) => id.trim()).filter((id) => id.length > 0)
   const userId = email.toLowerCase()
-  const cabinetTrackJoin = `
-    JOIN cabinet_music_track_map m
-      ON m.platform_key = d.platform_key
-     AND m.track_key = d.track_key
-    JOIN tracks c
-      ON c.id = m.cabinet_track_id
-  `
+  const cabinetTrackJoin = CABINET_TRACK_JOIN
 
   const whereParts: string[] = ["d.platform_key = ?", "m.user_id = ?"]
   const params: string[] = [platformKey, userId]
@@ -732,23 +802,14 @@ export async function getMusicStatsForCabinetUser(
     params
   )
 
-  const topRows = await query<{ title: string; author: string; plays: string | number }>(
-    `
-        SELECT
-          MAX(t.title) AS title,
-          MAX(t.author) AS author,
-          SUM(d.plays) AS plays
-        FROM music_platform_track_daily_plays d
-        JOIN music_platform_tracks t
-          ON t.platform_key = d.platform_key AND t.track_key = d.track_key
-        ${cabinetTrackJoin}
-        WHERE ${whereSql}
-        GROUP BY d.track_key
-        ORDER BY SUM(d.plays) DESC
-        LIMIT 10
-      `,
-    params
-  )
+  const topTracks = await getCabinetMusicStatsTopTracks({
+    cabinetUserEmail: email,
+    platformKeys: [platformKey],
+    filters: {
+      albumId,
+      trackIds: trackIds.length > 0 ? trackIds : null,
+    },
+  })
 
   const totalsRow = await queryOne<{
     total_plays: string | number
@@ -798,11 +859,7 @@ export async function getMusicStatsForCabinetUser(
       totalPlays: Number(r.total_plays) || 0,
       tracksWithPlays: Number(r.tracks_with_plays) || 0,
     })),
-    topTracks: topRows.map((r) => ({
-      title: r.title,
-      author: r.author,
-      plays: Number(r.plays) || 0,
-    })),
+    topTracks,
     countryStatsByDate: countryRows.map((r) => ({
       date: r.date,
       country: r.country,
@@ -1069,7 +1126,7 @@ export async function importMusicStatsParsedToDb(args: {
         FROM music_platform_track_daily_plays d
         WHERE d.platform_key = ?
           AND d.stat_date IN (${placeholders})
-        GROUP BY d.stat_date
+        GROUP BY d.platform_key, d.stat_date
       `,
       [args.platformKey, ...dates]
     )

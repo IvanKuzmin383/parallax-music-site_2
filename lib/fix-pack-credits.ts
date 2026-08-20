@@ -5,12 +5,16 @@ import {
   updateCabinetUserPurchasedTracks,
 } from "@/lib/cabinet-users"
 import { shouldDeductFixPackCreditsOnUpload } from "@/lib/fix-pricing-legacy"
+import type { Track } from "@/lib/tracks"
 
 export function assertFixPackCreditsAvailable(
   user: Pick<CabinetUser, "subscriptionName" | "createdAt" | "purchasedTracksBalance" | "subscriptionTrackLimit">,
   tracksToAdd: number
 ): { ok: true } | { ok: false; error: string } {
   if (!shouldDeductFixPackCreditsOnUpload(user)) {
+    return { ok: true }
+  }
+  if (tracksToAdd === 0) {
     return { ok: true }
   }
   if (!Number.isInteger(tracksToAdd) || tracksToAdd < 1) {
@@ -24,6 +28,14 @@ export function assertFixPackCreditsAvailable(
     }
   }
   return { ok: true }
+}
+
+export function assertFixPackCreditsForTracks(
+  user: Pick<CabinetUser, "subscriptionName" | "createdAt" | "purchasedTracksBalance" | "subscriptionTrackLimit">,
+  tracks: Pick<Track, "fixPackCreditsCharged">[]
+): { ok: true } | { ok: false; error: string } {
+  const needed = tracks.filter((t) => !t.fixPackCreditsCharged).length
+  return assertFixPackCreditsAvailable(user, needed)
 }
 
 export async function deductFixPackCreditsOnUpload(

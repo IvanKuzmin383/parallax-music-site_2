@@ -74,7 +74,7 @@ export async function matchStreamingReportFileName(
       suggestedUserId: null,
       matchConfidence: "manual",
       candidateUserIds: [],
-      warnings: ["Коллаборация — выберите пользователя вручную"],
+      warnings: ["Коллаборация - выберите пользователя вручную"],
     }
   }
 
@@ -107,7 +107,7 @@ export async function matchStreamingReportFileName(
   }
 
   if (uniqueUserIds.length > 1) {
-    warnings.push("Несколько пользователей с таким именем артиста — выберите вручную")
+    warnings.push("Несколько пользователей с таким именем артиста - выберите вручную")
     return {
       artistFromFile,
       requiresManual: true,

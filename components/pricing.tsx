@@ -66,7 +66,7 @@ function PricingContent() {
             <span className="text-foreground">{t.pricing.title}</span>{" "}
             <span className="text-primary">{t.pricing.titleHighlight}</span>
           </h2>
-          <p className="text-lg text-muted-foreground text-pretty">{t.pricing.description}</p>
+          <p className="text-lg text-muted-foreground text-pretty whitespace-pre-line">{t.pricing.description}</p>
         </div>
 
         <div className="flex justify-center mb-10">

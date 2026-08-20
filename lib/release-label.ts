@@ -1,7 +1,7 @@
 export const DEFAULT_RELEASE_LABEL_NAME = "Parallax Music"
 
 export function hasLabelSubscription(subscriptionName?: string | null): boolean {
-  return subscriptionName === "Label"
+  return subscriptionName === "Label" || subscriptionName === "Fix"
 }
 
 export function getEffectiveReleaseLabelName(

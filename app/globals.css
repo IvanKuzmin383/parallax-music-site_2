@@ -200,7 +200,7 @@
   }
 }
 
-/* Markdown/Prose styles — бледный основной текст, яркий белый на заголовках и акцентах */
+/* Markdown/Prose styles - бледный основной текст, яркий белый на заголовках и акцентах */
 .prose {
   font-family: var(--font-article);
   @apply text-muted-foreground;
@@ -326,4 +326,23 @@
 
 .cabinet-sidebar-scroll::-webkit-scrollbar-thumb:active {
   background-color: color-mix(in oklch, var(--sidebar-primary) 85%, white 15%);
+}
+
+/* Compact native audio controls (admin track preview) */
+audio.admin-audio-compact {
+  display: block;
+  width: 100%;
+  height: 2rem;
+  max-height: 2rem;
+}
+
+audio.admin-audio-compact::-webkit-media-controls-panel {
+  min-height: 2rem;
+  height: 2rem;
+  padding-block: 0;
+}
+
+audio.admin-audio-compact::-webkit-media-controls-enclosure {
+  max-height: 2rem;
+  border-radius: 9999px;
 }

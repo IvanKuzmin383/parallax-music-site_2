@@ -46,12 +46,13 @@ export async function GET(request: NextRequest) {
     const placeholders = allKeys.map(() => "?").join(",")
     const rows = await query<{ author: string }>(
       `
-          SELECT DISTINCT author
+          SELECT author
           FROM music_platform_tracks
           WHERE platform_key IN (${placeholders})
             AND author IS NOT NULL
             AND TRIM(author) != ''
             AND LOWER(author) LIKE ?
+          GROUP BY author
           ORDER BY LOWER(author)
           LIMIT ?
         `,
@@ -65,12 +66,13 @@ export async function GET(request: NextRequest) {
   const placeholders = someKeys.map(() => "?").join(",")
   const rows = await query<{ author: string }>(
     `
-        SELECT DISTINCT author
+        SELECT author
         FROM music_platform_tracks
         WHERE platform_key IN (${placeholders})
           AND author IS NOT NULL
           AND TRIM(author) != ''
           AND LOWER(author) LIKE ?
+        GROUP BY author
         ORDER BY LOWER(author)
         LIMIT ?
       `,

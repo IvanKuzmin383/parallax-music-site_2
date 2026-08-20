@@ -63,6 +63,12 @@ export async function POST(request: NextRequest) {
     totalAmount,
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
+    serviceDetails: {
+      trackTitle: trackTitle || undefined,
+      comment,
+      contactType,
+      contactValue,
+    },
   })
   const returnUrl = `${siteBase}/cabinet/promotion/spotify-videoshot?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/spotify-videoshot?payment=fail&orderId=${encodeURIComponent(order.id)}`

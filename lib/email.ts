@@ -43,7 +43,7 @@ export async function sendFixPackRegistrationEmail(
     const { error } = await resend.emails.send({
       from: fromEmail,
       to: [to],
-      subject: "Оплата пакета треков Fix — зарегистрируйтесь в кабинете",
+      subject: "Оплата пакета треков Fix - зарегистрируйтесь в кабинете",
       html: `
         <p>Здравствуйте!</p>
         <p>Оплата пакета треков (тариф Fix) прошла успешно.</p>

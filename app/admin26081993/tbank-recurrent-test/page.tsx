@@ -160,7 +160,7 @@ export default function TbankRecurrentTestPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Тест №5 — привязка карты</CardTitle>
+                <CardTitle>Тест №5 - привязка карты</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
@@ -177,12 +177,12 @@ export default function TbankRecurrentTestPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Тест №6 — Charge по RebillId</CardTitle>
+                <CardTitle>Тест №6 - Charge по RebillId</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                   <li>Сначала завершите тест №5 (RebillId должен появиться).</li>
-                  <li>Нажмите кнопку — сервер выполнит Init child + Charge.</li>
+                  <li>Нажмите кнопку - сервер выполнит Init child + Charge.</li>
                   <li>Дождитесь child_status = CONFIRMED.</li>
                   <li>В ЛК Т-Бизнес → «Проверить» для теста №6.</li>
                 </ol>

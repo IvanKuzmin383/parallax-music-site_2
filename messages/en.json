@@ -1,83 +1,245 @@
 {
   "header": {
-    "services": "Services",
-    "process": "Process",
+    "services": "What you get",
+    "process": "How it works",
     "blog": "Blog",
     "aiMusic": "AI Music",
+    "promotion": "Promotion",
     "pricing": "Pricing",
+    "extras": "Ecosystem",
     "contact": "Contact",
     "login": "Sign in"
   },
   "hero": {
-    "title": "Amplify Your Sound",
-    "description": "Premier music label and promotion agency dedicated to elevating artists and creating cultural impact through innovative strategies and industry expertise.",
-    "workWithUs": "Work With Us",
-    "partnerLogoAlt": "Parallax Music partner"
+    "title": "Release AI music\nto streaming platforms",
+    "description": "Distribution and promotion for AI-generated tracks. Legal, royalty-based, with lower blocking risk.",
+    "workWithUs": "Choose a plan",
+    "ctaSecondary": "Consultation",
+    "consultTelegram": "Telegram",
+    "consultVk": "VK",
+    "telegramUrl": "https://t.me/parallaxmusic_rt",
+    "vkUrl": "https://vk.com/parallaxmusic_releaseteam",
+    "bullets": [
+      "100% royalties to the artist - no cut from your earnings",
+      "Tracks stay live even after the subscription ends",
+      "AI releases welcome: flexible moderation and real support"
+    ],
+    "stats": [
+      { "value": "2000+", "label": "tracks released" },
+      { "value": "50+", "label": "streaming platforms" },
+      { "value": "100%", "label": "royalties to you" }
+    ],
+    "partnerLogoAlt": "Parallax Music partner",
+    "imageAlt": "Music producer working on a release in the studio"
   },
   "services": {
-    "title": "Our",
-    "titleHighlight": "Services",
-    "description": "Comprehensive music industry solutions designed to elevate your career and maximize your impact in the competitive music landscape.",
+    "title": "What",
+    "titleHighlight": "you get",
+    "description": "One dashboard: AI music distribution, analytics, and promotion - without agency runaround",
     "labelServices": {
-      "title": "Label Services",
-      "description": "Full-service label support including A&R, production, and release management for your music career."
+      "title": "AI release distribution",
+      "description": "Upload in your cabinet - we review materials and deliver to Yandex Music, VK, Spotify, Apple Music, and 50+ platforms"
     },
     "digitalMarketing": {
-      "title": "Digital Marketing",
-      "description": "Strategic digital campaigns across all platforms to maximize your reach and engagement."
+      "title": "Lower typical risks",
+      "description": "We help package the release to reduce takedown risk: metadata, artwork, rights, and platform rules"
     },
     "radioPromotion": {
       "title": "Promotion",
-      "description": "Dedicated radio promotion team with connections to major stations and playlist curators worldwide."
+      "description": "Playlists, TikTok, ads, and growth tools - even if the release was not distributed through us",
+      "href": "/promotion"
     },
     "brandPartnerships": {
-      "title": "Brand Partnerships",
-      "description": "Connect with brands and sponsors that align with your artistic vision and amplify your message."
+      "title": "Support and payouts",
+      "description": "Human support without weeks of waiting, and convenient royalty payouts. Ask us on Telegram before you pay"
     }
   },
   "process": {
-    "title": "Our",
-    "titleHighlight": "Process",
-    "description": "A proven four-step methodology that transforms emerging artists into established names in the music industry.",
+    "title": "How",
+    "titleHighlight": "it works",
+    "description": "A short path from payment to platforms. No “send a demo into the void”.",
     "steps": {
       "discovery": {
-        "title": "Discovery",
-        "description": "We evaluate your music, vision, and goals to create a tailored strategy for your success."
+        "title": "Plan",
+        "description": "Pick a subscription or one-time Fix pack. Pay, then create your cabinet with the same email."
       },
       "strategy": {
-        "title": "Strategy",
-        "description": "Our team develops a comprehensive plan covering all aspects of promotion and distribution."
+        "title": "Upload",
+        "description": "Upload the track, cover, and release details in your personal cabinet."
       },
       "execution": {
-        "title": "Execution",
-        "description": "We implement campaigns across digital platforms, radio, and strategic partnerships."
+        "title": "Moderation",
+        "description": "We review materials, suggest fixes, and prepare delivery to platforms."
       },
       "growth": {
-        "title": "Growth",
-        "description": "Continuous optimization and scaling based on data-driven insights and market response."
+        "title": "Release & royalties",
+        "description": "Your track goes live. Track stats in the cabinet and keep 100% of royalties."
       }
     }
   },
   "advantages": {
-    "title": "Our",
-    "titleHighlight": "Advantages",
-    "highlightText": "We deliver tracks to more than 50 streaming platforms: Yandex Music, VK Music, SberZvuk, KION, Apple Music, Spotify, TikTok, YouTube, and more.",
+    "title": "Why",
+    "titleHighlight": "us",
+    "highlightText": "We deliver to 50+ platforms: Yandex Music, VK Music, SberZvuk, KION, Apple Music, Spotify, TikTok, YouTube, and more. Focus: AI music and independent artists.",
     "items": [
-      "Personal and fast support without long waiting times",
-      "Flexible moderation and fast processing for AI releases",
-      "Releases remain available even after subscription ends",
-      "Full analytics from all platforms in one personal dashboard",
-      "Promotion, pitching, monetization, and additional services",
-      "Fast royalty payouts in a way that suits you"
+      "Personal, fast support - no endless ticket queues",
+      "AI-friendly moderation. Tracks usually hit platforms in about 5 days*",
+      "Releases stay live even after the subscription ends",
+      "Analytics from major platforms in one cabinet",
+      "Promotion, pitching, and extras in the same account",
+      "Fast royalty payouts the way that works for you"
+    ]
+  },
+  "proofResults": {
+    "title": "Artist",
+    "titleHighlight": "results",
+    "description": "Yandex Music playlists, BandLink index, and hundreds of thousands of monthly listeners - real outcomes from Parallax Music artists."
+  },
+  "serviceCatalog": {
+    "title": "Parallax Music",
+    "titleHighlight": "ecosystem",
+    "description": "Artwork, audio, video, and promotion in one place - order in the cabinet or talk to us. Distribution is covered in the plans above.",
+    "soonBadge": "Soon",
+    "ctaCabinet": "Open cabinet",
+    "ctaPromotion": "All promotion options",
+    "groups": [
+      {
+        "id": "design",
+        "title": "Artwork",
+        "items": [
+          {
+            "name": "AI cover",
+            "blurb": "Release artwork with final approval",
+            "price": "from 500 ₽",
+            "href": "/cabinet/promotion/ai-cover"
+          },
+          {
+            "name": "Apple Music / iTunes motion cover",
+            "blurb": "Animated cover for the release card",
+            "soon": true
+          }
+        ]
+      },
+      {
+        "id": "audio",
+        "title": "Audio",
+        "items": [
+          {
+            "name": "AI mastering",
+            "blurb": "Neural mastering for streaming standards",
+            "price": "from 100 ₽",
+            "href": "/cabinet/promotion/ai-mastering"
+          },
+          {
+            "name": "Karaoke and lyrics",
+            "blurb": "Lyrics and karaoke version for platforms",
+            "price": "on request",
+            "href": "/#contact"
+          }
+        ]
+      },
+      {
+        "id": "video",
+        "title": "Video",
+        "items": [
+          {
+            "name": "Vertical videos for social",
+            "blurb": "TikTok, Reels, Shorts for your track",
+            "price": "from 99 ₽",
+            "href": "/cabinet/promotion/vertical-video"
+          },
+          {
+            "name": "AI clips",
+            "blurb": "AI-assisted clips for your release",
+            "price": "on request",
+            "href": "/#contact"
+          },
+          {
+            "name": "Videoshots: creation",
+            "blurb": "Create a videoshot for Yandex Music",
+            "price": "from 3,000 ₽",
+            "href": "/cabinet/promotion/yandex-videoshot-creation"
+          },
+          {
+            "name": "Videoshots: upload",
+            "blurb": "Upload a ready videoshot to the release card",
+            "price": "from 900 ₽",
+            "href": "/cabinet/promotion/yandex-videoshot"
+          },
+          {
+            "name": "Video avatars",
+            "blurb": "Video avatar for the Yandex Music profile",
+            "price": "from 3,000 ₽",
+            "href": "/cabinet/promotion/yandex-videoavatar"
+          },
+          {
+            "name": "Music video distribution to Yandex and VK",
+            "blurb": "Deliver the clip to platform video surfaces",
+            "price": "on request",
+            "href": "/#contact"
+          }
+        ]
+      },
+      {
+        "id": "promotion",
+        "title": "Promotion",
+        "items": [
+          {
+            "name": "Yandex Music playlists",
+            "blurb": "Fast start for a new release",
+            "price": "from 350 ₽",
+            "href": "/promotion/yandex-playlists"
+          },
+          {
+            "name": "TikTok / Shorts / Reels",
+            "blurb": "Short-form video for reach and engagement",
+            "price": "from 199 ₽",
+            "href": "/promotion/tiktok-shorts"
+          },
+          {
+            "name": "Yandex Direct",
+            "blurb": "Targeted ads for your goals and audience",
+            "price": "on request",
+            "href": "/promotion/yandex-direct"
+          },
+          {
+            "name": "VK Ads",
+            "blurb": "Ads and audience growth on VK",
+            "price": "on request",
+            "href": "/promotion/vk-ads"
+          }
+        ]
+      },
+      {
+        "id": "rights",
+        "title": "Rights and content",
+        "items": [
+          {
+            "name": "Deposit / registration of rights",
+            "blurb": "Fix rights to the work",
+            "soon": true
+          },
+          {
+            "name": "Background / public performance music",
+            "blurb": "Licensing for public use",
+            "soon": true
+          },
+          {
+            "name": "AI-Lab",
+            "blurb": "AI tools lab for artists",
+            "soon": true
+          }
+        ]
+      }
     ]
   },
   "pricing": {
     "title": "Our",
     "titleHighlight": "Pricing",
-    "description": "Choose the pricing plan that suits your music project",
+    "description": "1. Choose a plan → 2. Pay → 3. Register with the same email → 4. Upload your track.\nQuestions before paying? Message us on Telegram.",
     "modeOnetime": "One-time payment",
     "modeSubscription": "Subscription",
-    "onetimeIntro": "Fix plan — pay only for the tracks you need, no subscription or auto-renewal",
+    "onetimeIntro": "Fix plan - pay only for the tracks you need, no subscription or auto-renewal",
     "perTrack": "₽/track",
     "periodMonth": "Month",
     "periodYear": "Year",
@@ -164,14 +326,14 @@
     ]
   },
   "payFix": {
-    "title": "Fix plan — pay per track",
+    "title": "Fix plan - pay per track",
     "description": "No subscription: pay for a track pack and register in the dashboard with the same email to upload releases.",
     "backToPricing": "Back to pricing",
     "planInfo": "Fix plan",
     "planSubtitle": "One-time payment, no auto-renewal",
-    "tier1": "1–5 tracks per order — 500 ₽ per track",
-    "tier2": "6–10 tracks — 400 ₽ per track (−20%)",
-    "tier3": "11+ tracks — 350 ₽ per track (−30%)",
+    "tier1": "1–5 tracks per order - 500 ₽ per track",
+    "tier2": "6–10 tracks - 400 ₽ per track (−20%)",
+    "tier3": "11+ tracks - 350 ₽ per track (−30%)",
     "tracksCountLabel": "Number of tracks",
     "tracksCountHint": "From 1 to {max} tracks per payment",
     "royaltyNote": "100% royalties to the artist. We take zero commission from your earnings."
@@ -210,9 +372,9 @@
     "validationConsentOfferLicense": "Please confirm that you have read and agree to the public offer and license terms"
   },
   "contact": {
-    "title": "Ready to",
-    "titleHighlight": "Elevate?",
-    "description": "Let's discuss how Parallax Music can amplify your sound and accelerate your career.",
+    "title": "Still have",
+    "titleHighlight": "questions?",
+    "description": "Message us - we will help with plans, AI releases, or promotion. Or pick a plan above.",
     "telegramCta": "For initial contact and release-related questions, you can reach our team via the Telegram channel- Parallax Music- Release Team.",
     "form": {
       "name": "Your Name",
@@ -230,7 +392,7 @@
     "errorGeneric": "An error occurred. Please try again later."
   },
   "footer": {
-    "tagline": "Amplifying artists, creating culture.",
+    "tagline": "AI music distribution: 100% royalties, tracks stay live",
     "services": "Services",
     "company": "Company",
     "followUs": "Follow Us",
@@ -356,7 +518,7 @@
         {
           "id": "how-to-release",
           "question": "How can I release music on Spotify, Yandex Music, and other platforms?",
-          "answer": "You register on our platform and upload tracks through your personal dashboard. We review them and then deliver to major streaming services like Apple Music, Spotify, YouTube Music, Yandex Music, and others. After release, you start earning from streams."
+          "answer": "Choose a plan on the site and pay. Then create your cabinet with the same email, upload tracks - we review materials and deliver to streaming services (Apple Music, Spotify, YouTube Music, Yandex Music, and others). After release, you earn from streams."
         },
         {
           "id": "upload-ai",
@@ -394,6 +556,431 @@
           "answer": "The risk can’t be removed completely because platform policies may change, but it can be significantly reduced. We review your materials, suggest edits to artwork, descriptions, and metadata, and work through partners that are more AI-friendly."
         }
       ]
+    }
+  },
+  "stihiLanding": {
+    "defaultVariant": "hear",
+    "hero": {
+      "imageAlt": "Poet working on a poem in a creative atmosphere",
+      "cta": "Order",
+      "ctaPricing": "View pricing"
+    },
+    "variants": {
+      "hear": {
+        "title": "Want to hear\nyour poems?",
+        "subtitle": "We'll turn them into an AI song and release it on all major streaming platforms"
+      },
+      "write": {
+        "title": "Do you write poetry?",
+        "subtitle": "Thousands of people can listen to your poems - not just read them"
+      },
+      "worthy": {
+        "title": "Your poems\ndeserve a song",
+        "subtitle": "We'll create an AI song from your text with modern sound and vocals"
+      },
+      "income": {
+        "title": "Your poems can\ngenerate income",
+        "subtitle": "We'll create a song, release it on platforms - earn royalties from streams"
+      }
+    },
+    "benefits": {
+      "title": "What you get",
+      "description": "Full cycle: from your poem to a song on streaming services",
+      "items": {
+        "creation": {
+          "title": "AI song from your text",
+          "description": "We create music and vocals based on your poem - no studio or musicians needed"
+        },
+        "distribution": {
+          "title": "Platform release",
+          "description": "We release your track on Spotify, Apple Music, Yandex Music, VK Music and more"
+        },
+        "royalties": {
+          "title": "Streaming royalties",
+          "description": "Your songs can generate income - like regular releases on streaming platforms"
+        }
+      }
+    },
+    "expertise": {
+      "title": "Trusted by artists",
+      "description": "Parallax Music is a label and distributor with experience in releasing, promoting and monetizing music on streaming platforms",
+      "items": [
+        {
+          "id": "releases",
+          "value": "2000+",
+          "label": "releases published"
+        },
+        {
+          "id": "tracks",
+          "value": "500+",
+          "label": "tracks and covers created"
+        },
+        {
+          "id": "platforms",
+          "value": "50+",
+          "label": "streaming platforms"
+        },
+        {
+          "id": "stores",
+          "value": "150+",
+          "label": "digital services worldwide"
+        }
+      ]
+    },
+    "steps": {
+      "title": "How it works",
+      "description": "A simple path from poem to release - we guide you at every step",
+      "items": [
+        {
+          "id": "send",
+          "title": "Send your poem",
+          "description": "Message us on Telegram, VK or email - send your poem text and style preferences."
+        },
+        {
+          "id": "create",
+          "title": "We create 2 versions",
+          "description": "We prepare two AI song versions from your text - you pick the one that fits best."
+        },
+        {
+          "id": "cover",
+          "title": "Cover art & prep",
+          "description": "We design cover art and prepare materials for platform release."
+        },
+        {
+          "id": "release",
+          "title": "Release",
+          "description": "We publish your song on streaming services - Spotify, Yandex Music, Apple Music and more."
+        },
+        {
+          "id": "royalties",
+          "title": "Streams & royalties",
+          "description": "We open a personal dashboard where you track streaming stats and receive royalties"
+        }
+      ]
+    },
+    "pricing": {
+      "title": "Pricing",
+      "description": "Includes song creation, cover art and platform release",
+      "footnote": "Exact timeline and details confirmed after your request",
+      "single": {
+        "title": "1 song",
+        "price": "3,000",
+        "priceSuffix": "₽",
+        "features": [
+          "AI song from your poem",
+          "2 versions to choose from",
+          "Track cover art",
+          "Release on streaming platforms"
+        ]
+      },
+      "bundle": {
+        "title": "5+ songs",
+        "price": "2,000",
+        "priceSuffix": "₽ / track",
+        "popular": "Best value",
+        "features": [
+          "Everything in the «1 song» plan",
+          "Discount when ordering 5+ poems",
+          "Great for collections and poetry cycles"
+        ]
+      },
+      "cta": "Order"
+    },
+    "faq": {
+      "title": "FAQ",
+      "description": "Common questions poets ask before ordering",
+      "items": [
+        {
+          "id": "need-singing",
+          "question": "Do I need to sing or play an instrument?",
+          "answer": "No. Just send your poem text - we'll create an AI song with vocals and arrangement."
+        },
+        {
+          "id": "two-variants",
+          "question": "What does «2 versions to choose from» mean?",
+          "answer": "We prepare two different song versions from your text - with different mood or arrangement. You pick the one you prefer for release."
+        },
+        {
+          "id": "whats-included",
+          "question": "What's included in the price?",
+          "answer": "AI song creation (2 versions), cover art and release on streaming platforms. Additional services discussed separately."
+        },
+        {
+          "id": "platforms",
+          "question": "Which platforms do you release on?",
+          "answer": "Major streaming services: Yandex Music, VK Music, Spotify, Apple Music, YouTube Music and more."
+        },
+        {
+          "id": "royalties",
+          "question": "How do I earn from streams?",
+          "answer": "After release your track earns royalties from platforms - like a regular music release. Payment details discussed when ordering."
+        },
+        {
+          "id": "how-to-order",
+          "question": "How do I order?",
+          "answer": "Click «Order» on this page and message us on Telegram, VK or email. Send your poem - our manager will follow up with details."
+        }
+      ]
+    },
+    "finalCta": {
+      "title": "Ready to hear your poems?",
+      "description": "Message us - we'll discuss your text and start working on your AI song",
+      "cta": "Order AI song"
+    },
+    "orderDialog": {
+      "title": "Order AI song",
+      "description": "Choose how to reach us - our manager will reply and confirm order details",
+      "telegram": "Message on Telegram",
+      "vk": "Message on VK",
+      "copyEmail": "Copy",
+      "emailCopied": "Email copied",
+      "emailCopyError": "Could not copy email",
+      "prefillMessage": "Hello! I'd like to order an AI song from my poem.\nPage: parallaxmusic.ru/stihi"
+    }
+  },
+  "promotionLanding": {
+    "hero": {
+      "imageAlt": "Music promotion for artists - analytics and stream growth",
+      "cta": "Order promotion",
+      "ctaServices": "All promotion options"
+    },
+    "orderDialog": {
+      "title": "Order promotion",
+      "description": "Choose a convenient way to contact us - a manager will reply and clarify details",
+      "telegram": "Message on Telegram",
+      "vk": "Message on VK",
+      "copyEmail": "Copy",
+      "emailCopied": "Email copied",
+      "emailCopyError": "Failed to copy email"
+    },
+    "hub": {
+      "title": "Promotion for",
+      "titleHighlight": "your releases",
+      "subtitle": "Even if the release was not issued through our service",
+      "tagline": "Wide reach • New audience • Real growth",
+      "servicesTitle": "Promotion methods",
+      "servicesDescription": "We pick the right tool for your goal: quick start, reach, ads or viral content",
+      "serviceCardLink": "Learn more",
+      "finalCta": {
+        "title": "Ready to promote your release?",
+        "description": "Contact us - we'll discuss your goal and suggest the best promotion method",
+        "cta": "Submit request"
+      },
+      "orderPrefill": "Hello! I'd like to discuss promotion for my release.\nPage: parallaxmusic.ru/promotion",
+      "services": [
+        {
+          "id": "tiktok-shorts",
+          "slug": "tiktok-shorts",
+          "title": "TikTok / Shorts",
+          "description": "Vertical videos for reach and engagement growth"
+        },
+        {
+          "id": "yandex-playlists",
+          "slug": "yandex-playlists",
+          "title": "Yandex Music playlists",
+          "description": "The fastest way to start promoting a new release"
+        },
+        {
+          "id": "yandex-direct",
+          "slug": "yandex-direct",
+          "title": "Yandex Direct",
+          "description": "Precise promotion for your goals and audience"
+        },
+        {
+          "id": "vk-ads",
+          "slug": "vk-ads",
+          "title": "VKontakte",
+          "description": "We attract new audiences and increase streams"
+        }
+      ]
+    },
+    "pages": {
+      "first-listeners": {
+        "title": "Track released,",
+        "titleHighlight": "but no listeners?",
+        "subtitle": "We promote your track in playlists and attract real listeners",
+        "ctaCaption": "We bring real streams and grow your audience",
+        "mockupType": "streams",
+        "badge": "Quick start",
+        "orderPrefill": "Hello! My track is out - I need promotion and first listeners.\nPage: parallaxmusic.ru/promotion/first-listeners",
+        "features": [
+          { "id": "fast", "icon": "zap", "title": "Quick start", "description": "We launch promotion right after placement" },
+          { "id": "playlists", "icon": "play", "title": "Playlists with traffic", "description": "We place tracks in our and partner playlists" },
+          { "id": "growth", "icon": "chart", "title": "More listeners", "description": "We attract a new audience and increase activity" },
+          { "id": "forever", "icon": "infinity", "title": "Permanent placement", "description": "The track is not removed from playlists" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "A simple path from request to stream growth",
+          "items": [
+            { "id": "contact", "title": "Request", "description": "Message us on Telegram, VK or email - send a link to your track" },
+            { "id": "plan", "title": "Plan", "description": "We choose a promotion method for your release and budget" },
+            { "id": "launch", "title": "Launch", "description": "Playlist placement and/or ad campaigns" },
+            { "id": "results", "title": "Results", "description": "We track stream dynamics and adjust strategy" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "Common questions about release promotion",
+          "items": [
+            { "id": "not-our-release", "question": "Can you promote a track not released via Parallax Music?", "answer": "Yes. We promote releases regardless of distribution service" },
+            { "id": "how-fast", "question": "How fast does promotion start?", "answer": "Playlist placement can start quickly after approval. Ad campaigns are set up individually" },
+            { "id": "real-listeners", "question": "Are these real streams?", "answer": "Yes - playlists with traffic, targeted ads and organic reach" },
+            { "id": "how-to-order", "question": "How to order?", "answer": "Click the CTA and message us with a link to your track" }
+          ]
+        },
+        "finalCta": { "title": "Time to find your first listeners", "description": "Submit a request - we'll pick the right promotion method", "cta": "Order promotion" }
+      },
+      "yandex-playlists": {
+        "title": "Placement in",
+        "titleHighlight": "Yandex Music playlists",
+        "subtitle": "The fastest way to start promoting a new release",
+        "ctaCaption": "Checkout on the PlaylistHub playlist marketplace",
+        "mockupType": "streams",
+        "badge": "Buy on PlaylistHub",
+        "ctaUrl": "https://playlisthub.ru/",
+        "price": "from 350 ₽ / playlist",
+        "orderPrefill": "Hello! I'd like playlist placement on Yandex Music.\nPage: parallaxmusic.ru/promotion/yandex-playlists",
+        "features": [
+          { "id": "launch", "icon": "zap", "title": "Quick launch", "description": "No long preparation" },
+          { "id": "first", "icon": "play", "title": "First streams", "description": "Right after placement" },
+          { "id": "forever", "icon": "infinity", "title": "Permanent placement", "description": "Track stays in playlists" },
+          { "id": "network", "icon": "users", "title": "Own & partner playlists", "description": "Wide coverage for your music" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From request to first playlist streams",
+          "items": [
+            { "id": "send", "title": "Request", "description": "Send a track link and brief release info" },
+            { "id": "match", "title": "Playlist matching", "description": "We pick playlists with relevant audience" },
+            { "id": "place", "title": "Placement", "description": "We add your track - placement is permanent" },
+            { "id": "stats", "title": "Stats", "description": "We track stream growth and listener activity" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About Yandex Music playlist placement",
+          "items": [
+            { "id": "when", "question": "When will first streams appear?", "answer": "Usually right after playlist placement" },
+            { "id": "removed", "question": "Can the track be removed?", "answer": "We place tracks permanently in our and partner playlists" },
+            { "id": "any-release", "question": "Works for already released tracks?", "answer": "Yes - new and existing releases" },
+            { "id": "order", "question": "How to order?", "answer": "Click “Buy on PlaylistHub” - playlisthub.ru opens where you can pick playlists and checkout" }
+          ]
+        },
+        "finalCta": {
+          "title": "Start playlist promotion",
+          "description": "Choose playlists on PlaylistHub and place your track in a couple of minutes",
+          "cta": "Buy on PlaylistHub"
+        }
+      },
+      "vk-ads": {
+        "title": "Promotion",
+        "titleHighlight": "in VK Music",
+        "subtitle": "More listeners. More reach. More results.",
+        "ctaCaption": "Great for growing subscribers, streams and release activity",
+        "mockupType": "vk",
+        "badge": "Audience growth",
+        "orderPrefill": "Hello! I'd like VK Ads / VK Music promotion.\nPage: parallaxmusic.ru/promotion/vk-ads",
+        "features": [
+          { "id": "target", "icon": "target", "title": "Precise targeting", "description": "Ads shown to people interested in your music" },
+          { "id": "audience", "icon": "users", "title": "Audience growth", "description": "More subscribers and streams around your release" },
+          { "id": "reach", "icon": "chart", "title": "More reach", "description": "We promote releases and attract new listeners" },
+          { "id": "ai", "icon": "zap", "title": "AI creatives", "description": "Catchy AI-powered ads that deliver results" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From brief to VK metrics growth",
+          "items": [
+            { "id": "brief", "title": "Brief", "description": "We discuss goals: streams, subscribers, clicks" },
+            { "id": "setup", "title": "Setup", "description": "Targeting and creatives for VK Ads" },
+            { "id": "launch", "title": "Launch", "description": "Campaigns in feed, VK Music, Stories and more" },
+            { "id": "optimize", "title": "Optimization", "description": "Daily analysis of impressions, clicks and CTR" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About VK promotion",
+          "items": [
+            { "id": "budget", "question": "What budget is needed?", "answer": "Discussed individually based on goals and scale" },
+            { "id": "formats", "question": "Where will ads appear?", "answer": "VK Music, feed, Stories, clips and other placements" },
+            { "id": "analytics", "question": "Will I get a report?", "answer": "Yes - impressions, clicks, CTR and dynamics" },
+            { "id": "order", "question": "How to order?", "answer": "Click Audience growth and send your track or community link" }
+          ]
+        },
+        "finalCta": { "title": "Attract audience from VK", "description": "Submit a request - we'll set up ads for your release", "cta": "Audience growth" }
+      },
+      "yandex-direct": {
+        "title": "Promotion",
+        "titleHighlight": "in Yandex Direct",
+        "subtitle": "Precise promotion for your goals and audience",
+        "ctaCaption": "For tasks where concrete results and ROI matter",
+        "mockupType": "yandex",
+        "badge": "Precise ads",
+        "orderPrefill": "Hello! I'd like Yandex Direct promotion.\nPage: parallaxmusic.ru/promotion/yandex-direct",
+        "features": [
+          { "id": "setup", "icon": "target", "title": "Custom setup", "description": "Campaign tailored to your goals" },
+          { "id": "audience", "icon": "users", "title": "New audience", "description": "Targeting by interests and behavior" },
+          { "id": "goals", "icon": "link", "title": "Any goals", "description": "Track, concert, merch, website, socials and more" },
+          { "id": "optimize", "icon": "chart", "title": "Optimization", "description": "Constant analysis and campaign improvement" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From goal to measurable result",
+          "items": [
+            { "id": "goals", "title": "Goals", "description": "What we promote: track, concert, merch, etc." },
+            { "id": "campaign", "title": "Campaign", "description": "Ads, audiences and budget in Yandex Direct" },
+            { "id": "launch", "title": "Launch", "description": "Search, ad network and other channels" },
+            { "id": "roi", "title": "ROI", "description": "We track clicks, conversions and optimize" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About Yandex Direct ads",
+          "items": [
+            { "id": "not-only-music", "question": "Not only music tracks?", "answer": "Yes - concerts, merch, websites, socials and more" },
+            { "id": "budget", "question": "How is budget set?", "answer": "Agreed individually with your manager" },
+            { "id": "reporting", "question": "What metrics do you track?", "answer": "Impressions, clicks, CTR, conversions and daily dynamics" },
+            { "id": "order", "question": "How to order?", "answer": "Click Precise ads and describe your task" }
+          ]
+        },
+        "finalCta": { "title": "Launch precise ads", "description": "Submit a request - we'll set up a campaign for your goal", "cta": "Precise ads" }
+      },
+      "tiktok-shorts": {
+        "title": "TikTok / Shorts",
+        "titleHighlight": "promotion",
+        "subtitle": "Use short-form video power to promote your music",
+        "ctaCaption": "For fast reach, awareness and listener growth",
+        "mockupType": "tiktok",
+        "badge": "Viral reach",
+        "price": "from 199 ₽ / video",
+        "orderPrefill": "Hello! I'd like TikTok / Shorts promotion.\nPage: parallaxmusic.ru/promotion/tiktok-shorts",
+        "features": [
+          { "id": "hook", "icon": "video", "title": "Videos that hook", "description": "Vertical videos adapted for platform algorithms" },
+          { "id": "audience", "icon": "users", "title": "New audience", "description": "Reach millions beyond streaming platforms" },
+          { "id": "awareness", "icon": "chart", "title": "Awareness growth", "description": "More reach, mentions and interest in your music" },
+          { "id": "viral", "icon": "flame", "title": "Viral potential", "description": "A chance to hit recommendations and go viral" }
+        ],
+        "steps": {
+          "title": "How it works",
+          "description": "From track to vertical content with reach",
+          "items": [
+            { "id": "brief", "title": "Brief", "description": "We discuss track, style and reach goals" },
+            { "id": "video", "title": "Video", "description": "Vertical videos for TikTok, Reels and Shorts" },
+            { "id": "publish", "title": "Publishing", "description": "We publish content and run promotion if needed" },
+            { "id": "growth", "title": "Growth", "description": "We track views, reach and engagement" }
+          ]
+        },
+        "faq": {
+          "title": "FAQ",
+          "description": "About short-form video promotion",
+          "items": [
+            { "id": "platforms", "question": "Which platforms?", "answer": "TikTok, Instagram Reels, YouTube Shorts and VK Clips" },
+            { "id": "need-video", "question": "Do I need to send video?", "answer": "No - we create vertical videos for your track" },
+            { "id": "order", "question": "How to order?", "answer": "Click Viral reach and send your track link" }
+          ]
+        },
+        "finalCta": { "title": "Launch viral reach", "description": "Submit a request - we'll create content and attract a new audience", "cta": "Viral reach" }
+      }
     }
   },
   "validation": {

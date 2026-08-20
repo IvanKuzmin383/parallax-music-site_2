@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { query, queryOne, execute } from "./database"
+import { query, queryOne, execute, normalizePgTimestamptz, compareTimestampsDesc } from "./database"
 
 export type CabinetArtistSubscription = {
   id: string
@@ -29,10 +29,10 @@ function rowToModel(row: CabinetArtistSubscriptionRow): CabinetArtistSubscriptio
     userId: row.user_id,
     artistName: row.artist_name,
     subscriptionName: row.subscription_name,
-    subscriptionExpiresAt: row.subscription_expires_at,
+    subscriptionExpiresAt: normalizePgTimestamptz(row.subscription_expires_at) || null,
     subscriptionTrackLimit: row.subscription_track_limit,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: normalizePgTimestamptz(row.created_at),
+    updatedAt: normalizePgTimestamptz(row.updated_at),
   }
 }
 
@@ -165,4 +165,116 @@ export async function updateCabinetArtistSubscriptionSlot(
 export async function deleteCabinetArtistSubscriptionSlot(id: string): Promise<boolean> {
   const changes = await execute("DELETE FROM cabinet_user_artist_subscriptions WHERE id = ?", [id])
   return changes > 0
+}
+
+function pickInferredArtistName(
+  slots: CabinetArtistSubscription[],
+  preferredArtistNames?: Array<string | null | undefined>
+): string | null {
+  const named = slots
+    .filter((s) => s.artistName?.trim())
+    .sort((a, b) => compareTimestampsDesc(a.createdAt, b.createdAt))
+
+  if (named.length > 0) {
+    const distinct = new Map<string, string>()
+    for (const s of named) {
+      const raw = s.artistName!.trim()
+      const key = normalizeArtist(raw)
+      if (key && !distinct.has(key)) distinct.set(key, raw)
+    }
+    if (distinct.size === 1) {
+      return [...distinct.values()][0]
+    }
+    for (const preferred of preferredArtistNames ?? []) {
+      const p = preferred?.trim()
+      if (!p) continue
+      const hit = distinct.get(normalizeArtist(p))
+      if (hit) return hit
+    }
+    return named[0].artistName!.trim()
+  }
+
+  for (const preferred of preferredArtistNames ?? []) {
+    const p = preferred?.trim()
+    if (p) return p
+  }
+  return null
+}
+
+function pickSlotToRenewForPayment(
+  slots: CabinetArtistSubscription[],
+  artistName: string | null,
+  subscriptionName: string,
+  now = new Date()
+): CabinetArtistSubscription | null {
+  const active = slots.filter((s) => isSlotActive(s.subscriptionExpiresAt, now))
+  const expired = slots
+    .filter((s) => !isSlotActive(s.subscriptionExpiresAt, now))
+    .sort((a, b) =>
+      compareTimestampsDesc(
+        b.subscriptionExpiresAt ?? b.createdAt,
+        a.subscriptionExpiresAt ?? a.createdAt
+      )
+    )
+
+  if (artistName) {
+    const norm = normalizeArtist(artistName)
+    const activeMatch = active.find(
+      (s) => s.artistName && normalizeArtist(s.artistName) === norm
+    )
+    if (activeMatch) return activeMatch
+  }
+
+  const activeEmpty = active.find((s) => !s.artistName?.trim())
+  if (activeEmpty) return activeEmpty
+
+  if (artistName) {
+    const norm = normalizeArtist(artistName)
+    const expiredMatch = expired.find(
+      (s) => s.artistName && normalizeArtist(s.artistName) === norm
+    )
+    if (expiredMatch) return expiredMatch
+  }
+
+  const expiredSamePlan = expired.find((s) => s.subscriptionName === subscriptionName)
+  if (expiredSamePlan) return expiredSamePlan
+
+  const expiredNamed = expired.find((s) => s.artistName?.trim())
+  if (expiredNamed) return expiredNamed
+
+  return null
+}
+
+/**
+ * Оплата/продление подписки: продлевает подходящий слот (с артистом) или создаёт новый
+ * с автоматически подставленным именем артиста из истории слотов / профиля.
+ */
+export async function applyPaidSubscriptionToArtistSlots(params: {
+  userId: string
+  subscriptionName: string
+  subscriptionExpiresAt: string
+  subscriptionTrackLimit?: number | null
+  preferredArtistNames?: Array<string | null | undefined>
+}): Promise<CabinetArtistSubscription> {
+  const slots = await listCabinetArtistSubscriptionsByUserId(params.userId)
+  const artistName = pickInferredArtistName(slots, params.preferredArtistNames)
+  const renew = pickSlotToRenewForPayment(slots, artistName, params.subscriptionName)
+
+  if (renew) {
+    const updated = await updateCabinetArtistSubscriptionSlot(renew.id, {
+      artistName: renew.artistName?.trim() ? renew.artistName : artistName,
+      subscriptionName: params.subscriptionName,
+      subscriptionExpiresAt: params.subscriptionExpiresAt,
+      subscriptionTrackLimit: params.subscriptionTrackLimit ?? null,
+    })
+    if (updated) return updated
+  }
+
+  return createCabinetArtistSubscriptionSlot({
+    userId: params.userId,
+    artistName,
+    subscriptionName: params.subscriptionName,
+    subscriptionExpiresAt: params.subscriptionExpiresAt,
+    subscriptionTrackLimit: params.subscriptionTrackLimit ?? null,
+  })
 }

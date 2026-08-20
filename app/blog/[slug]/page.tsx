@@ -54,7 +54,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
   const defaultOg = getHeroBackgroundOgUrl(siteUrl)
-  const ogImage = resolveOgImageUrl(article.ogImage, siteUrl, defaultOg)
+  // Для соцсетей предпочтительна 16:9 обложка страницы
+  const ogImage = resolveOgImageUrl(article.heroImage || article.ogImage, siteUrl, defaultOg)
 
   return {
     title: article.title,
@@ -96,7 +97,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
   const defaultOg = getHeroBackgroundOgUrl(siteUrl)
-  const ogImage = resolveOgImageUrl(article.ogImage, siteUrl, defaultOg)
+  // Для соцсетей предпочтительна 16:9 обложка страницы
+  const ogImage = resolveOgImageUrl(article.heroImage || article.ogImage, siteUrl, defaultOg)
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -151,11 +153,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </nav>
           </div>
 
-          {/* Превью-обложка */}
-          {article.ogImage && (
+          {/* Обложка страницы статьи: 16:9 (heroImage), иначе fallback на ogImage */}
+          {(article.heroImage || article.ogImage) && (
             <div className="relative w-full aspect-video max-h-[420px] rounded-lg overflow-hidden bg-muted mb-8">
               <img
-                src={article.ogImage}
+                src={article.heroImage || article.ogImage}
                 alt=""
                 className="object-cover w-full h-full"
                 sizes="(max-width: 1024px) 100vw, 896px"

@@ -2,10 +2,20 @@ import { promises as fs } from "fs"
 import path from "path"
 import crypto from "crypto"
 import { nanoid } from "nanoid"
-import type { TrackGenre, TrackMood } from "./track-constants"
+import type { TrackGenre, TrackMood, TrackStreamingScope } from "./track-constants"
+import { normalizeStreamingScope } from "./track-constants"
 import type { PlatformLinks } from "./smartlink-platforms"
-import { query, queryOne, execute } from "./database"
-export { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "./track-constants"
+import { query, queryOne, execute, normalizePgTimestamptz } from "./database"
+export {
+  GENRES,
+  TRACK_MOODS,
+  STREAMING_SCOPES,
+  STREAMING_SCOPE_OPTIONS,
+  normalizeStreamingScope,
+  type TrackGenre,
+  type TrackMood,
+  type TrackStreamingScope,
+} from "./track-constants"
 
 export type TrackStatus =
   | "draft"
@@ -38,6 +48,8 @@ export interface Track {
   performanceRights: string
   isInstrumental: boolean
   backingAuthor: string
+  /** С какой секунды начинать звук в TikTok (0 = с начала). */
+  tiktokSoundStartSec?: number | null
   coverPath: string
   /** Пользователь заказал ИИ-обложку; файла обложки ещё нет (coverPath может быть пустым). */
   needsAiCover: boolean
@@ -49,8 +61,12 @@ export interface Track {
   isrc?: string | null
   /** Релиз перенесён с другого дистрибьютора (ожидаются UPC и ISRC) */
   transferFromOtherDistributor?: boolean
+  /** Область дистрибуции на стриминг-площадках */
+  streamingScope: TrackStreamingScope
   smartlinkSlug?: string
   platformLinks?: PlatformLinks
+  /** Списан ли Fix-слот при отправке на модерацию (новый тариф Fix). */
+  fixPackCreditsCharged: boolean
   createdAt: string
   updatedAt: string
 }
@@ -76,6 +92,7 @@ export interface TrackRow {
   performance_rights: string | null
   is_instrumental: boolean | null
   backing_author: string | null
+  tiktok_sound_start_sec: number | null
   cover_path: string
   needs_ai_cover?: boolean | null
   audio_path: string
@@ -85,8 +102,10 @@ export interface TrackRow {
   upc: string | null
   isrc: string | null
   transfer_from_other_distributor?: boolean | null
+  streaming_scope?: string | null
   smartlink_slug: string | null
   platform_links: string | null
+  fix_pack_credits_charged?: boolean | null
   created_at: string
   updated_at: string
 }
@@ -121,6 +140,10 @@ export function rowToTrack(row: TrackRow): Track {
     performanceRights: row.performance_rights ?? "",
     isInstrumental: row.is_instrumental === true,
     backingAuthor: row.backing_author ?? "",
+    tiktokSoundStartSec:
+      row.tiktok_sound_start_sec == null || !Number.isFinite(Number(row.tiktok_sound_start_sec))
+        ? null
+        : Math.trunc(Number(row.tiktok_sound_start_sec)),
     coverPath: row.cover_path,
     needsAiCover: row.needs_ai_cover === true,
     audioPath: row.audio_path,
@@ -130,10 +153,12 @@ export function rowToTrack(row: TrackRow): Track {
     upc: row.upc ?? undefined,
     isrc: row.isrc ?? undefined,
     transferFromOtherDistributor: row.transfer_from_other_distributor === true,
+    streamingScope: normalizeStreamingScope(row.streaming_scope),
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    fixPackCreditsCharged: row.fix_pack_credits_charged === true,
+    createdAt: normalizePgTimestamptz(row.created_at),
+    updatedAt: normalizePgTimestamptz(row.updated_at),
   }
 }
 
@@ -269,8 +294,22 @@ export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string
   return true
 }
 
-export type CreateTrackInput = Omit<Track, "id" | "createdAt" | "updatedAt" | "needsAiCover"> & {
+export type CreateTrackInput = Omit<
+  Track,
+  "id" | "createdAt" | "updatedAt" | "needsAiCover" | "fixPackCreditsCharged" | "streamingScope"
+> & {
   needsAiCover?: boolean
+  fixPackCreditsCharged?: boolean
+  streamingScope?: TrackStreamingScope
+}
+
+export async function setTrackFixPackCreditsCharged(id: string, charged: boolean): Promise<void> {
+  const now = new Date().toISOString()
+  await execute("UPDATE tracks SET fix_pack_credits_charged = ?, updated_at = ? WHERE id = ?", [
+    charged,
+    now,
+    id,
+  ])
 }
 
 export async function createTrack(data: CreateTrackInput): Promise<Track> {
@@ -279,6 +318,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
     ...data,
     needsAiCover: data.needsAiCover ?? false,
     transferFromOtherDistributor: data.transferFromOtherDistributor ?? false,
+    streamingScope: data.streamingScope ?? "all",
+    fixPackCreditsCharged: data.fixPackCreditsCharged ?? false,
     id: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
@@ -286,8 +327,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, smartlink_slug, platform_links, needs_ai_cover, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -310,6 +351,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.performanceRights ?? null,
       track.isInstrumental,
       track.backingAuthor ?? null,
+      track.tiktokSoundStartSec ?? null,
       track.coverPath,
       track.audioPath,
       track.status,
@@ -318,9 +360,11 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.upc ?? null,
       track.isrc ?? null,
       track.transferFromOtherDistributor,
+      track.streamingScope,
       track.smartlinkSlug ?? null,
       track.platformLinks ? JSON.stringify(track.platformLinks) : null,
       track.needsAiCover,
+      track.fixPackCreditsCharged,
       track.createdAt,
       track.updatedAt,
     ]
@@ -339,6 +383,16 @@ export async function updateTrack(
 ): Promise<Track | null> {
   const current = await getTrackById(id)
   if (!current) return null
+
+  if (partial.status !== undefined && partial.status !== current.status) {
+    const { handleFixPackCreditsOnTrackStatusChange } = await import(
+      "@/lib/fix-pack-moderation-credits"
+    )
+    await handleFixPackCreditsOnTrackStatusChange(current, partial.status)
+    if (partial.status === "rejected" && current.fixPackCreditsCharged) {
+      partial = { ...partial, fixPackCreditsCharged: false }
+    }
+  }
 
   const hasIncomingSmartlinkSlug = Object.prototype.hasOwnProperty.call(partial, "smartlinkSlug")
   const incomingSmartlinkSlug = hasIncomingSmartlinkSlug
@@ -371,7 +425,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -394,6 +448,7 @@ export async function updateTrack(
       updated.performanceRights ?? null,
       updated.isInstrumental,
       updated.backingAuthor ?? null,
+      updated.tiktokSoundStartSec ?? null,
       updated.coverPath,
       updated.audioPath,
       updated.status,
@@ -402,9 +457,11 @@ export async function updateTrack(
       updated.upc ?? null,
       updated.isrc ?? null,
       updated.transferFromOtherDistributor,
+      updated.streamingScope,
       updated.smartlinkSlug ?? null,
       updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
       updated.needsAiCover,
+      updated.fixPackCreditsCharged,
       updated.updatedAt,
       id,
     ]

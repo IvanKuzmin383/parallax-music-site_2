@@ -215,7 +215,7 @@ function TbankReceiptTestPageInner() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Тест №7 — чек при оплате</CardTitle>
+                <CardTitle>Тест №7 - чек при оплате</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <p className="text-muted-foreground">
@@ -237,7 +237,7 @@ function TbankReceiptTestPageInner() {
                   </p>
                 ) : null}
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Создайте платёж — Init отправит Receipt.</li>
+                  <li>Создайте платёж - Init отправит Receipt.</li>
                   <li>Оплатите тестовой картой.</li>
                   <li>Дождитесь payment_status = CONFIRMED.</li>
                   <li>В ЛК → «Проверить» для теста №7.</li>
@@ -250,12 +250,12 @@ function TbankReceiptTestPageInner() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Тест №8 — чек возврата</CardTitle>
+                <CardTitle>Тест №8 - чек возврата</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                   <li>Сначала завершите тест №7.</li>
-                  <li>Нажмите «Выполнить Cancel» — полный возврат.</li>
+                  <li>Нажмите «Выполнить Cancel» - полный возврат.</li>
                   <li>Дождитесь refund_status = REFUNDED или CANCELED.</li>
                   <li>В ЛК → «Проверить» для теста №8.</li>
                 </ol>

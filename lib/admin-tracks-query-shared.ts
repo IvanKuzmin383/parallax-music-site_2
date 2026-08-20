@@ -15,16 +15,27 @@ export type AdminTracksListQuery = {
   releaseDateTo?: string
   /** Треки с датой релиза >= сегодня, без rejected/postponed */
   upcomingOnly?: boolean
+  /** Треки с датой публикации = сегодня (МСК) */
+  releasesTodayOnly?: boolean
+  /** Точное имя артиста (после trim; пустое → «Без имени артиста») */
+  artistName?: string
   sortField?: AdminTracksSortField
   sortDirection?: AdminTracksSortDirection
   limit?: number
   offset?: number
 }
 
+export type AdminArtistIndexItem = {
+  name: string
+  count: number
+}
+
 export type AdminTracksStats = {
   total: number
   byStatus: Record<TrackStatus, number>
   upcomingCount: number
+  /** Число треков с датой публикации = сегодня */
+  releasesTodayCount: number
   uploadDraftsCount: number
 }
 

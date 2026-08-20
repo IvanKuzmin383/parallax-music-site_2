@@ -63,6 +63,12 @@ export async function POST(request: NextRequest) {
     totalAmount,
     contactEmail: isTelegramContact ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegramContact ? contactValue : undefined,
+    serviceDetails: {
+      trackTitle: trackTitle || undefined,
+      comment,
+      contactType,
+      contactValue,
+    },
   })
 
   const returnUrl = `${siteBase}/cabinet/promotion/ai-cover?payment=return&orderId=${encodeURIComponent(order.id)}`

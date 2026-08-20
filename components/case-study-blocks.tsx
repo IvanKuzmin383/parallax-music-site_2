@@ -48,7 +48,7 @@ export function CaseQuote({ text, author }: { text: string; author: string }) {
   return (
     <blockquote className="border-l-4 border-primary pl-6 py-2 my-8 italic text-foreground text-lg">
       <p>«{text}»</p>
-      <footer className="text-sm text-muted-foreground mt-3 not-italic">— {author}</footer>
+      <footer className="text-sm text-muted-foreground mt-3 not-italic">- {author}</footer>
     </blockquote>
   )
 }

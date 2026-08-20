@@ -32,6 +32,13 @@ import {
   CalendarIcon,
   Users,
   Info,
+  Loader2,
+  Wand2,
+  Search,
+  FileAudio,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { AdminSectionNav } from "@/components/admin-section-nav"
 import {
@@ -60,6 +67,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
+import { AdminModerationNoteTemplates } from "@/components/admin-moderation-note-templates"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -80,19 +88,22 @@ import {
   AI_COVER_REQUEST_PRICE_RUB,
   GENRES,
   TRACK_MOODS,
+  normalizeStreamingScope,
   musicRightsRequiresAiService,
+  type TrackStreamingScope,
 } from "@/lib/track-constants"
+import { StreamingServicesField } from "@/components/streaming-services-field"
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
-import { fetchAdminTracksAllMatching } from "@/lib/admin-tracks-fetch"
+import { fetchAdminArtistsIndex, fetchAdminTracksAllMatching, fetchAdminTracksForArtist } from "@/lib/admin-tracks-fetch"
 import {
-  ADMIN_TRACKS_CLIENT_CAP,
+  type AdminArtistIndexItem,
   type AdminTracksListQuery,
   type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
 
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
-  { value: "upload_pending", label: "Черновик (доработка пользователем)" },
+  { value: "upload_pending", label: "Требуется доработка" },
   { value: "on_moderation", label: "На модерации" },
   { value: "sent_to_platforms", label: "Модерация стриминг-сервисами" },
   { value: "approved_by_platforms", label: "Одобрен площадками" },
@@ -120,8 +131,9 @@ const EMPTY_TRACKS_STATS: AdminTracksStats = {
     rejected: 0,
     postponed: 0,
   },
-  upcomingCount: 0,
-  uploadDraftsCount: 0,
+    upcomingCount: 0,
+    releasesTodayCount: 0,
+    uploadDraftsCount: 0,
 }
 
 const MUSIC_RIGHTS_OPTIONS = [
@@ -196,6 +208,12 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     musicAuthor: `${p.musicAuthor ?? ""}`,
     lyricsAuthor: `${p.lyricsAuthor ?? ""}`,
     backingAuthor: `${p.backingAuthor ?? ""}`,
+    tiktokSoundStartSec:
+      typeof p.tiktokSoundStartSec === "number" && Number.isFinite(p.tiktokSoundStartSec)
+        ? Math.trunc(p.tiktokSoundStartSec)
+        : typeof p.tiktokSoundStartSec === "string" && `${p.tiktokSoundStartSec}`.trim() !== ""
+          ? Math.trunc(Number(p.tiktokSoundStartSec))
+          : null,
     musicRights: `${p.musicRights ?? ""}`,
     musicAiService: `${p.musicAiService ?? ""}`,
     lyricsRights: `${p.lyricsRights ?? ""}`,
@@ -203,6 +221,7 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     isInstrumental: Boolean(p.isInstrumental),
     status: "on_moderation",
     releaseDate: releaseDateStr,
+    streamingScope: normalizeStreamingScope(p.streamingScope),
     transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
     upc: `${p.transferUpc ?? ""}`,
     isrc: `${p.transferIsrc ?? ""}`,
@@ -228,12 +247,14 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
     lyricsAuthor: d.lyricsAuthor,
     musicAuthor: d.musicAuthor,
     backingAuthor: d.backingAuthor,
+    tiktokSoundStartSec: d.tiktokSoundStartSec,
     musicRights: d.musicRights,
     musicAiService: d.musicAiService,
     lyricsRights: d.lyricsRights,
     performanceRights: d.performanceRights,
     isInstrumental: d.isInstrumental,
     releaseDate: d.releaseDate.trim() === "" ? undefined : d.releaseDate.trim(),
+    streamingScope: normalizeStreamingScope(d.streamingScope),
     requestAiCover: prev.requestAiCover,
     transferFromOtherDistributor: d.transferFromOtherDistributor,
     transferUpc: d.transferFromOtherDistributor ? d.upc.trim() : "",
@@ -257,6 +278,31 @@ function ruTracksCountLabel(n: number): string {
   return `${n} треков`
 }
 
+/** Первая буква имени артиста для алфавитного индекса (А–Я / A–Z / 0–9 / #). */
+function getArtistIndexLetter(artistName: string): string {
+  const trimmed = artistName.trim()
+  if (!trimmed || trimmed === "Без имени артиста") return "#"
+  const ch = trimmed.charAt(0).toLocaleUpperCase("ru-RU")
+  if (ch === "Ё") return "Е"
+  if (/[A-ZА-Я]/.test(ch)) return ch
+  if (/[0-9]/.test(ch)) return "0-9"
+  return "#"
+}
+
+function compareArtistIndexLetters(a: string, b: string): number {
+  const rank = (letter: string) => {
+    if (letter === "0-9") return 2
+    if (letter === "#") return 3
+    if (/[А-Я]/.test(letter)) return 0
+    if (/[A-Z]/.test(letter)) return 1
+    return 4
+  }
+  const ra = rank(a)
+  const rb = rank(b)
+  if (ra !== rb) return ra - rb
+  return a.localeCompare(b, "ru")
+}
+
 function getReleaseLabelName(labelName?: string | null): string {
   const trimmed = typeof labelName === "string" ? labelName.trim() : ""
   return trimmed || DEFAULT_RELEASE_LABEL_NAME
@@ -275,6 +321,7 @@ type TrackDraft = {
   musicAuthor: string
   lyricsAuthor: string
   backingAuthor: string
+  tiktokSoundStartSec: number | null
   musicRights: string
   musicAiService: string
   lyricsRights: string
@@ -282,6 +329,7 @@ type TrackDraft = {
   isInstrumental: boolean
   status: TrackStatus
   releaseDate: string
+  streamingScope: TrackStreamingScope
   transferFromOtherDistributor: boolean
   upc: string
   isrc: string
@@ -313,6 +361,10 @@ function trackToDraft(t: Track): TrackDraft {
     musicAuthor: t.musicAuthor ?? "",
     lyricsAuthor: t.lyricsAuthor ?? "",
     backingAuthor: t.backingAuthor ?? "",
+    tiktokSoundStartSec:
+      t.tiktokSoundStartSec == null || !Number.isFinite(Number(t.tiktokSoundStartSec))
+        ? null
+        : Math.trunc(Number(t.tiktokSoundStartSec)),
     musicRights: t.musicRights ?? "",
     musicAiService: t.musicAiService ?? "",
     lyricsRights: t.lyricsRights ?? "",
@@ -320,6 +372,7 @@ function trackToDraft(t: Track): TrackDraft {
     isInstrumental: t.isInstrumental,
     status: t.status,
     releaseDate: releaseDateStr,
+    streamingScope: t.streamingScope,
     transferFromOtherDistributor: Boolean(t.transferFromOtherDistributor),
     upc: t.upc ?? "",
     isrc: t.isrc ?? "",
@@ -334,13 +387,13 @@ export default function TracksPageClient() {
   const [tracks, setTracks] = useState<Track[]>([])
   const [tracksTotal, setTracksTotal] = useState(0)
   const [tracksTotalInDb, setTracksTotalInDb] = useState(0)
-  const [tracksTruncated, setTracksTruncated] = useState(false)
   const [albums, setAlbums] = useState<AdminAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [lyricsExpanded, setLyricsExpanded] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null)
   const [deleteUploadDraftDialogOpen, setDeleteUploadDraftDialogOpen] = useState(false)
@@ -352,7 +405,15 @@ export default function TracksPageClient() {
   const [releaseDateToDraft, setReleaseDateToDraft] = useState("")
   const [releaseDateFromApplied, setReleaseDateFromApplied] = useState("")
   const [releaseDateToApplied, setReleaseDateToApplied] = useState("")
-  const [expandedArtist, setExpandedArtist] = useState<string | null>(null)
+  const [groupedLetter, setGroupedLetter] = useState<string | null>(null)
+  const [selectedGroupedArtist, setSelectedGroupedArtist] = useState<string | null>(null)
+  const [artistSearchQuery, setArtistSearchQuery] = useState("")
+  const [tracksTab, setTracksTab] = useState<"grouped" | "simple">("grouped")
+  const [artistsIndex, setArtistsIndex] = useState<AdminArtistIndexItem[]>([])
+  const [artistsIndexLoading, setArtistsIndexLoading] = useState(false)
+  const [groupedArtistTracks, setGroupedArtistTracks] = useState<Track[] | null>(null)
+  const [groupedArtistTracksLoading, setGroupedArtistTracksLoading] = useState(false)
+  const [expandedAlbumIds, setExpandedAlbumIds] = useState<Set<string>>(() => new Set())
   const [trackListSortField, setTrackListSortField] = useState<TrackListSortField>("releaseDate")
   const [trackListSortDirection, setTrackListSortDirection] = useState<"asc" | "desc">("asc")
   const [simpleListVisibleCount, setSimpleListVisibleCount] = useState(SIMPLE_LIST_PAGE_SIZE)
@@ -379,6 +440,8 @@ export default function TracksPageClient() {
   const [albumBulkUpc, setAlbumBulkUpc] = useState("")
   const [albumBulkPlatformLinks, setAlbumBulkPlatformLinks] = useState<PlatformLinks>({})
   const [albumBulkSaving, setAlbumBulkSaving] = useState(false)
+  const [resolvingTrackLinks, setResolvingTrackLinks] = useState(false)
+  const [resolvingAlbumLinks, setResolvingAlbumLinks] = useState(false)
   const [albumModOpen, setAlbumModOpen] = useState(false)
   const [albumModAlbumId, setAlbumModAlbumId] = useState<string | null>(null)
   const [albumModTrackCount, setAlbumModTrackCount] = useState(0)
@@ -417,8 +480,8 @@ export default function TracksPageClient() {
       sortField: trackListSortField,
       sortDirection: trackListSortDirection,
     }
-    if (viewFilter.type === "upcoming") {
-      return { ...base, status: "all", upcomingOnly: true }
+    if (viewFilter.type === "releases_today") {
+      return { ...base, status: "all", releasesTodayOnly: true }
     }
     if (viewFilter.type === "status") {
       return { ...base, status: viewFilter.status }
@@ -439,7 +502,6 @@ export default function TracksPageClient() {
       setTracks(data.tracks)
       setTracksTotal(data.total)
       setTracksTotalInDb(data.totalInDatabase)
-      setTracksTruncated(data.truncated)
       setAlbums(
         data.albums.map((a) => ({
           id: a.id,
@@ -484,8 +546,90 @@ export default function TracksPageClient() {
   )
   const simpleListHasMore = simpleListTracks.length > simpleListVisibleCount
 
+  const artistsByLetter = useMemo(() => {
+    const map = new Map<string, AdminArtistIndexItem[]>()
+    for (const artist of artistsIndex) {
+      const letter = getArtistIndexLetter(artist.name)
+      const bucket = map.get(letter)
+      if (bucket) bucket.push(artist)
+      else map.set(letter, [artist])
+    }
+    for (const bucket of map.values()) {
+      bucket.sort((a, b) => a.name.localeCompare(b.name, "ru"))
+    }
+    return map
+  }, [artistsIndex])
+
+  const availableArtistLetters = useMemo(
+    () => [...artistsByLetter.keys()].sort(compareArtistIndexLetters),
+    [artistsByLetter]
+  )
+
+  const artistSearchNorm = artistSearchQuery.trim().toLowerCase()
+  const artistSearchResults = useMemo(() => {
+    if (!artistSearchNorm) return null
+    return artistsIndex
+      .filter((a) => a.name.toLowerCase().includes(artistSearchNorm))
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"))
+  }, [artistSearchNorm, artistsIndex])
+
+  const selectedArtistTracks = useMemo(() => {
+    if (!selectedGroupedArtist || !groupedArtistTracks) return null
+    return [...groupedArtistTracks].sort((a, b) => {
+      const aDate = a.releaseDate || a.createdAt
+      const bDate = b.releaseDate || b.createdAt
+      return new Date(aDate).getTime() - new Date(bDate).getTime()
+    })
+  }, [selectedGroupedArtist, groupedArtistTracks])
+
+  const refreshArtistsIndex = useCallback(async () => {
+    setArtistsIndexLoading(true)
+    try {
+      const artists = await fetchAdminArtistsIndex({
+        userId: adminTracksQuery.userId,
+        status: adminTracksQuery.status,
+        releaseDateFrom: adminTracksQuery.releaseDateFrom,
+        releaseDateTo: adminTracksQuery.releaseDateTo,
+        upcomingOnly: adminTracksQuery.upcomingOnly,
+        releasesTodayOnly: adminTracksQuery.releasesTodayOnly,
+      })
+      setArtistsIndex(artists)
+    } catch (err) {
+      const status = (err as { status?: number }).status
+      if (status === 401) setIsAuthenticated(false)
+      else toast.error("Не удалось загрузить список артистов")
+    } finally {
+      setArtistsIndexLoading(false)
+    }
+  }, [adminTracksQuery])
+
+  const refreshGroupedArtistTracks = useCallback(
+    async (artistName: string) => {
+      setGroupedArtistTracksLoading(true)
+      try {
+        const list = await fetchAdminTracksForArtist({
+          ...adminTracksQuery,
+          artistName,
+        })
+        setGroupedArtistTracks(list)
+      } catch (err) {
+        const status = (err as { status?: number }).status
+        if (status === 401) setIsAuthenticated(false)
+        else toast.error("Не удалось загрузить треки артиста")
+        setGroupedArtistTracks([])
+      } finally {
+        setGroupedArtistTracksLoading(false)
+      }
+    },
+    [adminTracksQuery]
+  )
+
   useEffect(() => {
     setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
+    setGroupedLetter(null)
+    setSelectedGroupedArtist(null)
+    setArtistSearchQuery("")
+    setGroupedArtistTracks(null)
   }, [adminTracksQuery])
 
   useEffect(() => {
@@ -499,6 +643,34 @@ export default function TracksPageClient() {
       cancelled = true
     }
   }, [refreshTracks])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      if (cancelled) return
+      await refreshArtistsIndex()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshArtistsIndex])
+
+  useEffect(() => {
+    if (!selectedGroupedArtist) {
+      setGroupedArtistTracks(null)
+      setExpandedAlbumIds(new Set())
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      if (cancelled) return
+      setExpandedAlbumIds(new Set())
+      await refreshGroupedArtistTracks(selectedGroupedArtist)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedGroupedArtist, refreshGroupedArtistTracks])
 
   const displayUploadDrafts = useMemo(() => {
     let list = uploadDrafts
@@ -556,21 +728,22 @@ export default function TracksPageClient() {
 
   const loadTracks = async () => {
     await refreshTracks()
+    await refreshArtistsIndex()
+    if (selectedGroupedArtist) {
+      await refreshGroupedArtistTracks(selectedGroupedArtist)
+    }
   }
 
   useEffect(() => {
     if (!userIdFilterNorm) return
-    const subset = tracks.filter(
-      (t) => t.userId.toLowerCase() === userIdFilterNorm
-    )
-    if (subset.length === 0) return
-    const keys = [
-      ...new Set(
-        subset.map((t) => t.artistName?.trim() || "Без имени артиста")
-      ),
-    ].sort((a, b) => a.localeCompare(b))
-    if (keys[0]) setExpandedArtist(keys[0])
-  }, [userIdFilterNorm, tracks])
+    if (artistsIndex.length === 0) return
+    if (selectedGroupedArtist) return
+    const first = [...artistsIndex].sort((a, b) => a.name.localeCompare(b.name, "ru"))[0]
+    if (!first) return
+    setArtistSearchQuery("")
+    setGroupedLetter(getArtistIndexLetter(first.name))
+    setSelectedGroupedArtist(first.name)
+  }, [userIdFilterNorm, artistsIndex, selectedGroupedArtist])
 
   const handleStatusChange = async (trackId: string, status: TrackStatus) => {
     setUpdatingId(trackId)
@@ -598,6 +771,7 @@ export default function TracksPageClient() {
     setSelectedUploadDraft(null)
     setSelectedTrack(track)
     setTrackDraft(trackToDraft(track))
+    setLyricsExpanded(false)
     setIsDialogOpen(true)
   }
 
@@ -606,6 +780,7 @@ export default function TracksPageClient() {
     setSelectedUploadDraft(draft)
     setUploadDraftRowStatus(draft.status)
     setTrackDraft(uploadDraftToTrackDraft(draft))
+    setLyricsExpanded(false)
     setIsDialogOpen(true)
   }
 
@@ -728,9 +903,12 @@ export default function TracksPageClient() {
     artistName?: string
   ) => {
     try {
-      const response = await fetch(`/api/admin/upload-drafts/${encodeURIComponent(draftId)}/audio`, {
-        credentials: "include",
-      })
+      const response = await fetch(
+        `/api/admin/upload-drafts/${encodeURIComponent(draftId)}/audio?download=1`,
+        {
+          credentials: "include",
+        }
+      )
       if (!response.ok) {
         toast.error("Не удалось скачать аудио черновика")
         return
@@ -811,6 +989,7 @@ export default function TracksPageClient() {
         musicAuthor: trackDraft.musicAuthor,
         lyricsAuthor: trackDraft.lyricsAuthor,
         backingAuthor: trackDraft.backingAuthor,
+        tiktokSoundStartSec: trackDraft.tiktokSoundStartSec,
         musicRights: trackDraft.musicRights,
         musicAiService: trackDraft.musicAiService,
         lyricsRights: trackDraft.lyricsRights,
@@ -818,6 +997,7 @@ export default function TracksPageClient() {
         isInstrumental: trackDraft.isInstrumental,
         status: trackDraft.status,
         releaseDate: trackDraft.releaseDate.trim() === "" ? null : trackDraft.releaseDate.trim(),
+        streamingScope: trackDraft.streamingScope,
         upc: trackDraft.upc.trim() || null,
         isrc: trackDraft.isrc.trim() || null,
         transferFromOtherDistributor: trackDraft.transferFromOtherDistributor,
@@ -861,6 +1041,81 @@ export default function TracksPageClient() {
     void navigator.clipboard.writeText(url).then(() => {
       toast.success("Ссылка скопирована")
     })
+  }
+
+  const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
+    const trimmed = upc.trim()
+    if (!trimmed) {
+      toast.error("Сначала укажите UPC")
+      return null
+    }
+    const response = await fetch("/api/admin/platform-links/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ upc: trimmed }),
+      credentials: "include",
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      toast.error(
+        typeof data.error === "string" ? data.error : "Не удалось подтянуть ссылки"
+      )
+      return null
+    }
+    const links = (data.links ?? {}) as PlatformLinks
+    const count = Object.values(links).filter(
+      (v) => typeof v === "string" && v.trim().length > 0
+    ).length
+    const hints = Array.isArray(data.errors)
+      ? (data.errors as string[]).filter(
+          (e) =>
+            typeof e === "string" &&
+            (e.includes("Spotify") || e.includes("YouTube") || e.includes("SPOTIFY"))
+        )
+      : []
+    if (hints.length) {
+      toast.success(`Найдено ссылок: ${count}`, { description: hints[0] })
+    } else {
+      toast.success(`Найдено ссылок: ${count}`)
+    }
+    return links
+  }
+
+  const handleResolveTrackPlatformLinks = async () => {
+    if (!trackDraft) return
+    setResolvingTrackLinks(true)
+    try {
+      const links = await resolveLinksByUpc(trackDraft.upc)
+      if (!links) return
+      setTrackDraft((d) =>
+        d
+          ? {
+              ...d,
+              platformLinks: {
+                ...d.platformLinks,
+                ...links,
+              },
+            }
+          : d
+      )
+    } catch {
+      toast.error("Ошибка при поиске ссылок")
+    } finally {
+      setResolvingTrackLinks(false)
+    }
+  }
+
+  const handleResolveAlbumBulkPlatformLinks = async () => {
+    setResolvingAlbumLinks(true)
+    try {
+      const links = await resolveLinksByUpc(albumBulkUpc)
+      if (!links) return
+      setAlbumBulkPlatformLinks((prev) => ({ ...prev, ...links }))
+    } catch {
+      toast.error("Ошибка при поиске ссылок")
+    } finally {
+      setResolvingAlbumLinks(false)
+    }
   }
 
   const openAlbumBulkDialog = (albumId: string, albumTracks: Track[]) => {
@@ -1108,6 +1363,22 @@ export default function TracksPageClient() {
     }
   }
 
+  const handleCopyLyrics = async (track: Track) => {
+    const text = track.lyricsText?.trim() ?? ""
+    if (!text) {
+      toast.error(
+        track.isInstrumental ? "Инструментал — текста нет" : "Текст песни не заполнен"
+      )
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success("Текст песни скопирован")
+    } catch {
+      toast.error("Не удалось скопировать текст")
+    }
+  }
+
   const handleCoverUpload = async (trackId: string, file: File) => {
     setUploadingCoverId(trackId)
     try {
@@ -1326,6 +1597,288 @@ export default function TracksPageClient() {
     }
   }
 
+
+  const renderSelectedArtistTracksPanel = () => {
+    if (!selectedGroupedArtist) return null
+    return (
+      <div className="rounded-md border border-primary/40 bg-muted/20 p-3 space-y-4 mt-1">
+        <p className="text-sm text-muted-foreground">
+          {groupedArtistTracksLoading
+            ? "Загрузка треков…"
+            : selectedArtistTracks
+              ? ruTracksCountLabel(selectedArtistTracks.length)
+              : "—"}
+        </p>
+
+                      {groupedArtistTracksLoading ? (
+                        <p className="text-sm text-muted-foreground">Загрузка…</p>
+                      ) : selectedArtistTracks && selectedArtistTracks.length > 0 ? (
+                      groupTracksByAlbum(selectedArtistTracks).map(({ albumId, tracks: albumTracks }) => {
+                        const orderedAlbumTracks = sortTracksByUploadOrder(albumTracks)
+                        const albumTitle =
+                          albumId != null
+                            ? albums.find((a) => a.id === albumId)?.title ?? null
+                            : null
+                        const albumExpanded = albumId == null || expandedAlbumIds.has(albumId)
+                        return (
+                          <div key={albumId ?? "no-album"} className="space-y-2">
+                            {albumId ? (
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-2">
+                                <button
+                                  type="button"
+                                  className="text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                  onClick={() =>
+                                    setExpandedAlbumIds((prev) => {
+                                      const next = new Set(prev)
+                                      if (next.has(albumId)) next.delete(albumId)
+                                      else next.add(albumId)
+                                      return next
+                                    })
+                                  }
+                                >
+                                  <span className="inline-flex items-center gap-1">
+                                    {albumExpanded ? (
+                                      <ChevronUp className="h-4 w-4 shrink-0" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 shrink-0" />
+                                    )}
+                                    Альбом
+                                    {albumTitle ? (
+                                      <>
+                                        {" "}
+                                        <span className="font-medium text-foreground">
+                                          «{albumTitle}»
+                                        </span>
+                                      </>
+                                    ) : null}
+                                    <span className="text-muted-foreground">
+                                      {" "}
+                                      · {ruTracksCountLabel(orderedAlbumTracks.length)}
+                                    </span>
+                                    <span className="text-xs">
+                                      {albumExpanded ? "· свернуть" : "· открыть"}
+                                    </span>
+                                  </span>
+                                </button>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={downloadingAlbumId === albumId}
+                                    onClick={() =>
+                                      void handleDownloadAllAlbumTracks(orderedAlbumTracks)
+                                    }
+                                  >
+                                    <Download className="h-4 w-4 mr-1" />
+                                    {downloadingAlbumId === albumId
+                                      ? "Скачивание…"
+                                      : "Скачать все треки"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      openAlbumModDialog(albumId, orderedAlbumTracks)
+                                    }
+                                  >
+                                    Статус и комментарий
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      openAlbumBulkDialog(albumId, orderedAlbumTracks)
+                                    }
+                                  >
+                                    <Link2 className="h-4 w-4 mr-1" />
+                                    UPC и ссылки
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
+                            {albumExpanded
+                              ? orderedAlbumTracks.map((track, index) => (
+                              <div
+                                key={track.id}
+                                className="border rounded-md p-3 flex flex-col gap-2"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                                    <span className="text-sm font-semibold mt-0.5 shrink-0">
+                                      {index + 1}.
+                                    </span>
+                                    <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
+                                      {track.coverPath?.trim() ? (
+                                        <img
+                                          src={`/api/admin/uploads/cover/${track.id}`}
+                                          alt={track.trackName}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            ;(e.target as HTMLImageElement).style.display =
+                                              "none"
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
+                                          {track.needsAiCover
+                                            ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.`
+                                            : "Нет"}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1 space-y-1.5">
+                                      <p className="font-medium">{track.trackName}</p>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                                        <p className="break-all">Пользователь: {track.userId}</p>
+                                        <p>Лейбл: {getReleaseLabelName(track.labelName)}</p>
+                                        <p>Жанр: {track.genre}</p>
+                                        <p>Настроение: {track.mood?.trim() || "—"}</p>
+                                        <p>
+                                          Автор слов:{" "}
+                                          {track.isInstrumental
+                                            ? "Инструментал"
+                                            : track.lyricsAuthor?.trim() || "—"}
+                                        </p>
+                                        <p>Автор музыки: {track.musicAuthor?.trim() || "—"}</p>
+                                        <p>Права на музыку: {track.musicRights?.trim() || "—"}</p>
+                                        <p>
+                                          Права на текст:{" "}
+                                          {track.isInstrumental
+                                            ? "Инструментал"
+                                            : track.lyricsRights?.trim() || "—"}
+                                        </p>
+                                        <p>
+                                          Права на исполнение:{" "}
+                                          {track.performanceRights?.trim() || "—"}
+                                        </p>
+                                        {track.upc ? <p>UPC: {track.upc}</p> : null}
+                                        <p>
+                                          Дата публикации:{" "}
+                                          {track.releaseDate
+                                            ? format(new Date(track.releaseDate), "d MMM yyyy", {
+                                                locale: ru,
+                                              })
+                                            : format(new Date(track.createdAt), "d MMM yyyy", {
+                                                locale: ru,
+                                              })}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Select
+                                    value={track.status}
+                                    onValueChange={(v) =>
+                                      handleStatusChange(track.id, v as TrackStatus)
+                                    }
+                                    disabled={updatingId === track.id}
+                                  >
+                                    <SelectTrigger className="w-[170px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {STATUS_OPTIONS.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <audio
+                                  controls
+                                  preload="none"
+                                  className="admin-audio-compact"
+                                  src={`/api/admin/uploads/audio/${track.id}`}
+                                  onPlay={(e) => {
+                                    const current = e.currentTarget
+                                    document.querySelectorAll("audio").forEach((el) => {
+                                      if (el !== current) el.pause()
+                                    })
+                                  }}
+                                />
+                                <div className="flex gap-2 flex-wrap">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Скачать wav"
+                                    aria-label="Скачать wav"
+                                    onClick={() =>
+                                      void handleDownloadTrack(
+                                        track.id,
+                                        track.trackName,
+                                        track.artistName
+                                      )
+                                    }
+                                  >
+                                    <FileAudio className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Скачать обложку"
+                                    aria-label="Скачать обложку"
+                                    disabled={!track.coverPath?.trim()}
+                                    onClick={() =>
+                                      void handleDownloadCover(
+                                        track.id,
+                                        track.trackName,
+                                        track.artistName
+                                      )
+                                    }
+                                  >
+                                    <ImageIcon className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Скопировать текст песни"
+                                    aria-label="Скопировать текст песни"
+                                    disabled={
+                                      track.isInstrumental || !track.lyricsText?.trim()
+                                    }
+                                    onClick={() => void handleCopyLyrics(track)}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Подробнее"
+                                    aria-label="Подробнее"
+                                    onClick={() => handleViewDetails(track)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Удалить"
+                                    aria-label="Удалить"
+                                    onClick={() => handleDeleteClick(track)}
+                                    disabled={deletingId === track.id}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                              : null}
+                          </div>
+                        )
+                      })
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Нет треков у этого артиста</p>
+                      )}
+                    
+      </div>
+    )
+  }
+
   const sortedAlbums = [...albums].sort((a, b) => {
     const byArtist = a.artistName.localeCompare(b.artistName)
     if (byArtist !== 0) return byArtist
@@ -1351,16 +1904,6 @@ export default function TracksPageClient() {
         <AdminSectionNav active="tracks" />
 
         <h1 className="text-2xl font-bold">Модерация треков</h1>
-
-        {tracksTruncated ? (
-          <Alert>
-            <AlertTitle>Показаны не все треки</AlertTitle>
-            <AlertDescription>
-              Загружено {tracks.length} из {tracksTotal} по текущему фильтру (лимит{" "}
-              {ADMIN_TRACKS_CLIENT_CAP}). Сузьте фильтр по пользователю, статусу или дате.
-            </AlertDescription>
-          </Alert>
-        ) : null}
 
         {userIdFilterRaw ? (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
@@ -1415,9 +1958,9 @@ export default function TracksPageClient() {
                     : isUploadDraftsView
                       ? "Нет активных черновиков загрузки."
                       : viewFilter.type === "status" && viewFilter.status === "upload_pending"
-                        ? "Нет треков в статусе «Черновик (доработка пользователем)». Заявки из формы загрузки — в блоке «Черновики загрузки»."
-                        : viewFilter.type === "upcoming"
-                          ? "Нет треков с запланированной датой выхода на площадки."
+                        ? "Нет треков в статусе «Требуется доработка». Заявки из формы загрузки - в блоке «Черновики загрузки»."
+                        : viewFilter.type === "releases_today"
+                          ? "Нет треков с датой публикации на сегодня."
                           : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
                 </p>
                 <Button type="button" variant="outline" onClick={resetTrackListFilters}>
@@ -1426,121 +1969,10 @@ export default function TracksPageClient() {
               </div>
             ) : (
               <>
-            {!isUploadDraftsView ? (
-            <div className="flex items-center justify-end gap-2 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">Дата публикации:</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "min-w-[168px] justify-between font-normal",
-                        !releaseDateFromDraft && "text-muted-foreground"
-                      )}
-                    >
-                      {releaseDateFromDraft ? (
-                        format(
-                          parseISO(releaseDateFromDraft + "T12:00:00"),
-                          "PPP",
-                          { locale: ru }
-                        )
-                      ) : (
-                        <span>От</span>
-                      )}
-                      <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      locale={ru}
-                      selected={
-                        releaseDateFromDraft
-                          ? parseISO(releaseDateFromDraft + "T12:00:00")
-                          : undefined
-                      }
-                      onSelect={(date) =>
-                        date && setReleaseDateFromDraft(format(date, "yyyy-MM-dd"))
-                      }
-                    />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-sm text-muted-foreground">-</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "min-w-[168px] justify-between font-normal",
-                        !releaseDateToDraft && "text-muted-foreground"
-                      )}
-                    >
-                      {releaseDateToDraft ? (
-                        format(
-                          parseISO(releaseDateToDraft + "T12:00:00"),
-                          "PPP",
-                          { locale: ru }
-                        )
-                      ) : (
-                        <span>До</span>
-                      )}
-                      <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      locale={ru}
-                      selected={
-                        releaseDateToDraft
-                          ? parseISO(releaseDateToDraft + "T12:00:00")
-                          : undefined
-                      }
-                      onSelect={(date) =>
-                        date && setReleaseDateToDraft(format(date, "yyyy-MM-dd"))
-                      }
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setReleaseDateFromApplied(releaseDateFromDraft)
-                    setReleaseDateToApplied(releaseDateToDraft)
-                  }}
-                >
-                  ОК
-                </Button>
-                {(releaseDateFromDraft || releaseDateToDraft || releaseDateFromApplied || releaseDateToApplied) && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setReleaseDateFromDraft("")
-                      setReleaseDateToDraft("")
-                      setReleaseDateFromApplied("")
-                      setReleaseDateToApplied("")
-                    }}
-                  >
-                    Сбросить дату
-                  </Button>
-                )}
-              </div>
-            </div>
-            ) : null}
-
             {isUploadDraftsView ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые — можно
+                  Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно
                   открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
                 </p>
                 <div className="space-y-2">
@@ -1609,18 +2041,26 @@ export default function TracksPageClient() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <Button variant="outline" size="sm" onClick={() => handleViewUploadDraft(d)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Подробнее
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Подробнее"
+                            aria-label="Подробнее"
+                            onClick={() => handleViewUploadDraft(d)}
+                          >
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="destructive"
-                            size="sm"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Удалить"
+                            aria-label="Удалить"
                             onClick={() => handleUploadDraftDeleteClick(d)}
                             disabled={deletingId === d.id}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Удалить
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -1629,222 +2069,267 @@ export default function TracksPageClient() {
                 </div>
               </div>
             ) : (
-            <Tabs defaultValue="grouped" className="w-full">
-              <TabsList>
-                <TabsTrigger value="grouped">Группировка по артистам</TabsTrigger>
-                <TabsTrigger value="simple">Простой список</TabsTrigger>
-              </TabsList>
+            <Tabs
+              value={tracksTab}
+              onValueChange={(value) => setTracksTab(value as "grouped" | "simple")}
+              className="w-full"
+            >
+              <div className="flex items-center gap-3 flex-wrap justify-between">
+                <div className="flex items-center gap-3 flex-wrap min-w-0 flex-1">
+                  <TabsList>
+                    <TabsTrigger value="grouped">Группировка по артистам</TabsTrigger>
+                    <TabsTrigger value="simple">Простой список</TabsTrigger>
+                  </TabsList>
+                  {tracksTab === "grouped" ? (
+                    <div className="relative min-w-[200px] flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                      <Input
+                        value={artistSearchQuery}
+                        onChange={(e) => {
+                          setArtistSearchQuery(e.target.value)
+                          setSelectedGroupedArtist(null)
+                        }}
+                        placeholder="Поиск по имени артиста…"
+                        className="pl-9 h-9"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <span className="text-sm text-muted-foreground">Дата публикации:</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "min-w-[168px] justify-between font-normal",
+                          !releaseDateFromDraft && "text-muted-foreground"
+                        )}
+                      >
+                        {releaseDateFromDraft ? (
+                          format(
+                            parseISO(releaseDateFromDraft + "T12:00:00"),
+                            "PPP",
+                            { locale: ru }
+                          )
+                        ) : (
+                          <span>От</span>
+                        )}
+                        <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        locale={ru}
+                        selected={
+                          releaseDateFromDraft
+                            ? parseISO(releaseDateFromDraft + "T12:00:00")
+                            : undefined
+                        }
+                        onSelect={(date) =>
+                          date && setReleaseDateFromDraft(format(date, "yyyy-MM-dd"))
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-sm text-muted-foreground">-</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "min-w-[168px] justify-between font-normal",
+                          !releaseDateToDraft && "text-muted-foreground"
+                        )}
+                      >
+                        {releaseDateToDraft ? (
+                          format(
+                            parseISO(releaseDateToDraft + "T12:00:00"),
+                            "PPP",
+                            { locale: ru }
+                          )
+                        ) : (
+                          <span>До</span>
+                        )}
+                        <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        locale={ru}
+                        selected={
+                          releaseDateToDraft
+                            ? parseISO(releaseDateToDraft + "T12:00:00")
+                            : undefined
+                        }
+                        onSelect={(date) =>
+                          date && setReleaseDateToDraft(format(date, "yyyy-MM-dd"))
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setReleaseDateFromApplied(releaseDateFromDraft)
+                      setReleaseDateToApplied(releaseDateToDraft)
+                    }}
+                  >
+                    ОК
+                  </Button>
+                  {(releaseDateFromDraft ||
+                    releaseDateToDraft ||
+                    releaseDateFromApplied ||
+                    releaseDateToApplied) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setReleaseDateFromDraft("")
+                        setReleaseDateToDraft("")
+                        setReleaseDateFromApplied("")
+                        setReleaseDateToApplied("")
+                      }}
+                    >
+                      Сбросить дату
+                    </Button>
+                  )}
+                </div>
+              </div>
 
               <TabsContent value="grouped" className="space-y-4">
-                {Object.entries(
-                  statusFilteredTracks.reduce<Record<string, Track[]>>((acc, track) => {
-                    const key = track.artistName?.trim() || "Без имени артиста"
-                    if (!acc[key]) acc[key] = []
-                    acc[key].push(track)
-                    return acc
-                  }, {})
-                )
-                  .sort(([aName], [bName]) => aName.localeCompare(bName))
-                  .map(([artistName, artistTracks]) => {
-                    const groupedTracks = [...artistTracks].sort((a, b) => {
-                      const aDate = a.releaseDate || a.createdAt
-                      const bDate = b.releaseDate || b.createdAt
-                      return new Date(aDate).getTime() - new Date(bDate).getTime()
-                    })
-                    const isExpanded = expandedArtist === artistName
-
-                    return (
-                      <Card key={artistName} className="mb-4">
-                        <button
-                          type="button"
-                          className="w-full text-left"
-                          onClick={() => setExpandedArtist(isExpanded ? null : artistName)}
-                        >
-                          <CardHeader className="flex flex-row items-center justify-between gap-2">
-                            <div>
-                              <CardTitle className="text-lg">{artistName}</CardTitle>
-                              <p className="text-sm text-muted-foreground">
-                                Треков: {groupedTracks.length}
-                              </p>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              {isExpanded ? "Свернуть" : "Открыть"}
-                            </span>
-                          </CardHeader>
-                        </button>
-                        {isExpanded && (
-                          <CardContent className="border-t pt-4 space-y-4">
-                            {groupTracksByAlbum(groupedTracks).map(({ albumId, tracks: albumTracks }) => {
-                              const orderedAlbumTracks = sortTracksByUploadOrder(albumTracks)
-                              const albumTitle =
-                                albumId != null
-                                  ? albums.find((a) => a.id === albumId)?.title ?? null
-                                  : null
-                              return (
-                              <div key={albumId ?? "no-album"} className="space-y-2">
-                                {albumId && (
-                                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-2">
-                                    <span className="text-sm text-muted-foreground">
-                                      Альбом
-                                      {albumTitle ? (
-                                        <>
-                                          {" "}
-                                          <span className="font-medium text-foreground">
-                                            «{albumTitle}»
-                                          </span>
-                                        </>
-                                      ) : null}
-                                      <span className="text-muted-foreground">
-                                        {" "}
-                                        · {ruTracksCountLabel(orderedAlbumTracks.length)}
-                                      </span>
-                                    </span>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        disabled={downloadingAlbumId === albumId}
-                                        onClick={() =>
-                                          void handleDownloadAllAlbumTracks(orderedAlbumTracks)
-                                        }
-                                      >
-                                        <Download className="h-4 w-4 mr-1" />
-                                        {downloadingAlbumId === albumId
-                                          ? "Скачивание…"
-                                          : "Скачать все треки"}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                          openAlbumModDialog(albumId, orderedAlbumTracks)
-                                        }
-                                      >
-                                        Статус и комментарий
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                          openAlbumBulkDialog(albumId, orderedAlbumTracks)
-                                        }
-                                      >
-                                        <Link2 className="h-4 w-4 mr-1" />
-                                        UPC и ссылки
-                                      </Button>
-                                    </div>
-                                  </div>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Алфавит артистов</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {artistsIndexLoading ? (
+                      <p className="text-sm text-muted-foreground">Загрузка артистов…</p>
+                    ) : availableArtistLetters.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {availableArtistLetters.map((letter) => {
+                          const count = artistsByLetter.get(letter)?.length ?? 0
+                          const isActive = !artistSearchNorm && groupedLetter === letter
+                          return (
+                            <Button
+                              key={letter}
+                              type="button"
+                              variant={isActive ? "default" : "outline"}
+                              className="min-w-11"
+                              onClick={() => {
+                                setArtistSearchQuery("")
+                                setGroupedLetter(letter)
+                                setSelectedGroupedArtist(null)
+                              }}
+                            >
+                              <span className="font-semibold">{letter}</span>
+                              <span
+                                className={cn(
+                                  "ml-1.5 text-xs",
+                                  isActive ? "text-primary-foreground/80" : "text-muted-foreground"
                                 )}
-                                {orderedAlbumTracks.map((track, index) => (
-                              <div
-                                key={track.id}
-                                className="border rounded-md p-3 flex flex-col gap-2"
                               >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex items-start gap-3">
-                                    <span className="text-sm font-semibold mt-0.5">
-                                      {index + 1}.
-                                    </span>
-                                    <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
-                                      {track.coverPath?.trim() ? (
-                                        <img
-                                          src={`/api/admin/uploads/cover/${track.id}`}
-                                          alt={track.trackName}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display =
-                                              "none"
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
-                                          {track.needsAiCover ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.` : "Нет"}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">{track.trackName}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Пользователь: {track.userId}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Лейбл: {getReleaseLabelName(track.labelName)}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Жанр: {track.genre}
-                                      </p>
-                                      {track.upc && (
-                                        <p className="text-xs text-muted-foreground">
-                                          UPC: {track.upc}
-                                        </p>
-                                      )}
-                                      <p className="text-xs text-muted-foreground">
-                                        Дата публикации:{" "}
-                                        {track.releaseDate
-                                          ? format(
-                                              new Date(track.releaseDate),
-                                              "d MMM yyyy",
-                                              { locale: ru }
-                                            )
-                                          : format(
-                                              new Date(track.createdAt),
-                                              "d MMM yyyy",
-                                              { locale: ru }
-                                            )}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Select
-                                    value={track.status}
-                                    onValueChange={(v) =>
-                                      handleStatusChange(track.id, v as TrackStatus)
-                                    }
-                                    disabled={updatingId === track.id}
-                                  >
-                                    <SelectTrigger className="w-[170px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {STATUS_OPTIONS.map((opt) => (
-                                        <SelectItem
-                                          key={opt.value}
-                                          value={opt.value}
-                                        >
-                                          {opt.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="flex gap-2 flex-wrap">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleViewDetails(track)}
-                                  >
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    Подробнее
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDeleteClick(track)}
-                                    disabled={deletingId === track.id}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Удалить
-                                  </Button>
-                                </div>
-                              </div>
-                                ))}
-                              </div>
+                                {count}
+                              </span>
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {artistSearchResults ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Результаты поиска</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Найдено артистов: {artistSearchResults.length}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {artistSearchResults.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Ничего не найдено</p>
+                      ) : (
+                        artistSearchResults.map((artist) => (
+                          <div key={artist.name} className="space-y-2">
+                            <button
+                              type="button"
+                              className={cn(
+                                "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
+                                selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
+                              )}
+                              onClick={() =>
+                                setSelectedGroupedArtist((prev) =>
+                                  prev === artist.name ? null : artist.name
+                                )
+                              }
+                            >
+                              <span className="font-medium">{artist.name}</span>
+                              <span className="text-sm text-muted-foreground shrink-0">
+                                {ruTracksCountLabel(artist.count)}
+                              </span>
+                            </button>
+                            {selectedGroupedArtist === artist.name
+                              ? renderSelectedArtistTracksPanel()
+                              : null}
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : groupedLetter ? (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">
+                        Артисты на «{groupedLetter}»
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
+                        {(artistsByLetter.get(groupedLetter) ?? []).length === 1
+                          ? "артист"
+                          : "артистов"}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {(artistsByLetter.get(groupedLetter) ?? []).map((artist) => (
+                        <div key={artist.name} className="space-y-2">
+                          <button
+                            type="button"
+                            className={cn(
+                              "w-full text-left rounded-md border px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3",
+                              selectedGroupedArtist === artist.name && "border-primary bg-muted/40"
+                            )}
+                            onClick={() =>
+                              setSelectedGroupedArtist((prev) =>
+                                prev === artist.name ? null : artist.name
                               )
-                            })}
-                          </CardContent>
-                        )}
-                      </Card>
-                    )
-                  })}
+                            }
+                          >
+                            <span className="font-medium">{artist.name}</span>
+                            <span className="text-sm text-muted-foreground shrink-0">
+                              {ruTracksCountLabel(artist.count)}
+                            </span>
+                          </button>
+                          {selectedGroupedArtist === artist.name
+                            ? renderSelectedArtistTracksPanel()
+                            : null}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ) : null}
               </TabsContent>
 
               <TabsContent value="simple">
@@ -1942,23 +2427,73 @@ export default function TracksPageClient() {
                               </Select>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2 flex-wrap">
                                 <Button
                                   variant="outline"
-                                  size="sm"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Скачать wav"
+                                  aria-label="Скачать wav"
+                                  onClick={() =>
+                                    void handleDownloadTrack(
+                                      track.id,
+                                      track.trackName,
+                                      track.artistName
+                                    )
+                                  }
+                                >
+                                  <FileAudio className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Скачать обложку"
+                                  aria-label="Скачать обложку"
+                                  disabled={!track.coverPath?.trim()}
+                                  onClick={() =>
+                                    void handleDownloadCover(
+                                      track.id,
+                                      track.trackName,
+                                      track.artistName
+                                    )
+                                  }
+                                >
+                                  <ImageIcon className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Скопировать текст песни"
+                                  aria-label="Скопировать текст песни"
+                                  disabled={
+                                    track.isInstrumental || !track.lyricsText?.trim()
+                                  }
+                                  onClick={() => void handleCopyLyrics(track)}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Подробнее"
+                                  aria-label="Подробнее"
                                   onClick={() => handleViewDetails(track)}
                                 >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Подробнее
+                                  <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="destructive"
-                                  size="sm"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Удалить"
+                                  aria-label="Удалить"
                                   onClick={() => handleDeleteClick(track)}
                                   disabled={deletingId === track.id}
                                 >
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Удалить
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -1993,7 +2528,10 @@ export default function TracksPageClient() {
           open={isDialogOpen}
           onOpenChange={(open) => {
             setIsDialogOpen(open)
-            if (!open) setSelectedUploadDraft(null)
+            if (!open) {
+              setSelectedUploadDraft(null)
+              setLyricsExpanded(false)
+            }
           }}
         >
           <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-4xl">
@@ -2029,6 +2567,41 @@ export default function TracksPageClient() {
             ) : null}
             {(selectedTrack || selectedUploadDraft) && trackDraft && (
               <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedTrack ? (
+                      <div className="md:col-span-2 space-y-2 rounded-md border bg-muted/30 p-3">
+                        <Label>Прослушать</Label>
+                        <audio
+                          key={selectedTrack.id}
+                          controls
+                          preload="metadata"
+                          className="admin-audio-compact"
+                          src={`/api/admin/uploads/audio/${selectedTrack.id}`}
+                          onPlay={(e) => {
+                            const current = e.currentTarget
+                            document.querySelectorAll("audio").forEach((el) => {
+                              if (el !== current) el.pause()
+                            })
+                          }}
+                        />
+                      </div>
+                    ) : selectedUploadDraft?.audioRelPath ? (
+                      <div className="md:col-span-2 space-y-2 rounded-md border bg-muted/30 p-3">
+                        <Label>Прослушать WAV черновика</Label>
+                        <audio
+                          key={selectedUploadDraft.id}
+                          controls
+                          preload="metadata"
+                          className="admin-audio-compact"
+                          src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
+                          onPlay={(e) => {
+                            const current = e.currentTarget
+                            document.querySelectorAll("audio").forEach((el) => {
+                              if (el !== current) el.pause()
+                            })
+                          }}
+                        />
+                      </div>
+                    ) : null}
                     <div className="space-y-2">
                       <Label htmlFor="admin-track-name">Название трека</Label>
                       <Input
@@ -2115,6 +2688,13 @@ export default function TracksPageClient() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <StreamingServicesField
+                      value={trackDraft.streamingScope}
+                      onChange={(value) =>
+                        setTrackDraft((d) => d && { ...d, streamingScope: value })
+                      }
+                      idPrefix="admin-track-streaming"
+                    />
                     <div className="flex flex-col gap-2">
                       <Label>Дата публикации на площадки</Label>
                       <Popover>
@@ -2281,9 +2861,16 @@ export default function TracksPageClient() {
                     </div>
                     {selectedTrack ? (
                       <div className="md:col-span-2 space-y-2">
-                        <Label htmlFor="admin-mod-note">
-                          Комментарий модерации (при «Отклонено» / «Отложено»)
-                        </Label>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <Label htmlFor="admin-mod-note">
+                            Комментарий модерации (при «Отклонено» / «Отложено» / «Требуется доработка»)
+                          </Label>
+                          <AdminModerationNoteTemplates
+                            onApply={(text) =>
+                              setTrackDraft((d) => (d ? { ...d, moderationNote: text } : d))
+                            }
+                          />
+                        </div>
                         <Textarea
                           id="admin-mod-note"
                           className="min-h-[80px]"
@@ -2312,17 +2899,44 @@ export default function TracksPageClient() {
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="admin-lyrics">Текст песни</Label>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="admin-lyrics">Текст песни</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 shrink-0 text-muted-foreground"
+                          onClick={() => setLyricsExpanded((v) => !v)}
+                        >
+                          {lyricsExpanded ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-1" />
+                              Свернуть
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-1" />
+                              Развернуть
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <Textarea
                         id="admin-lyrics"
                         placeholder="Вставьте полный текст песни (до 5000 символов)"
-                        rows={6}
+                        rows={lyricsExpanded ? 16 : 3}
                         value={trackDraft.lyricsText}
                         onChange={(e) =>
                           setTrackDraft((d) =>
                             d ? { ...d, lyricsText: e.target.value } : d
                           )
                         }
+                        className={cn(
+                          "field-sizing-fixed resize-y",
+                          lyricsExpanded
+                            ? "min-h-64 max-h-[50vh]"
+                            : "min-h-[4.5rem] max-h-[4.5rem] overflow-y-auto"
+                        )}
                       />
                     </div>
 
@@ -2364,6 +2978,33 @@ export default function TracksPageClient() {
                             )
                           }
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-tiktok-start">Начало звука в ТикТок (сек)</Label>
+                        <Input
+                          id="admin-tiktok-start"
+                          type="number"
+                          min={0}
+                          max={600}
+                          step={1}
+                          value={trackDraft.tiktokSoundStartSec ?? ""}
+                          onChange={(e) =>
+                            setTrackDraft((d) =>
+                              d
+                                ? {
+                                    ...d,
+                                    tiktokSoundStartSec:
+                                      e.target.value === ""
+                                        ? null
+                                        : Math.max(0, Math.trunc(Number(e.target.value)) || 0),
+                                  }
+                                : d
+                            )
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Укажите с какой секунды должен начинаться звук в ТикТок
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label>Это инструментал</Label>
@@ -2728,7 +3369,28 @@ export default function TracksPageClient() {
 
                 {selectedTrack ? (
                 <div className="md:col-span-2 pt-4 border-t space-y-3">
-                  <Label>Ссылки на стриминговые платформы</Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label>Ссылки на стриминговые платформы</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={resolvingTrackLinks || !trackDraft.upc.trim()}
+                      onClick={() => void handleResolveTrackPlatformLinks()}
+                    >
+                      {resolvingTrackLinks ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-1" />
+                      )}
+                      {resolvingTrackLinks ? "Ищем…" : "Подтянуть по UPC"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Apple / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
+                    .env. YouTube Music — опционально YOUTUBE_API_KEY. VK и Звук — вручную. Не
+                    забудьте сохранить трек.
+                  </p>
                   <div className="grid gap-2">
                     {SMARTLINK_PLATFORMS.map(({ key, label }) => (
                       <div key={key} className="flex flex-col gap-1">
@@ -2939,7 +3601,13 @@ export default function TracksPageClient() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="album-mod-note">Комментарий модерации</Label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Label htmlFor="album-mod-note">Комментарий модерации</Label>
+                  <AdminModerationNoteTemplates
+                    disabled={albumModSaving}
+                    onApply={(text) => setAlbumModNote(text)}
+                  />
+                </div>
                 <Textarea
                   id="album-mod-note"
                   className="min-h-[100px]"
@@ -3020,9 +3688,25 @@ export default function TracksPageClient() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Ссылки на стриминговые платформы
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Ссылки на стриминговые платформы
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={resolvingAlbumLinks || !albumBulkUpc.trim()}
+                    onClick={() => void handleResolveAlbumBulkPlatformLinks()}
+                  >
+                    {resolvingAlbumLinks ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-4 w-4 mr-1" />
+                    )}
+                    {resolvingAlbumLinks ? "Ищем…" : "Подтянуть по UPC"}
+                  </Button>
+                </div>
                 <div className="grid gap-2">
                   {SMARTLINK_PLATFORMS.map(({ key, label }) => (
                     <div key={key} className="flex flex-col gap-1">

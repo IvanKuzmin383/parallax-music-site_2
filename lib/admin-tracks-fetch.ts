@@ -1,6 +1,8 @@
 import {
   ADMIN_TRACKS_CLIENT_CAP,
   ADMIN_TRACKS_DEFAULT_LIMIT,
+  ADMIN_TRACKS_MAX_LIMIT,
+  type AdminArtistIndexItem,
   type AdminTracksListQuery,
   type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
@@ -21,7 +23,7 @@ export type AdminTracksApiResponse = {
 }
 
 export function buildAdminTracksSearchParams(
-  query: AdminTracksListQuery & { limit?: number; offset?: number }
+  query: AdminTracksListQuery & { limit?: number; offset?: number; artists?: boolean }
 ): string {
   const params = new URLSearchParams()
   if (query.userId) params.set("userId", query.userId)
@@ -29,10 +31,16 @@ export function buildAdminTracksSearchParams(
   if (query.releaseDateFrom) params.set("releaseDateFrom", query.releaseDateFrom)
   if (query.releaseDateTo) params.set("releaseDateTo", query.releaseDateTo)
   if (query.upcomingOnly) params.set("upcomingOnly", "1")
+  if (query.releasesTodayOnly) params.set("releasesTodayOnly", "1")
+  if (query.artistName !== undefined) params.set("artistName", query.artistName)
   if (query.sortField) params.set("sortField", query.sortField)
   if (query.sortDirection) params.set("sortDirection", query.sortDirection)
-  params.set("limit", String(query.limit ?? ADMIN_TRACKS_DEFAULT_LIMIT))
-  params.set("offset", String(query.offset ?? 0))
+  if (query.artists) {
+    params.set("artists", "1")
+  } else {
+    params.set("limit", String(query.limit ?? ADMIN_TRACKS_DEFAULT_LIMIT))
+    params.set("offset", String(query.offset ?? 0))
+  }
   return params.toString()
 }
 
@@ -91,4 +99,50 @@ export async function fetchAdminTracksAllMatching(
     hasMore: truncated,
     truncated,
   }
+}
+
+/** Индекс артистов по фильтрам (лёгкий, без тел треков). */
+export async function fetchAdminArtistsIndex(
+  query: Omit<
+    AdminTracksListQuery,
+    "artistName" | "limit" | "offset" | "sortField" | "sortDirection"
+  >,
+  init?: RequestInit
+): Promise<AdminArtistIndexItem[]> {
+  const qs = buildAdminTracksSearchParams({ ...query, artists: true })
+  const response = await fetch(`/api/admin/tracks?${qs}`, {
+    credentials: "include",
+    ...init,
+  })
+  if (!response.ok) {
+    const err = new Error("admin_artists_fetch_failed") as Error & { status?: number }
+    err.status = response.status
+    throw err
+  }
+  const data = (await response.json()) as { artists?: AdminArtistIndexItem[] }
+  return data.artists ?? []
+}
+
+/** Все треки одного артиста по фильтрам (без общего client cap). */
+export async function fetchAdminTracksForArtist(
+  query: Omit<AdminTracksListQuery, "limit" | "offset"> & { artistName: string },
+  init?: RequestInit
+): Promise<Track[]> {
+  const merged: Track[] = []
+  let offset = 0
+  for (;;) {
+    const page = await fetchAdminTracksPage(
+      {
+        ...query,
+        limit: ADMIN_TRACKS_MAX_LIMIT,
+        offset,
+      },
+      init
+    )
+    merged.push(...page.tracks)
+    if (!page.hasMore) break
+    offset += page.tracks.length
+    if (offset > 5000) break
+  }
+  return merged
 }

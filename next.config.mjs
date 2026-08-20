@@ -70,7 +70,7 @@ const securityHeaders = [
   },
 ]
 
-// Боты превью ссылок (Telegram, VK, WhatsApp…) — metadata в <head>, без streaming в body.
+// Боты превью ссылок (Telegram, VK, WhatsApp…) - metadata в <head>, без streaming в body.
 const htmlLimitedBots =
   /Googlebot|Google-InspectionTool|Bingbot|Slackbot|Twitterbot|facebookexternalhit|LinkedInBot|Discordbot|TelegramBot|WhatsApp|vkShare|Applebot|Pinterest|redditbot|SkypeUriPreview|ia_archiver|Viber|YandexBot|YandexImages/i
 
@@ -89,6 +89,20 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
+  },
+  async redirects() {
+    return [
+      {
+        source: '/ai',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/ai/:path*',
+        destination: '/',
+        permanent: true,
+      },
+    ]
   },
   async headers() {
     return [

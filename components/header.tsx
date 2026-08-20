@@ -1,6 +1,7 @@
  "use client"
  
  import Link from "next/link"
+ import { usePathname } from "next/navigation"
  import { useState, useEffect } from "react"
  import { Button } from "@/components/ui/button"
  import { Menu, X } from "lucide-react"
@@ -8,6 +9,8 @@ import { LanguageSwitcher } from "@/components/language-switcher"
  import { useI18n } from "@/lib/i18n-context"
  
  export function Header() {
+  const pathname = usePathname()
+  const hideLogin = pathname === "/stihi" || pathname?.startsWith("/promotion")
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { t } = useI18n()
@@ -37,20 +40,23 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 
         {/* Desktop Navigation - средняя колонка растягивается (не 1/3 экрана), иначе пункты наезжают на блок справа и теряют клики */}
         <nav className="hidden md:flex min-w-0 items-center justify-center gap-x-4 gap-y-2 lg:gap-x-8 flex-wrap">
-          <Link href="/#services" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+          <Link href="/#advantages" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.services}
           </Link>
-          <Link href="/#reviews" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            Отзывы
-          </Link>
-          <Link href="/blog" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.blog}
-          </Link>
-          <Link href="/ai" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
-            {t.header.aiMusic}
+          <Link href="/#process" className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
+            {t.header.process}
           </Link>
           <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.pricing}
+          </Link>
+          <Link href="/#extras" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+            {t.header.extras}
+          </Link>
+          <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
+            {t.header.promotion}
+          </Link>
+          <Link href="/blog" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
+            {t.header.blog}
           </Link>
           <Link href="/#contact" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
             {t.header.contact}
@@ -59,13 +65,15 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 
         <div className="hidden md:flex items-center gap-4 justify-end flex-shrink-0">
           <LanguageSwitcher />
-          <Button
-            size="sm"
-            className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
-            asChild
-          >
-            <Link href="/cabinet" prefetch={false}>{t.header.login}</Link>
-          </Button>
+          {!hideLogin && (
+            <Button
+              size="sm"
+              className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+              asChild
+            >
+              <Link href="/cabinet" prefetch={false}>{t.header.login}</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -86,18 +94,40 @@ import { LanguageSwitcher } from "@/components/language-switcher"
         <div id="mobile-menu" className="md:hidden bg-card border-t border-border" role="menu">
           <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
             <Link
-              href="/#services"
+              href="/#advantages"
               className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t.header.services}
             </Link>
             <Link
-              href="/#reviews"
+              href="/#process"
               className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Отзывы
+              {t.header.process}
+            </Link>
+            <Link
+              href="/#pricing"
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.pricing}
+            </Link>
+            <Link
+              href="/#extras"
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.extras}
+            </Link>
+            <Link
+              href="/promotion"
+              prefetch={false}
+              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t.header.promotion}
             </Link>
             <Link
               href="/blog"
@@ -108,21 +138,6 @@ import { LanguageSwitcher } from "@/components/language-switcher"
               {t.header.blog}
             </Link>
             <Link
-              href="/ai"
-              prefetch={false}
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.aiMusic}
-            </Link>
-            <Link
-              href="/#pricing"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.pricing}
-            </Link>
-            <Link
               href="/#contact"
               className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
@@ -131,15 +146,17 @@ import { LanguageSwitcher } from "@/components/language-switcher"
             </Link>
             <div className="flex items-center gap-4">
               <LanguageSwitcher />
-              <Button
-                size="sm"
-                className="uppercase tracking-wider bg-primary text-primary-foreground flex-1"
-                asChild
-              >
-                <Link href="/cabinet" prefetch={false} onClick={() => setIsMobileMenuOpen(false)}>
-                  {t.header.login}
-                </Link>
-              </Button>
+              {!hideLogin && (
+                <Button
+                  size="sm"
+                  className="uppercase tracking-wider bg-primary text-primary-foreground flex-1"
+                  asChild
+                >
+                  <Link href="/cabinet" prefetch={false} onClick={() => setIsMobileMenuOpen(false)}>
+                    {t.header.login}
+                  </Link>
+                </Button>
+              )}
             </div>
           </nav>
         </div>

@@ -8,6 +8,7 @@ import { isServiceOrderType, upsertNewFulfillmentIfMissing } from "@/lib/service
 import { escapeHtml } from "@/lib/telegram"
 import { markUploadDraftPaid } from "@/lib/upload-drafts"
 import { getUploadsBasePath } from "@/lib/tracks"
+import type { OrderServiceDetails } from "@/lib/order-service-details"
 
 async function tryRecordServiceFulfillment(orderId: string, orderType: string) {
   if (!isServiceOrderType(orderType)) return
@@ -16,6 +17,23 @@ async function tryRecordServiceFulfillment(orderId: string, orderType: string) {
   } catch (e) {
     console.error("[fulfill-paid-order] service_fulfillments insert failed", { orderId, orderType, e })
   }
+}
+
+function orderServiceDetails(order: Order): OrderServiceDetails | undefined {
+  if ("serviceDetails" in order) return order.serviceDetails
+  return undefined
+}
+
+function metaOrDetails(
+  metadata: Record<string, string>,
+  order: Order,
+  key: "trackTitle" | "comment"
+): string {
+  const fromMeta = metadata[key]?.trim()
+  if (fromMeta) return fromMeta
+  const details = orderServiceDetails(order)
+  if (key === "trackTitle") return details?.trackTitle?.trim() || ""
+  return details?.comment?.trim() || ""
 }
 
 function notifyStaff(
@@ -55,7 +73,7 @@ export type FulfillPaidOrderParams = {
 }
 
 /**
- * Бизнес-логика после успешной оплаты (кроме подписки — она только в ЮKassa webhook).
+ * Бизнес-логика после успешной оплаты (кроме подписки - она только в ЮKassa webhook).
  */
 export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<void> {
   const { order, paymentId, paidAt } = params
@@ -110,6 +128,8 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     const accountEmail = user?.email ?? `userId=${order.userId}`
     const trackTitles =
       metadata.trackTitles ||
+      orderServiceDetails(order)?.trackTitles?.join(" | ") ||
+      orderServiceDetails(order)?.originalFilenames?.join(" | ") ||
       (await listAiMasteringFilenames(orderId)).join(" | ") ||
       "-"
     const filesPath = metadata.aiMasteringFilesPath || `ai-mastering-orders/${orderId}`
@@ -157,13 +177,17 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         `<b>Оплата: вертикальные видео (${provider})</b>`,
         "",
         `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-        metadata.trackTitle ? `<b>Название трека:</b> ${escapeHtml(metadata.trackTitle)}` : null,
+        metaOrDetails(metadata, order, "trackTitle")
+          ? `<b>Название трека:</b> ${escapeHtml(metaOrDetails(metadata, order, "trackTitle"))}`
+          : null,
         `<b>Количество видео:</b> ${order.tracksCount}`,
         `<b>Цена за 1 видео:</b> ${escapeHtml(String(unitPrice))} RUB`,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         order.contactEmail ? `<b>Контакт:</b> ${escapeHtml(order.contactEmail)}` : null,
         order.contactTelegram ? `<b>Telegram:</b> ${escapeHtml(order.contactTelegram)}` : null,
-        metadata.comment ? `<b>Комментарий:</b> ${escapeHtml(metadata.comment)}` : null,
+        metaOrDetails(metadata, order, "comment")
+          ? `<b>Комментарий:</b> ${escapeHtml(metaOrDetails(metadata, order, "comment"))}`
+          : null,
         `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
         `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,
         "",
@@ -190,11 +214,15 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         `<b>Оплата: обложка для трека (${provider})</b>`,
         "",
         `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-        metadata.trackTitle ? `<b>Название трека:</b> ${escapeHtml(metadata.trackTitle)}` : null,
+        metaOrDetails(metadata, order, "trackTitle")
+          ? `<b>Название трека:</b> ${escapeHtml(metaOrDetails(metadata, order, "trackTitle"))}`
+          : null,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         order.contactEmail ? `<b>Контакт:</b> ${escapeHtml(order.contactEmail)}` : null,
         order.contactTelegram ? `<b>Telegram:</b> ${escapeHtml(order.contactTelegram)}` : null,
-        metadata.comment ? `<b>Комментарий:</b> ${escapeHtml(metadata.comment)}` : null,
+        metaOrDetails(metadata, order, "comment")
+          ? `<b>Комментарий:</b> ${escapeHtml(metaOrDetails(metadata, order, "comment"))}`
+          : null,
         `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
         `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,
         "",
@@ -241,11 +269,15 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         `<b>Оплата: ${config.title} (${provider})</b>`,
         "",
         `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-        metadata.trackTitle ? `<b>Название трека:</b> ${escapeHtml(metadata.trackTitle)}` : null,
+        metaOrDetails(metadata, order, "trackTitle")
+          ? `<b>Название трека:</b> ${escapeHtml(metaOrDetails(metadata, order, "trackTitle"))}`
+          : null,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         order.contactEmail ? `<b>Контакт:</b> ${escapeHtml(order.contactEmail)}` : null,
         order.contactTelegram ? `<b>Telegram:</b> ${escapeHtml(order.contactTelegram)}` : null,
-        metadata.comment ? `<b>Комментарий:</b> ${escapeHtml(metadata.comment)}` : null,
+        metaOrDetails(metadata, order, "comment")
+          ? `<b>Комментарий:</b> ${escapeHtml(metaOrDetails(metadata, order, "comment"))}`
+          : null,
         `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
         `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,
         "",

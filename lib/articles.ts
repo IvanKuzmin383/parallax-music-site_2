@@ -9,7 +9,10 @@ export interface Article {
   excerpt: string
   metaDescription: string
   keywords: string[]
+  /** Превью в списке блога (обычно 1:1) */
   ogImage?: string
+  /** Обложка на странице статьи (16:9) */
+  heroImage?: string
   category: string
   tags: string[]
   published: boolean
@@ -28,6 +31,7 @@ interface ArticleRow {
   meta_description: string | null
   keywords: string
   og_image: string | null
+  hero_image?: string | null
   category: string | null
   tags: string
   published: boolean
@@ -46,6 +50,7 @@ function rowToArticle(row: ArticleRow): Article {
     metaDescription: row.meta_description ?? "",
     keywords: parseJsonArray(row.keywords),
     ogImage: row.og_image ?? undefined,
+    heroImage: row.hero_image ?? undefined,
     category: row.category ?? "",
     tags: parseJsonArray(row.tags),
     published: Boolean(row.published),
@@ -99,8 +104,8 @@ export async function getPublishedArticles(): Promise<Article[]> {
 }
 
 const INSERT_ARTICLE_SQL = `
-  INSERT INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, category, tags, published, published_at, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, hero_image, category, tags, published, published_at, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     title = EXCLUDED.title,
@@ -109,6 +114,7 @@ const INSERT_ARTICLE_SQL = `
     meta_description = EXCLUDED.meta_description,
     keywords = EXCLUDED.keywords,
     og_image = EXCLUDED.og_image,
+    hero_image = EXCLUDED.hero_image,
     category = EXCLUDED.category,
     tags = EXCLUDED.tags,
     published = EXCLUDED.published,
@@ -127,6 +133,7 @@ function articleInsertParams(a: Article): unknown[] {
     a.metaDescription ?? null,
     JSON.stringify(a.keywords ?? []),
     a.ogImage ?? null,
+    a.heroImage ?? null,
     a.category ?? null,
     JSON.stringify(a.tags ?? []),
     a.published,
@@ -158,8 +165,8 @@ export async function createArticle(
   }
   await execute(
     `
-    INSERT INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, category, tags, published, published_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO articles (id, slug, title, content, excerpt, meta_description, keywords, og_image, hero_image, category, tags, published, published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     articleInsertParams(newArticle)
   )
@@ -186,7 +193,7 @@ export async function updateArticle(
 
   await execute(
     `
-    UPDATE articles SET slug = ?, title = ?, content = ?, excerpt = ?, meta_description = ?, keywords = ?, og_image = ?, category = ?, tags = ?, published = ?, published_at = ?, updated_at = ?
+    UPDATE articles SET slug = ?, title = ?, content = ?, excerpt = ?, meta_description = ?, keywords = ?, og_image = ?, hero_image = ?, category = ?, tags = ?, published = ?, published_at = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -197,6 +204,7 @@ export async function updateArticle(
       updated.metaDescription ?? null,
       JSON.stringify(updated.keywords ?? []),
       updated.ogImage ?? null,
+      updated.heroImage ?? null,
       updated.category ?? null,
       JSON.stringify(updated.tags ?? []),
       updated.published,

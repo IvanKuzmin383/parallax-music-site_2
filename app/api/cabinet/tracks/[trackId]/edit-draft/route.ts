@@ -27,8 +27,11 @@ export async function POST(
     if (!track || track.userId.toLowerCase() !== session.email.toLowerCase()) {
       return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
     }
-    if (track.status !== "upload_pending") {
-      return NextResponse.json({ error: "Редактирование доступно только для статуса «Черновик»" }, { status: 400 })
+    if (track.status !== "upload_pending" && track.status !== "rejected") {
+      return NextResponse.json(
+        { error: "Редактирование доступно только для статуса «Требуется доработка» или «Отклонено»" },
+        { status: 400 }
+      )
     }
 
     const payload: UploadDraftPayload = {
@@ -47,7 +50,9 @@ export async function POST(
       performanceRights: track.performanceRights,
       isInstrumental: track.isInstrumental,
       backingAuthor: track.backingAuthor,
+      tiktokSoundStartSec: track.tiktokSoundStartSec ?? null,
       requestAiCover: Boolean(track.needsAiCover),
+      streamingScope: track.streamingScope,
       releaseDate: track.releaseDate,
       addons: {},
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAllArticles, createArticle, generateSlug, Article } from '@/lib/articles'
 import { getAdminToken, verifySession } from '@/lib/auth'
+import { isValidArticleOgImage } from '@/lib/blog-covers'
 
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
@@ -12,14 +13,12 @@ const articleSchema = z.object({
   ogImage: z
     .string()
     .optional()
-    .refine(
-      (v) =>
-        !v ||
-        v.startsWith('http://') ||
-        v.startsWith('https://') ||
-        (v.startsWith('/blog/') && v.length > 6),
-      'OG image: full URL or path /blog/filename'
-    )
+    .refine(isValidArticleOgImage, 'OG image: URL, /blog/filename или /api/blog-covers/filename')
+    .or(z.literal('')),
+  heroImage: z
+    .string()
+    .optional()
+    .refine(isValidArticleOgImage, 'Hero image: URL, /blog/filename или /api/blog-covers/filename')
     .or(z.literal('')),
   category: z.string().min(1, 'Category is required').max(50, 'Category must be less than 50 characters'),
   tags: z.array(z.string()).optional().default([]),

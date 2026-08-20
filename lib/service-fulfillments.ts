@@ -6,6 +6,7 @@ import type { UploadDraftPayload } from "./upload-drafts"
 import { promises as fs } from "fs"
 import path from "path"
 import { getUploadsBasePath } from "./tracks"
+import { parseServiceDetails, type OrderServiceDetails } from "./order-service-details"
 
 /** Заказы услуг, для которых ведётся исполнение (отдельно от оплаты). */
 export const SERVICE_ORDER_TYPES: readonly OrderType[] = [
@@ -101,6 +102,26 @@ export interface ServiceFulfillmentListRow {
   uploadAddonBundleItems: UploadAddonBundleItem[]
   /** Для `upload_addon_bundle`: запрошена AI-обложка в payload. */
   uploadAddonAiCoverRequested: boolean
+  /** Детали услуги: трек, пожелания (из orders.service_details_json). */
+  serviceDetails: OrderServiceDetails | null
+  /** Детализация допов загрузки (трек/пожелания по каждой услуге). */
+  uploadAddonDetails: UploadAddonDetailLine[]
+  /** Имя трека/артиста из черновика загрузки (для upload_addon_bundle). */
+  draftTrackName: string | null
+  draftArtistName: string | null
+}
+
+export type UploadAddonDetailLine = {
+  type: UploadAddonBundleItem["type"] | "ai_cover"
+  trackTitle?: string
+  comment?: string
+  videosCount?: number
+  tracksCount?: number
+  contactType?: string
+  contactValue?: string
+  contactEmail?: string
+  contactTelegram?: string
+  trackTitles?: string[]
 }
 
 function fulfillmentFilterSql(filter: ServiceFulfillmentFilter): string {
@@ -146,17 +167,107 @@ async function uploadAddonBundleDataForRow(
   draftId: string | null,
   orderId: string,
   payloadSnapshotJson: string | null
-): Promise<{ items: UploadAddonBundleItem[]; aiCoverRequested: boolean }> {
-  if (orderType !== "upload_addon_bundle") return { items: [], aiCoverRequested: false }
+): Promise<{
+  items: UploadAddonBundleItem[]
+  aiCoverRequested: boolean
+  details: UploadAddonDetailLine[]
+  draftTrackName: string | null
+  draftArtistName: string | null
+}> {
+  if (orderType !== "upload_addon_bundle") {
+    return {
+      items: [],
+      aiCoverRequested: false,
+      details: [],
+      draftTrackName: null,
+      draftArtistName: null,
+    }
+  }
   const draft = draftId ? await getUploadDraftById(draftId) : null
   const resolvedDraft = draft ?? (await getUploadDraftByBundleOrderId(orderId))
   const payload = resolvedDraft?.payload ?? parseUploadAddonPayloadJson(payloadSnapshotJson)
-  if (!payload) return { items: [], aiCoverRequested: false }
+  if (!payload) {
+    return {
+      items: [],
+      aiCoverRequested: false,
+      details: [],
+      draftTrackName: null,
+      draftArtistName: null,
+    }
+  }
   return {
     items: addonBundleItemsFromUploadDraftPayload(payload),
     aiCoverRequested:
       Boolean(payload.requestAiCover) || Boolean(payload.addons?.trackCover?.enabled),
+    details: extractUploadAddonDetails(payload),
+    draftTrackName: payload.trackName?.trim() || payload.albumTitle?.trim() || null,
+    draftArtistName: payload.artistName?.trim() || payload.albumArtistName?.trim() || null,
   }
+}
+
+function extractUploadAddonDetails(payload: UploadDraftPayload): UploadAddonDetailLine[] {
+  const a = payload.addons ?? {}
+  const lines: UploadAddonDetailLine[] = []
+  if (a.trackCover?.enabled) {
+    lines.push({
+      type: "track_cover",
+      trackTitle: a.trackCover.trackTitle,
+      comment: a.trackCover.comment,
+      contactType: a.trackCover.contactType,
+      contactValue: a.trackCover.contactValue,
+    })
+  }
+  if (a.verticalVideo?.enabled) {
+    lines.push({
+      type: "vertical_video",
+      trackTitle: a.verticalVideo.trackTitle,
+      comment: a.verticalVideo.comment,
+      videosCount: a.verticalVideo.videosCount,
+      contactType: a.verticalVideo.contactType,
+      contactValue: a.verticalVideo.contactValue,
+    })
+  }
+  if (a.aiMastering?.enabled) {
+    lines.push({
+      type: "ai_mastering",
+      tracksCount: a.aiMastering.tracksCount,
+      trackTitles: a.aiMastering.trackTitles,
+      contactEmail: a.aiMastering.contactEmail,
+      contactTelegram: a.aiMastering.contactTelegram,
+    })
+  }
+  if (a.yandexVideoshot?.enabled) {
+    lines.push({
+      type: "yandex_videoshot",
+      trackTitle: a.yandexVideoshot.trackTitle,
+      comment: a.yandexVideoshot.comment,
+    })
+  }
+  if (a.yandexVideoshotCreation?.enabled) {
+    lines.push({
+      type: "yandex_videoshot_creation",
+      trackTitle: a.yandexVideoshotCreation.trackTitle,
+      comment: a.yandexVideoshotCreation.comment,
+    })
+  }
+  if (a.yandexVideoavatar?.enabled) {
+    lines.push({
+      type: "yandex_videoavatar",
+      trackTitle: a.yandexVideoavatar.trackTitle,
+      comment: a.yandexVideoavatar.comment,
+    })
+  }
+  if (a.spotifyVideoshot?.enabled) {
+    lines.push({
+      type: "spotify_videoshot",
+      trackTitle: a.spotifyVideoshot.trackTitle,
+      comment: a.spotifyVideoshot.comment,
+    })
+  }
+  if (payload.requestAiCover && !a.trackCover?.enabled) {
+    lines.push({ type: "ai_cover" })
+  }
+  return lines
 }
 
 function mapDbRowsBase(
@@ -176,6 +287,7 @@ function mapDbRowsBase(
     contact_email: string | null
     contact_telegram: string | null
     upload_addon_bundle_payload_json: string | null
+    service_details_json: string | null
   }[]
 ): Promise<ServiceFulfillmentListRow[]> {
   return Promise.all(
@@ -205,6 +317,10 @@ function mapDbRowsBase(
           r.order_type === "ai_mastering" ? await listAiMasteringAudioFiles(r.order_id) : [],
         uploadAddonBundleItems: uploadAddon.items,
         uploadAddonAiCoverRequested: uploadAddon.aiCoverRequested,
+        serviceDetails: parseServiceDetails(r.service_details_json),
+        uploadAddonDetails: uploadAddon.details,
+        draftTrackName: uploadAddon.draftTrackName,
+        draftArtistName: uploadAddon.draftArtistName,
       }
     })
   )
@@ -233,11 +349,12 @@ export async function listServiceFulfillmentsForUser(
     contact_email: string | null
     contact_telegram: string | null
     upload_addon_bundle_payload_json: string | null
+    service_details_json: string | null
   }>(
     `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
             o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
             o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
-            o.upload_addon_bundle_payload_json
+            o.upload_addon_bundle_payload_json, o.service_details_json
      FROM orders o
      INNER JOIN service_fulfillments sf ON sf.order_id = o.id
      LEFT JOIN cabinet_users cu ON cu.id = o.user_id
@@ -275,11 +392,12 @@ export async function listServiceFulfillmentsAdmin(
     contact_email: string | null
     contact_telegram: string | null
     upload_addon_bundle_payload_json: string | null
+    service_details_json: string | null
   }>(
     `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
             o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
             o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
-            o.upload_addon_bundle_payload_json
+            o.upload_addon_bundle_payload_json, o.service_details_json
      FROM orders o
      INNER JOIN service_fulfillments sf ON sf.order_id = o.id
      LEFT JOIN cabinet_users cu ON cu.id = o.user_id

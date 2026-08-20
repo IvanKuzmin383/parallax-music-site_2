@@ -4,7 +4,7 @@ export const HERO_BACKGROUND = {
   jpg: "/music-studio-recording-session-dark-moody-atmosphe.jpg",
 } as const
 
-/** URL для Open Graph / schema (JPG — максимальная совместимость). */
+/** URL для Open Graph / schema (JPG - максимальная совместимость). */
 export function getHeroBackgroundOgUrl(siteUrl: string): string {
   const base = siteUrl.replace(/\/$/, "")
   return `${base}${HERO_BACKGROUND.jpg}`

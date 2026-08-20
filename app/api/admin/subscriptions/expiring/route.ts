@@ -47,11 +47,11 @@ function getSubscriptionAmountLabel(user: CabinetUser): string {
     return `~${formatAmountRub(total)} (1 мес.)`
   }
 
-  return "—"
+  return "-"
 }
 
 function appendSubscriptionUserLine(message: string, user: CabinetUser, suffix: string): string {
-  const tariff = user.subscriptionName ?? "—"
+  const tariff = user.subscriptionName ?? "-"
   const amount = getSubscriptionAmountLabel(user)
   const autopayStatus = getAutopayStatusLabel(user)
   return (

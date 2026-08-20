@@ -1,11 +1,10 @@
 import path from "path"
 import crypto from "crypto"
-import { createReadStream } from "node:fs"
 import { stat } from "node:fs/promises"
-import { Readable } from "node:stream"
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
+import { createFileRangeResponse } from "@/lib/node-file-range-response"
 import {
   MultipartRequestError,
   parseMultipartRequestStream,
@@ -69,15 +68,14 @@ export async function GET(
 
   try {
     const info = await stat(absPath)
-    const stream = createReadStream(absPath)
-    const body = Readable.toWeb(stream) as ReadableStream
-    return new NextResponse(body, {
-      headers: {
-        "Content-Type": "audio/wav",
-        "Content-Length": String(info.size),
-        "Cache-Control": "private, no-store",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(buildDownloadFileName(draft))}`,
-      },
+    const disposition =
+      req.nextUrl.searchParams.get("download") === "1" ? "attachment" : "inline"
+    return createFileRangeResponse({
+      absPath,
+      fileSize: info.size,
+      contentType: "audio/wav",
+      rangeHeader: req.headers.get("range"),
+      contentDisposition: `${disposition}; filename*=UTF-8''${encodeURIComponent(buildDownloadFileName(draft))}`,
     })
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {

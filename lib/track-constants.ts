@@ -45,3 +45,38 @@ export const AI_COVER_REQUEST_PRICE_RUB = 500
 /** Подсказка под полем «Текст песни» в кабинете загрузки. */
 export const LYRICS_TEXT_UPLOAD_HINT =
   "Текст песни не должен содержать лишнюю информацию и разметку: «Припев», «Мощный дроп с басом», «Бридж», «Затухание» и т. п. При наличии лишнего текста релиз будет отклонён. Соблюдайте правила, чтобы ваш релиз вышел вовремя."
+
+export const STREAMING_SCOPES = ["all", "ru", "foreign"] as const
+export type TrackStreamingScope = (typeof STREAMING_SCOPES)[number]
+export const DEFAULT_STREAMING_SCOPE: TrackStreamingScope = "all"
+
+export const STREAMING_SCOPE_OPTIONS: {
+  value: TrackStreamingScope
+  label: string
+  shortLabel: string
+  hint: string
+}[] = [
+  {
+    value: "all",
+    label: "ВСЕ СТРИМИНГ СЕРВИСЫ",
+    shortLabel: "Все",
+    hint: "Релиз будет отправлен на все доступные стриминг-площадки.",
+  },
+  {
+    value: "ru",
+    label: "ТОЛЬКО РОССИЙСКИЕ СТРИМИНГ СЕРВИСЫ",
+    shortLabel: "Только РФ",
+    hint: "Релиз только на российские площадки (Яндекс Музыка, VK Музыка, Звук и др.).",
+  },
+  {
+    value: "foreign",
+    label: "ТОЛЬКО ЗАРУБЕЖНЫЕ СТРИМИНГ СЕРВИСЫ",
+    shortLabel: "Только зарубеж",
+    hint: "Релиз только на зарубежные площадки (Spotify, Apple Music и др.).",
+  },
+]
+
+export function normalizeStreamingScope(value: unknown): TrackStreamingScope {
+  if (value === "ru" || value === "foreign") return value
+  return DEFAULT_STREAMING_SCOPE
+}

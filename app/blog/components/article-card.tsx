@@ -12,7 +12,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
     <Link href={`/blog/${article.slug}`}>
       <Card className="h-full hover:shadow-lg transition-shadow overflow-hidden">
         {article.ogImage && (
-          <div className="relative w-full aspect-video bg-muted shrink-0">
+          <div className="relative w-full aspect-square bg-muted shrink-0">
             <img
               src={article.ogImage}
               alt=""

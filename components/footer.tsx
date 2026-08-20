@@ -1,25 +1,8 @@
 "use client"
 
-import { Instagram, Youtube } from "lucide-react"
 import { useI18n } from "@/lib/i18n-context"
 import Link from "next/link"
 import Image from "next/image"
-
-// Custom TikTok icon SVG
-const TiktokIcon = ({ size = 20 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-  </svg>
-)
 
 // Custom Telegram icon SVG
 const TelegramIcon = ({ size = 20 }: { size?: number }) => (
@@ -64,16 +47,24 @@ export function Footer() {
             <h3 className="text-sm uppercase tracking-wider font-bold mb-4">{t.footer.services}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <span className="cursor-default">{t.services.labelServices.title}</span>
+                <a href="/#advantages" className="hover:text-primary transition-colors">
+                  {t.services.labelServices.title}
+                </a>
               </li>
               <li>
-                <span className="cursor-default">{t.services.digitalMarketing.title}</span>
+                <a href="/#pricing" className="hover:text-primary transition-colors">
+                  {t.header.pricing}
+                </a>
               </li>
               <li>
-                <span className="cursor-default">{t.services.radioPromotion.title}</span>
+                <a href="/promotion" className="hover:text-primary transition-colors">
+                  {t.services.radioPromotion.title}
+                </a>
               </li>
               <li>
-                <span className="cursor-default">{t.services.brandPartnerships.title}</span>
+                <a href="/#contact" className="hover:text-primary transition-colors">
+                  {t.header.contact}
+                </a>
               </li>
             </ul>
           </div>
@@ -102,20 +93,12 @@ export function Footer() {
           <div id="follow-us">
             <h3 className="text-sm uppercase tracking-wider font-bold mb-4">{t.footer.followUs}</h3>
             <div className="flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <TiktokIcon size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Youtube size={20} />
-              </a>
               <a
-                href="https://t.me/ParallaxMusic_RT"
+                href="https://t.me/parallaxmusic_rt"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Telegram"
               >
                 <TelegramIcon size={20} />
               </a>
@@ -124,6 +107,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="VK"
               >
                 <VkIcon size={20} />
               </a>
