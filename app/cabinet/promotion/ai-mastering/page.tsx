@@ -19,11 +19,12 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useI18n } from "@/lib/i18n-context"
 import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
+import { MAX_CABINET_WAV_BYTES } from "@/lib/cabinet-wav-upload-limits"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import { toast } from "sonner"
 
 const TRACKS_MIN = 1
-const MAX_WAV_BYTES = 80 * 1024 * 1024
+const MAX_WAV_BYTES = MAX_CABINET_WAV_BYTES
 
 function AiMasteringPageInner() {
   const router = useRouter()

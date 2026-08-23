@@ -1,5 +1,7 @@
 /** Клиентские утилиты загрузки релизов (кабинет). */
 
+import { MAX_CABINET_WAV_MB } from "@/lib/cabinet-wav-upload-limits"
+
 const WAV_MIME_HINTS = ["audio/wav", "audio/wave", "audio/x-wav", "audio/vnd.wave"] as const
 
 export const WAV_FILE_READ_ERROR =
@@ -30,7 +32,7 @@ export async function parseCabinetApiJson<T = CabinetApiJsonBody>(
     const fallback = (message: string): T & CabinetApiJsonBody =>
       ({ error: message }) as T & CabinetApiJsonBody
     if (response.status === 413) {
-      return fallback("Файл слишком большой (макс. 80 MB для аудио, 20 MB для обложки).")
+      return fallback(`Файл слишком большой (макс. ${MAX_CABINET_WAV_MB} MB для аудио, 20 MB для обложки).`)
     }
     if (response.status >= 500) {
       return fallback(`Ошибка сервера (${response.status}). Попробуйте позже или через Wi‑Fi.`)

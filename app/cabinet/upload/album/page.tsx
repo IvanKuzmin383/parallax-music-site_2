@@ -70,6 +70,7 @@ import {
 import { useI18n } from "@/lib/i18n-context"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
 import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
+import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import { StreamingServicesField } from "@/components/streaming-services-field"
 
 /** Параллельная загрузка WAV; раньше файлы шли строго по одному - поздние треки ждали очередь всех предыдущих. */
@@ -215,11 +216,11 @@ const albumTrackSchema = z.object({
         path: ["audio"],
         message: "Аудио должно быть в формате WAV",
       })
-    } else if (file.size > 80 * 1024 * 1024) {
+    } else if (file.size > MAX_CABINET_WAV_BYTES) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["audio"],
-        message: "Размер аудио не должен превышать 80 MB",
+        message: cabinetWavMaxSizeError("Размер аудио"),
       })
     }
   }
@@ -1130,7 +1131,7 @@ export default function CabinetUploadAlbumPage() {
           <div>
             <h1 className="text-2xl font-bold">Загрузить альбом</h1>
             <p className="text-muted-foreground text-sm">
-              Несколько треков с одной общей обложкой. WAV до 80 MB каждый, обложка JPEG/PNG до 20 MB.
+              Несколько треков с одной общей обложкой. WAV до {MAX_CABINET_WAV_MB} MB каждый, обложка JPEG/PNG до 20 MB.
             </p>
           </div>
         </div>
@@ -1485,7 +1486,7 @@ export default function CabinetUploadAlbumPage() {
                       render={({ field: { onChange, value, ...field } }) => (
                         <FormItem className="w-full">
                           <FormLabel>
-                            Аудио (WAV, до 80 MB)
+                            Аудио (WAV, до {MAX_CABINET_WAV_MB} MB)
                             {!form.watch(`tracks.${index}.serverDraftHasAudio`) ? " *" : ""}
                           </FormLabel>
                           <FormControl>

@@ -96,6 +96,7 @@ import { StreamingServicesField } from "@/components/streaming-services-field"
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { fetchAdminArtistsIndex, fetchAdminTracksAllMatching, fetchAdminTracksForArtist } from "@/lib/admin-tracks-fetch"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import {
   type AdminArtistIndexItem,
   type AdminTracksListQuery,
@@ -1525,8 +1526,8 @@ export default function TracksPageClient() {
       toast.error("Аудио должно быть в формате WAV")
       return
     }
-    if (file.size > 80 * 1024 * 1024) {
-      toast.error("Размер аудиофайла не должен превышать 80 MB")
+    if (file.size > MAX_CABINET_WAV_BYTES) {
+      toast.error(cabinetWavMaxSizeError())
       return
     }
     void handleUploadDraftAudioUpload(draftId, file)

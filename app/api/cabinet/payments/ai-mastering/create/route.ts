@@ -19,9 +19,10 @@ import {
   parseMultipartRequestStream,
   readFilePrefix,
 } from "@/lib/node-streaming-multipart"
+import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB } from "@/lib/cabinet-wav-upload-limits"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const MAX_WAV_BYTES = 80 * 1024 * 1024
+const MAX_WAV_BYTES = MAX_CABINET_WAV_BYTES
 
 async function persistAiMasteringWavs(orderId: string, files: ParsedMultipartFile[]): Promise<void> {
   const base = await getUploadsBasePath()
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
         }
         if (file.size > MAX_WAV_BYTES) {
           return NextResponse.json(
-            { error: `Позиция ${i + 1}: размер WAV не более 80 MB` },
+            { error: `Позиция ${i + 1}: размер WAV не более ${MAX_CABINET_WAV_MB} MB` },
             { status: 400 }
           )
         }

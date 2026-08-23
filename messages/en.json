@@ -1172,7 +1172,7 @@
         "tracksCountLabel": "Number of tracks",
         "tracksCountHint": "1 to 50",
         "tracksPickLabel": "WAV audio",
-        "tracksPickHint": "For each slot, choose a file from your computer (up to 80 MB). Mono files are not accepted.",
+        "tracksPickHint": "For each slot, choose a file from your computer (up to 120 MB). Mono files are not accepted.",
         "audioFileLabel": "File",
         "audioFileSelected": "Selected",
         "contactEmailLabel": "Email for contact",
@@ -1193,7 +1193,7 @@
         "validationContact": "Enter email or Telegram for contact",
         "validationAudioSlots": "Attach a valid WAV for each slot",
         "validationAudioWav": "File must be in WAV format",
-        "validationAudioSize": "File size must be at most 80 MB"
+        "validationAudioSize": "File size must be at most 120 MB"
       },
       "yandexVideoshot": {
         "title": "Upload videoshot to Yandex Music",

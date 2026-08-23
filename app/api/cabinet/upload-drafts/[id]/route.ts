@@ -28,8 +28,9 @@ import {
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
-const MAX_AUDIO_SIZE = 80 * 1024 * 1024
+const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 
 function draftIsEditable(d: UploadDraft): boolean {
   return d.status === "collecting" || d.status === "awaiting_payment" || d.status === "paid"
@@ -139,7 +140,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Аудиофайл пустой. Загрузите WAV повторно" }, { status: 400 })
           }
           if (audio.size > MAX_AUDIO_SIZE) {
-            return NextResponse.json({ error: "Размер аудиофайла не должен превышать 80 MB" }, { status: 400 })
+            return NextResponse.json({ error: cabinetWavMaxSizeError() }, { status: 400 })
           }
           const wavError = await validateWavFormatFromFilePath(audio.tempFilePath)
           if (wavError) return NextResponse.json({ error: wavError }, { status: 400 })

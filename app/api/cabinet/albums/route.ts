@@ -24,8 +24,9 @@ import {
 } from "@/lib/node-streaming-multipart"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
-const MAX_AUDIO_SIZE = 80 * 1024 * 1024 // 80 MB
+const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 const MAX_COVER_SIZE = 20 * 1024 * 1024 // 20 MB
 
 type AlbumTrackMeta = {
@@ -321,7 +322,7 @@ export async function POST(request: NextRequest) {
       if (audioFile.size > MAX_AUDIO_SIZE) {
         return NextResponse.json(
           {
-            error: `Размер аудиофайла для трека "${meta.trackName}" не должен превышать 80 MB`,
+            error: cabinetWavMaxSizeError(`Размер аудиофайла для трека "${meta.trackName}"`),
           },
           { status: 400 }
         )

@@ -1444,7 +1444,7 @@
         "tracksCountLabel": "Количество треков",
         "tracksCountHint": "от 1 до 50",
         "tracksPickLabel": "Аудио WAV",
-        "tracksPickHint": "Для каждой позиции выберите файл на компьютере (до 80 MB). Монофайлы не принимаются.",
+        "tracksPickHint": "Для каждой позиции выберите файл на компьютере (до 120 MB). Монофайлы не принимаются.",
         "audioFileLabel": "Файл",
         "audioFileSelected": "Выбран",
         "contactEmailLabel": "Email для связи",
@@ -1465,7 +1465,7 @@
         "validationContact": "Укажите email или Telegram для связи",
         "validationAudioSlots": "Для каждой позиции прикрепите корректный WAV",
         "validationAudioWav": "Нужен файл в формате WAV",
-        "validationAudioSize": "Размер файла не более 80 MB"
+        "validationAudioSize": "Размер файла не более 120 MB"
       },
       "yandexVideoshot": {
         "title": "Загрузка видеошота в Яндекс Музыку",

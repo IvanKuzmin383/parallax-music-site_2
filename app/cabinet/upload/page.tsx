@@ -86,6 +86,7 @@ import {
   parseCabinetApiJson,
   validateCoverFileClient,
 } from "@/lib/cabinet-upload-client"
+import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import type { UploadDraftPayload, UploadDraftStatus } from "@/lib/upload-drafts"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
@@ -194,11 +195,11 @@ const uploadSchema = z.object({
         path: ["audio"],
         message: "Аудио должно быть в формате WAV",
       })
-    } else if (file.size > 80 * 1024 * 1024) {
+    } else if (file.size > MAX_CABINET_WAV_BYTES) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["audio"],
-        message: "Размер аудио не должен превышать 80 MB",
+        message: cabinetWavMaxSizeError("Размер аудио"),
       })
     }
   }
@@ -1310,7 +1311,7 @@ export default function CabinetUploadPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Загрузить трек</h1>
-            <p className="text-muted-foreground text-sm">WAV до 80 MB; обложка JPEG/PNG 3000×3000 до 20 MB</p>
+            <p className="text-muted-foreground text-sm">WAV до {MAX_CABINET_WAV_MB} MB; обложка JPEG/PNG 3000×3000 до 20 MB</p>
           </div>
           {profileCompleteForUpload !== false ? (
             <Button
@@ -1996,7 +1997,7 @@ export default function CabinetUploadPage() {
                 render={({ field: { onChange, value, ...field } }) => (
                   <FormItem className="flex h-full min-h-0 flex-col">
                     <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-                      <FormLabel>Аудио (WAV, до 80 MB) *</FormLabel>
+                      <FormLabel>Аудио (WAV, до {MAX_CABINET_WAV_MB} MB) *</FormLabel>
                     </div>
                     <div
                       className={cn(

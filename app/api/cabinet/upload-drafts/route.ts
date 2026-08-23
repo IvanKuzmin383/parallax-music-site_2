@@ -17,8 +17,9 @@ import {
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
-const MAX_AUDIO_SIZE = 80 * 1024 * 1024
+const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       let audioRelPath: string | undefined
       if (hasIncomingAudio && audio) {
         if (audio.size > MAX_AUDIO_SIZE) {
-          return NextResponse.json({ error: "Размер аудиофайла не должен превышать 80 MB" }, { status: 400 })
+          return NextResponse.json({ error: cabinetWavMaxSizeError() }, { status: 400 })
         }
         const wavError = await validateWavFormatFromFilePath(audio.tempFilePath)
         if (wavError) return NextResponse.json({ error: wavError }, { status: 400 })

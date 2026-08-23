@@ -10,6 +10,7 @@ import {
 } from "@/lib/tracks"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getAlbumById } from "@/lib/albums"
+import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
 import { GENRES, TRACK_MOODS, STREAMING_SCOPES } from "@/lib/track-constants"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 
@@ -225,6 +226,25 @@ export async function PATCH(
 
   if (data.userId !== undefined) {
     updatePayload.userId = effectiveUserId
+  }
+
+  if (
+    effectiveAlbumId &&
+    typeof updatePayload.releaseDate === "string" &&
+    updatePayload.releaseDate.trim().length > 0
+  ) {
+    try {
+      await applySharedAlbumReleaseDate({
+        albumId: effectiveAlbumId,
+        releaseDate: updatePayload.releaseDate.trim(),
+      })
+    } catch (error) {
+      console.error("Error syncing album release date:", error)
+      return NextResponse.json(
+        { error: "Не удалось обновить дату релиза альбома у всех треков" },
+        { status: 500 }
+      )
+    }
   }
 
   const updated = await updateTrack(id, updatePayload)

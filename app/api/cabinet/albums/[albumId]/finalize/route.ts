@@ -12,6 +12,11 @@ import { getAlbumById } from "@/lib/albums"
 import { getUploadDraftByAlbumId, markUploadDraftFinalized, removeUploadDraftFiles } from "@/lib/upload-drafts"
 import { assertUploadDraftBundlePayment } from "@/lib/cabinet-upload-draft-addons"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
+import {
+  resolveAlbumReleaseDateYyyyMmDd,
+  validateReleaseDateYyyyMmDd,
+} from "@/lib/release-date-validation"
+import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
 
 /**
  * Шаг 3: проверка WAV всех треков альбома и отправка уведомления в Telegram
@@ -79,6 +84,39 @@ export async function POST(
     const creditsGate = assertFixPackCreditsForTracks(user, pendingTracks)
     if (!creditsGate.ok) {
       return NextResponse.json({ error: creditsGate.error }, { status: 403 })
+    }
+
+    if (pendingTracks.length > 0) {
+      const payloadReleaseDate =
+        albumDraft &&
+        typeof albumDraft.payload.releaseDate === "string" &&
+        albumDraft.payload.releaseDate.trim().length > 0
+          ? albumDraft.payload.releaseDate.trim()
+          : undefined
+      const releaseDateToValidate = resolveAlbumReleaseDateYyyyMmDd({
+        payloadReleaseDate,
+        albumReleaseDate: album.releaseDate,
+        trackReleaseDates: tracks.map((t) => t.releaseDate),
+      })
+      const releaseDateError = validateReleaseDateYyyyMmDd(releaseDateToValidate)
+      if (releaseDateError) {
+        return NextResponse.json({ error: releaseDateError }, { status: 400 })
+      }
+
+      if (releaseDateToValidate) {
+        try {
+          await applySharedAlbumReleaseDate({
+            albumId,
+            releaseDate: releaseDateToValidate,
+          })
+        } catch (error) {
+          console.error("Error syncing album release date:", error)
+          return NextResponse.json(
+            { error: "Не удалось обновить дату релиза альбома у всех треков" },
+            { status: 500 }
+          )
+        }
+      }
     }
 
     for (const t of tracks) {
