@@ -286,6 +286,9 @@ export default function CabinetPage() {
     if (searchParams.get("tab") === "register") {
       setAuthTab("register")
     }
+    if (searchParams.get("tab") === "reports") {
+      setActiveTab("reports")
+    }
     const qEmail = searchParams.get("email")?.trim()
     if (qEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(qEmail)) {
       setRegisterEmail(qEmail)
@@ -1057,23 +1060,6 @@ export default function CabinetPage() {
               <span className="font-semibold text-lg">{artistName}</span>
             </div>
           )}
-
-          {streamingBalance >= 1000 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto shrink-0"
-              onClick={() => setWithdrawalDialogOpen(true)}
-              disabled={withdrawalRequests.some((req) => req.status === "pending")}
-              title={
-                withdrawalRequests.some((req) => req.status === "pending")
-                  ? "У вас уже есть активная заявка на вывод средств"
-                  : ""
-              }
-            >
-              Вывести
-            </Button>
-          )}
         </div>
 
         {/* Вкладки: Профиль, Релизы, Статистика, Продвижение, Финансы */}
@@ -1831,6 +1817,39 @@ export default function CabinetPage() {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4 mt-4">
+            <Card className="border-green-500/20 bg-green-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Wallet className="h-5 w-5 text-green-600" />
+                  Баланс
+                </CardTitle>
+                <CardDescription>Доходы от стриминга, доступные к выводу</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center gap-4">
+                <div className="text-3xl font-bold text-green-600">
+                  {streamingBalance.toLocaleString("ru-RU")} ₽
+                </div>
+                {streamingBalance >= 1000 ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setWithdrawalDialogOpen(true)}
+                    disabled={withdrawalRequests.some((req) => req.status === "pending")}
+                    title={
+                      withdrawalRequests.some((req) => req.status === "pending")
+                        ? "У вас уже есть активная заявка на вывод средств"
+                        : ""
+                    }
+                  >
+                    Вывести
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Вывод доступен от 1&nbsp;000&nbsp;₽
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="grid gap-6 sm:grid-cols-2">
               <Card>
                 <CardHeader>

@@ -41,6 +41,8 @@ scripts/_tmp-*.ts
 # Локальные выгрузки стримингов (Excel/CSV)
 streaming-releases*
 streaming-tracks*
+# Временные lock-файлы Excel (создаются при открытой книге)
+~$*
 
 # SQLite (локальная dev-БД; на VPS - /data/app.db, не в репозитории)
 data/app.db
