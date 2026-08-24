@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { WithdrawalPayoutEstimate } from "@/components/withdrawal-payout-estimate"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import {
@@ -65,6 +66,13 @@ import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { getTurnstileSiteKeyClient, isTurnstileEnabledClient } from "@/lib/turnstile-config"
+import {
+  formatRub,
+  isWithdrawalRecipientStatus,
+  WITHDRAWAL_RECIPIENT_STATUS_LABELS,
+  WITHDRAWAL_RECIPIENT_STATUSES,
+  type WithdrawalRecipientStatus,
+} from "@/lib/withdrawal-payout-calc"
 
 const getSubscriptionLimitMessage = (limit: number) =>
   `Текущий тариф предусматривает не более ${limit} активных релизов. Чтобы загрузить больше, необходимо расширить подписку.`
@@ -197,6 +205,10 @@ interface WithdrawalRequest {
   cardNumber?: string
   bank?: string
   recipientName: string
+  recipientStatus?: WithdrawalRecipientStatus
+  payoutNdfl?: number
+  payoutInsurance?: number
+  payoutNet?: number
   status: "pending" | "rejected" | "completed"
   createdAt: string
   updatedAt: string
@@ -235,6 +247,9 @@ export default function CabinetPage() {
   const [withdrawalCardNumber, setWithdrawalCardNumber] = useState("")
   const [withdrawalBank, setWithdrawalBank] = useState("")
   const [withdrawalRecipientName, setWithdrawalRecipientName] = useState("")
+  const [withdrawalRecipientStatus, setWithdrawalRecipientStatus] = useState<
+    WithdrawalRecipientStatus | ""
+  >("")
   const [withdrawalSubmitting, setWithdrawalSubmitting] = useState(false)
   const [purchaseTracksDialogOpen, setPurchaseTracksDialogOpen] = useState(false)
   const [subscriptionLimitDialogOpen, setSubscriptionLimitDialogOpen] = useState(false)
@@ -699,6 +714,11 @@ export default function CabinetPage() {
   }
 
   const handleWithdrawalSubmit = async () => {
+    if (!withdrawalRecipientStatus) {
+      toast.error("Выберите статус получателя")
+      return
+    }
+
     if (!withdrawalRecipientName.trim()) {
       toast.error("Заполните ФИО получателя")
       return
@@ -733,6 +753,7 @@ export default function CabinetPage() {
           cardNumber: withdrawalType === "card" ? withdrawalCardNumber : undefined,
           bank: withdrawalType === "card" ? withdrawalBank : undefined,
           recipientName: withdrawalRecipientName,
+          recipientStatus: withdrawalRecipientStatus,
         }),
       })
 
@@ -745,6 +766,7 @@ export default function CabinetPage() {
         setWithdrawalCardNumber("")
         setWithdrawalBank("")
         setWithdrawalRecipientName("")
+        setWithdrawalRecipientStatus("")
         setWithdrawalType("sbp")
         // Обновляем баланс и заявки
         loadUserInfo()
@@ -1937,8 +1959,22 @@ export default function CabinetPage() {
                                 <span className={`font-medium text-sm ${status.color}`}>{status.label}</span>
                               </div>
                               <p className="font-semibold">
-                                {request.amount.toLocaleString("ru-RU")} ₽
+                                {request.payoutNet != null && request.payoutNet !== request.amount
+                                  ? `${formatRub(request.payoutNet)} к перечислению`
+                                  : formatRub(request.amount)}
                               </p>
+                              {request.payoutNet != null && request.payoutNet !== request.amount ? (
+                                <p className="text-xs text-muted-foreground">
+                                  с баланса {formatRub(request.amount)}
+                                  {request.recipientStatus
+                                    ? ` · ${WITHDRAWAL_RECIPIENT_STATUS_LABELS[request.recipientStatus]}`
+                                    : ""}
+                                </p>
+                              ) : request.recipientStatus ? (
+                                <p className="text-xs text-muted-foreground">
+                                  {WITHDRAWAL_RECIPIENT_STATUS_LABELS[request.recipientStatus]}
+                                </p>
+                              ) : null}
                               <p className="text-xs text-muted-foreground">
                                 {format(new Date(request.createdAt), "d MMM yyyy", { locale: ru })}
                               </p>
@@ -2008,8 +2044,21 @@ export default function CabinetPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={withdrawalDialogOpen} onOpenChange={setWithdrawalDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+        <Dialog
+          open={withdrawalDialogOpen}
+          onOpenChange={(open) => {
+            setWithdrawalDialogOpen(open)
+            if (!open) {
+              setWithdrawalPhone("")
+              setWithdrawalCardNumber("")
+              setWithdrawalBank("")
+              setWithdrawalRecipientName("")
+              setWithdrawalRecipientStatus("")
+              setWithdrawalType("sbp")
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Запрос на вывод средств</DialogTitle>
               <DialogDescription>
@@ -2023,6 +2072,36 @@ export default function CabinetPage() {
                   {streamingBalance.toLocaleString("ru-RU")} ₽
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Статус получателя <span className="text-destructive">*</span>
+                </Label>
+                <RadioGroup
+                  value={withdrawalRecipientStatus || undefined}
+                  onValueChange={(value) => {
+                    if (isWithdrawalRecipientStatus(value)) {
+                      setWithdrawalRecipientStatus(value)
+                    }
+                  }}
+                >
+                  <div className="grid grid-cols-2 gap-2">
+                    {WITHDRAWAL_RECIPIENT_STATUSES.map((status) => (
+                      <div key={status} className="flex items-center space-x-2">
+                        <RadioGroupItem value={status} id={`recipient-status-${status}`} />
+                        <Label htmlFor={`recipient-status-${status}`} className="font-normal cursor-pointer">
+                          {WITHDRAWAL_RECIPIENT_STATUS_LABELS[status]}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <WithdrawalPayoutEstimate
+                royalty={streamingBalance}
+                status={withdrawalRecipientStatus}
+              />
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Тип вывода</Label>
