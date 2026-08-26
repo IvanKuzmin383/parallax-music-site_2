@@ -1047,6 +1047,15 @@ export default function TracksPageClient() {
     })
   }
 
+  const handleOpenSmartlink = (track: Track) => {
+    const slug = track.smartlinkSlug?.trim()
+    if (!slug) {
+      toast.error("У трека нет смартлинка")
+      return
+    }
+    window.open(getSmartlinkUrl(slug), "_blank", "noopener,noreferrer")
+  }
+
   const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
     const trimmed = upc.trim()
     if (!trimmed) {
@@ -1856,6 +1865,17 @@ export default function TracksPageClient() {
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
+                                    title="Открыть смартлинк"
+                                    aria-label="Открыть смартлинк"
+                                    disabled={!track.smartlinkSlug?.trim()}
+                                    onClick={() => handleOpenSmartlink(track)}
+                                  >
+                                    <Link2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
                                     title="Подробнее"
                                     aria-label="Подробнее"
                                     onClick={() => handleViewDetails(track)}
@@ -2486,6 +2506,17 @@ export default function TracksPageClient() {
                                   onClick={() => void handleCopyLyrics(track)}
                                 >
                                   <FileText className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Открыть смартлинк"
+                                  aria-label="Открыть смартлинк"
+                                  disabled={!track.smartlinkSlug?.trim()}
+                                  onClick={() => handleOpenSmartlink(track)}
+                                >
+                                  <Link2 className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="outline"
