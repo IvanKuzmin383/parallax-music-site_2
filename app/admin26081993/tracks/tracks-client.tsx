@@ -106,8 +106,8 @@ import {
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "upload_pending", label: "Требуется доработка" },
   { value: "on_moderation", label: "На модерации" },
-  { value: "sent_to_platforms", label: "Модерация стриминг-сервисами" },
-  { value: "approved_by_platforms", label: "Одобрен площадками" },
+  { value: "sent_to_platforms", label: "Отправлен агрегатору" },
+  { value: "approved_by_platforms", label: "Отправлен на площадки" },
   { value: "released", label: "Выпущен" },
   { value: "rejected", label: "Отклонено" },
   { value: "postponed", label: "Отложено" },
@@ -331,6 +331,7 @@ type TrackDraft = {
   releaseDate: string
   streamingScope: TrackStreamingScope
   transferFromOtherDistributor: boolean
+  catalogNumber: string
   upc: string
   isrc: string
   moderationNote: string
@@ -374,6 +375,7 @@ function trackToDraft(t: Track): TrackDraft {
     releaseDate: releaseDateStr,
     streamingScope: t.streamingScope,
     transferFromOtherDistributor: Boolean(t.transferFromOtherDistributor),
+    catalogNumber: t.catalogNumber ?? "",
     upc: t.upc ?? "",
     isrc: t.isrc ?? "",
     moderationNote: t.moderationNote ?? "",
@@ -438,6 +440,7 @@ export default function TracksPageClient() {
   const [albumBulkAlbumId, setAlbumBulkAlbumId] = useState<string | null>(null)
   const [albumBulkTrackCount, setAlbumBulkTrackCount] = useState(0)
   const [albumBulkUpc, setAlbumBulkUpc] = useState("")
+  const [albumBulkCatalogNumber, setAlbumBulkCatalogNumber] = useState("")
   const [albumBulkPlatformLinks, setAlbumBulkPlatformLinks] = useState<PlatformLinks>({})
   const [albumBulkSaving, setAlbumBulkSaving] = useState(false)
   const [resolvingTrackLinks, setResolvingTrackLinks] = useState(false)
@@ -998,6 +1001,7 @@ export default function TracksPageClient() {
         status: trackDraft.status,
         releaseDate: trackDraft.releaseDate.trim() === "" ? null : trackDraft.releaseDate.trim(),
         streamingScope: trackDraft.streamingScope,
+        catalogNumber: trackDraft.catalogNumber.trim() || null,
         upc: trackDraft.upc.trim() || null,
         isrc: trackDraft.isrc.trim() || null,
         transferFromOtherDistributor: trackDraft.transferFromOtherDistributor,
@@ -1124,6 +1128,7 @@ export default function TracksPageClient() {
     setAlbumBulkTrackCount(ordered.length)
     const first = ordered[0]
     setAlbumBulkUpc(first?.upc ?? "")
+    setAlbumBulkCatalogNumber(first?.catalogNumber ?? "")
     setAlbumBulkPlatformLinks(first?.platformLinks ?? {})
     setAlbumBulkOpen(true)
   }
@@ -1201,13 +1206,15 @@ export default function TracksPageClient() {
   const handleAlbumBulkSave = async () => {
     if (!albumBulkAlbumId) return
     const hasAnyLink = Object.values(albumBulkPlatformLinks).some((v) => typeof v === "string" && v.trim().length > 0)
-    if (!albumBulkUpc.trim() && !hasAnyLink) {
-      toast.error("Укажите UPC и/или ссылки на платформы")
+    if (!albumBulkCatalogNumber.trim() && !albumBulkUpc.trim() && !hasAnyLink) {
+      toast.error("Укажите артикул, UPC и/или ссылки на платформы")
       return
     }
     setAlbumBulkSaving(true)
     try {
-      const body: { upc?: string | null; platformLinks?: PlatformLinks } = {}
+      const body: { catalogNumber?: string | null; upc?: string | null; platformLinks?: PlatformLinks } = {}
+      if (albumBulkCatalogNumber.trim()) body.catalogNumber = albumBulkCatalogNumber.trim()
+      else body.catalogNumber = null
       if (albumBulkUpc.trim()) body.upc = albumBulkUpc.trim()
       else body.upc = null
       if (hasAnyLink) body.platformLinks = albumBulkPlatformLinks
@@ -1691,7 +1698,7 @@ export default function TracksPageClient() {
                                     }
                                   >
                                     <Link2 className="h-4 w-4 mr-1" />
-                                    UPC и ссылки
+                                    Артикул, UPC и ссылки
                                   </Button>
                                 </div>
                               </div>
@@ -1751,6 +1758,8 @@ export default function TracksPageClient() {
                                           Права на исполнение:{" "}
                                           {track.performanceRights?.trim() || "—"}
                                         </p>
+                                        {track.catalogNumber ? <p>Артикул: {track.catalogNumber}</p> : null}
+                                        {track.isrc ? <p>ISRC: {track.isrc}</p> : null}
                                         {track.upc ? <p>UPC: {track.upc}</p> : null}
                                         <p>
                                           Дата публикации:{" "}
@@ -2377,6 +2386,8 @@ export default function TracksPageClient() {
                           <TableHead className="min-w-[200px]">Пользователь (email)</TableHead>
                           <TableHead className="min-w-[130px]">Дата создания</TableHead>
                           <TableHead className="min-w-[120px]">Дата публикации</TableHead>
+                          <TableHead className="min-w-[110px]">Артикул</TableHead>
+                          <TableHead className="min-w-[100px]">ISRC</TableHead>
                           <TableHead className="min-w-[100px]">UPC</TableHead>
                           <TableHead className="min-w-[200px]">Статус</TableHead>
                           <TableHead className="min-w-[200px] text-right">Действия</TableHead>
@@ -2405,6 +2416,8 @@ export default function TracksPageClient() {
                                 ? format(new Date(track.releaseDate), "d MMM yyyy", { locale: ru })
                                 : "-"}
                             </TableCell>
+                            <TableCell>{track.catalogNumber?.trim() ? track.catalogNumber : "-"}</TableCell>
+                            <TableCell>{track.isrc?.trim() ? track.isrc : "-"}</TableCell>
                             <TableCell>{track.upc?.trim() ? track.upc : "-"}</TableCell>
                             <TableCell>
                               <Select
@@ -2834,6 +2847,18 @@ export default function TracksPageClient() {
                       </label>
                     </div>
                     <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-catalog-number">Артикул</Label>
+                        <Input
+                          id="admin-catalog-number"
+                          className="font-mono"
+                          placeholder="PRLXM000025"
+                          value={trackDraft.catalogNumber}
+                          onChange={(e) =>
+                            setTrackDraft((d) => (d ? { ...d, catalogNumber: e.target.value } : d))
+                          }
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="admin-upc">UPC</Label>
                         <Input
@@ -3672,12 +3697,21 @@ export default function TracksPageClient() {
         <Dialog open={albumBulkOpen} onOpenChange={setAlbumBulkOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>UPC и ссылки для альбома</DialogTitle>
+              <DialogTitle>Артикул, UPC и ссылки для альбома</DialogTitle>
               <DialogDescription>
                 Значения будут применены ко всем {albumBulkTrackCount} трекам альбома
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Артикул</label>
+                <Input
+                  className="font-mono mt-1 max-w-xs"
+                  placeholder="PRLXM000025"
+                  value={albumBulkCatalogNumber}
+                  onChange={(e) => setAlbumBulkCatalogNumber(e.target.value)}
+                />
+              </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">UPC</label>
                 <Input

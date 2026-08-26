@@ -23,6 +23,7 @@ import {
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
+import { toCabinetTracks } from "@/lib/cabinet-track-view"
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
@@ -415,7 +416,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           album,
-          tracks: createdTracks,
+          tracks: toCabinetTracks(createdTracks),
         },
         { status: 201 }
       )

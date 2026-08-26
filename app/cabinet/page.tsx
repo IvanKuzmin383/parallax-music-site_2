@@ -114,8 +114,8 @@ function getReleaseLabelName(labelName?: string | null): string {
 const STATUS_LABELS: Record<string, string> = {
   upload_pending: "Требуется доработка",
   on_moderation: "На модерации",
-  sent_to_platforms: "Модерация стриминг-сервисами",
-  approved_by_platforms: "Одобрен площадками",
+  sent_to_platforms: "Отправлен агрегатору",
+  approved_by_platforms: "Отправлен на площадки",
   released: "Выпущен",
   rejected: "Отклонено",
   postponed: "Отложено",

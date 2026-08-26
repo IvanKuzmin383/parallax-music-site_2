@@ -17,6 +17,7 @@ import {
   validateReleaseDateYyyyMmDd,
 } from "@/lib/release-date-validation"
 import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
+import { toCabinetTracks } from "@/lib/cabinet-track-view"
 
 /**
  * Шаг 3: проверка WAV всех треков альбома и отправка уведомления в Telegram
@@ -155,7 +156,7 @@ export async function POST(
 
     return NextResponse.json({
       album,
-      tracks,
+      tracks: toCabinetTracks(tracks),
     })
   } catch (error) {
     console.error("Error finalizing album upload:", error)

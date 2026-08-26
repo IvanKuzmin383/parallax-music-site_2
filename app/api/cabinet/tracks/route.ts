@@ -27,6 +27,7 @@ import { isYyyyMmDdReleaseWeekend } from "@/lib/release-date-validation"
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
 import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
+import { toCabinetTrack, toCabinetTracks } from "@/lib/cabinet-track-view"
 
 const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const tracks = await getTracksByUserId(session.email)
-    return NextResponse.json({ tracks })
+    return NextResponse.json({ tracks: toCabinetTracks(tracks) })
   } catch (error) {
     console.error("Error fetching cabinet tracks:", error)
     return NextResponse.json(
@@ -396,7 +397,7 @@ export async function POST(request: NextRequest) {
         console.error("[cabinet/tracks] legal acceptance log failed:", legalErr)
       }
 
-      return NextResponse.json({ track }, { status: 201 })
+      return NextResponse.json({ track: toCabinetTrack(track) }, { status: 201 })
     } finally {
       await multipart.cleanup()
     }

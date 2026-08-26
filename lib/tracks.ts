@@ -54,6 +54,8 @@ export interface Track {
   status: TrackStatus
   releaseDate?: string
   moderationNote?: string | null
+  /** Внутренний артикул релиза (например PRLXM000025) */
+  catalogNumber?: string | null
   upc?: string | null
   isrc?: string | null
   /** Релиз перенесён с другого дистрибьютора (ожидаются UPC и ISRC) */
@@ -94,6 +96,7 @@ export interface TrackRow {
   status: string
   release_date: string | null
   moderation_note: string | null
+  catalog_number: string | null
   upc: string | null
   isrc: string | null
   transfer_from_other_distributor?: boolean | null
@@ -143,6 +146,7 @@ export function rowToTrack(row: TrackRow): Track {
     status: row.status as TrackStatus,
     releaseDate: row.release_date ?? undefined,
     moderationNote: row.moderation_note ?? null,
+    catalogNumber: row.catalog_number ?? undefined,
     upc: row.upc ?? undefined,
     isrc: row.isrc ?? undefined,
     transferFromOtherDistributor: row.transfer_from_other_distributor === true,
@@ -225,6 +229,7 @@ export async function getTracksByAlbumId(albumId: string): Promise<Track[]> {
 export async function updateTracksByAlbumId(
   albumId: string,
   partial: {
+    catalogNumber?: string | null
     upc?: string | null
     platformLinks?: PlatformLinks
     status?: TrackStatus
@@ -300,8 +305,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, upc, isrc, transfer_from_other_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, catalog_number, upc, isrc, transfer_from_other_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -328,6 +333,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.status,
       track.releaseDate ?? null,
       track.moderationNote ?? null,
+      track.catalogNumber ?? null,
       track.upc ?? null,
       track.isrc ?? null,
       track.transferFromOtherDistributor,
@@ -396,7 +402,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -423,6 +429,7 @@ export async function updateTrack(
       updated.status,
       updated.releaseDate ?? null,
       updated.moderationNote ?? null,
+      updated.catalogNumber ?? null,
       updated.upc ?? null,
       updated.isrc ?? null,
       updated.transferFromOtherDistributor,

@@ -3,6 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getUploadDraftById } from "@/lib/upload-drafts"
 import { getClientIp, getUserAgent } from "@/lib/legal-acceptance"
 import { finalizeUploadDraftCore } from "@/lib/upload-draft-finalize"
+import { toCabinetTrack, toCabinetTracks } from "@/lib/cabinet-track-view"
 
 export async function POST(
   request: NextRequest,
@@ -30,10 +31,10 @@ export async function POST(
     return NextResponse.json({ ok: true, draft: updated, albumId })
   }
   if (album && tracks) {
-    return NextResponse.json({ ok: true, draft: updated, album, tracks })
+    return NextResponse.json({ ok: true, draft: updated, album, tracks: toCabinetTracks(tracks) })
   }
   if (track) {
-    return NextResponse.json({ ok: true, draft: updated, track })
+    return NextResponse.json({ ok: true, draft: updated, track: toCabinetTrack(track) })
   }
   return NextResponse.json({ ok: true, draft: updated })
 }

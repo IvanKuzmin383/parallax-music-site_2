@@ -54,6 +54,7 @@ const patchBodySchema = z.object({
     ])
     .optional(),
   moderationNote: z.string().max(1000).optional().nullable(),
+  catalogNumber: z.string().max(32).optional().nullable(),
   upc: z.string().max(32).optional().nullable(),
   isrc: z.string().max(32).optional().nullable(),
   transferFromOtherDistributor: z.boolean().optional(),
@@ -195,6 +196,9 @@ export async function PATCH(
       data.moderationNote && data.moderationNote.trim().length > 0
         ? data.moderationNote.trim()
         : null
+  }
+  if (data.catalogNumber !== undefined) {
+    updatePayload.catalogNumber = data.catalogNumber?.trim() || null
   }
   if (data.upc !== undefined) updatePayload.upc = data.upc?.trim() || null
   if (data.isrc !== undefined) updatePayload.isrc = data.isrc?.trim() || null

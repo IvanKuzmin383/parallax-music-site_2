@@ -16,6 +16,7 @@ const trackStatusValues = [
 ] as const satisfies readonly TrackStatus[]
 
 const patchBodySchema = z.object({
+  catalogNumber: z.string().max(32).optional().nullable(),
   upc: z.string().max(32).optional().nullable(),
   platformLinks: z
     .object({
@@ -67,11 +68,13 @@ export async function PATCH(
   }
 
   const partial: {
+    catalogNumber?: string | null
     upc?: string | null
     platformLinks?: Record<string, string | undefined>
     status?: TrackStatus
     moderationNote?: string | null
   } = {}
+  if (parsed.data.catalogNumber !== undefined) partial.catalogNumber = parsed.data.catalogNumber
   if (parsed.data.upc !== undefined) partial.upc = parsed.data.upc
   if (parsed.data.platformLinks !== undefined) {
     const links = parsed.data.platformLinks
@@ -94,7 +97,7 @@ export async function PATCH(
 
   if (Object.keys(partial).length === 0) {
     return NextResponse.json(
-      { error: "Укажите поля для обновления (UPC, ссылки, статус и/или комментарий)" },
+      { error: "Укажите поля для обновления (артикул, UPC, ссылки, статус и/или комментарий)" },
       { status: 400 }
     )
   }
