@@ -223,6 +223,7 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     releaseDate: releaseDateStr,
     streamingScope: normalizeStreamingScope(p.streamingScope),
     transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
+    catalogNumber: "",
     upc: `${p.transferUpc ?? ""}`,
     isrc: `${p.transferIsrc ?? ""}`,
     moderationNote: "",
