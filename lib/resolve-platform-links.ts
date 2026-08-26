@@ -464,6 +464,9 @@ function applyOdesliLinks(links: PlatformLinks, odesli: OdesliResponse) {
   if (!by) return
 
   if (by.spotify?.url && !links.spotify) links.spotify = by.spotify.url
+  if (by.deezer?.url && !links.deezer) {
+    links.deezer = by.deezer.url.split("?")[0] ?? by.deezer.url
+  }
   if (by.appleMusic?.url && !links.appleMusic) {
     links.appleMusic = cleanAppleMusicUrl(by.appleMusic.url)
   }
@@ -576,6 +579,9 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
   if (deezer && !deezer.error && deezer.link) {
     sources.deezer = true
     deezerUrl = deezer.link
+    if (!links.deezer) {
+      links.deezer = deezer.link.split("?")[0] ?? deezer.link
+    }
     if (!meta) {
       meta = {
         title: deezer.title,

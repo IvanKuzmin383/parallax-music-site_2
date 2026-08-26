@@ -3455,7 +3455,7 @@ export default function TracksPageClient() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Apple / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
+                    Apple / Deezer / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
                     .env. YouTube Music — опционально YOUTUBE_API_KEY. VK и Звук — вручную. Не
                     забудьте сохранить трек.
                   </p>

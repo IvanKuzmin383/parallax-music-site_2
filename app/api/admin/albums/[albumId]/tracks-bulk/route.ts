@@ -22,6 +22,7 @@ const patchBodySchema = z.object({
     .object({
       spotify: optionalUrl,
       appleMusic: optionalUrl,
+      deezer: optionalUrl,
       yandex: optionalUrl,
       youtubeMusic: optionalUrl,
       vk: optionalUrl,
@@ -81,6 +82,7 @@ export async function PATCH(
     partial.platformLinks = {
       spotify: links.spotify === "" ? undefined : links.spotify,
       appleMusic: links.appleMusic === "" ? undefined : links.appleMusic,
+      deezer: links.deezer === "" ? undefined : links.deezer,
       yandex: links.yandex === "" ? undefined : links.yandex,
       youtubeMusic: links.youtubeMusic === "" ? undefined : links.youtubeMusic,
       vk: links.vk === "" ? undefined : links.vk,

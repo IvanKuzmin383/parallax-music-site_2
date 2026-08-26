@@ -81,6 +81,7 @@ function classifyBandlinkUrl(url: string): keyof PlatformLinks | null {
   if (u.includes("music.vk.com") || u.includes("vk.com/music")) return "vk"
   if (u.includes("zvuk.com") || u.includes("open.zvuk.com")) return "sberzvuk"
   if (u.includes("spotify.com") || u.startsWith("spotify:")) return "spotify"
+  if (u.includes("deezer.com")) return "deezer"
   if (u.includes("music.youtube.com") || u.includes("youtube.com/watch")) return "youtubeMusic"
   return null
 }
