@@ -2397,50 +2397,61 @@ export default function TracksPageClient() {
                       </Select>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <Table className="min-w-[1320px]">
+                  <CardContent className="pt-0 overflow-x-auto">
+                    <Table className="min-w-[980px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="min-w-[140px]">Артист</TableHead>
-                          <TableHead className="min-w-[160px]">Трек</TableHead>
-                          <TableHead className="min-w-[120px]">Альбом</TableHead>
-                          <TableHead className="min-w-[200px]">Пользователь (email)</TableHead>
-                          <TableHead className="min-w-[130px]">Дата создания</TableHead>
-                          <TableHead className="min-w-[120px]">Дата публикации</TableHead>
-                          <TableHead className="min-w-[110px]">Артикул</TableHead>
+                          <TableHead className="min-w-[200px]">Артист / трек</TableHead>
+                          <TableHead className="min-w-[100px]">Тип релиза</TableHead>
+                          <TableHead className="min-w-[130px]">Даты</TableHead>
+                          <TableHead className="min-w-[100px]">Артикул</TableHead>
                           <TableHead className="min-w-[100px]">ISRC</TableHead>
                           <TableHead className="min-w-[100px]">UPC</TableHead>
-                          <TableHead className="min-w-[200px]">Статус</TableHead>
-                          <TableHead className="min-w-[200px] text-right">Действия</TableHead>
+                          <TableHead className="min-w-[170px]">Статус</TableHead>
+                          <TableHead className="min-w-[220px] text-right">Действия</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {simpleListTracksVisible.map((track) => (
                           <TableRow key={track.id}>
-                            <TableCell className="max-w-[220px] whitespace-normal">
-                              {track.artistName?.trim() || "Без имени артиста"}
+                            <TableCell className="max-w-[280px] whitespace-normal align-top">
+                              <div className="space-y-0.5">
+                                <p className="font-medium leading-snug">
+                                  {track.artistName?.trim() || "Без имени артиста"}
+                                </p>
+                                <p className="leading-snug">{track.trackName}</p>
+                                <p className="text-xs text-muted-foreground break-all leading-snug">
+                                  {track.userId}
+                                </p>
+                              </div>
                             </TableCell>
-                            <TableCell className="max-w-[260px] whitespace-normal">
-                              {track.trackName}
-                            </TableCell>
-                            <TableCell>
+                            <TableCell className="align-top whitespace-normal">
                               {track.albumId ? trackAlbumTitleById[track.albumId] ?? "-" : "Сингл"}
                             </TableCell>
-                            <TableCell className="max-w-[260px] whitespace-normal break-all text-sm">
-                              {track.userId}
+                            <TableCell className="align-top whitespace-normal text-sm">
+                              <div className="space-y-1 leading-snug">
+                                <p>
+                                  <span className="text-xs text-muted-foreground">Создан: </span>
+                                  {format(new Date(track.createdAt), "d MMM yyyy, HH:mm", {
+                                    locale: ru,
+                                  })}
+                                </p>
+                                <p>
+                                  <span className="text-xs text-muted-foreground">
+                                    Публикация:{" "}
+                                  </span>
+                                  {track.releaseDate
+                                    ? format(new Date(track.releaseDate), "d MMM yyyy", {
+                                        locale: ru,
+                                      })
+                                    : "-"}
+                                </p>
+                              </div>
                             </TableCell>
-                            <TableCell>
-                              {format(new Date(track.createdAt), "d MMM yyyy, HH:mm", { locale: ru })}
-                            </TableCell>
-                            <TableCell>
-                              {track.releaseDate
-                                ? format(new Date(track.releaseDate), "d MMM yyyy", { locale: ru })
-                                : "-"}
-                            </TableCell>
-                            <TableCell>{track.catalogNumber?.trim() ? track.catalogNumber : "-"}</TableCell>
-                            <TableCell>{track.isrc?.trim() ? track.isrc : "-"}</TableCell>
-                            <TableCell>{track.upc?.trim() ? track.upc : "-"}</TableCell>
-                            <TableCell>
+                            <TableCell className="align-top">{track.catalogNumber?.trim() ? track.catalogNumber : "-"}</TableCell>
+                            <TableCell className="align-top">{track.isrc?.trim() ? track.isrc : "-"}</TableCell>
+                            <TableCell className="align-top">{track.upc?.trim() ? track.upc : "-"}</TableCell>
+                            <TableCell className="align-top">
                               <Select
                                 value={track.status}
                                 onValueChange={(v) =>
@@ -2448,7 +2459,7 @@ export default function TracksPageClient() {
                                 }
                                 disabled={updatingId === track.id}
                               >
-                                <SelectTrigger className="w-[220px]">
+                                <SelectTrigger className="w-[170px]">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -2460,8 +2471,8 @@ export default function TracksPageClient() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-end gap-2 flex-wrap">
+                            <TableCell className="align-top">
+                              <div className="flex items-center justify-end gap-1.5 flex-nowrap">
                                 <Button
                                   variant="outline"
                                   size="icon"
