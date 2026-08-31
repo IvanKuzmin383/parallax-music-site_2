@@ -87,6 +87,7 @@ import {
   validateCoverFileClient,
 } from "@/lib/cabinet-upload-client"
 import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
+import { cabinetUploadRequest } from "@/lib/cabinet-upload-transport"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import type { UploadDraftPayload, UploadDraftStatus } from "@/lib/upload-drafts"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
@@ -317,25 +318,6 @@ const getSubscriptionLimitMessage = (limit: number) =>
 
 const SUBSCRIPTION_EXPIRED_MESSAGE =
   "Срок действия подписки закончился. Продлите подписку, чтобы загружать релизы."
-const TRACK_UPLOAD_TIMEOUT_MS = 180_000
-
-async function fetchWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    })
-  } finally {
-    clearTimeout(timeoutId)
-  }
-}
-
 export default function CabinetUploadPage() {
   const router = useRouter()
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null)
@@ -672,10 +654,9 @@ export default function CabinetUploadPage() {
           formData.append("payload", JSON.stringify(payload))
           if (localAudio) formData.append("audio", localAudio)
           if (localCover) formData.append("cover", localCover)
-          return fetchWithTimeout(
+          return cabinetUploadRequest(
             "/api/cabinet/upload-drafts",
-            { method: "POST", body: formData, credentials: "include" },
-            TRACK_UPLOAD_TIMEOUT_MS
+            { method: "POST", body: formData, credentials: "include" }
           )
         }
 
@@ -684,22 +665,20 @@ export default function CabinetUploadPage() {
           formData.append("payload", JSON.stringify(payload))
           if (localAudio) formData.append("audio", localAudio)
           if (localCover) formData.append("cover", localCover)
-          return fetchWithTimeout(
+          return cabinetUploadRequest(
             `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`,
-            { method: "PATCH", body: formData, credentials: "include" },
-            TRACK_UPLOAD_TIMEOUT_MS
+            { method: "PATCH", body: formData, credentials: "include" }
           )
         }
 
-        return fetchWithTimeout(
+        return cabinetUploadRequest(
           `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({ payload }),
-          },
-          TRACK_UPLOAD_TIMEOUT_MS
+          }
         )
       })()
 
@@ -828,10 +807,9 @@ export default function CabinetUploadPage() {
         ? `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`
         : "/api/cabinet/upload-drafts"
       const method = activeDraftId ? "PATCH" : "POST"
-      const res = await fetchWithTimeout(
+      const res = await cabinetUploadRequest(
         url,
-        { method, body: fd, credentials: "include" },
-        TRACK_UPLOAD_TIMEOUT_MS
+        { method, body: fd, credentials: "include" }
       )
       const resBody = await parseCabinetApiJson<{
         error?: string
@@ -879,10 +857,9 @@ export default function CabinetUploadPage() {
       const fd = new FormData()
       fd.append("payload", JSON.stringify(buildUploadDraftJsonPayload()))
       fd.append("cover", file)
-      const res = await fetchWithTimeout(
+      const res = await cabinetUploadRequest(
         `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`,
-        { method: "PATCH", body: fd, credentials: "include" },
-        TRACK_UPLOAD_TIMEOUT_MS
+        { method: "PATCH", body: fd, credentials: "include" }
       )
       const resBody = await parseCabinetApiJson<{ error?: string }>(res)
       if (!res.ok) {
@@ -1161,14 +1138,13 @@ export default function CabinetUploadPage() {
         : "/api/cabinet/upload-drafts"
       const method = activeDraftId ? "PATCH" : "POST"
 
-      const response = await fetchWithTimeout(
+      const response = await cabinetUploadRequest(
         url,
         {
           method,
           body: formData,
           credentials: "include",
-        },
-        TRACK_UPLOAD_TIMEOUT_MS
+        }
       )
 
       if (response.ok) {

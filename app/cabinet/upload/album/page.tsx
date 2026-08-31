@@ -72,23 +72,12 @@ import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-
 import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
 import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import { StreamingServicesField } from "@/components/streaming-services-field"
+import { formatCabinetUploadFailure } from "@/lib/cabinet-upload-client"
+import { cabinetUploadRequest, isLikelyMobileUploadClient } from "@/lib/cabinet-upload-transport"
 
-/** Параллельная загрузка WAV; раньше файлы шли строго по одному - поздние треки ждали очередь всех предыдущих. */
-const ALBUM_AUDIO_UPLOAD_CONCURRENCY = 4
-const ALBUM_AUDIO_SYNC_TIMEOUT_MS = 180_000
-
-async function fetchAlbumDraftWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(input, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timeoutId)
-  }
+/** На телефоне WAV по одному: 4 параллельных файла рвут 4G. На десктопе — по 2. */
+function albumAudioUploadConcurrency(): number {
+  return isLikelyMobileUploadClient() ? 1 : 2
 }
 const CLIENT_WAV_PREFIX_BYTES = 512 * 1024
 
@@ -813,14 +802,13 @@ export default function CabinetUploadAlbumPage() {
       draftForm.append("cover", data.cover[0])
     }
 
-    const draftRes = await fetchAlbumDraftWithTimeout(
+    const draftRes = await cabinetUploadRequest(
       currentDraftId ? `/api/cabinet/upload-drafts/${encodeURIComponent(currentDraftId)}` : "/api/cabinet/upload-drafts",
       {
         method: currentDraftId ? "PATCH" : "POST",
         credentials: "include",
         body: draftForm,
-      },
-      ALBUM_AUDIO_SYNC_TIMEOUT_MS
+      }
     )
 
     if (draftRes.status === 401) {
@@ -879,14 +867,13 @@ export default function CabinetUploadAlbumPage() {
       const audioForm = new FormData()
       audioForm.append("tempId", tempId)
       audioForm.append("audio", localAudioFile)
-      const audioRes = await fetchAlbumDraftWithTimeout(
+      const audioRes = await cabinetUploadRequest(
         `/api/cabinet/upload-drafts/${encodeURIComponent(draftId)}/album-audio`,
         {
           method: "POST",
           body: audioForm,
           credentials: "include",
-        },
-        ALBUM_AUDIO_SYNC_TIMEOUT_MS
+        }
       )
       if (audioRes.status === 401) throw { kind: "auth" as const }
       if (!audioRes.ok) {
@@ -904,8 +891,9 @@ export default function CabinetUploadAlbumPage() {
     }
 
     const total = data.tracks.length
-    for (let batchStart = 0; batchStart < total; batchStart += ALBUM_AUDIO_UPLOAD_CONCURRENCY) {
-      const batchEnd = Math.min(batchStart + ALBUM_AUDIO_UPLOAD_CONCURRENCY, total)
+    const audioConcurrency = albumAudioUploadConcurrency()
+    for (let batchStart = 0; batchStart < total; batchStart += audioConcurrency) {
+      const batchEnd = Math.min(batchStart + audioConcurrency, total)
       if (!quiet) setUploadStepLabel(`Загрузка аудио: треки ${batchStart + 1}–${batchEnd} из ${total}…`)
       try {
         await Promise.all(
@@ -928,11 +916,7 @@ export default function CabinetUploadAlbumPage() {
           }
         }
         if (e instanceof Error && e.message.trim()) {
-          if (/failed to fetch/i.test(e.message)) {
-            fail(albumAudioValidationText.failedToFetch)
-            return null
-          }
-          fail(`Ошибка при загрузке аудио: ${e.message}`)
+          fail(formatCabinetUploadFailure(e, `Ошибка при загрузке аудио: ${e.message}`))
           return null
         }
         if (typeof e === "string" && e.trim()) {
@@ -976,11 +960,7 @@ export default function CabinetUploadAlbumPage() {
       toast.success("Аудио сохранено в черновик на сервере")
     } catch (e) {
       console.error(e)
-      if (e instanceof DOMException && e.name === "AbortError") {
-        toast.error("Сохранение аудио заняло слишком много времени. Проверьте соединение.")
-      } else {
-        toast.error("Ошибка при сохранении аудио")
-      }
+      toast.error(formatCabinetUploadFailure(e, "Ошибка при сохранении аудио"))
     } finally {
       albumAudioSyncInFlight.current = false
       setIsSyncingAlbumAudio(false)

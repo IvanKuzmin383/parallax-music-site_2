@@ -30,6 +30,7 @@ function PayPageContent() {
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePersonalData, setAgreePersonalData] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
+  const [enableAutopay, setEnableAutopay] = useState(true)
   const [loading, setLoading] = useState(false)
 
   const plans = t.pricing.plans as Array<{
@@ -84,6 +85,7 @@ function PayPageContent() {
           consentTermsOfUse: true,
           consentPersonalData: true,
           consentPrivacyPolicy: true,
+          enableRecurrent: enableAutopay,
         }),
       })
 
@@ -323,6 +325,22 @@ function PayPageContent() {
             </Card>
 
             <div className="flex flex-col gap-4">
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="enable-autopay"
+                    checked={enableAutopay}
+                    onCheckedChange={(checked) => setEnableAutopay(Boolean(checked))}
+                    disabled={loading}
+                  />
+                  <label htmlFor="enable-autopay" className="text-sm font-medium leading-snug cursor-pointer">
+                    {t.pay.enableAutopay}
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-7">
+                  {enableAutopay ? t.pay.enableAutopayHintOn : t.pay.enableAutopayHintOff}
+                </p>
+              </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <span className="font-medium">{t.pay.total}</span>
                 <span className="text-2xl font-bold">{totalAmount} ₽</span>

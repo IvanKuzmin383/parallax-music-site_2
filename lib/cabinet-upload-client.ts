@@ -146,7 +146,7 @@ export function formatCabinetUploadFailure(
 ): string {
   if (error instanceof DOMException) {
     if (error.name === "AbortError") {
-      return "Загрузка заняла слишком много времени. Проверьте интернет-соединение и попробуйте снова."
+      return "Загрузка заняла слишком много времени. Подключитесь к Wi‑Fi и не сворачивайте браузер, пока файл не отправится."
     }
     if (error.name === "NotReadableError") {
       return variant === "cover" ? COVER_IMAGE_READ_ERROR : WAV_FILE_READ_ERROR
@@ -154,7 +154,7 @@ export function formatCabinetUploadFailure(
   }
   if (error instanceof Error) {
     if (/failed to fetch|networkerror|load failed/i.test(error.message)) {
-      return "Нет связи с сервером. Проверьте интернет и попробуйте снова."
+      return "Связь оборвалась во время загрузки файла. Подключитесь к Wi‑Fi, не сворачивайте вкладку и попробуйте снова."
     }
     if (error.message.trim()) return error.message
   }

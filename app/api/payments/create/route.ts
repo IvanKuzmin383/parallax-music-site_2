@@ -21,6 +21,7 @@ type ValidInput = {
   periodsCount: number
   email: string
   telegram?: string
+  enableRecurrent: boolean
 }
 
 function validateInput(body: unknown): ValidInput | { error: string; code: string } {
@@ -75,6 +76,7 @@ function validateInput(body: unknown): ValidInput | { error: string; code: strin
     periodsCount,
     email: email.toLowerCase(),
     telegram: typeof telegramRaw === "string" && telegramRaw.trim() ? telegramRaw.trim() : undefined,
+    enableRecurrent: b.enableRecurrent !== false,
   }
 }
 
@@ -100,7 +102,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: validated.error, code: validated.code }, { status: 400 })
   }
 
-  const { planId, period, periodsCount, email, telegram } = validated
+  const { planId, period, periodsCount, email, telegram, enableRecurrent } = validated
 
   const totalAmountNumber = calculateTotalAmount(planId, period, periodsCount)
   if (!Number.isFinite(totalAmountNumber) || totalAmountNumber <= 0) {
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest) {
     period,
     periodsCount,
     telegram,
+    enableRecurrent,
     logPrefix: "payments/create",
   })
 
