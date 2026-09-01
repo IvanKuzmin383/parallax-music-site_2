@@ -74,6 +74,7 @@ import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB, cabinetWavMaxSizeError } fro
 import { StreamingServicesField } from "@/components/streaming-services-field"
 import { formatCabinetUploadFailure } from "@/lib/cabinet-upload-client"
 import { cabinetUploadRequest, isLikelyMobileUploadClient } from "@/lib/cabinet-upload-transport"
+import { uploadWavInChunks } from "@/lib/cabinet-chunked-upload-client"
 
 /** На телефоне WAV по одному: 4 параллельных файла рвут 4G. На десктопе — по 2. */
 function albumAudioUploadConcurrency(): number {
@@ -864,15 +865,16 @@ export default function CabinetUploadAlbumPage() {
       if (!tempId) {
         throw { kind: "missing" as const, trackIndex: i + 1 }
       }
-      const audioForm = new FormData()
-      audioForm.append("tempId", tempId)
-      audioForm.append("audio", localAudioFile)
+      const audioRelPath = await uploadWavInChunks(localAudioFile)
       const audioRes = await cabinetUploadRequest(
         `/api/cabinet/upload-drafts/${encodeURIComponent(draftId)}/album-audio`,
         {
           method: "POST",
-          body: audioForm,
           credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tempId, audioRelPath }),
+          timeoutMs: 60_000,
+          retries: 2,
         }
       )
       if (audioRes.status === 401) throw { kind: "auth" as const }

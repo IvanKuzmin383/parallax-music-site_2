@@ -88,6 +88,7 @@ import {
 } from "@/lib/cabinet-upload-client"
 import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import { cabinetUploadRequest } from "@/lib/cabinet-upload-transport"
+import { saveCabinetDraftPayload, uploadWavInChunks } from "@/lib/cabinet-chunked-upload-client"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import type { UploadDraftPayload, UploadDraftStatus } from "@/lib/upload-drafts"
 import { DEFAULT_RELEASE_LABEL_NAME, hasLabelSubscription } from "@/lib/release-label"
@@ -641,45 +642,26 @@ export default function CabinetUploadPage() {
       const values = form.getValues()
       const localAudio = values.audio?.[0]
       const localCover = !values.requestAiCover ? values.cover?.[0] : undefined
-      const hasLocalMedia = Boolean(localAudio || localCover)
+      let audioRelPath: string | undefined
+      if (localAudio) {
+        audioRelPath = await uploadWavInChunks(localAudio)
+      }
 
       const response = await (async () => {
         if (!activeDraftId) {
-          if (!`${payload.artistName ?? ""}`.trim() && !localAudio) {
+          if (!`${payload.artistName ?? ""}`.trim() && !localAudio && !values.serverDraftHasAudio) {
             toast.error("Чтобы сохранить черновик без WAV, укажите исполнителя")
             return null
           }
-          const formData = new FormData()
-          formData.append("kind", "single")
-          formData.append("payload", JSON.stringify(payload))
-          if (localAudio) formData.append("audio", localAudio)
-          if (localCover) formData.append("cover", localCover)
-          return cabinetUploadRequest(
-            "/api/cabinet/upload-drafts",
-            { method: "POST", body: formData, credentials: "include" }
-          )
         }
 
-        if (hasLocalMedia) {
-          const formData = new FormData()
-          formData.append("payload", JSON.stringify(payload))
-          if (localAudio) formData.append("audio", localAudio)
-          if (localCover) formData.append("cover", localCover)
-          return cabinetUploadRequest(
-            `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`,
-            { method: "PATCH", body: formData, credentials: "include" }
-          )
-        }
-
-        return cabinetUploadRequest(
-          `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ payload }),
-          }
-        )
+        return saveCabinetDraftPayload({
+          draftId: activeDraftId,
+          kind: "single",
+          payload,
+          audioRelPath,
+          cover: localCover,
+        })
       })()
 
       if (!response) return false
@@ -699,7 +681,10 @@ export default function CabinetUploadPage() {
 
       setActiveDraftId(data.draft.id)
       if (data.draft.status) setActiveDraftStatus(data.draft.status)
-      if (data.draft.audioRelPath) form.setValue("serverDraftHasAudio", true)
+      if (data.draft.audioRelPath || audioRelPath) {
+        form.setValue("serverDraftHasAudio", true)
+        form.setValue("audio", undefined)
+      }
       if (data.draft.coverRelPath) form.setValue("serverDraftHasCover", true)
       rememberDraftIdInUrl(data.draft.id)
       setHasUnsavedDraftChanges(false)
@@ -793,24 +778,16 @@ export default function CabinetUploadPage() {
     setIsSyncingAudio(true)
     try {
       const payload = buildUploadDraftJsonPayload()
-      const fd = new FormData()
-      if (!activeDraftId) {
-        fd.append("kind", "single")
-      }
-      fd.append("payload", JSON.stringify(payload))
-      fd.append("audio", file)
+      const audioRelPath = await uploadWavInChunks(file)
       const v = form.getValues()
-      if (!v.requestAiCover && v.cover?.[0]) {
-        fd.append("cover", v.cover[0])
-      }
-      const url = activeDraftId
-        ? `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`
-        : "/api/cabinet/upload-drafts"
-      const method = activeDraftId ? "PATCH" : "POST"
-      const res = await cabinetUploadRequest(
-        url,
-        { method, body: fd, credentials: "include" }
-      )
+      const cover = !v.requestAiCover && v.cover?.[0] ? v.cover[0] : undefined
+      const res = await saveCabinetDraftPayload({
+        draftId: activeDraftId,
+        kind: "single",
+        payload,
+        audioRelPath,
+        cover,
+      })
       const resBody = await parseCabinetApiJson<{
         error?: string
         draft?: { id: string; status?: UploadDraftStatus; audioRelPath?: string; coverRelPath?: string }
@@ -827,6 +804,7 @@ export default function CabinetUploadPage() {
       setActiveDraftId(draft.id)
       if (draft.status) setActiveDraftStatus(draft.status)
       form.setValue("serverDraftHasAudio", true)
+      form.setValue("audio", undefined)
       if (draft.coverRelPath) {
         form.setValue("serverDraftHasCover", true)
       }
@@ -1121,31 +1099,19 @@ export default function CabinetUploadPage() {
     setIsSubmitting(true)
     try {
       const payload = buildUploadDraftJsonPayload()
-      const formData = new FormData()
-      if (!activeDraftId) {
-        formData.append("kind", "single")
-      }
-      formData.append("payload", JSON.stringify(payload))
+      let audioRelPath: string | undefined
       if (hasLocalAudio) {
-        formData.append("audio", data.audio![0] as File)
+        audioRelPath = await uploadWavInChunks(data.audio![0] as File)
       }
-      if (!data.requestAiCover && data.cover?.[0]) {
-        formData.append("cover", data.cover[0])
-      }
+      const cover = !data.requestAiCover && data.cover?.[0] ? data.cover[0] : undefined
 
-      const url = activeDraftId
-        ? `/api/cabinet/upload-drafts/${encodeURIComponent(activeDraftId)}`
-        : "/api/cabinet/upload-drafts"
-      const method = activeDraftId ? "PATCH" : "POST"
-
-      const response = await cabinetUploadRequest(
-        url,
-        {
-          method,
-          body: formData,
-          credentials: "include",
-        }
-      )
+      const response = await saveCabinetDraftPayload({
+        draftId: activeDraftId,
+        kind: "single",
+        payload,
+        audioRelPath,
+        cover,
+      })
 
       if (response.ok) {
         const created = await parseCabinetApiJson<{

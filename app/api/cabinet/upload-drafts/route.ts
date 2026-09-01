@@ -12,6 +12,7 @@ import {
   validateCabinetCoverImageFromFilePath,
 } from "@/lib/cabinet-cover-validation"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
+import { claimDraftAudioRelPath } from "@/lib/cabinet-chunk-uploads"
 import {
   MultipartRequestError,
   parseMultipartRequestStream,
@@ -63,7 +64,16 @@ export async function POST(request: NextRequest) {
       if (audio && audio.size === 0) {
         return NextResponse.json({ error: "Аудиофайл пустой. Загрузите WAV повторно" }, { status: 400 })
       }
-      const hasIncomingAudio = Boolean(audio && audio.size > 0)
+      const claimedRaw = `${multipart.getField("audioRelPath") ?? ""}`.trim()
+      let audioRelPath: string | undefined
+      if (claimedRaw) {
+        const claimed = await claimDraftAudioRelPath(session.email, claimedRaw)
+        if (!claimed.ok) {
+          return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+        }
+        audioRelPath = claimed.relPath
+      }
+      const hasIncomingAudio = Boolean(audioRelPath) || Boolean(audio && audio.size > 0)
 
   if (kind === "single") {
     const artistName = `${payload.artistName ?? ""}`.trim()
@@ -82,8 +92,7 @@ export async function POST(request: NextRequest) {
         if (!draftsDir) draftsDir = await getUploadDraftsDir()
         return draftsDir
       }
-      let audioRelPath: string | undefined
-      if (hasIncomingAudio && audio) {
+      if (!audioRelPath && hasIncomingAudio && audio) {
         if (audio.size > MAX_AUDIO_SIZE) {
           return NextResponse.json({ error: cabinetWavMaxSizeError() }, { status: 400 })
         }

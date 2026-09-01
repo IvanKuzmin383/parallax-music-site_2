@@ -38,10 +38,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function xhrFormData(
+function xhrSendBody(
   url: string,
   method: string,
-  formData: FormData,
+  body: FormData | Blob,
   timeoutMs: number
 ): Promise<Response> {
   return new Promise((resolve, reject) => {
@@ -50,6 +50,9 @@ function xhrFormData(
     xhr.withCredentials = true
     xhr.responseType = "text"
     xhr.timeout = timeoutMs
+    if (!(typeof FormData !== "undefined" && body instanceof FormData)) {
+      xhr.setRequestHeader("Content-Type", "application/octet-stream")
+    }
 
     xhr.onload = () => {
       const headers = new Headers()
@@ -80,7 +83,7 @@ function xhrFormData(
       reject(new DOMException("The operation was aborted.", "AbortError"))
     }
 
-    xhr.send(formData)
+    xhr.send(body)
   })
 }
 
@@ -114,17 +117,22 @@ export async function cabinetUploadRequest(
   const method = (init.method ?? "GET").toUpperCase()
   const body = init.body
   const isForm = typeof FormData !== "undefined" && body instanceof FormData
-  const bytes = isForm ? estimateFormDataBytes(body) : 0
+  const isBlob = typeof Blob !== "undefined" && body instanceof Blob && !isForm
+  const bytes = isForm ? estimateFormDataBytes(body) : isBlob ? body.size : 0
 
   let lastError: unknown
   const { timeoutMs: timeoutOverride, retries: retriesOverride, ...fetchInit } = init
-  const timeoutMs = timeoutOverride ?? (isForm && bytes > 0 ? cabinetUploadTimeoutMs(bytes) : 60_000)
+  const timeoutMs =
+    timeoutOverride ?? (bytes > 0 && (isForm || isBlob) ? cabinetUploadTimeoutMs(bytes) : 60_000)
   const retries = retriesOverride ?? (isForm && bytes > 256 * 1024 ? 2 : 0)
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       if (isForm && body instanceof FormData) {
-        return await xhrFormData(url, method, body, timeoutMs)
+        return await xhrSendBody(url, method, body, timeoutMs)
+      }
+      if (isBlob && body instanceof Blob) {
+        return await xhrSendBody(url, method, body, timeoutMs)
       }
       return await fetchWithHardTimeout(url, fetchInit, timeoutMs)
     } catch (error) {

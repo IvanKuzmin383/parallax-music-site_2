@@ -23,6 +23,7 @@ import {
   validateCabinetCoverImageFromFilePath,
 } from "@/lib/cabinet-cover-validation"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
+import { claimDraftAudioRelPath } from "@/lib/cabinet-chunk-uploads"
 import {
   MultipartRequestError,
   parseMultipartRequestStream,
@@ -134,8 +135,18 @@ export async function PATCH(
         }
         const partial: Parameters<typeof updateUploadDraft>[1] = { payload: nextPayload }
 
+        const claimedRaw = `${multipart.getField("audioRelPath") ?? ""}`.trim()
+        if (claimedRaw) {
+          const claimed = await claimDraftAudioRelPath(session.email, claimedRaw)
+          if (!claimed.ok) {
+            return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+          }
+          if (draft.audioRelPath) await unlinkUploadDraftMediaFile(draft.audioRelPath)
+          partial.audioRelPath = claimed.relPath
+        }
+
         const audio = multipart.getFile("audio")
-        if (audio) {
+        if (!claimedRaw && audio) {
           if (audio.size === 0) {
             return NextResponse.json({ error: "Аудиофайл пустой. Загрузите WAV повторно" }, { status: 400 })
           }
@@ -210,6 +221,15 @@ export async function PATCH(
   const partial: Parameters<typeof updateUploadDraft>[1] = {
     payload: nextPayload,
     albumId: typeof body.albumId === "string" ? body.albumId : draft.albumId,
+  }
+
+  if (typeof body.audioRelPath === "string" && body.audioRelPath.trim()) {
+    const claimed = await claimDraftAudioRelPath(session.email, body.audioRelPath)
+    if (!claimed.ok) {
+      return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+    }
+    if (draft.audioRelPath) await unlinkUploadDraftMediaFile(draft.audioRelPath)
+    partial.audioRelPath = claimed.relPath
   }
 
   if (Boolean(nextPayload.requestAiCover) && draft.coverRelPath) {
