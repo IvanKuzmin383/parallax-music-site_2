@@ -21,3 +21,23 @@ export interface PlatformLinks {
   sberzvuk?: string
   kion?: string
 }
+
+export const PLATFORM_LINK_KEYS = SMARTLINK_PLATFORMS.map((p) => p.key) as PlatformLinkKey[]
+
+/** PATCH merge: обновляет только ключи из incoming; пустое значение — удалить ключ. */
+export function mergePartialPlatformLinks(
+  existing: PlatformLinks | undefined,
+  incoming: Partial<PlatformLinks>
+): PlatformLinks {
+  const next: PlatformLinks = { ...(existing ?? {}) }
+  for (const key of PLATFORM_LINK_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue
+    const value = incoming[key]
+    if (typeof value === "string" && value.trim()) {
+      next[key] = value.trim()
+    } else {
+      delete next[key]
+    }
+  }
+  return next
+}

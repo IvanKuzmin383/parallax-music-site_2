@@ -13,6 +13,7 @@ import { getAlbumById } from "@/lib/albums"
 import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
 import { GENRES, TRACK_MOODS, STREAMING_SCOPES } from "@/lib/track-constants"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
+import { mergePartialPlatformLinks } from "@/lib/smartlink-platforms"
 
 const optionalUrl = z.union([z.string().url(), z.literal("")]).optional()
 
@@ -75,6 +76,24 @@ const patchBodySchema = z.object({
     .optional(),
   userId: z.string().trim().email().optional(),
 })
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const token = getAdminToken(request)
+  if (!verifySession(token)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { id } = await params
+  const track = await getTrackById(id)
+  if (!track) {
+    return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
+  }
+
+  return NextResponse.json({ track })
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -218,16 +237,32 @@ export async function PATCH(
   }
   if (data.platformLinks !== undefined) {
     const links = data.platformLinks
-    updatePayload.platformLinks = {
-      spotify: links.spotify === "" ? undefined : links.spotify,
-      appleMusic: links.appleMusic === "" ? undefined : links.appleMusic,
-      deezer: links.deezer === "" ? undefined : links.deezer,
-      yandex: links.yandex === "" ? undefined : links.yandex,
-      youtubeMusic: links.youtubeMusic === "" ? undefined : links.youtubeMusic,
-      vk: links.vk === "" ? undefined : links.vk,
-      sberzvuk: links.sberzvuk === "" ? undefined : links.sberzvuk,
-      kion: links.kion === "" ? undefined : links.kion,
+    const normalized: Partial<typeof links> = {}
+    if (Object.prototype.hasOwnProperty.call(links, "spotify")) {
+      normalized.spotify = links.spotify === "" ? undefined : links.spotify
     }
+    if (Object.prototype.hasOwnProperty.call(links, "appleMusic")) {
+      normalized.appleMusic = links.appleMusic === "" ? undefined : links.appleMusic
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "deezer")) {
+      normalized.deezer = links.deezer === "" ? undefined : links.deezer
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "yandex")) {
+      normalized.yandex = links.yandex === "" ? undefined : links.yandex
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "youtubeMusic")) {
+      normalized.youtubeMusic = links.youtubeMusic === "" ? undefined : links.youtubeMusic
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "vk")) {
+      normalized.vk = links.vk === "" ? undefined : links.vk
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "sberzvuk")) {
+      normalized.sberzvuk = links.sberzvuk === "" ? undefined : links.sberzvuk
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "kion")) {
+      normalized.kion = links.kion === "" ? undefined : links.kion
+    }
+    updatePayload.platformLinks = mergePartialPlatformLinks(current.platformLinks, normalized)
   }
 
   if (data.userId !== undefined) {

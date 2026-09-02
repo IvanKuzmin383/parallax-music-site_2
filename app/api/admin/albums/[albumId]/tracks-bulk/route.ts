@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { getTracksByAlbumId, updateTracksByAlbumId, type TrackStatus } from "@/lib/tracks"
+import { getTracksByAlbumId, updateTrack, type TrackStatus } from "@/lib/tracks"
+import { mergePartialPlatformLinks, type PlatformLinks } from "@/lib/smartlink-platforms"
 
 const optionalUrl = z.union([z.string().url(), z.literal("")]).optional()
 
@@ -71,23 +72,40 @@ export async function PATCH(
   const partial: {
     catalogNumber?: string | null
     upc?: string | null
-    platformLinks?: Record<string, string | undefined>
+    platformLinks?: PlatformLinks
     status?: TrackStatus
     moderationNote?: string | null
   } = {}
   if (parsed.data.catalogNumber !== undefined) partial.catalogNumber = parsed.data.catalogNumber
   if (parsed.data.upc !== undefined) partial.upc = parsed.data.upc
+  let incomingPlatformLinks: Partial<PlatformLinks> | undefined
   if (parsed.data.platformLinks !== undefined) {
     const links = parsed.data.platformLinks
-    partial.platformLinks = {
-      spotify: links.spotify === "" ? undefined : links.spotify,
-      appleMusic: links.appleMusic === "" ? undefined : links.appleMusic,
-      deezer: links.deezer === "" ? undefined : links.deezer,
-      yandex: links.yandex === "" ? undefined : links.yandex,
-      youtubeMusic: links.youtubeMusic === "" ? undefined : links.youtubeMusic,
-      vk: links.vk === "" ? undefined : links.vk,
-      sberzvuk: links.sberzvuk === "" ? undefined : links.sberzvuk,
-      kion: links.kion === "" ? undefined : links.kion,
+    incomingPlatformLinks = {}
+    if (Object.prototype.hasOwnProperty.call(links, "spotify")) {
+      incomingPlatformLinks.spotify = links.spotify === "" ? undefined : links.spotify
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "appleMusic")) {
+      incomingPlatformLinks.appleMusic = links.appleMusic === "" ? undefined : links.appleMusic
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "deezer")) {
+      incomingPlatformLinks.deezer = links.deezer === "" ? undefined : links.deezer
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "yandex")) {
+      incomingPlatformLinks.yandex = links.yandex === "" ? undefined : links.yandex
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "youtubeMusic")) {
+      incomingPlatformLinks.youtubeMusic =
+        links.youtubeMusic === "" ? undefined : links.youtubeMusic
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "vk")) {
+      incomingPlatformLinks.vk = links.vk === "" ? undefined : links.vk
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "sberzvuk")) {
+      incomingPlatformLinks.sberzvuk = links.sberzvuk === "" ? undefined : links.sberzvuk
+    }
+    if (Object.prototype.hasOwnProperty.call(links, "kion")) {
+      incomingPlatformLinks.kion = links.kion === "" ? undefined : links.kion
     }
   }
   if (parsed.data.status !== undefined) partial.status = parsed.data.status
@@ -97,13 +115,27 @@ export async function PATCH(
       n && typeof n === "string" && n.trim().length > 0 ? n.trim() : null
   }
 
-  if (Object.keys(partial).length === 0) {
+  if (
+    Object.keys(partial).length === 0 &&
+    incomingPlatformLinks === undefined
+  ) {
     return NextResponse.json(
       { error: "Укажите поля для обновления (артикул, UPC, ссылки, статус и/или комментарий)" },
       { status: 400 }
     )
   }
 
-  const updated = await updateTracksByAlbumId(albumId, partial)
+  const updated = []
+  for (const track of tracksInAlbum) {
+    const trackPartial = { ...partial }
+    if (incomingPlatformLinks !== undefined) {
+      trackPartial.platformLinks = mergePartialPlatformLinks(
+        track.platformLinks,
+        incomingPlatformLinks
+      )
+    }
+    const next = await updateTrack(track.id, trackPartial)
+    if (next) updated.push(next)
+  }
   return NextResponse.json({ updated: updated.length, tracks: updated })
 }
