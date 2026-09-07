@@ -14,7 +14,10 @@ type PromoteItem = {
   slug: string
   title: string
   description: string
+  price: string
   orderPrefill: string
+  cta?: string
+  ctaUrl?: string
 }
 
 type CabinetPromoteSectionProps = {
@@ -65,7 +68,7 @@ export function CabinetPromoteSection({ showHeader = true }: CabinetPromoteSecti
             </CardHeader>
             <CardContent className="space-y-3 mt-auto">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-2xl font-bold text-primary">{promote.priceOnRequest}</span>
+                <span className="text-2xl font-bold text-primary whitespace-nowrap">{item.price}</span>
                 <Button variant="link" className="h-auto p-0 text-muted-foreground" asChild>
                   <Link href={`/promotion/${item.slug}`} target="_blank" rel="noopener noreferrer">
                     {promote.moreDetails}
@@ -73,10 +76,19 @@ export function CabinetPromoteSection({ showHeader = true }: CabinetPromoteSecti
                   </Link>
                 </Button>
               </div>
-              <Button className="w-full" onClick={() => openOrder(item)}>
-                {promote.orderCta}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              {item.ctaUrl ? (
+                <Button className="w-full" asChild>
+                  <a href={item.ctaUrl} target="_blank" rel="noopener noreferrer">
+                    {item.cta ?? promote.orderCta}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              ) : (
+                <Button className="w-full" onClick={() => openOrder(item)}>
+                  {item.cta ?? promote.orderCta}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}

@@ -1325,7 +1325,6 @@
       "backToCabinet": "Back to dashboard",
       "orderCta": "Request a quote",
       "moreDetails": "Learn more",
-      "priceOnRequest": "on request",
       "orderDialogTitle": "Order promotion",
       "orderDialogDescription": "Pick a contact channel — a manager will reply and clarify details",
       "items": [
@@ -1334,6 +1333,9 @@
           "slug": "yandex-playlists",
           "title": "Yandex Music playlists",
           "description": "The fastest way to kick off a new release: placement in our and partner playlists",
+          "price": "from 350₽",
+          "cta": "Buy",
+          "ctaUrl": "https://playlisthub.ru/",
           "orderPrefill": "Hi! I'd like to order Yandex Music playlist placement.\nFrom: cabinet → Promotion"
         },
         {
@@ -1341,6 +1343,8 @@
           "slug": "vk-ads",
           "title": "VK Ads",
           "description": "VK Ads and VK Music: bring in new listeners and grow streams",
+          "price": "from 10 000₽",
+          "cta": "Order",
           "orderPrefill": "Hi! I'd like to discuss VK Ads promotion.\nFrom: cabinet → Promotion"
         },
         {
@@ -1348,6 +1352,8 @@
           "slug": "yandex-direct",
           "title": "Yandex Direct",
           "description": "Targeted ads for your goals: track, show, merch, or socials",
+          "price": "from 10 000₽",
+          "cta": "Order",
           "orderPrefill": "Hi! I'd like to discuss Yandex Direct promotion.\nFrom: cabinet → Promotion"
         },
         {
@@ -1355,14 +1361,9 @@
           "slug": "tiktok-shorts",
           "title": "TikTok / Shorts",
           "description": "Vertical video for reach, awareness, and a new audience",
+          "price": "from 1 500₽",
+          "cta": "Order",
           "orderPrefill": "Hi! I'd like to discuss TikTok / Shorts promotion.\nFrom: cabinet → Promotion"
-        },
-        {
-          "id": "first-listeners",
-          "slug": "first-listeners",
-          "title": "First listeners",
-          "description": "Track is out but no listeners? Fast start with playlists and real audience",
-          "orderPrefill": "Hi! I need promotion and first listeners for my release.\nFrom: cabinet → Promotion"
         }
       ]
     },
