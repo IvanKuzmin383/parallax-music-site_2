@@ -1054,26 +1054,6 @@ export async function importMusicStatsParsedToDb(args: {
       )
     }
 
-    await clientExecute(
-      client,
-      `
-        DELETE FROM music_platform_track_daily_plays
-        WHERE platform_key = ?
-          AND stat_date IN (${placeholders})
-      `,
-      [args.platformKey, ...dates]
-    )
-
-    await clientExecute(
-      client,
-      `
-        DELETE FROM music_platform_track_daily_plays_by_country
-        WHERE platform_key = ?
-          AND stat_date IN (${placeholders})
-      `,
-      [args.platformKey, ...dates]
-    )
-
     for (const [key, plays] of trackDatePlays.entries()) {
       const lastIdx = key.lastIndexOf("::")
       const trackKey = lastIdx >= 0 ? key.slice(0, lastIdx) : key
@@ -1084,6 +1064,8 @@ export async function importMusicStatsParsedToDb(args: {
         `
         INSERT INTO music_platform_track_daily_plays (platform_key, track_key, stat_date, plays)
         VALUES (?, ?, ?, ?)
+        ON CONFLICT(platform_key, track_key, stat_date) DO UPDATE SET
+          plays = EXCLUDED.plays
       `,
         [args.platformKey, trackKey, statDate, plays]
       )
@@ -1099,20 +1081,12 @@ export async function importMusicStatsParsedToDb(args: {
         `
         INSERT INTO music_platform_track_daily_plays_by_country (platform_key, track_key, stat_date, country, plays)
         VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(platform_key, track_key, stat_date, country) DO UPDATE SET
+          plays = EXCLUDED.plays
       `,
         [args.platformKey, tk, statDate, country, plays]
       )
     }
-
-    await clientExecute(
-      client,
-      `
-        DELETE FROM music_platform_daily_stats
-        WHERE platform_key = ?
-          AND stat_date IN (${placeholders})
-      `,
-      [args.platformKey, ...dates]
-    )
 
     await clientExecute(
       client,
@@ -1127,6 +1101,9 @@ export async function importMusicStatsParsedToDb(args: {
         WHERE d.platform_key = ?
           AND d.stat_date IN (${placeholders})
         GROUP BY d.platform_key, d.stat_date
+        ON CONFLICT(platform_key, stat_date) DO UPDATE SET
+          total_plays = EXCLUDED.total_plays,
+          tracks_with_plays = EXCLUDED.tracks_with_plays
       `,
       [args.platformKey, ...dates]
     )

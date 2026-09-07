@@ -1319,6 +1319,53 @@
         "moreDetails": "Learn more"
       }
     },
+    "promote": {
+      "title": "Promotion",
+      "description": "Tools to grow your audience and streams",
+      "backToCabinet": "Back to dashboard",
+      "orderCta": "Request a quote",
+      "moreDetails": "Learn more",
+      "priceOnRequest": "on request",
+      "orderDialogTitle": "Order promotion",
+      "orderDialogDescription": "Pick a contact channel — a manager will reply and clarify details",
+      "items": [
+        {
+          "id": "yandex-playlists",
+          "slug": "yandex-playlists",
+          "title": "Yandex Music playlists",
+          "description": "The fastest way to kick off a new release: placement in our and partner playlists",
+          "orderPrefill": "Hi! I'd like to order Yandex Music playlist placement.\nFrom: cabinet → Promotion"
+        },
+        {
+          "id": "vk-ads",
+          "slug": "vk-ads",
+          "title": "VK Ads",
+          "description": "VK Ads and VK Music: bring in new listeners and grow streams",
+          "orderPrefill": "Hi! I'd like to discuss VK Ads promotion.\nFrom: cabinet → Promotion"
+        },
+        {
+          "id": "yandex-direct",
+          "slug": "yandex-direct",
+          "title": "Yandex Direct",
+          "description": "Targeted ads for your goals: track, show, merch, or socials",
+          "orderPrefill": "Hi! I'd like to discuss Yandex Direct promotion.\nFrom: cabinet → Promotion"
+        },
+        {
+          "id": "tiktok-shorts",
+          "slug": "tiktok-shorts",
+          "title": "TikTok / Shorts",
+          "description": "Vertical video for reach, awareness, and a new audience",
+          "orderPrefill": "Hi! I'd like to discuss TikTok / Shorts promotion.\nFrom: cabinet → Promotion"
+        },
+        {
+          "id": "first-listeners",
+          "slug": "first-listeners",
+          "title": "First listeners",
+          "description": "Track is out but no listeners? Fast start with playlists and real audience",
+          "orderPrefill": "Hi! I need promotion and first listeners for my release.\nFrom: cabinet → Promotion"
+        }
+      ]
+    },
     "myServices": {
       "pageTitle": "My services",
       "pageDescription": "Paid services and fulfillment status",

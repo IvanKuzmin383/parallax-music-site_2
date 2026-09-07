@@ -26,6 +26,7 @@ import {
   FileText,
   Info,
   TrendingUp,
+  Rocket,
   Wallet,
   Download,
   Clock,
@@ -62,6 +63,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Turnstile } from "@marsidev/react-turnstile"
 import { CabinetAnnouncementsHost } from "@/components/cabinet-announcements-host"
+import { CabinetPromoteSection } from "@/components/cabinet-promote-section"
 import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
@@ -255,7 +257,7 @@ export default function CabinetPage() {
   const [subscriptionLimitDialogOpen, setSubscriptionLimitDialogOpen] = useState(false)
   const [supportChannelDialogOpen, setSupportChannelDialogOpen] = useState(false)
   const [subscriptionRequiredDialogOpen, setSubscriptionRequiredDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<"releases" | "promotion" | "reports">("releases")
+  const [activeTab, setActiveTab] = useState<"releases" | "promotion" | "promote" | "reports">("releases")
   const [userTrackPriceRub, setUserTrackPriceRub] = useState(TRACK_PRICE_RUB)
   const [userCreatedAt, setUserCreatedAt] = useState<string | undefined>(undefined)
   const [mounted, setMounted] = useState(false)
@@ -303,6 +305,12 @@ export default function CabinetPage() {
     }
     if (searchParams.get("tab") === "reports") {
       setActiveTab("reports")
+    }
+    if (searchParams.get("tab") === "promotion") {
+      setActiveTab("promotion")
+    }
+    if (searchParams.get("tab") === "promote") {
+      setActiveTab("promote")
     }
     const qEmail = searchParams.get("email")?.trim()
     if (qEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(qEmail)) {
@@ -1084,7 +1092,7 @@ export default function CabinetPage() {
           )}
         </div>
 
-        {/* Вкладки: Профиль, Релизы, Статистика, Продвижение, Финансы */}
+        {/* Вкладки: Профиль, Релизы, Статистика, Услуги, Продвижение, Финансы */}
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
@@ -1096,11 +1104,11 @@ export default function CabinetPage() {
               router.push("/cabinet/profile")
               return
             }
-            setActiveTab(v as "releases" | "promotion" | "reports")
+            setActiveTab(v as "releases" | "promotion" | "promote" | "reports")
           }}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto gap-1">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Профиль
@@ -1116,6 +1124,10 @@ export default function CabinetPage() {
             <TabsTrigger value="promotion" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Услуги
+            </TabsTrigger>
+            <TabsTrigger value="promote" className="flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              Продвижение
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -1836,6 +1848,10 @@ export default function CabinetPage() {
                 ))}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="promote" className="mt-4">
+            <CabinetPromoteSection />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4 mt-4">
