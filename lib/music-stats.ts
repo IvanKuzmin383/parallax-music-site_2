@@ -64,6 +64,32 @@ function titleNormSql(columnRef: string): string {
   return `REPLACE(REPLACE(REPLACE(REPLACE(LOWER(${columnRef}), ' ', ''), '-', ''), '–', ''), '-', '')`
 }
 
+/**
+ * Нормализация артиста для матча: feat./feat/&/, → один вид, без пробелов/дефисов.
+ * Порядок имён не меняет (для DMB приоритетнее ISRC/UPC).
+ */
+function artistNormSql(columnRef: string): string {
+  return `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+    LOWER(${columnRef}),
+    'feat.', ' '),
+    ' feat ', ' '),
+    '&', ' '),
+    ',', ' '),
+    ' ', ''),
+    '-', ''),
+    '–', '')`
+}
+
+/** ISRC из DMB track_key `ISRC:…|EAN:…|CAT:…` и из tracks.isrc — только A-Z0-9. */
+function isrcNormSql(columnRef: string): string {
+  return `NULLIF(UPPER(REGEXP_REPLACE(COALESCE(${columnRef}, ''), '[^A-Za-z0-9]', '', 'g')), '')`
+}
+
+/** UPC/EAN — только цифры. */
+function upcNormSql(columnRef: string): string {
+  return `NULLIF(REGEXP_REPLACE(COALESCE(${columnRef}, ''), '[^0-9]', '', 'g'), '')`
+}
+
 function normalizeTrackTitleForMatch(title: string): string {
   return title
     .toLowerCase()
@@ -249,9 +275,16 @@ async function rebuildCabinetMusicTrackMapForPlatformWithClient(
   matchedAtIso: string
 ): Promise<void> {
   const tn = titleNormSql
+  const an = artistNormSql
+  const isrcFromKey = "substring(p.track_key from 'ISRC:([^|]+)')"
+  const eanFromKey = "substring(p.track_key from 'EAN:([^|]+)')"
+
   await clientExecute(client, `DELETE FROM cabinet_music_track_map WHERE platform_key = ?`, [
     platformKey,
   ])
+
+  // Гибрид: 1) ISRC (DMB), 2) UPC/EAN (DMB), 3) title + norm(artist) (Yoga и остальное).
+  // DISTINCT ON берёт лучший match_prio; при равном — меньший cabinet_track_id.
   await clientExecute(
     client,
     `
@@ -262,22 +295,64 @@ async function rebuildCabinetMusicTrackMapForPlatformWithClient(
         cabinet_track_id,
         matched_at
       )
-      SELECT
-        LOWER(TRIM(c.user_id)) AS user_id,
-        p.platform_key,
-        p.track_key,
-        MIN(c.id) AS cabinet_track_id,
+      SELECT DISTINCT ON (user_id, platform_key, track_key)
+        user_id,
+        platform_key,
+        track_key,
+        cabinet_track_id,
         ? AS matched_at
-      FROM music_platform_tracks p
-      JOIN tracks c
-        ON LOWER(c.artist_name) = LOWER(p.author)
-       AND ${tn("c.track_name")} = ${tn("p.title")}
-      WHERE p.platform_key = ?
-        AND c.user_id IS NOT NULL
-        AND TRIM(c.user_id) <> ''
-      GROUP BY LOWER(TRIM(c.user_id)), p.platform_key, p.track_key
+      FROM (
+        SELECT
+          LOWER(TRIM(c.user_id)) AS user_id,
+          p.platform_key,
+          p.track_key,
+          c.id AS cabinet_track_id,
+          1 AS match_prio
+        FROM music_platform_tracks p
+        JOIN tracks c
+          ON ${isrcNormSql("c.isrc")} = ${isrcNormSql(isrcFromKey)}
+        WHERE p.platform_key = ?
+          AND p.track_key LIKE 'ISRC:%'
+          AND c.user_id IS NOT NULL
+          AND TRIM(c.user_id) <> ''
+          AND NULLIF(TRIM(COALESCE(c.isrc, '')), '') IS NOT NULL
+
+        UNION ALL
+
+        SELECT
+          LOWER(TRIM(c.user_id)) AS user_id,
+          p.platform_key,
+          p.track_key,
+          c.id AS cabinet_track_id,
+          2 AS match_prio
+        FROM music_platform_tracks p
+        JOIN tracks c
+          ON ${upcNormSql("c.upc")} = ${upcNormSql(eanFromKey)}
+        WHERE p.platform_key = ?
+          AND p.track_key LIKE 'ISRC:%'
+          AND c.user_id IS NOT NULL
+          AND TRIM(c.user_id) <> ''
+          AND NULLIF(TRIM(COALESCE(c.upc, '')), '') IS NOT NULL
+
+        UNION ALL
+
+        SELECT
+          LOWER(TRIM(c.user_id)) AS user_id,
+          p.platform_key,
+          p.track_key,
+          c.id AS cabinet_track_id,
+          3 AS match_prio
+        FROM music_platform_tracks p
+        JOIN tracks c
+          ON ${an("c.artist_name")} = ${an("p.author")}
+         AND ${tn("c.track_name")} = ${tn("p.title")}
+        WHERE p.platform_key = ?
+          AND c.user_id IS NOT NULL
+          AND TRIM(c.user_id) <> ''
+      ) matched
+      ORDER BY user_id, platform_key, track_key, match_prio ASC, cabinet_track_id ASC
     `,
-    [matchedAtIso, platformKey]
+    [matchedAtIso, platformKey, platformKey, platformKey]
   )
 }
 
