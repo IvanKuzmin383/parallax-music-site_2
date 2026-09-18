@@ -871,7 +871,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/cabinet/music/releases"><ArrowLeft className="h-4 w-4" /></Link>
@@ -884,7 +884,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       <ReleaseUploadStepper currentStep={step} maxReachedStep={maxStep} />
 
       {step === 1 ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <Label>Тип релиза *</Label>
             <div className="flex gap-2 mt-1">
@@ -901,104 +901,116 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               ))}
             </div>
           </div>
-          <div>
-            <Label>Название релиза *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} disabled={formDisabled} />
-          </div>
-          <div>
-            <Label>Имя артиста / название группы *</Label>
-            <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
-          </div>
-          <div>
-            <Label>Желаемая дата релиза *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start", !releaseDate && "text-muted-foreground")} disabled={formDisabled}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={releaseDate}
-                  onSelect={setReleaseDate}
-                  disabled={(date) => {
-                    const today = new Date()
-                    today.setHours(0, 0, 0, 0)
-                    const min = new Date(today)
-                    min.setDate(min.getDate() + 14)
-                    return date < min || isReleaseDateWeekend(date)
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            <p className="text-xs text-muted-foreground mt-1">
-              Идеально - не ранее 21 дня после заполнения формы для отправки питчинга. Минимально - 7 календарных дней, если без питчинга.
-            </p>
-          </div>
-          <div>
-            <Label>{requestAiCover ? "Обложка" : "Обложка *"}</Label>
-            <div className="flex gap-4 mt-1">
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start">
+            <div className="space-y-4 min-w-0">
+              <div>
+                <Label>Название релиза *</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} disabled={formDisabled} />
+              </div>
+              <div>
+                <Label>Имя артиста / название группы *</Label>
+                <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
+              </div>
+              <div>
+                <Label>Желаемая дата релиза *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start", !releaseDate && "text-muted-foreground")} disabled={formDisabled}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={releaseDate}
+                      onSelect={setReleaseDate}
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        const min = new Date(today)
+                        min.setDate(min.getDate() + 14)
+                        return date < min || isReleaseDateWeekend(date)
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Идеально - не ранее 21 дня после заполнения формы для отправки питчинга. Минимально - 7 календарных дней, если без питчинга.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 lg:justify-self-end w-full max-w-[20rem]">
+              <Label>{requestAiCover ? "Обложка" : "Обложка *"}</Label>
               <div
-                className="h-32 w-32 rounded-md border border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 cursor-pointer shrink-0"
+                className="aspect-square w-full rounded-md border border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 cursor-pointer"
                 onClick={() => !formDisabled && coverInputRef.current?.click()}
               >
                 {coverPreview ? (
-                  <Image src={coverPreview} alt="" width={128} height={128} className="object-cover h-full w-full" unoptimized />
+                  <Image src={coverPreview} alt="" width={320} height={320} className="object-cover h-full w-full" unoptimized />
                 ) : (
-                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <Upload className="h-12 w-12 text-muted-foreground" />
                 )}
               </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={formDisabled}>
-                  {saving ? <Spinner className="h-4 w-4" /> : "Выбрать файл"}
-                </Button>
-              </div>
-            </div>
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/jpeg,image/png,.jpg,.jpeg,.png"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void handleCoverFile(f)
-                e.target.value = ""
-              }}
-            />
-            <div className="mt-3 flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
-              <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
-                <Checkbox
-                  className="mt-0.5 shrink-0"
-                  checked={requestAiCover}
-                  onCheckedChange={(c) => setRequestAiCover(c === true)}
-                  disabled={formDisabled}
-                />
-                <span>Необходимо создание AI-обложки</span>
-              </label>
-              <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">
-                  {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAiCoverInfoOpen(true)}
-                  disabled={formDisabled}
-                >
-                  Подробнее
-                </Button>
-              </div>
-            </div>
-            {requestAiCover && !coverPreview ? (
-              <p className="text-xs text-muted-foreground mt-2">
-                Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={formDisabled}
+              >
+                {saving ? <Spinner className="h-4 w-4" /> : "Выбрать файл"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.
               </p>
-            ) : null}
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) void handleCoverFile(f)
+                  e.target.value = ""
+                }}
+              />
+            </div>
           </div>
+
+          <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
+            <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
+              <Checkbox
+                className="mt-0.5 shrink-0"
+                checked={requestAiCover}
+                onCheckedChange={(c) => setRequestAiCover(c === true)}
+                disabled={formDisabled}
+              />
+              <span>Необходимо создание AI-обложки</span>
+            </label>
+            <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
+              <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">
+                {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAiCoverInfoOpen(true)}
+                disabled={formDisabled}
+              >
+                Подробнее
+              </Button>
+            </div>
+          </div>
+          {requestAiCover && !coverPreview ? (
+            <p className="text-xs text-muted-foreground">
+              Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
+            </p>
+          ) : null}
+
           <div>
             <Label>UPC / EAN</Label>
             <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />

@@ -5,20 +5,31 @@ import { usePathname } from "next/navigation"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { CABINET_SIDEBAR_NAV, isCabinetFinancePath } from "@/lib/cabinet/navigation"
+import {
+  CABINET_SIDEBAR_GROUPS,
+  isCabinetFinancePath,
+  isCabinetPromotionPath,
+  isCabinetToolsPath,
+} from "@/lib/cabinet/navigation"
+import { cn } from "@/lib/utils"
 
 function isActive(href: string, pathname: string): boolean {
   if (href === "/cabinet") return pathname === "/cabinet"
   if (href === "/cabinet/finance/balance") return isCabinetFinancePath(pathname)
+  if (href === "/cabinet/promotion") return isCabinetPromotionPath(pathname)
+  if (href === "/cabinet/tools") return isCabinetToolsPath(pathname)
+  if (href === "/cabinet/music-stats") {
+    return pathname === "/cabinet/music-stats" || pathname.startsWith("/cabinet/music-stats/")
+  }
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
@@ -42,33 +53,40 @@ export function CabinetSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="cabinet-sidebar-scroll">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {CABINET_SIDEBAR_NAV.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href, pathname)} tooltip={item.label}>
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="cabinet-sidebar-scroll gap-0">
+        {CABINET_SIDEBAR_GROUPS.map((group, groupIndex) => (
+          <SidebarGroup
+            key={group.id}
+            className={cn(groupIndex > 0 && "mt-2 pt-2", group.label && "pt-1")}
+          >
+            {group.label ? (
+              <SidebarGroupLabel className="h-auto px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground/80">
+                {group.label}
+              </SidebarGroupLabel>
+            ) : null}
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1.5">
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.href, pathname)}
+                      tooltip={item.label}
+                      className="h-10 gap-3 px-3 text-[15px]"
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border px-2 py-3">
-        <p className="text-[11px] text-muted-foreground px-2 leading-snug">
-          Услуги — на странице релиза или в{" "}
-          <Link href="/cabinet/services" className="text-primary hover:underline">
-            каталоге
-          </Link>
-        </p>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
