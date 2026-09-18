@@ -10,8 +10,9 @@ import {
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
-const MAX_AUDIO_SIZE = 80 * 1024 * 1024 // 80 MB
+const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 
 export async function POST(
   request: NextRequest,
@@ -88,7 +89,7 @@ export async function POST(
     if (audioFile.size > MAX_AUDIO_SIZE) {
       return NextResponse.json(
         {
-          error: `Размер аудиофайла для трека "${track.trackName}" не должен превышать 80 MB`,
+          error: cabinetWavMaxSizeError(`Размер аудиофайла для трека "${track.trackName}"`),
         },
         { status: 400 }
       )

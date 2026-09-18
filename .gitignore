@@ -45,6 +45,15 @@ scripts/_tmp-*.ts
 streaming-releases*
 streaming-tracks*
 
+# Локальные выгрузки из админ-БД (временные / одноразовые)
+_tmp_*
+_tmp_query_result.md
+sent_to_platforms_releases.csv
+released_missing_vk_or_yandex*.csv
+scripts/export-*-csv.mjs
+# Временные lock-файлы Excel (создаются при открытой книге)
+~$*
+
 # SQLite (локальная dev-БД; на VPS — /data/app.db, не в репозитории)
 data/app.db
 /data/app.db

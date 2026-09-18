@@ -273,7 +273,10 @@ server {
     listen 80;
     server_name parallaxmusic.ru www.parallaxmusic.ru;
 
-    client_max_body_size 100M;
+    client_max_body_size 150M;
+    client_body_timeout 300s;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
 
     # Кэш оптимизированных картинок Next (снижает CPU Sharp). Подробнее: docs/nginx-next-image-cache.conf
     location /_next/image {
@@ -317,7 +320,7 @@ proxy_cache_path /var/cache/nginx/next_image
 mkdir -p /var/cache/nginx/next_image && chown www-data:www-data /var/cache/nginx/next_image
 ```
 
-`client_max_body_size 100M` - под загрузки до **80 MB** аудио в API.
+`client_max_body_size 150M` и `client_body_timeout 300s` — загрузки WAV до **120 MB** с телефона (медленный 4G).
 
 Активация:
 

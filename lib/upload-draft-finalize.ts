@@ -19,11 +19,16 @@ import {
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { createTrack, getAudioDir, getCoversDir, getTrackById, getTracksByAlbumId, updateTrack, type Track } from "@/lib/tracks"
 import { GENRES, TRACK_MOODS, normalizeStreamingScope } from "@/lib/track-constants"
-import { createAlbum, type Album } from "@/lib/albums"
+import { createAlbum, getAlbumById, updateAlbum, type Album } from "@/lib/albums"
 import { applySharedAlbumCover, buildAlbumCoverAbsolutePath } from "@/lib/album-cover-sync"
+import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
 import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
+import {
+  resolveAlbumReleaseDateYyyyMmDd,
+  validateReleaseDateYyyyMmDd,
+} from "@/lib/release-date-validation"
 import { withTransaction } from "@/lib/database"
 import {
   backfillMissingTrackAcceptancesForUser,
@@ -196,10 +201,48 @@ export async function finalizeUploadDraftCore(
 
   if (draft.kind === "album") {
     if (draft.albumId) {
+      const album = await getAlbumById(draft.albumId)
+      if (!album) {
+        return { ok: false, error: "Альбом не найден", status: 404 }
+      }
+
       const tracks = await getTracksByAlbumId(draft.albumId)
-      const toCharge = tracks.filter(
-        (t) => t.status === "upload_pending" && !t.fixPackCreditsCharged
-      )
+      const pendingTracks = tracks.filter((t) => t.status === "upload_pending")
+
+      const payloadReleaseDate =
+        typeof payload.releaseDate === "string" && payload.releaseDate.trim().length > 0
+          ? payload.releaseDate.trim()
+          : undefined
+
+      if (pendingTracks.length > 0) {
+        const releaseDateToValidate = resolveAlbumReleaseDateYyyyMmDd({
+          payloadReleaseDate,
+          albumReleaseDate: album.releaseDate,
+          trackReleaseDates: tracks.map((t) => t.releaseDate),
+        })
+        const releaseDateError = validateReleaseDateYyyyMmDd(releaseDateToValidate)
+        if (releaseDateError) {
+          return { ok: false, error: releaseDateError, status: 400 }
+        }
+
+        if (releaseDateToValidate) {
+          try {
+            await applySharedAlbumReleaseDate({
+              albumId: draft.albumId,
+              releaseDate: releaseDateToValidate,
+            })
+          } catch (error) {
+            console.error("[finalize] album release date sync failed:", error)
+            return {
+              ok: false,
+              error: "Не удалось обновить дату релиза альбома у всех треков",
+              status: 500,
+            }
+          }
+        }
+      }
+
+      const toCharge = pendingTracks.filter((t) => !t.fixPackCreditsCharged)
       for (const t of tracks) {
         if (t.status === "upload_pending") {
           await updateTrack(t.id, { status: "on_moderation" })
@@ -220,6 +263,12 @@ export async function finalizeUploadDraftCore(
       typeof payload.releaseDate === "string" && payload.releaseDate.trim().length > 0
         ? payload.releaseDate.trim()
         : undefined
+
+    const releaseDateError = validateReleaseDateYyyyMmDd(releaseDate)
+    if (releaseDateError) {
+      return { ok: false, error: releaseDateError, status: 400 }
+    }
+
     const tracksRaw = Array.isArray(payload.albumTracks)
       ? (payload.albumTracks as AlbumDraftTrackPayload[])
       : []
@@ -487,6 +536,31 @@ export async function finalizeUploadDraftCore(
       return { ok: false, error: xfer.error, status: 400 }
     }
 
+    const nextReleaseDate =
+      typeof payload.releaseDate === "string" && payload.releaseDate.trim().length > 0
+        ? payload.releaseDate.trim()
+        : sourceTrack.releaseDate
+    const releaseDateError = validateReleaseDateYyyyMmDd(nextReleaseDate)
+    if (releaseDateError) {
+      return { ok: false, error: releaseDateError, status: 400 }
+    }
+
+    if (sourceTrack.albumId && nextReleaseDate) {
+      try {
+        await applySharedAlbumReleaseDate({
+          albumId: sourceTrack.albumId,
+          releaseDate: nextReleaseDate,
+        })
+      } catch (error) {
+        console.error("[finalize] album release date sync failed:", error)
+        return {
+          ok: false,
+          error: "Не удалось обновить дату релиза альбома у всех треков",
+          status: 500,
+        }
+      }
+    }
+
     const track = await updateTrack(sourceTrack.id, {
       trackName,
       artistName,
@@ -509,7 +583,7 @@ export async function finalizeUploadDraftCore(
         ? { coverPath, needsAiCover: false }
         : {}),
       status: "on_moderation",
-      releaseDate: typeof payload.releaseDate === "string" ? payload.releaseDate : undefined,
+      releaseDate: nextReleaseDate,
       upc: xfer.upc,
       isrc: xfer.isrc,
       transferFromOtherDistributor: xfer.transfer,

@@ -42,6 +42,10 @@ export function validateCabinetCoverImage(
 
 /**
  * Проверка обложки по пути к файлу без чтения всего файла в память (ступенчато, по префиксу).
+ *
+ * JPEG: `image-size` на обрезанном префиксе иногда отдаёт ложные размеры
+ * (SOF далеко в файле) — не останавливаемся на первом разборе, пока префикс
+ * не совпадёт с полным файлом или размеры не стабилизируются на большем куске.
  */
 export async function validateCabinetCoverImageFromFilePath(
   filePath: string,
@@ -58,22 +62,38 @@ export async function validateCabinetCoverImageFromFilePath(
     return "Не удалось определить размеры обложки. Загрузите корректный JPEG/PNG файл."
   }
 
+  const isJpeg = extLower === "jpg" || extLower === "jpeg"
   let lastReadCap = 0
   let dimensions: { width: number; height: number } | null = null
+  let dimensionsReliable = false
 
   for (const step of PREFIX_STEPS) {
     const cap = Math.min(step, fileSizeBytes)
     if (cap <= lastReadCap) continue
     const prefix = await readFilePrefix(filePath, cap)
     lastReadCap = prefix.length
-    dimensions = tryParseDimensions(prefix)
-    if (dimensions) break
-    if (cap >= fileSizeBytes) break
+    const parsed = tryParseDimensions(prefix)
+    if (!parsed) {
+      if (cap >= fileSizeBytes) break
+      continue
+    }
+    const sameAsBefore =
+      !!dimensions &&
+      dimensions.width === parsed.width &&
+      dimensions.height === parsed.height
+    dimensions = parsed
+    // PNG: IHDR в начале. JPEG: ложные размеры с короткого префикса — ждём
+    // совпадения на большем куске или полного файла.
+    if (!isJpeg || sameAsBefore || cap >= fileSizeBytes) {
+      dimensionsReliable = true
+      break
+    }
   }
 
-  if (!dimensions && lastReadCap < fileSizeBytes) {
+  if (!dimensionsReliable && lastReadCap < fileSizeBytes) {
     const full = await readFilePrefix(filePath, fileSizeBytes)
-    dimensions = tryParseDimensions(full)
+    const parsed = tryParseDimensions(full)
+    if (parsed) dimensions = parsed
   }
 
   if (!dimensions) {

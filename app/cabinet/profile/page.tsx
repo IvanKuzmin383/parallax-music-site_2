@@ -209,13 +209,24 @@ export default function CabinetProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-green-500/20 bg-green-500/5 py-4 gap-3">
+          <Card
+            className="border-green-500/20 bg-green-500/5 py-4 gap-3 cursor-pointer transition-colors hover:bg-green-500/10"
+            role="link"
+            tabIndex={0}
+            onClick={() => router.push("/cabinet?tab=reports")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                router.push("/cabinet?tab=reports")
+              }
+            }}
+          >
             <CardHeader className="pb-2 gap-1">
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-green-600" />
                 Баланс
               </CardTitle>
-              <CardDescription>Доходы от стриминга</CardDescription>
+              <CardDescription>Доходы от стриминга · подробнее во вкладке «Финансы»</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-600">

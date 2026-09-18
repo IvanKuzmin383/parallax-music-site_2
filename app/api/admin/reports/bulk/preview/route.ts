@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises"
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
-import { matchStreamingReportFileName } from "@/lib/streaming-report-match"
+import { matchStreamingReport } from "@/lib/streaming-report-match"
 import { saveStreamingReportPreview } from "@/lib/streaming-report-bulk-preview"
 import { parseStreamingReportBuffer } from "@/lib/streaming-report-parse"
 import {
@@ -74,7 +74,11 @@ export async function POST(request: NextRequest) {
         try {
           const buffer = await readFile(file.tempFilePath)
           const parsed = await parseStreamingReportBuffer(buffer, file.originalFilename)
-          const match = await matchStreamingReportFileName(file.originalFilename)
+          const match = await matchStreamingReport({
+            fileName: file.originalFilename,
+            artistsFromContent: parsed.artistsFromContent,
+            primaryArtistFromContent: parsed.primaryArtist,
+          })
 
           const warnings = [...match.warnings]
           if (parsed.amountRub == null) {

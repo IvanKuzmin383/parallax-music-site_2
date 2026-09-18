@@ -7,20 +7,67 @@ import {
   getUploadDraftsDir,
   unlinkUploadDraftMediaFile,
   updateUploadDraft,
+  type UploadDraft,
 } from "@/lib/upload-drafts"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
+import { claimDraftAudioRelPath } from "@/lib/cabinet-chunk-uploads"
 import {
   MultipartRequestError,
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
-const MAX_AUDIO_SIZE = 80 * 1024 * 1024
+const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 
 type AlbumDraftTrackPayload = {
   tempId?: string
   audioRelPath?: string
   [key: string]: unknown
+}
+
+async function attachAlbumTrackAudio(params: {
+  draft: UploadDraft
+  tempId: string
+  newRelPath: string
+}): Promise<
+  | { error: NextResponse; json?: undefined }
+  | {
+      error?: undefined
+      json: { ok: true; draft: UploadDraft | null; tempId: string; audioRelPath: string }
+    }
+> {
+  const tracks = Array.isArray(params.draft.payload.albumTracks)
+    ? (params.draft.payload.albumTracks as AlbumDraftTrackPayload[])
+    : []
+  const idx = tracks.findIndex((t) => `${t.tempId ?? ""}`.trim() === params.tempId)
+  if (idx < 0) {
+    return { error: NextResponse.json({ error: "Трек черновика не найден" }, { status: 404 }) }
+  }
+
+  const prevRelPath = tracks[idx]?.audioRelPath
+  if (typeof prevRelPath === "string" && prevRelPath.trim() && prevRelPath !== params.newRelPath) {
+    await unlinkUploadDraftMediaFile(prevRelPath)
+  }
+
+  const nextTracks = tracks.map((track, trackIndex) =>
+    trackIndex === idx ? { ...track, audioRelPath: params.newRelPath } : track
+  )
+  const updated = await updateUploadDraft(params.draft.id, {
+    payload: {
+      ...params.draft.payload,
+      albumTracks: nextTracks,
+    },
+  })
+
+  return {
+    json: {
+      ok: true as const,
+      draft: updated,
+      tempId: params.tempId,
+      audioRelPath: params.newRelPath,
+    },
+  }
 }
 
 export async function POST(
@@ -43,6 +90,28 @@ export async function POST(
     return NextResponse.json({ error: "Этот черновик больше нельзя редактировать" }, { status: 400 })
   }
 
+  const contentType = request.headers.get("content-type") ?? ""
+  if (contentType.includes("application/json")) {
+    let body: { tempId?: unknown; audioRelPath?: unknown }
+    try {
+      body = (await request.json()) as { tempId?: unknown; audioRelPath?: unknown }
+    } catch {
+      return NextResponse.json({ error: "Неверный JSON" }, { status: 400 })
+    }
+    const tempId = typeof body.tempId === "string" ? body.tempId.trim() : ""
+    const audioRelPath = typeof body.audioRelPath === "string" ? body.audioRelPath.trim() : ""
+    if (!tempId || !audioRelPath) {
+      return NextResponse.json({ error: "Передайте tempId и audioRelPath" }, { status: 400 })
+    }
+    const claimed = await claimDraftAudioRelPath(session.email, audioRelPath)
+    if (!claimed.ok) {
+      return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+    }
+    const attached = await attachAlbumTrackAudio({ draft, tempId, newRelPath: claimed.relPath })
+    if (attached.error) return attached.error
+    return NextResponse.json(attached.json)
+  }
+
   try {
     const multipart = await parseMultipartRequestStream(request, {
       maxFiles: 1,
@@ -52,51 +121,40 @@ export async function POST(
     })
     try {
       const tempId = `${multipart.getField("tempId") ?? ""}`.trim()
+      const claimedRaw = `${multipart.getField("audioRelPath") ?? ""}`.trim()
       const audio = multipart.getFile("audio")
-      if (!tempId || !audio) {
+      if (!tempId) {
+        return NextResponse.json({ error: "Передайте tempId" }, { status: 400 })
+      }
+
+      if (claimedRaw) {
+        const claimed = await claimDraftAudioRelPath(session.email, claimedRaw)
+        if (!claimed.ok) {
+          return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+        }
+        const attached = await attachAlbumTrackAudio({ draft, tempId, newRelPath: claimed.relPath })
+        if (attached.error) return attached.error
+        return NextResponse.json(attached.json)
+      }
+
+      if (!audio) {
         return NextResponse.json({ error: "Передайте tempId и WAV-файл" }, { status: 400 })
       }
       const ext = audio.originalFilename.toLowerCase().split(".").pop()
       if (ext !== "wav") return NextResponse.json({ error: "Аудио должно быть в формате WAV" }, { status: 400 })
       if (audio.size > MAX_AUDIO_SIZE) {
-        return NextResponse.json({ error: "Размер аудиофайла не должен превышать 80 MB" }, { status: 400 })
+        return NextResponse.json({ error: cabinetWavMaxSizeError() }, { status: 400 })
       }
       const wavError = await validateWavFormatFromFilePath(audio.tempFilePath)
       if (wavError) return NextResponse.json({ error: wavError }, { status: 400 })
-
-      const tracks = Array.isArray(draft.payload.albumTracks)
-        ? (draft.payload.albumTracks as AlbumDraftTrackPayload[])
-        : []
-      const idx = tracks.findIndex((t) => `${t.tempId ?? ""}`.trim() === tempId)
-      if (idx < 0) {
-        return NextResponse.json({ error: "Трек черновика не найден" }, { status: 404 })
-      }
 
       const newRelPath = `${crypto.randomUUID()}.wav`
       const draftsDir = await getUploadDraftsDir()
       await copyFileToPathAtomic(audio.tempFilePath, path.join(draftsDir, newRelPath))
 
-      const prevRelPath = tracks[idx]?.audioRelPath
-      if (typeof prevRelPath === "string" && prevRelPath.trim()) {
-        await unlinkUploadDraftMediaFile(prevRelPath)
-      }
-
-      const nextTracks = tracks.map((track, trackIndex) =>
-        trackIndex === idx ? { ...track, audioRelPath: newRelPath } : track
-      )
-      const updated = await updateUploadDraft(draft.id, {
-        payload: {
-          ...draft.payload,
-          albumTracks: nextTracks,
-        },
-      })
-
-      return NextResponse.json({
-        ok: true,
-        draft: updated,
-        tempId,
-        audioRelPath: newRelPath,
-      })
+      const attached = await attachAlbumTrackAudio({ draft, tempId, newRelPath })
+      if (attached.error) return attached.error
+      return NextResponse.json(attached.json)
     } finally {
       await multipart.cleanup()
     }

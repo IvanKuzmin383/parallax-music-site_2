@@ -17,7 +17,7 @@ import { createAlbum } from "@/lib/albums"
 import { withTransaction } from "@/lib/database"
 import { getClientIp, getUserAgent, tryRecordLicenseAcceptanceForTrack } from "@/lib/legal-acceptance"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
-import { isYyyyMmDdReleaseWeekend } from "@/lib/release-date-validation"
+import { validateReleaseDateYyyyMmDd } from "@/lib/release-date-validation"
 import {
   MultipartRequestError,
   parseMultipartRequestStream,
@@ -200,14 +200,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (releaseDate && isYyyyMmDdReleaseWeekend(releaseDate)) {
-      return NextResponse.json(
-        {
-          error:
-            "Дата публикации не может приходиться на выходной день (суббота или воскресенье)",
-        },
-        { status: 400 }
-      )
+    const releaseDateError = validateReleaseDateYyyyMmDd(releaseDate)
+    if (releaseDateError) {
+      return NextResponse.json({ error: releaseDateError }, { status: 400 })
     }
 
     let coverExt: string | undefined

@@ -96,6 +96,7 @@ import { StreamingServicesField } from "@/components/streaming-services-field"
 import { cn } from "@/lib/utils"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { fetchAdminArtistsIndex, fetchAdminTracksAllMatching, fetchAdminTracksForArtist } from "@/lib/admin-tracks-fetch"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import {
   type AdminArtistIndexItem,
   type AdminTracksListQuery,
@@ -105,8 +106,8 @@ import {
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "upload_pending", label: "Требуется доработка" },
   { value: "on_moderation", label: "На модерации" },
-  { value: "sent_to_platforms", label: "Модерация стриминг-сервисами" },
-  { value: "approved_by_platforms", label: "Одобрен площадками" },
+  { value: "sent_to_platforms", label: "Отправлен агрегатору" },
+  { value: "approved_by_platforms", label: "Отправлен на площадки" },
   { value: "released", label: "Выпущен" },
   { value: "rejected", label: "Отклонено" },
   { value: "postponed", label: "Отложено" },
@@ -223,6 +224,7 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     releaseDate: releaseDateStr,
     streamingScope: normalizeStreamingScope(p.streamingScope),
     transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
+    catalogNumber: "",
     upc: `${p.transferUpc ?? ""}`,
     isrc: `${p.transferIsrc ?? ""}`,
     moderationNote: "",
@@ -331,6 +333,7 @@ type TrackDraft = {
   releaseDate: string
   streamingScope: TrackStreamingScope
   transferFromOtherDistributor: boolean
+  catalogNumber: string
   upc: string
   isrc: string
   moderationNote: string
@@ -374,6 +377,7 @@ function trackToDraft(t: Track): TrackDraft {
     releaseDate: releaseDateStr,
     streamingScope: t.streamingScope,
     transferFromOtherDistributor: Boolean(t.transferFromOtherDistributor),
+    catalogNumber: t.catalogNumber ?? "",
     upc: t.upc ?? "",
     isrc: t.isrc ?? "",
     moderationNote: t.moderationNote ?? "",
@@ -438,6 +442,7 @@ export default function TracksPageClient() {
   const [albumBulkAlbumId, setAlbumBulkAlbumId] = useState<string | null>(null)
   const [albumBulkTrackCount, setAlbumBulkTrackCount] = useState(0)
   const [albumBulkUpc, setAlbumBulkUpc] = useState("")
+  const [albumBulkCatalogNumber, setAlbumBulkCatalogNumber] = useState("")
   const [albumBulkPlatformLinks, setAlbumBulkPlatformLinks] = useState<PlatformLinks>({})
   const [albumBulkSaving, setAlbumBulkSaving] = useState(false)
   const [resolvingTrackLinks, setResolvingTrackLinks] = useState(false)
@@ -998,6 +1003,7 @@ export default function TracksPageClient() {
         status: trackDraft.status,
         releaseDate: trackDraft.releaseDate.trim() === "" ? null : trackDraft.releaseDate.trim(),
         streamingScope: trackDraft.streamingScope,
+        catalogNumber: trackDraft.catalogNumber.trim() || null,
         upc: trackDraft.upc.trim() || null,
         isrc: trackDraft.isrc.trim() || null,
         transferFromOtherDistributor: trackDraft.transferFromOtherDistributor,
@@ -1041,6 +1047,15 @@ export default function TracksPageClient() {
     void navigator.clipboard.writeText(url).then(() => {
       toast.success("Ссылка скопирована")
     })
+  }
+
+  const handleOpenSmartlink = (track: Track) => {
+    const slug = track.smartlinkSlug?.trim()
+    if (!slug) {
+      toast.error("У трека нет смартлинка")
+      return
+    }
+    window.open(getSmartlinkUrl(slug), "_blank", "noopener,noreferrer")
   }
 
   const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
@@ -1124,6 +1139,7 @@ export default function TracksPageClient() {
     setAlbumBulkTrackCount(ordered.length)
     const first = ordered[0]
     setAlbumBulkUpc(first?.upc ?? "")
+    setAlbumBulkCatalogNumber(first?.catalogNumber ?? "")
     setAlbumBulkPlatformLinks(first?.platformLinks ?? {})
     setAlbumBulkOpen(true)
   }
@@ -1201,13 +1217,15 @@ export default function TracksPageClient() {
   const handleAlbumBulkSave = async () => {
     if (!albumBulkAlbumId) return
     const hasAnyLink = Object.values(albumBulkPlatformLinks).some((v) => typeof v === "string" && v.trim().length > 0)
-    if (!albumBulkUpc.trim() && !hasAnyLink) {
-      toast.error("Укажите UPC и/или ссылки на платформы")
+    if (!albumBulkCatalogNumber.trim() && !albumBulkUpc.trim() && !hasAnyLink) {
+      toast.error("Укажите артикул, UPC и/или ссылки на платформы")
       return
     }
     setAlbumBulkSaving(true)
     try {
-      const body: { upc?: string | null; platformLinks?: PlatformLinks } = {}
+      const body: { catalogNumber?: string | null; upc?: string | null; platformLinks?: PlatformLinks } = {}
+      if (albumBulkCatalogNumber.trim()) body.catalogNumber = albumBulkCatalogNumber.trim()
+      else body.catalogNumber = null
       if (albumBulkUpc.trim()) body.upc = albumBulkUpc.trim()
       else body.upc = null
       if (hasAnyLink) body.platformLinks = albumBulkPlatformLinks
@@ -1526,8 +1544,8 @@ export default function TracksPageClient() {
       toast.error("Аудио должно быть в формате WAV")
       return
     }
-    if (file.size > 80 * 1024 * 1024) {
-      toast.error("Размер аудиофайла не должен превышать 80 MB")
+    if (file.size > MAX_CABINET_WAV_BYTES) {
+      toast.error(cabinetWavMaxSizeError())
       return
     }
     void handleUploadDraftAudioUpload(draftId, file)
@@ -1691,7 +1709,7 @@ export default function TracksPageClient() {
                                     }
                                   >
                                     <Link2 className="h-4 w-4 mr-1" />
-                                    UPC и ссылки
+                                    Артикул, UPC и ссылки
                                   </Button>
                                 </div>
                               </div>
@@ -1751,6 +1769,8 @@ export default function TracksPageClient() {
                                           Права на исполнение:{" "}
                                           {track.performanceRights?.trim() || "—"}
                                         </p>
+                                        {track.catalogNumber ? <p>Артикул: {track.catalogNumber}</p> : null}
+                                        {track.isrc ? <p>ISRC: {track.isrc}</p> : null}
                                         {track.upc ? <p>UPC: {track.upc}</p> : null}
                                         <p>
                                           Дата публикации:{" "}
@@ -1842,6 +1862,17 @@ export default function TracksPageClient() {
                                     onClick={() => void handleCopyLyrics(track)}
                                   >
                                     <FileText className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Открыть смартлинк"
+                                    aria-label="Открыть смартлинк"
+                                    disabled={!track.smartlinkSlug?.trim()}
+                                    onClick={() => handleOpenSmartlink(track)}
+                                  >
+                                    <Link2 className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -2367,46 +2398,61 @@ export default function TracksPageClient() {
                       </Select>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <Table className="min-w-[1320px]">
+                  <CardContent className="pt-0 overflow-x-auto">
+                    <Table className="min-w-[980px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="min-w-[140px]">Артист</TableHead>
-                          <TableHead className="min-w-[160px]">Трек</TableHead>
-                          <TableHead className="min-w-[120px]">Альбом</TableHead>
-                          <TableHead className="min-w-[200px]">Пользователь (email)</TableHead>
-                          <TableHead className="min-w-[130px]">Дата создания</TableHead>
-                          <TableHead className="min-w-[120px]">Дата публикации</TableHead>
+                          <TableHead className="min-w-[200px]">Артист / трек</TableHead>
+                          <TableHead className="min-w-[100px]">Тип релиза</TableHead>
+                          <TableHead className="min-w-[130px]">Даты</TableHead>
+                          <TableHead className="min-w-[100px]">Артикул</TableHead>
+                          <TableHead className="min-w-[100px]">ISRC</TableHead>
                           <TableHead className="min-w-[100px]">UPC</TableHead>
-                          <TableHead className="min-w-[200px]">Статус</TableHead>
-                          <TableHead className="min-w-[200px] text-right">Действия</TableHead>
+                          <TableHead className="min-w-[170px]">Статус</TableHead>
+                          <TableHead className="min-w-[220px] text-right">Действия</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {simpleListTracksVisible.map((track) => (
                           <TableRow key={track.id}>
-                            <TableCell className="max-w-[220px] whitespace-normal">
-                              {track.artistName?.trim() || "Без имени артиста"}
+                            <TableCell className="max-w-[280px] whitespace-normal align-top">
+                              <div className="space-y-0.5">
+                                <p className="font-medium leading-snug">
+                                  {track.artistName?.trim() || "Без имени артиста"}
+                                </p>
+                                <p className="leading-snug">{track.trackName}</p>
+                                <p className="text-xs text-muted-foreground break-all leading-snug">
+                                  {track.userId}
+                                </p>
+                              </div>
                             </TableCell>
-                            <TableCell className="max-w-[260px] whitespace-normal">
-                              {track.trackName}
-                            </TableCell>
-                            <TableCell>
+                            <TableCell className="align-top whitespace-normal">
                               {track.albumId ? trackAlbumTitleById[track.albumId] ?? "-" : "Сингл"}
                             </TableCell>
-                            <TableCell className="max-w-[260px] whitespace-normal break-all text-sm">
-                              {track.userId}
+                            <TableCell className="align-top whitespace-normal text-sm">
+                              <div className="space-y-1 leading-snug">
+                                <p>
+                                  <span className="text-xs text-muted-foreground">Создан: </span>
+                                  {format(new Date(track.createdAt), "d MMM yyyy, HH:mm", {
+                                    locale: ru,
+                                  })}
+                                </p>
+                                <p>
+                                  <span className="text-xs text-muted-foreground">
+                                    Публикация:{" "}
+                                  </span>
+                                  {track.releaseDate
+                                    ? format(new Date(track.releaseDate), "d MMM yyyy", {
+                                        locale: ru,
+                                      })
+                                    : "-"}
+                                </p>
+                              </div>
                             </TableCell>
-                            <TableCell>
-                              {format(new Date(track.createdAt), "d MMM yyyy, HH:mm", { locale: ru })}
-                            </TableCell>
-                            <TableCell>
-                              {track.releaseDate
-                                ? format(new Date(track.releaseDate), "d MMM yyyy", { locale: ru })
-                                : "-"}
-                            </TableCell>
-                            <TableCell>{track.upc?.trim() ? track.upc : "-"}</TableCell>
-                            <TableCell>
+                            <TableCell className="align-top">{track.catalogNumber?.trim() ? track.catalogNumber : "-"}</TableCell>
+                            <TableCell className="align-top">{track.isrc?.trim() ? track.isrc : "-"}</TableCell>
+                            <TableCell className="align-top">{track.upc?.trim() ? track.upc : "-"}</TableCell>
+                            <TableCell className="align-top">
                               <Select
                                 value={track.status}
                                 onValueChange={(v) =>
@@ -2414,7 +2460,7 @@ export default function TracksPageClient() {
                                 }
                                 disabled={updatingId === track.id}
                               >
-                                <SelectTrigger className="w-[220px]">
+                                <SelectTrigger className="w-[170px]">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -2426,8 +2472,8 @@ export default function TracksPageClient() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-end gap-2 flex-wrap">
+                            <TableCell className="align-top">
+                              <div className="flex items-center justify-end gap-1.5 flex-nowrap">
                                 <Button
                                   variant="outline"
                                   size="icon"
@@ -2473,6 +2519,17 @@ export default function TracksPageClient() {
                                   onClick={() => void handleCopyLyrics(track)}
                                 >
                                   <FileText className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Открыть смартлинк"
+                                  aria-label="Открыть смартлинк"
+                                  disabled={!track.smartlinkSlug?.trim()}
+                                  onClick={() => handleOpenSmartlink(track)}
+                                >
+                                  <Link2 className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -2834,6 +2891,18 @@ export default function TracksPageClient() {
                       </label>
                     </div>
                     <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-catalog-number">Артикул</Label>
+                        <Input
+                          id="admin-catalog-number"
+                          className="font-mono"
+                          placeholder="PRLXM000025"
+                          value={trackDraft.catalogNumber}
+                          onChange={(e) =>
+                            setTrackDraft((d) => (d ? { ...d, catalogNumber: e.target.value } : d))
+                          }
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="admin-upc">UPC</Label>
                         <Input
@@ -3387,7 +3456,7 @@ export default function TracksPageClient() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Apple / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
+                    Apple / Deezer / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
                     .env. YouTube Music — опционально YOUTUBE_API_KEY. VK и Звук — вручную. Не
                     забудьте сохранить трек.
                   </p>
@@ -3672,12 +3741,21 @@ export default function TracksPageClient() {
         <Dialog open={albumBulkOpen} onOpenChange={setAlbumBulkOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>UPC и ссылки для альбома</DialogTitle>
+              <DialogTitle>Артикул, UPC и ссылки для альбома</DialogTitle>
               <DialogDescription>
                 Значения будут применены ко всем {albumBulkTrackCount} трекам альбома
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Артикул</label>
+                <Input
+                  className="font-mono mt-1 max-w-xs"
+                  placeholder="PRLXM000025"
+                  value={albumBulkCatalogNumber}
+                  onChange={(e) => setAlbumBulkCatalogNumber(e.target.value)}
+                />
+              </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">UPC</label>
                 <Input

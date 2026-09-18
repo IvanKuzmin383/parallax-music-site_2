@@ -1,5 +1,7 @@
 /** Клиентские утилиты загрузки релизов (кабинет). */
 
+import { MAX_CABINET_WAV_MB } from "@/lib/cabinet-wav-upload-limits"
+
 const WAV_MIME_HINTS = ["audio/wav", "audio/wave", "audio/x-wav", "audio/vnd.wave"] as const
 
 export const WAV_FILE_READ_ERROR =
@@ -30,7 +32,7 @@ export async function parseCabinetApiJson<T = CabinetApiJsonBody>(
     const fallback = (message: string): T & CabinetApiJsonBody =>
       ({ error: message }) as T & CabinetApiJsonBody
     if (response.status === 413) {
-      return fallback("Файл слишком большой (макс. 80 MB для аудио, 20 MB для обложки).")
+      return fallback(`Файл слишком большой (макс. ${MAX_CABINET_WAV_MB} MB для аудио, 20 MB для обложки).`)
     }
     if (response.status >= 500) {
       return fallback(`Ошибка сервера (${response.status}). Попробуйте позже или через Wi‑Fi.`)
@@ -144,7 +146,7 @@ export function formatCabinetUploadFailure(
 ): string {
   if (error instanceof DOMException) {
     if (error.name === "AbortError") {
-      return "Загрузка заняла слишком много времени. Проверьте интернет-соединение и попробуйте снова."
+      return "Загрузка заняла слишком много времени. Подключитесь к Wi‑Fi и не сворачивайте браузер, пока файл не отправится."
     }
     if (error.name === "NotReadableError") {
       return variant === "cover" ? COVER_IMAGE_READ_ERROR : WAV_FILE_READ_ERROR
@@ -152,7 +154,7 @@ export function formatCabinetUploadFailure(
   }
   if (error instanceof Error) {
     if (/failed to fetch|networkerror|load failed/i.test(error.message)) {
-      return "Нет связи с сервером. Проверьте интернет и попробуйте снова."
+      return "Связь оборвалась во время загрузки файла. Подключитесь к Wi‑Fi, не сворачивайте вкладку и попробуйте снова."
     }
     if (error.message.trim()) return error.message
   }

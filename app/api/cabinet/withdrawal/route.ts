@@ -5,6 +5,12 @@ import { notifyStaffInBackground } from '@/lib/form-notifications'
 import { getCabinetToken, getCabinetSession } from '@/lib/cabinet-auth'
 import { getCabinetUserByEmail } from '@/lib/cabinet-users'
 import { createWithdrawalRequest } from '@/lib/withdrawal-requests'
+import {
+  formatRub,
+  snapshotWithdrawalPayout,
+  WITHDRAWAL_RECIPIENT_STATUS_LABELS,
+  WITHDRAWAL_RECIPIENT_STATUSES,
+} from '@/lib/withdrawal-payout-calc'
 
 const withdrawalSchema = z.object({
   amount: z.number().min(1000, "Минимальная сумма вывода 1000 ₽"),
@@ -13,11 +19,11 @@ const withdrawalSchema = z.object({
   cardNumber: z.string().optional(),
   bank: z.string().optional(),
   recipientName: z.string().min(2, "ФИО получателя обязательно"),
+  recipientStatus: z.enum(WITHDRAWAL_RECIPIENT_STATUSES),
 })
 
 export async function POST(request: NextRequest) {
   try {
-    // Проверка аутентификации
     const token = getCabinetToken(request)
     const session = getCabinetSession(token)
     if (!session) {
@@ -37,10 +43,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     
-    // Валидация данных
     const validatedData = withdrawalSchema.parse(body)
     
-    // Проверка баланса
     const currentBalance = user.streamingBalance || 0
     if (validatedData.amount > currentBalance) {
       return NextResponse.json(
@@ -48,8 +52,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const payout = snapshotWithdrawalPayout(validatedData.amount, validatedData.recipientStatus)
     
-    // Дополнительная валидация в зависимости от типа
     if (validatedData.type === "sbp" && !validatedData.phone) {
       return NextResponse.json(
         { success: false, error: "Номер телефона обязателен для СБП" },
@@ -72,10 +77,9 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Создание заявки в БД
     const withdrawalRequest = await createWithdrawalRequest(
       user.id,
-      validatedData.amount,
+      payout,
       validatedData.type,
       validatedData.recipientName,
       validatedData.phone,
@@ -83,11 +87,19 @@ export async function POST(request: NextRequest) {
       validatedData.bank
     )
     
-    // Формирование сообщения для Telegram
+    const statusLabel = WITHDRAWAL_RECIPIENT_STATUS_LABELS[payout.recipientStatus]
     let message = `<b>Запрос на вывод средств</b>\n\n`
     message += `<b>ID заявки:</b> ${withdrawalRequest.id}\n`
     message += `<b>Пользователь:</b> ${escapeHtml(user.email)}\n`
-    message += `<b>Сумма:</b> ${validatedData.amount.toLocaleString("ru-RU")} ₽\n`
+    message += `<b>Статус получателя:</b> ${escapeHtml(statusLabel)}\n`
+    message += `<b>Роялти (с баланса):</b> ${formatRub(payout.amount)}\n`
+    if (payout.recipientStatus === "individual") {
+      message += `<b>НДФЛ (прогноз):</b> ${formatRub(payout.payoutNdfl)}\n`
+      message += `<b>Страховые взносы (прогноз):</b> ${formatRub(payout.payoutInsurance)}\n`
+      message += `<b>К перечислению (прогноз):</b> ${formatRub(payout.payoutNet)}\n`
+    } else {
+      message += `<b>К перечислению:</b> ${formatRub(payout.payoutNet)}\n`
+    }
     message += `<b>Тип вывода:</b> ${validatedData.type === "sbp" ? "СБП" : "Банковская карта"}\n`
     message += `<b>ФИО получателя:</b> ${escapeHtml(validatedData.recipientName)}\n`
     
@@ -101,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     notifyStaffInBackground({
       telegramMessage: message,
-      emailSubject: `[Parallax] Вывод ${validatedData.amount.toLocaleString('ru-RU')} ₽: ${user.email}`,
+      emailSubject: `[Parallax] Вывод ${formatRub(payout.amount)}: ${user.email}`,
       logContext: 'cabinet/withdrawal',
     })
     

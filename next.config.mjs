@@ -79,7 +79,7 @@ const nextConfig = {
   reactStrictMode: true,
   htmlLimitedBots,
   experimental: {
-    proxyClientMaxBodySize: '80mb',
+    proxyClientMaxBodySize: '120mb',
   },
   compress: true,
   poweredByHeader: false,

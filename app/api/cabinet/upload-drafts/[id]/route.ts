@@ -23,13 +23,15 @@ import {
   validateCabinetCoverImageFromFilePath,
 } from "@/lib/cabinet-cover-validation"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
+import { claimDraftAudioRelPath } from "@/lib/cabinet-chunk-uploads"
 import {
   MultipartRequestError,
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
+import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 
-const MAX_AUDIO_SIZE = 80 * 1024 * 1024
+const MAX_AUDIO_SIZE = MAX_CABINET_WAV_BYTES
 
 function draftIsEditable(d: UploadDraft): boolean {
   return d.status === "collecting" || d.status === "awaiting_payment" || d.status === "paid"
@@ -133,13 +135,23 @@ export async function PATCH(
         }
         const partial: Parameters<typeof updateUploadDraft>[1] = { payload: nextPayload }
 
+        const claimedRaw = `${multipart.getField("audioRelPath") ?? ""}`.trim()
+        if (claimedRaw) {
+          const claimed = await claimDraftAudioRelPath(session.email, claimedRaw)
+          if (!claimed.ok) {
+            return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+          }
+          if (draft.audioRelPath) await unlinkUploadDraftMediaFile(draft.audioRelPath)
+          partial.audioRelPath = claimed.relPath
+        }
+
         const audio = multipart.getFile("audio")
-        if (audio) {
+        if (!claimedRaw && audio) {
           if (audio.size === 0) {
             return NextResponse.json({ error: "Аудиофайл пустой. Загрузите WAV повторно" }, { status: 400 })
           }
           if (audio.size > MAX_AUDIO_SIZE) {
-            return NextResponse.json({ error: "Размер аудиофайла не должен превышать 80 MB" }, { status: 400 })
+            return NextResponse.json({ error: cabinetWavMaxSizeError() }, { status: 400 })
           }
           const wavError = await validateWavFormatFromFilePath(audio.tempFilePath)
           if (wavError) return NextResponse.json({ error: wavError }, { status: 400 })
@@ -209,6 +221,15 @@ export async function PATCH(
   const partial: Parameters<typeof updateUploadDraft>[1] = {
     payload: nextPayload,
     albumId: typeof body.albumId === "string" ? body.albumId : draft.albumId,
+  }
+
+  if (typeof body.audioRelPath === "string" && body.audioRelPath.trim()) {
+    const claimed = await claimDraftAudioRelPath(session.email, body.audioRelPath)
+    if (!claimed.ok) {
+      return NextResponse.json({ error: claimed.error }, { status: claimed.status })
+    }
+    if (draft.audioRelPath) await unlinkUploadDraftMediaFile(draft.audioRelPath)
+    partial.audioRelPath = claimed.relPath
   }
 
   if (Boolean(nextPayload.requestAiCover) && draft.coverRelPath) {

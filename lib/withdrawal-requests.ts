@@ -1,5 +1,10 @@
 import crypto from "crypto"
 import { query, queryOne, execute } from "./database"
+import {
+  isWithdrawalRecipientStatus,
+  type WithdrawalPayoutSnapshot,
+  type WithdrawalRecipientStatus,
+} from "./withdrawal-payout-calc"
 
 export type WithdrawalStatus = "pending" | "rejected" | "completed"
 
@@ -12,6 +17,11 @@ export interface WithdrawalRequest {
   cardNumber?: string
   bank?: string
   recipientName: string
+  recipientStatus?: WithdrawalRecipientStatus
+  payoutGross?: number
+  payoutNdfl?: number
+  payoutInsurance?: number
+  payoutNet?: number
   status: WithdrawalStatus
   createdAt: string
   updatedAt: string
@@ -20,27 +30,47 @@ export interface WithdrawalRequest {
 interface WithdrawalRequestRow {
   id: string
   user_id: string
-  amount: number
+  amount: number | string
   type: string
   phone: string | null
   card_number: string | null
   bank: string | null
   recipient_name: string
+  recipient_status: string | null
+  payout_gross: number | string | null
+  payout_ndfl: number | string | null
+  payout_insurance: number | string | null
+  payout_net: number | string | null
   status: string
   created_at: string
   updated_at: string
 }
 
+function toOptionalNumber(value: unknown): number | undefined {
+  if (value == null || value === "") return undefined
+  const n = Number(value)
+  return Number.isFinite(n) ? n : undefined
+}
+
 function rowToWithdrawal(row: WithdrawalRequestRow): WithdrawalRequest {
+  const recipientStatus =
+    row.recipient_status && isWithdrawalRecipientStatus(row.recipient_status)
+      ? row.recipient_status
+      : undefined
   return {
     id: row.id,
     userId: row.user_id,
-    amount: row.amount,
+    amount: Number(row.amount),
     type: row.type as "sbp" | "card",
     phone: row.phone ?? undefined,
     cardNumber: row.card_number ?? undefined,
     bank: row.bank ?? undefined,
     recipientName: row.recipient_name,
+    recipientStatus,
+    payoutGross: toOptionalNumber(row.payout_gross),
+    payoutNdfl: toOptionalNumber(row.payout_ndfl),
+    payoutInsurance: toOptionalNumber(row.payout_insurance),
+    payoutNet: toOptionalNumber(row.payout_net),
     status: row.status as WithdrawalStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -64,7 +94,7 @@ export async function getWithdrawalRequestById(id: string): Promise<WithdrawalRe
 
 export async function createWithdrawalRequest(
   userId: string,
-  amount: number,
+  payout: WithdrawalPayoutSnapshot,
   type: "sbp" | "card",
   recipientName: string,
   phone?: string,
@@ -76,14 +106,40 @@ export async function createWithdrawalRequest(
 
   await execute(
     `
-    INSERT INTO withdrawal_requests (id, user_id, amount, type, phone, card_number, bank, recipient_name, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    INSERT INTO withdrawal_requests (
+      id, user_id, amount, type, phone, card_number, bank, recipient_name,
+      recipient_status, payout_gross, payout_ndfl, payout_insurance, payout_net,
+      status, created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
   `,
-    [id, userId, amount, type, phone ?? null, cardNumber ?? null, bank ?? null, recipientName, now, now]
+    [
+      id,
+      userId,
+      payout.amount,
+      type,
+      phone ?? null,
+      cardNumber ?? null,
+      bank ?? null,
+      recipientName,
+      payout.recipientStatus,
+      payout.payoutGross,
+      payout.payoutNdfl,
+      payout.payoutInsurance,
+      payout.payoutNet,
+      now,
+      now,
+    ]
   )
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[withdrawal-requests] Created withdrawal request", { id, userId, amount, type })
+    console.log("[withdrawal-requests] Created withdrawal request", {
+      id,
+      userId,
+      amount: payout.amount,
+      type,
+      recipientStatus: payout.recipientStatus,
+    })
   }
 
   return (await getWithdrawalRequestById(id)) as WithdrawalRequest

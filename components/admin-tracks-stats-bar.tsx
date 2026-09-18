@@ -13,8 +13,8 @@ export type TracksViewFilter =
 const STATUS_CARDS: { value: TrackStatus; label: string; shortLabel: string }[] = [
   { value: "upload_pending", label: "Требуется доработка", shortLabel: "Доработка" },
   { value: "on_moderation", label: "На модерации", shortLabel: "Модерация" },
-  { value: "sent_to_platforms", label: "Модерация стриминг-сервисами", shortLabel: "Стриминги" },
-  { value: "approved_by_platforms", label: "Одобрен площадками", shortLabel: "Одобрено" },
+  { value: "sent_to_platforms", label: "Отправлен агрегатору", shortLabel: "Агрегатор" },
+  { value: "approved_by_platforms", label: "Отправлен на площадки", shortLabel: "Площадки" },
   { value: "released", label: "Выпущен", shortLabel: "Выпущен" },
   { value: "rejected", label: "Отклонено", shortLabel: "Отклонено" },
   { value: "postponed", label: "Отложено", shortLabel: "Отложено" },

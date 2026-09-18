@@ -15,6 +15,11 @@ import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Wallet, Clock, CheckCircle, XCircle } from "lucide-react"
 import { AdminSectionNav } from "@/components/admin-section-nav"
+import {
+  formatRub,
+  WITHDRAWAL_RECIPIENT_STATUS_LABELS,
+  type WithdrawalRecipientStatus,
+} from "@/lib/withdrawal-payout-calc"
 
 interface WithdrawalRequest {
   id: string
@@ -26,6 +31,11 @@ interface WithdrawalRequest {
   cardNumber?: string
   bank?: string
   recipientName: string
+  recipientStatus?: WithdrawalRecipientStatus
+  payoutGross?: number
+  payoutNdfl?: number
+  payoutInsurance?: number
+  payoutNet?: number
   status: "pending" | "rejected" | "completed"
   createdAt: string
   updatedAt: string
@@ -167,8 +177,13 @@ export default function AdminWithdrawalsPage() {
                           </span>
                         </div>
                         <span className="text-2xl font-bold">
-                          {request.amount.toLocaleString("ru-RU")} ₽
+                          {formatRub(request.payoutNet ?? request.amount)}
                         </span>
+                        {request.payoutNet != null && request.payoutNet !== request.amount ? (
+                          <span className="text-sm text-muted-foreground">
+                            к перечислению · с баланса {formatRub(request.amount)}
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -184,6 +199,26 @@ export default function AdminWithdrawalsPage() {
                           <p className="text-muted-foreground">ФИО получателя</p>
                           <p className="font-medium">{request.recipientName}</p>
                         </div>
+                        {request.recipientStatus ? (
+                          <div>
+                            <p className="text-muted-foreground">Статус получателя</p>
+                            <p className="font-medium">
+                              {WITHDRAWAL_RECIPIENT_STATUS_LABELS[request.recipientStatus]}
+                            </p>
+                          </div>
+                        ) : null}
+                        {request.recipientStatus === "individual" &&
+                        request.payoutNdfl != null &&
+                        request.payoutInsurance != null ? (
+                          <div className="md:col-span-2 text-sm space-y-1">
+                            <p className="text-muted-foreground">Прогнозный расчёт (физлицо)</p>
+                            <p>
+                              роялти {formatRub(request.amount)} · НДФЛ {formatRub(request.payoutNdfl)} ·
+                              взносы {formatRub(request.payoutInsurance)} · к перечислению{" "}
+                              {formatRub(request.payoutNet ?? request.amount)}
+                            </p>
+                          </div>
+                        ) : null}
                         {request.type === "sbp" && request.phone && (
                           <div>
                             <p className="text-muted-foreground">Номер телефона</p>
