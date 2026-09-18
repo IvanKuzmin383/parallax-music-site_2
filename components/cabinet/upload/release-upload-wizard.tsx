@@ -31,7 +31,15 @@ import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { isReleaseDateWeekend } from "@/lib/release-date-validation"
+import { isReleaseDateWeekend, MIN_RELEASE_DAYS_AHEAD } from "@/lib/release-date-validation"
+import {
+  getEarliestAvailableReleaseDate,
+  getReleaseDateTier,
+  isReleaseDateSelectable,
+  RELEASE_DATE_STANDARD_FROM_DAYS,
+  RELEASE_DATE_TIER_LABEL,
+  RELEASE_DATE_TIER_PRICE_RUB,
+} from "@/lib/release-date-tiers"
 import {
   COVER_HEIC_ERROR,
   COVER_REQUIRED_PX,
@@ -87,12 +95,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [title, setTitle] = useState("")
   const [artistName, setArtistName] = useState("")
   const [releaseDate, setReleaseDate] = useState<Date | undefined>()
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => getEarliestAvailableReleaseDate())
   const [upc, setUpc] = useState("")
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [consentOffer, setConsentOffer] = useState(false)
 
   const [requestAiCover, setRequestAiCover] = useState(false)
   const [aiCoverInfoOpen, setAiCoverInfoOpen] = useState(false)
+
+  const earliestAvailableDate = useMemo(() => getEarliestAvailableReleaseDate(), [])
+  const selectedReleaseTier = releaseDate ? getReleaseDateTier(releaseDate) : null
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
   const [addonVerticalVideoCount, setAddonVerticalVideoCount] = useState(1)
   const [addonAiMastering, setAddonAiMastering] = useState(false)
@@ -176,7 +189,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setTitle(r.title)
     setArtistName(r.artistName)
     setUpc(r.upc ?? "")
-    setReleaseDate(r.releaseDate ? new Date(r.releaseDate) : undefined)
+    const loadedDate = r.releaseDate ? new Date(r.releaseDate) : undefined
+    setReleaseDate(loadedDate)
+    if (loadedDate) setCalendarMonth(loadedDate)
     setRequestAiCover(r.requestAiCover)
     const a = r.addons
     setAddonVerticalVideo(Boolean(a?.verticalVideo?.enabled))
@@ -616,15 +631,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (!title.trim()) return "Укажите название релиза"
     if (!artistName.trim()) return "Укажите имя артиста / название группы"
     if (!releaseDate) return "Укажите желаемую дату релиза"
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const min = new Date(today)
-    min.setDate(min.getDate() + 14)
-    if (releaseDate < min) {
-      return "Дата публикации должна быть не ранее чем через 14 дней от сегодня"
-    }
-    if (isReleaseDateWeekend(releaseDate)) {
-      return "Дата публикации не может приходиться на выходной"
+    if (!isReleaseDateSelectable(releaseDate)) {
+      if (isReleaseDateWeekend(releaseDate)) {
+        return "Дата публикации не может приходиться на выходной"
+      }
+      return `Дата публикации должна быть не ранее чем через ${MIN_RELEASE_DAYS_AHEAD} дней от сегодня`
     }
     if (!release?.coverPath && !coverPreview && !requestAiCover) {
       return "Загрузите обложку или закажите AI-обложку"
@@ -914,7 +925,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               </div>
               <div>
                 <Label>Желаемая дата релиза *</Label>
-                <Popover>
+                <Popover
+                  open={datePopoverOpen}
+                  onOpenChange={(open) => {
+                    setDatePopoverOpen(open)
+                    if (open) {
+                      const focusDate = releaseDate ?? earliestAvailableDate
+                      setCalendarMonth(focusDate)
+                      if (!releaseDate) setReleaseDate(earliestAvailableDate)
+                    }
+                  }}
+                >
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full justify-start", !releaseDate && "text-muted-foreground")} disabled={formDisabled}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -924,22 +945,105 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
+                      month={calendarMonth}
+                      onMonthChange={setCalendarMonth}
                       selected={releaseDate}
-                      onSelect={setReleaseDate}
-                      disabled={(date) => {
-                        const today = new Date()
-                        today.setHours(0, 0, 0, 0)
-                        const min = new Date(today)
-                        min.setDate(min.getDate() + 14)
-                        return date < min || isReleaseDateWeekend(date)
+                      onSelect={(date) => {
+                        setReleaseDate(date)
+                        if (date) setDatePopoverOpen(false)
+                      }}
+                      autoFocus
+                      disabled={(date) => formDisabled || !isReleaseDateSelectable(date)}
+                      modifiers={{
+                        tierAccelerated: (date) => getReleaseDateTier(date) === "accelerated",
+                        tierFast: (date) => getReleaseDateTier(date) === "fast",
+                        tierStandard: (date) => getReleaseDateTier(date) === "standard",
+                      }}
+                      modifiersClassNames={{
+                        tierAccelerated:
+                          "[&_button]:bg-emerald-500/25 [&_button]:text-emerald-200 [&_button]:border [&_button]:border-emerald-500/70 [&_button]:rounded-md",
+                        tierFast:
+                          "[&_button]:bg-sky-500/25 [&_button]:text-sky-200 [&_button]:border [&_button]:border-sky-500/70 [&_button]:rounded-md",
+                        tierStandard:
+                          "[&_button]:bg-orange-500/20 [&_button]:text-orange-200 [&_button]:border [&_button]:border-orange-500/60 [&_button]:rounded-md",
+                      }}
+                      classNames={{
+                        today: "bg-transparent",
                       }}
                     />
+                    <div className="space-y-1.5 border-t border-border px-3 py-2.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+                        <span>
+                          {RELEASE_DATE_TIER_LABEL.accelerated}: {RELEASE_DATE_TIER_PRICE_RUB.accelerated}₽
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
+                        <span>
+                          {RELEASE_DATE_TIER_LABEL.fast}: {RELEASE_DATE_TIER_PRICE_RUB.fast}₽
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
+                        <span>
+                          {RELEASE_DATE_TIER_LABEL.standard}: {RELEASE_DATE_TIER_PRICE_RUB.standard}₽
+                        </span>
+                      </div>
+                    </div>
                   </PopoverContent>
                 </Popover>
+                {selectedReleaseTier ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
+                    {selectedReleaseTier === "standard"
+                      ? ` · от ${RELEASE_DATE_STANDARD_FROM_DAYS} дней — удобно для питчинга`
+                      : null}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ближайшая доступная дата — через {MIN_RELEASE_DAYS_AHEAD} дней (без выходных). Стандарт бесплатно от{" "}
+                    {RELEASE_DATE_STANDARD_FROM_DAYS} дней.
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label>UPC / EAN</Label>
+                <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Идеально - не ранее 21 дня после заполнения формы для отправки питчинга. Минимально - 7 календарных дней, если без питчинга.
+                  Укажите UPC / EAN релиза, если переносите релиз от другого дистрибьютора
                 </p>
               </div>
+              <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
+                <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
+                  <Checkbox
+                    className="mt-0.5 shrink-0"
+                    checked={requestAiCover}
+                    onCheckedChange={(c) => setRequestAiCover(c === true)}
+                    disabled={formDisabled}
+                  />
+                  <span>Необходимо создание AI-обложки</span>
+                </label>
+                <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
+                  <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">
+                    {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAiCoverInfoOpen(true)}
+                    disabled={formDisabled}
+                  >
+                    Подробнее
+                  </Button>
+                </div>
+              </div>
+              {requestAiCover && !coverPreview ? (
+                <p className="text-xs text-muted-foreground">
+                  Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-3 lg:justify-self-end w-full max-w-[20rem]">
@@ -978,45 +1082,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 }}
               />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
-            <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
-              <Checkbox
-                className="mt-0.5 shrink-0"
-                checked={requestAiCover}
-                onCheckedChange={(c) => setRequestAiCover(c === true)}
-                disabled={formDisabled}
-              />
-              <span>Необходимо создание AI-обложки</span>
-            </label>
-            <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-              <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">
-                {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAiCoverInfoOpen(true)}
-                disabled={formDisabled}
-              >
-                Подробнее
-              </Button>
-            </div>
-          </div>
-          {requestAiCover && !coverPreview ? (
-            <p className="text-xs text-muted-foreground">
-              Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
-            </p>
-          ) : null}
-
-          <div>
-            <Label>UPC / EAN</Label>
-            <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
-            <p className="text-xs text-muted-foreground mt-1">
-              Укажите UPC / EAN релиза, если переносите релиз от другого дистрибьютора
-            </p>
           </div>
         </div>
       ) : null}
