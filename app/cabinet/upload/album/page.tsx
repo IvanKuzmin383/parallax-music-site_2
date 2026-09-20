@@ -184,6 +184,7 @@ const albumTrackSchema = z.object({
     .min(0, "Не меньше 0")
     .max(600, "Максимум 600 секунд"),
   streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).default("all"),
+  isrc: z.string().max(32, "Максимум 32 символа").optional().default(""),
   audio: z.any().optional(),
   audioRelPath: z.string().optional(),
   serverDraftHasAudio: z.boolean().default(false),
@@ -286,6 +287,8 @@ const uploadAlbumSchema = z.object({
   cover: z.any().optional(),
   requestAiCover: z.boolean().default(false),
   serverDraftHasCover: z.boolean().default(false),
+  transferFromOtherDistributor: z.boolean().default(false),
+  transferUpc: z.string().max(32, "Максимум 32 символа").optional().default(""),
   tracks: z
     .array(albumTrackSchema)
     .min(2, "В альбоме должно быть минимум 2 трека"),
@@ -318,6 +321,24 @@ const uploadAlbumSchema = z.object({
       })
     }
   }
+  if (data.transferFromOtherDistributor) {
+    if (!data.transferUpc.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["transferUpc"],
+        message: "Укажите UPC альбома",
+      })
+    }
+    data.tracks.forEach((track, index) => {
+      if (!`${track.isrc ?? ""}`.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["tracks", index, "isrc"],
+          message: "Укажите ISRC трека",
+        })
+      }
+    })
+  }
 }).refine((data) => data.consentOfferLicense === true, {
   message:
     "Подтвердите согласие и ознакомление с публичной офертой и лицензионными условиями",
@@ -349,6 +370,7 @@ type AlbumDraftTrackPayload = {
   backingAuthor?: string
   tiktokSoundStartSec?: number | null
   streamingScope?: string
+  isrc?: string
   audioRelPath?: string
 }
 
@@ -375,6 +397,7 @@ function createEmptyAlbumTrack(): UploadAlbumFormValues["tracks"][number] {
     performanceRights: EMPTY_OPTION,
     tiktokSoundStartSec: 0,
     streamingScope: "all",
+    isrc: "",
     audio: undefined,
     audioRelPath: "",
     serverDraftHasAudio: false,
@@ -432,6 +455,8 @@ export default function CabinetUploadAlbumPage() {
       ],
       requestAiCover: false,
       serverDraftHasCover: false,
+      transferFromOtherDistributor: false,
+      transferUpc: "",
       consentOfferLicense: false,
     },
   })
@@ -442,6 +467,10 @@ export default function CabinetUploadAlbumPage() {
   })
 
   const watchedAlbumArtistName = useWatch({ control: form.control, name: "albumArtistName" })
+  const watchedTransferFromOtherDistributor = useWatch({
+    control: form.control,
+    name: "transferFromOtherDistributor",
+  })
   const activeArtistSlots = useMemo(
     () => filterActiveArtistSlots(artistSubscriptions),
     [artistSubscriptions]
@@ -655,6 +684,8 @@ export default function CabinetUploadAlbumPage() {
                 albumArtistName?: string
                 labelName?: string
                 releaseDate?: string
+                transferFromOtherDistributor?: boolean
+                transferUpc?: string
                 addons?: {
                   trackCover?: { enabled?: boolean }
                   verticalVideo?: { enabled?: boolean; videosCount?: number }
@@ -685,6 +716,8 @@ export default function CabinetUploadAlbumPage() {
           releaseDate,
           requestAiCover: Boolean(draft.payload.addons?.trackCover?.enabled),
           serverDraftHasCover: Boolean(draft.coverRelPath),
+          transferFromOtherDistributor: Boolean(draft.payload.transferFromOtherDistributor),
+          transferUpc: `${draft.payload.transferUpc ?? ""}`,
           cover: undefined,
           tracks: draftTracks.map((track) => ({
             tempId: `${track.tempId ?? generateAlbumTrackTempId()}`,
@@ -703,6 +736,7 @@ export default function CabinetUploadAlbumPage() {
               (track.performanceRights as UploadAlbumFormValues["tracks"][number]["performanceRights"]) ?? "",
             tiktokSoundStartSec: parseTiktokSoundStartSec(track.tiktokSoundStartSec) ?? 0,
             streamingScope: normalizeStreamingScope(track.streamingScope),
+            isrc: `${track.isrc ?? ""}`,
             audio: undefined,
             audioRelPath: `${track.audioRelPath ?? ""}`,
             serverDraftHasAudio: Boolean(track.audioRelPath),
@@ -774,6 +808,7 @@ export default function CabinetUploadAlbumPage() {
       performanceRights: track.performanceRights,
       tiktokSoundStartSec: track.tiktokSoundStartSec,
       streamingScope: normalizeStreamingScope(track.streamingScope),
+      isrc: track.isrc?.trim() || undefined,
       audioRelPath: track.audioRelPath || undefined,
     }))
 
@@ -782,6 +817,8 @@ export default function CabinetUploadAlbumPage() {
       albumArtistName: data.albumArtistName,
       labelName: data.labelName?.trim() || DEFAULT_RELEASE_LABEL_NAME,
       releaseDate: data.releaseDate ? format(data.releaseDate, "yyyy-MM-dd") : undefined,
+      transferFromOtherDistributor: Boolean(data.transferFromOtherDistributor),
+      transferUpc: data.transferFromOtherDistributor ? data.transferUpc.trim() : "",
       albumTracks: draftTracks,
       requestAiCover: false,
       addons: {
@@ -1174,6 +1211,69 @@ export default function CabinetUploadAlbumPage() {
               />
             </div>
 
+            <div className="space-y-4 rounded-lg border p-4">
+              <FormField
+                control={form.control}
+                name="transferFromOtherDistributor"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-start gap-3">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === true}
+                          onCheckedChange={(c) => {
+                            const on = c === true
+                            field.onChange(on)
+                            if (!on) {
+                              form.setValue("transferUpc", "")
+                              fields.forEach((_, index) => {
+                                form.setValue(`tracks.${index}.isrc`, "")
+                              })
+                              form.clearErrors(["transferUpc"])
+                            }
+                          }}
+                          disabled={formDisabled}
+                          id="cabinet-album-upload-transfer-distributor"
+                        />
+                      </FormControl>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <FormLabel
+                          htmlFor="cabinet-album-upload-transfer-distributor"
+                          className="cursor-pointer font-normal"
+                        >
+                          Перенос от другого дистрибьютора
+                        </FormLabel>
+                        <FormDescription>
+                          Укажите UPC альбома и ISRC каждого трека при переносе с другой дистрибуции
+                        </FormDescription>
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {watchedTransferFromOtherDistributor ? (
+                <FormField
+                  control={form.control}
+                  name="transferUpc"
+                  render={({ field }) => (
+                    <FormItem className="max-w-md">
+                      <FormLabel>UPC альбома *</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="font-mono"
+                          placeholder="UPC / EAN"
+                          disabled={formDisabled}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -1299,6 +1399,26 @@ export default function CabinetUploadAlbumPage() {
                         </FormItem>
                       )}
                     />
+                    {watchedTransferFromOtherDistributor ? (
+                      <FormField
+                        control={form.control}
+                        name={`tracks.${index}.isrc`}
+                        render={({ field }) => (
+                          <FormItem className="w-full max-w-md">
+                            <FormLabel>ISRC *</FormLabel>
+                            <FormControl>
+                              <Input
+                                className="font-mono"
+                                placeholder="ISRC"
+                                disabled={formDisabled}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : null}
                     <div className="grid gap-4 md:grid-cols-3">
                       <FormField
                         control={form.control}

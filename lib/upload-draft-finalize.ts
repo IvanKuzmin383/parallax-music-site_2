@@ -136,6 +136,7 @@ type AlbumDraftTrackPayload = {
   backingAuthor?: string
   tiktokSoundStartSec?: number | null
   streamingScope?: string
+  isrc?: string
   audioRelPath?: string
 }
 
@@ -275,6 +276,34 @@ export async function finalizeUploadDraftCore(
 
     if (!albumTitle || !albumArtistName || tracksRaw.length < 2) {
       return { ok: false, error: "Черновик альбома содержит неполные данные", status: 400 }
+    }
+
+    const albumTransfer = Boolean(payload.transferFromOtherDistributor)
+    const albumUpc = `${payload.transferUpc ?? ""}`.trim()
+    if (albumTransfer) {
+      if (!albumUpc) {
+        return {
+          ok: false,
+          error: "Укажите UPC альбома при переносе от другого дистрибьютора",
+          status: 400,
+        }
+      }
+      if (albumUpc.length > 32) {
+        return { ok: false, error: "UPC не длиннее 32 символов", status: 400 }
+      }
+      for (const t of tracksRaw) {
+        const isrc = `${t.isrc ?? ""}`.trim()
+        if (!isrc) {
+          return {
+            ok: false,
+            error: `Укажите ISRC для трека «${`${t.trackName ?? "Без названия"}`.trim()}»`,
+            status: 400,
+          }
+        }
+        if (isrc.length > 32) {
+          return { ok: false, error: "ISRC не длиннее 32 символов", status: 400 }
+        }
+      }
     }
 
     const user = await getCabinetUserByEmail(ownerEmail)
@@ -433,6 +462,9 @@ export async function finalizeUploadDraftCore(
         audioPath,
         status: "on_moderation",
         releaseDate,
+        upc: albumTransfer ? albumUpc : undefined,
+        isrc: albumTransfer ? `${t.isrc ?? ""}`.trim() : undefined,
+        transferFromOtherDistributor: albumTransfer,
       })
       createdTracks.push(track)
     }
