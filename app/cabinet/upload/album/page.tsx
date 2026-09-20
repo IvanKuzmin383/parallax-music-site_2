@@ -288,12 +288,20 @@ const uploadAlbumSchema = z.object({
   requestAiCover: z.boolean().default(false),
   serverDraftHasCover: z.boolean().default(false),
   transferFromOtherDistributor: z.boolean().default(false),
+  previousDistributor: z.string().max(100, "Максимум 100 символов").optional().default(""),
   transferUpc: z.string().max(32, "Максимум 32 символа").optional().default(""),
   tracks: z
     .array(albumTrackSchema)
     .min(2, "В альбоме должно быть минимум 2 трека"),
   consentOfferLicense: z.boolean(),
 }).superRefine((data, ctx) => {
+  if (data.transferFromOtherDistributor && data.previousDistributor.trim().length < 2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["previousDistributor"],
+      message: "Укажите предыдущего дистрибьютора",
+    })
+  }
   const hasCoverFile = Boolean(
     data.cover && typeof data.cover.length === "number" && data.cover.length === 1
   )
@@ -320,24 +328,6 @@ const uploadAlbumSchema = z.object({
         message: "Размер обложки не должен превышать 20 MB",
       })
     }
-  }
-  if (data.transferFromOtherDistributor) {
-    if (!data.transferUpc.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["transferUpc"],
-        message: "Укажите UPC альбома",
-      })
-    }
-    data.tracks.forEach((track, index) => {
-      if (!`${track.isrc ?? ""}`.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["tracks", index, "isrc"],
-          message: "Укажите ISRC трека",
-        })
-      }
-    })
   }
 }).refine((data) => data.consentOfferLicense === true, {
   message:
@@ -456,6 +446,7 @@ export default function CabinetUploadAlbumPage() {
       requestAiCover: false,
       serverDraftHasCover: false,
       transferFromOtherDistributor: false,
+      previousDistributor: "",
       transferUpc: "",
       consentOfferLicense: false,
     },
@@ -684,8 +675,9 @@ export default function CabinetUploadAlbumPage() {
                 albumArtistName?: string
                 labelName?: string
                 releaseDate?: string
-                transferFromOtherDistributor?: boolean
                 transferUpc?: string
+                transferFromOtherDistributor?: boolean
+                previousDistributor?: string
                 addons?: {
                   trackCover?: { enabled?: boolean }
                   verticalVideo?: { enabled?: boolean; videosCount?: number }
@@ -717,6 +709,7 @@ export default function CabinetUploadAlbumPage() {
           requestAiCover: Boolean(draft.payload.addons?.trackCover?.enabled),
           serverDraftHasCover: Boolean(draft.coverRelPath),
           transferFromOtherDistributor: Boolean(draft.payload.transferFromOtherDistributor),
+          previousDistributor: `${draft.payload.previousDistributor ?? ""}`,
           transferUpc: `${draft.payload.transferUpc ?? ""}`,
           cover: undefined,
           tracks: draftTracks.map((track) => ({
@@ -817,8 +810,11 @@ export default function CabinetUploadAlbumPage() {
       albumArtistName: data.albumArtistName,
       labelName: data.labelName?.trim() || DEFAULT_RELEASE_LABEL_NAME,
       releaseDate: data.releaseDate ? format(data.releaseDate, "yyyy-MM-dd") : undefined,
-      transferFromOtherDistributor: Boolean(data.transferFromOtherDistributor),
-      transferUpc: data.transferFromOtherDistributor ? data.transferUpc.trim() : "",
+      transferFromOtherDistributor: data.transferFromOtherDistributor,
+      previousDistributor: data.transferFromOtherDistributor
+        ? data.previousDistributor.trim()
+        : "",
+      transferUpc: data.transferUpc.trim(),
       albumTracks: draftTracks,
       requestAiCover: false,
       addons: {
@@ -1216,62 +1212,64 @@ export default function CabinetUploadAlbumPage() {
                 control={form.control}
                 name="transferFromOtherDistributor"
                 render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-start gap-3">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value === true}
-                          onCheckedChange={(c) => {
-                            const on = c === true
-                            field.onChange(on)
-                            if (!on) {
-                              form.setValue("transferUpc", "")
-                              fields.forEach((_, index) => {
-                                form.setValue(`tracks.${index}.isrc`, "")
-                              })
-                              form.clearErrors(["transferUpc"])
-                            }
-                          }}
-                          disabled={formDisabled}
-                          id="cabinet-album-upload-transfer-distributor"
-                        />
-                      </FormControl>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <FormLabel
-                          htmlFor="cabinet-album-upload-transfer-distributor"
-                          className="cursor-pointer font-normal"
-                        >
-                          Перенос от другого дистрибьютора
-                        </FormLabel>
-                        <FormDescription>
-                          Укажите UPC альбома и ISRC каждого трека при переносе с другой дистрибуции
-                        </FormDescription>
-                      </div>
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        disabled={formDisabled}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Перенос от другого дистрибьютора</FormLabel>
+                      <FormDescription>
+                        Отметьте, если релиз уже был на площадках у другого дистрибьютора
+                      </FormDescription>
                     </div>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
               {watchedTransferFromOtherDistributor ? (
                 <FormField
                   control={form.control}
-                  name="transferUpc"
+                  name="previousDistributor"
                   render={({ field }) => (
                     <FormItem className="max-w-md">
-                      <FormLabel>UPC альбома *</FormLabel>
+                      <FormLabel>Предыдущий дистрибьютор *</FormLabel>
                       <FormControl>
                         <Input
-                          className="font-mono"
-                          placeholder="UPC / EAN"
+                          placeholder="Название дистрибьютора"
                           disabled={formDisabled}
                           {...field}
                         />
                       </FormControl>
+                      <FormDescription>
+                        Укажите, откуда переносится релиз
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               ) : null}
+              <FormField
+                control={form.control}
+                name="transferUpc"
+                render={({ field }) => (
+                  <FormItem className="max-w-md">
+                    <FormLabel>UPC альбома</FormLabel>
+                    <FormControl>
+                      <Input
+                        className="font-mono"
+                        placeholder="UPC / EAN"
+                        disabled={formDisabled}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>Укажите UPC релиза, если он есть</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -1399,26 +1397,25 @@ export default function CabinetUploadAlbumPage() {
                         </FormItem>
                       )}
                     />
-                    {watchedTransferFromOtherDistributor ? (
-                      <FormField
-                        control={form.control}
-                        name={`tracks.${index}.isrc`}
-                        render={({ field }) => (
-                          <FormItem className="w-full max-w-md">
-                            <FormLabel>ISRC *</FormLabel>
-                            <FormControl>
-                              <Input
-                                className="font-mono"
-                                placeholder="ISRC"
-                                disabled={formDisabled}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ) : null}
+                    <FormField
+                      control={form.control}
+                      name={`tracks.${index}.isrc`}
+                      render={({ field }) => (
+                        <FormItem className="w-full max-w-md">
+                          <FormLabel>ISRC</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="font-mono"
+                              placeholder="ISRC"
+                              disabled={formDisabled}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>Укажите ISRC трека, если он есть</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="grid gap-4 md:grid-cols-3">
                       <FormField
                         control={form.control}

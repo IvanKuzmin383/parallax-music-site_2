@@ -60,6 +60,8 @@ export interface Track {
   isrc?: string | null
   /** Релиз перенесён с другого дистрибьютора (ожидаются UPC и ISRC) */
   transferFromOtherDistributor?: boolean
+  /** Название предыдущего дистрибьютора при переносе */
+  previousDistributor?: string | null
   /** Область дистрибуции на стриминг-площадках */
   streamingScope: TrackStreamingScope
   smartlinkSlug?: string
@@ -100,6 +102,7 @@ export interface TrackRow {
   upc: string | null
   isrc: string | null
   transfer_from_other_distributor?: boolean | null
+  previous_distributor?: string | null
   streaming_scope?: string | null
   smartlink_slug: string | null
   platform_links: string | null
@@ -150,6 +153,7 @@ export function rowToTrack(row: TrackRow): Track {
     upc: row.upc ?? undefined,
     isrc: row.isrc ?? undefined,
     transferFromOtherDistributor: row.transfer_from_other_distributor === true,
+    previousDistributor: row.previous_distributor ?? undefined,
     streamingScope: normalizeStreamingScope(row.streaming_scope),
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
@@ -305,8 +309,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, catalog_number, upc, isrc, transfer_from_other_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -337,6 +341,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.upc ?? null,
       track.isrc ?? null,
       track.transferFromOtherDistributor,
+      track.previousDistributor ?? null,
       track.streamingScope,
       track.smartlinkSlug ?? null,
       track.platformLinks ? JSON.stringify(track.platformLinks) : null,
@@ -402,7 +407,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -433,6 +438,7 @@ export async function updateTrack(
       updated.upc ?? null,
       updated.isrc ?? null,
       updated.transferFromOtherDistributor,
+      updated.previousDistributor ?? null,
       updated.streamingScope,
       updated.smartlinkSlug ?? null,
       updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,

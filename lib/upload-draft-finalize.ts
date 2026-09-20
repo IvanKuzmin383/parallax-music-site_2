@@ -99,24 +99,35 @@ function readSingleTrackTransferFromPayload(payload: {
   transferFromOtherDistributor?: unknown
   transferUpc?: unknown
   transferIsrc?: unknown
+  previousDistributor?: unknown
 }):
-  | { ok: true; transfer: boolean; upc: string | null; isrc: string | null }
+  | {
+      ok: true
+      transfer: boolean
+      upc: string | null
+      isrc: string | null
+      previousDistributor: string | null
+    }
   | { ok: false; error: string } {
   const transfer = Boolean(payload.transferFromOtherDistributor)
   const upc = `${payload.transferUpc ?? ""}`.trim()
   const isrc = `${payload.transferIsrc ?? ""}`.trim()
-  if (transfer) {
-    if (!upc || !isrc) {
-      return {
-        ok: false,
-        error: "Для переноса с другого дистрибьютора укажите UPC и ISRC",
-      }
-    }
-    if (upc.length > 32) return { ok: false, error: "UPC не длиннее 32 символов" }
-    if (isrc.length > 32) return { ok: false, error: "ISRC не длиннее 32 символов" }
-    return { ok: true, transfer: true, upc, isrc }
+  const previousDistributor = `${payload.previousDistributor ?? ""}`.trim()
+  if (upc.length > 32) return { ok: false, error: "UPC не длиннее 32 символов" }
+  if (isrc.length > 32) return { ok: false, error: "ISRC не длиннее 32 символов" }
+  if (previousDistributor.length > 100) {
+    return { ok: false, error: "Название дистрибьютора не длиннее 100 символов" }
   }
-  return { ok: true, transfer: false, upc: null, isrc: null }
+  if (transfer && previousDistributor.length < 2) {
+    return { ok: false, error: "Укажите предыдущего дистрибьютора" }
+  }
+  return {
+    ok: true,
+    transfer,
+    upc: upc || null,
+    isrc: isrc || null,
+    previousDistributor: transfer ? previousDistributor : null,
+  }
 }
 
 type AlbumDraftTrackPayload = {
@@ -278,31 +289,22 @@ export async function finalizeUploadDraftCore(
       return { ok: false, error: "Черновик альбома содержит неполные данные", status: 400 }
     }
 
-    const albumTransfer = Boolean(payload.transferFromOtherDistributor)
     const albumUpc = `${payload.transferUpc ?? ""}`.trim()
-    if (albumTransfer) {
-      if (!albumUpc) {
-        return {
-          ok: false,
-          error: "Укажите UPC альбома при переносе от другого дистрибьютора",
-          status: 400,
-        }
-      }
-      if (albumUpc.length > 32) {
-        return { ok: false, error: "UPC не длиннее 32 символов", status: 400 }
-      }
-      for (const t of tracksRaw) {
-        const isrc = `${t.isrc ?? ""}`.trim()
-        if (!isrc) {
-          return {
-            ok: false,
-            error: `Укажите ISRC для трека «${`${t.trackName ?? "Без названия"}`.trim()}»`,
-            status: 400,
-          }
-        }
-        if (isrc.length > 32) {
-          return { ok: false, error: "ISRC не длиннее 32 символов", status: 400 }
-        }
+    const albumTransfer = Boolean(payload.transferFromOtherDistributor)
+    const previousDistributor = `${payload.previousDistributor ?? ""}`.trim()
+    if (albumUpc.length > 32) {
+      return { ok: false, error: "UPC не длиннее 32 символов", status: 400 }
+    }
+    if (previousDistributor.length > 100) {
+      return { ok: false, error: "Название дистрибьютора не длиннее 100 символов", status: 400 }
+    }
+    if (albumTransfer && previousDistributor.length < 2) {
+      return { ok: false, error: "Укажите предыдущего дистрибьютора", status: 400 }
+    }
+    for (const t of tracksRaw) {
+      const isrc = `${t.isrc ?? ""}`.trim()
+      if (isrc.length > 32) {
+        return { ok: false, error: "ISRC не длиннее 32 символов", status: 400 }
       }
     }
 
@@ -462,9 +464,10 @@ export async function finalizeUploadDraftCore(
         audioPath,
         status: "on_moderation",
         releaseDate,
-        upc: albumTransfer ? albumUpc : undefined,
-        isrc: albumTransfer ? `${t.isrc ?? ""}`.trim() : undefined,
+        upc: albumUpc || undefined,
+        isrc: `${t.isrc ?? ""}`.trim() || undefined,
         transferFromOtherDistributor: albumTransfer,
+        previousDistributor: albumTransfer ? previousDistributor : undefined,
       })
       createdTracks.push(track)
     }
@@ -619,6 +622,7 @@ export async function finalizeUploadDraftCore(
       upc: xfer.upc,
       isrc: xfer.isrc,
       transferFromOtherDistributor: xfer.transfer,
+      previousDistributor: xfer.previousDistributor,
     })
 
     if (!track) return { ok: false, error: "Не удалось обновить трек", status: 500 }
@@ -693,6 +697,7 @@ export async function finalizeUploadDraftCore(
     upc: xferNew.upc ?? undefined,
     isrc: xferNew.isrc ?? undefined,
     transferFromOtherDistributor: xferNew.transfer,
+    previousDistributor: xferNew.previousDistributor ?? undefined,
   })
 
   await logLicenseAcceptancesForTracks([track], context)

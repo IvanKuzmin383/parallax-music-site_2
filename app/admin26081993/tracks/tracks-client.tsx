@@ -178,8 +178,8 @@ function uploadDraftMediaEditable(d: UploadDraft): boolean {
 
 function transferDistributorValidationError(d: TrackDraft): string | null {
   if (!d.transferFromOtherDistributor) return null
-  if (!d.upc.trim() || !d.isrc.trim()) {
-    return "При переносе с другого дистрибьютора укажите UPC и ISRC"
+  if (!d.previousDistributor.trim() || d.previousDistributor.trim().length < 2) {
+    return "При переносе с другого дистрибьютора укажите предыдущего дистрибьютора"
   }
   return null
 }
@@ -226,6 +226,7 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     catalogNumber: "",
     upc: `${p.transferUpc ?? ""}`,
     isrc: `${p.transferIsrc ?? ""}`,
+    previousDistributor: `${p.previousDistributor ?? ""}`,
     moderationNote: "",
     albumId: d.albumId ?? "__none__",
     platformLinks: {},
@@ -258,8 +259,11 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
     streamingScope: normalizeStreamingScope(d.streamingScope),
     requestAiCover: prev.requestAiCover,
     transferFromOtherDistributor: d.transferFromOtherDistributor,
-    transferUpc: d.transferFromOtherDistributor ? d.upc.trim() : "",
-    transferIsrc: d.transferFromOtherDistributor ? d.isrc.trim() : "",
+    transferUpc: d.upc.trim(),
+    transferIsrc: d.isrc.trim(),
+    previousDistributor: d.transferFromOtherDistributor
+      ? d.previousDistributor.trim()
+      : "",
     addons: prev.addons ?? {},
   }
 }
@@ -335,6 +339,7 @@ type TrackDraft = {
   catalogNumber: string
   upc: string
   isrc: string
+  previousDistributor: string
   moderationNote: string
   albumId: string
   platformLinks: PlatformLinks
@@ -379,6 +384,7 @@ function trackToDraft(t: Track): TrackDraft {
     catalogNumber: t.catalogNumber ?? "",
     upc: t.upc ?? "",
     isrc: t.isrc ?? "",
+    previousDistributor: t.previousDistributor ?? "",
     moderationNote: t.moderationNote ?? "",
     albumId: t.albumId ?? "__none__",
     platformLinks: { ...(t.platformLinks ?? {}) },
@@ -1006,6 +1012,9 @@ export default function TracksPageClient() {
         upc: trackDraft.upc.trim() || null,
         isrc: trackDraft.isrc.trim() || null,
         transferFromOtherDistributor: trackDraft.transferFromOtherDistributor,
+        previousDistributor: trackDraft.transferFromOtherDistributor
+          ? trackDraft.previousDistributor.trim() || null
+          : null,
         moderationNote: trackDraft.moderationNote.trim() || null,
         albumId: trackDraft.albumId === "__none__" ? null : trackDraft.albumId,
         platformLinks: trackDraft.platformLinks,
@@ -2876,7 +2885,7 @@ export default function TracksPageClient() {
                               ? {
                                   ...d,
                                   transferFromOtherDistributor: on,
-                                  ...(!on ? { upc: "", isrc: "" } : {}),
+                                  ...(!on ? { previousDistributor: "" } : {}),
                                 }
                               : d
                           )
@@ -2886,9 +2895,26 @@ export default function TracksPageClient() {
                         htmlFor="admin-transfer-distributor"
                         className="cursor-pointer text-sm leading-snug"
                       >
-                        Перенос от другого дистрибьютора (нужны UPC и ISRC)
+                        Перенос от другого дистрибьютора
                       </label>
                     </div>
+                    {trackDraft.transferFromOtherDistributor ? (
+                      <div className="md:col-span-2 space-y-2">
+                        <Label htmlFor="admin-previous-distributor">
+                          Предыдущий дистрибьютор
+                        </Label>
+                        <Input
+                          id="admin-previous-distributor"
+                          placeholder="Название дистрибьютора"
+                          value={trackDraft.previousDistributor}
+                          onChange={(e) =>
+                            setTrackDraft((d) =>
+                              d ? { ...d, previousDistributor: e.target.value } : d
+                            )
+                          }
+                        />
+                      </div>
+                    ) : null}
                     <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="admin-catalog-number">Артикул</Label>

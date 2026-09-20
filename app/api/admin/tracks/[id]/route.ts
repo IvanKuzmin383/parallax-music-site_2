@@ -59,6 +59,7 @@ const patchBodySchema = z.object({
   upc: z.string().max(32).optional().nullable(),
   isrc: z.string().max(32).optional().nullable(),
   transferFromOtherDistributor: z.boolean().optional(),
+  previousDistributor: z.string().max(100).optional().nullable(),
   streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).optional(),
   smartlinkSlug: z.string().max(80).optional().nullable(),
   albumId: z.string().uuid().optional().nullable(),
@@ -224,6 +225,9 @@ export async function PATCH(
   if (data.isrc !== undefined) updatePayload.isrc = data.isrc?.trim() || null
   if (data.transferFromOtherDistributor !== undefined) {
     updatePayload.transferFromOtherDistributor = data.transferFromOtherDistributor
+  }
+  if (data.previousDistributor !== undefined) {
+    updatePayload.previousDistributor = data.previousDistributor?.trim() || null
   }
   if (data.streamingScope !== undefined) {
     updatePayload.streamingScope = data.streamingScope as Track["streamingScope"]

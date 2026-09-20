@@ -169,6 +169,7 @@ const uploadSchema = z.object({
   requestAiCover: z.boolean().default(false),
   streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).default("all"),
   transferFromOtherDistributor: z.boolean().default(false),
+  previousDistributor: z.string().max(100, "Максимум 100 символов").optional().default(""),
   transferUpc: z.string().max(32, "Максимум 32 символа").optional().default(""),
   transferIsrc: z.string().max(32, "Максимум 32 символа").optional().default(""),
   cover: z.any().optional(),
@@ -179,6 +180,13 @@ const uploadSchema = z.object({
   serverDraftHasCover: z.boolean().default(false),
   consentOfferLicense: z.boolean(),
 }).superRefine((data, ctx) => {
+  if (data.transferFromOtherDistributor && data.previousDistributor.trim().length < 2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["previousDistributor"],
+      message: "Укажите предыдущего дистрибьютора",
+    })
+  }
   const hasAudioFile = Boolean(
     data.audio && typeof data.audio.length === "number" && data.audio.length === 1
   )
@@ -242,22 +250,6 @@ const uploadSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ["performanceRights"],
         message: "Выберите права на исполнение",
-      })
-    }
-  }
-  if (data.transferFromOtherDistributor) {
-    if (!data.transferUpc.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["transferUpc"],
-        message: "Укажите UPC",
-      })
-    }
-    if (!data.transferIsrc.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["transferIsrc"],
-        message: "Укажите ISRC",
       })
     }
   }
@@ -388,6 +380,7 @@ export default function CabinetUploadPage() {
       requestAiCover: false,
       streamingScope: "all",
       transferFromOtherDistributor: false,
+      previousDistributor: "",
       transferUpc: "",
       transferIsrc: "",
       consentOfferLicense: false,
@@ -427,6 +420,10 @@ export default function CabinetUploadPage() {
   const watchedServerDraftHasAudio = useWatch({ control: form.control, name: "serverDraftHasAudio" })
   const watchedServerDraftHasCover = useWatch({ control: form.control, name: "serverDraftHasCover" })
   const watchedRequestAiCover = useWatch({ control: form.control, name: "requestAiCover" })
+  const watchedTransferFromOtherDistributor = useWatch({
+    control: form.control,
+    name: "transferFromOtherDistributor",
+  })
   const isFormDirty = form.formState.isDirty
 
   useEffect(() => {
@@ -608,8 +605,11 @@ export default function CabinetUploadPage() {
       requestAiCover: v.requestAiCover,
       streamingScope: normalizeStreamingScope(v.streamingScope),
       transferFromOtherDistributor: v.transferFromOtherDistributor,
-      transferUpc: v.transferFromOtherDistributor ? v.transferUpc.trim() : "",
-      transferIsrc: v.transferFromOtherDistributor ? v.transferIsrc.trim() : "",
+      previousDistributor: v.transferFromOtherDistributor
+        ? v.previousDistributor.trim()
+        : "",
+      transferUpc: v.transferUpc.trim(),
+      transferIsrc: v.transferIsrc.trim(),
       addons: {
         trackCover: { enabled: false, trackTitle },
         verticalVideo: {
@@ -745,6 +745,7 @@ export default function CabinetUploadPage() {
       requestAiCover: Boolean(p.requestAiCover),
       streamingScope: normalizeStreamingScope(p.streamingScope),
       transferFromOtherDistributor: Boolean(p.transferFromOtherDistributor),
+      previousDistributor: `${p.previousDistributor ?? ""}`,
       transferUpc: `${p.transferUpc ?? ""}`,
       transferIsrc: `${p.transferIsrc ?? ""}`,
       consentOfferLicense: false,
@@ -1772,49 +1773,57 @@ export default function CabinetUploadPage() {
                   )}
                 />
               )}
-              <FormField
-                control={form.control}
-                name="transferFromOtherDistributor"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <div className="flex flex-wrap items-start gap-3 rounded-md border border-border p-3">
+              <div className="md:col-span-2 space-y-4 rounded-lg border p-4">
+                <FormField
+                  control={form.control}
+                  name="transferFromOtherDistributor"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start gap-3 space-y-0">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={(c) => {
-                            const on = c === true
-                            field.onChange(on)
-                            if (!on) {
-                              form.setValue("transferUpc", "")
-                              form.setValue("transferIsrc", "")
-                              form.clearErrors(["transferUpc", "transferIsrc"])
-                            }
-                          }}
                           disabled={formDisabled}
-                          id="cabinet-upload-transfer-distributor"
+                          onCheckedChange={(checked) => field.onChange(checked === true)}
                         />
                       </FormControl>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <FormLabel htmlFor="cabinet-upload-transfer-distributor" className="cursor-pointer font-normal">
-                          Перенос от другого дистрибьютора
-                        </FormLabel>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Перенос от другого дистрибьютора</FormLabel>
                         <FormDescription>
-                          Укажите существующие UPC и ISRC релиза при переносе с другой дистрибуции
+                          Отметьте, если релиз уже был на площадках у другого дистрибьютора
                         </FormDescription>
                       </div>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {form.watch("transferFromOtherDistributor") ? (
-                <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    </FormItem>
+                  )}
+                />
+                {watchedTransferFromOtherDistributor ? (
+                  <FormField
+                    control={form.control}
+                    name="previousDistributor"
+                    render={({ field }) => (
+                      <FormItem className="max-w-md">
+                        <FormLabel>Предыдущий дистрибьютор *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Название дистрибьютора"
+                            disabled={formDisabled}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Укажите, откуда переносится релиз
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="transferUpc"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>UPC *</FormLabel>
+                        <FormLabel>UPC</FormLabel>
                         <FormControl>
                           <Input
                             className="font-mono"
@@ -1823,6 +1832,7 @@ export default function CabinetUploadPage() {
                             {...field}
                           />
                         </FormControl>
+                        <FormDescription>Укажите UPC релиза, если он есть</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1832,7 +1842,7 @@ export default function CabinetUploadPage() {
                     name="transferIsrc"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ISRC *</FormLabel>
+                        <FormLabel>ISRC</FormLabel>
                         <FormControl>
                           <Input
                             className="font-mono"
@@ -1841,12 +1851,13 @@ export default function CabinetUploadPage() {
                             {...field}
                           />
                         </FormControl>
+                        <FormDescription>Укажите ISRC трека, если он есть</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              ) : null}
+              </div>
             </div>
             <div className="md:col-span-2 grid grid-cols-1 gap-4 md:grid-cols-2 md:items-stretch">
               <FormField
