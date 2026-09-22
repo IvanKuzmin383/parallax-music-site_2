@@ -26,10 +26,12 @@ export interface UploadDraftPayload {
   /** С какой секунды начинать звук в TikTok */
   tiktokSoundStartSec?: number | null
   requestAiCover?: boolean
-  /** Перенос релиза с другого дистрибьютора: обязательны transferUpc и transferIsrc */
+  /** Перенос релиза с другого дистрибьютора */
   transferFromOtherDistributor?: boolean
   transferUpc?: string
   transferIsrc?: string
+  /** Название предыдущего дистрибьютора (если transferFromOtherDistributor) */
+  previousDistributor?: string
   /** Область дистрибуции: all | ru | foreign */
   streamingScope?: string
   albumTitle?: string

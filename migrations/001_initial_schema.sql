@@ -97,7 +97,8 @@ CREATE TABLE IF NOT EXISTS tracks (
   needs_ai_cover BOOLEAN NOT NULL DEFAULT FALSE,
   label_name TEXT NOT NULL DEFAULT 'Parallax Music',
   isrc TEXT,
-  transfer_from_other_distributor BOOLEAN NOT NULL DEFAULT FALSE
+  transfer_from_other_distributor BOOLEAN NOT NULL DEFAULT FALSE,
+  previous_distributor TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tracks_user_id ON tracks(user_id);
 CREATE INDEX IF NOT EXISTS idx_tracks_status ON tracks(status);
@@ -372,6 +373,15 @@ CREATE INDEX IF NOT EXISTS idx_cmtm_platform_track
 
 CREATE INDEX IF NOT EXISTS idx_cmtm_user_platform_track
   ON cabinet_music_track_map(user_id, platform_key, cabinet_track_id);
+
+CREATE TABLE IF NOT EXISTS music_artist_aliases (
+  user_id TEXT NOT NULL,
+  alias TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (user_id, alias)
+);
+CREATE INDEX IF NOT EXISTS idx_music_artist_aliases_alias
+  ON music_artist_aliases (alias);
 
 CREATE TABLE IF NOT EXISTS cabinet_announcements (
   id TEXT PRIMARY KEY,

@@ -75,8 +75,96 @@ export default function AdminMusicTrackMapPage() {
   const [editingCabinetTrackId, setEditingCabinetTrackId] = useState("")
   const [saving, setSaving] = useState(false)
 
+  const [aliases, setAliases] = useState<{ userId: string; alias: string; createdAt: string }[]>([])
+  const [aliasUserId, setAliasUserId] = useState("")
+  const [aliasValue, setAliasValue] = useState("")
+  const [aliasBusy, setAliasBusy] = useState(false)
+  const [rebuildBusy, setRebuildBusy] = useState(false)
+
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  const loadAliases = async () => {
+    const response = await fetch("/api/admin/music-stats/artist-aliases", {
+      credentials: "include",
+    })
+    if (!response.ok) return
+    const data = await response.json()
+    setAliases(Array.isArray(data.aliases) ? data.aliases : [])
+  }
+
+  const addAlias = async () => {
+    const userId = aliasUserId.trim()
+    const alias = aliasValue.trim()
+    if (!userId || !alias) {
+      toast.error("Укажите email и алиас")
+      return
+    }
+    setAliasBusy(true)
+    try {
+      const response = await fetch("/api/admin/music-stats/artist-aliases", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, alias }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        toast.error(data.error || "Не удалось сохранить алиас")
+        return
+      }
+      toast.success("Алиас сохранён")
+      setAliasValue("")
+      await loadAliases()
+    } finally {
+      setAliasBusy(false)
+    }
+  }
+
+  const removeAlias = async (userId: string, alias: string) => {
+    setAliasBusy(true)
+    try {
+      const response = await fetch("/api/admin/music-stats/artist-aliases", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, alias }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        toast.error(data.error || "Не удалось удалить")
+        return
+      }
+      toast.success("Алиас удалён")
+      await loadAliases()
+    } finally {
+      setAliasBusy(false)
+    }
+  }
+
+  const rebuildMaps = async () => {
+    setRebuildBusy(true)
+    try {
+      const response = await fetch("/api/admin/music-stats/track-map/rebuild", {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        toast.error(data.error || "Ошибка пересборки")
+        return
+      }
+      const n = Array.isArray(data.platforms) ? data.platforms.length : 0
+      toast.success(`Map пересобран (${n} площадок)`)
+      try {
+        await loadPage()
+      } catch {
+        toast.error("Map готов, но таблицу не обновили")
+      }
+    } finally {
+      setRebuildBusy(false)
+    }
+  }
 
   const apiQuery = useMemo(() => {
     const params = new URLSearchParams()
@@ -116,6 +204,7 @@ export default function AdminMusicTrackMapPage() {
       setLoading(true)
       try {
         await loadPage()
+        if (!cancelled) await loadAliases()
       } catch {
         if (!cancelled) toast.error("Не удалось загрузить таблицу сопоставлений")
       } finally {
@@ -212,8 +301,88 @@ export default function AdminMusicTrackMapPage() {
           <h1 className="text-2xl font-bold">Маппинг треков Music Stats</h1>
           <p className="text-muted-foreground text-sm">
             Просмотр и ручная корректировка таблицы `cabinet_music_track_map`.
+            Алиасы артистов нужны, если в кабинете имя сменили, а в выгрузках осталось старое.
           </p>
         </div>
+
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+            <CardTitle>Алиасы артистов</CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={rebuildBusy}
+              onClick={() => void rebuildMaps()}
+            >
+              {rebuildBusy ? "Пересбор map…" : "Пересобрать map"}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              При импорте статистики матч идёт по названию + текущему имени или алиасу.
+              Пример: email пользователя + алиас <span className="font-mono">ALEX-ZH</span>.
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-2 md:col-span-1">
+                <Label htmlFor="alias-user">Email кабинета</Label>
+                <Input
+                  id="alias-user"
+                  value={aliasUserId}
+                  onChange={(e) => setAliasUserId(e.target.value)}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-1">
+                <Label htmlFor="alias-name">Алиас из выгрузки</Label>
+                <Input
+                  id="alias-name"
+                  value={aliasValue}
+                  onChange={(e) => setAliasValue(e.target.value)}
+                  placeholder="ALEX-ZH"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button type="button" disabled={aliasBusy} onClick={() => void addAlias()}>
+                  Добавить
+                </Button>
+              </div>
+            </div>
+            {aliases.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Алиасов пока нет</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Алиас</TableHead>
+                      <TableHead className="text-right">Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aliases.map((a) => (
+                      <TableRow key={`${a.userId}::${a.alias}`}>
+                        <TableCell className="font-mono text-xs">{a.userId}</TableCell>
+                        <TableCell className="font-mono text-xs">{a.alias}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={aliasBusy}
+                            onClick={() => void removeAlias(a.userId, a.alias)}
+                          >
+                            Удалить
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

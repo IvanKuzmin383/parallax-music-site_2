@@ -283,7 +283,8 @@ async function rebuildCabinetMusicTrackMapForPlatformWithClient(
     platformKey,
   ])
 
-  // Гибрид: 1) ISRC (DMB), 2) UPC/EAN (DMB), 3) title + norm(artist) (Yoga и остальное).
+  // Гибрид: 1) ISRC (DMB), 2) UPC/EAN (DMB),
+  // 3) title + norm(artist) ИЛИ title + алиас артиста пользователя (смена имени).
   // DISTINCT ON берёт лучший match_prio; при равном — меньший cabinet_track_id.
   await clientExecute(
     client,
@@ -344,8 +345,16 @@ async function rebuildCabinetMusicTrackMapForPlatformWithClient(
           3 AS match_prio
         FROM music_platform_tracks p
         JOIN tracks c
-          ON ${an("c.artist_name")} = ${an("p.author")}
-         AND ${tn("c.track_name")} = ${tn("p.title")}
+          ON ${tn("c.track_name")} = ${tn("p.title")}
+         AND (
+           ${an("c.artist_name")} = ${an("p.author")}
+           OR EXISTS (
+             SELECT 1
+             FROM music_artist_aliases a
+             WHERE LOWER(TRIM(a.user_id)) = LOWER(TRIM(c.user_id))
+               AND ${an("a.alias")} = ${an("p.author")}
+           )
+         )
         WHERE p.platform_key = ?
           AND c.user_id IS NOT NULL
           AND TRIM(c.user_id) <> ''
@@ -1214,6 +1223,103 @@ export async function importMusicStatsParsedToDb(args: {
   rebuiltCabinetTrackMapPlatforms.add(args.platformKey)
 
   return await getMusicStatsByPlatformKey(args.platformKey)
+}
+
+export type MusicArtistAlias = {
+  userId: string
+  alias: string
+  createdAt: string
+}
+
+export async function listMusicArtistAliases(userId?: string | null): Promise<MusicArtistAlias[]> {
+  const email = userId?.trim()
+  if (email) {
+    const rows = await query<{ user_id: string; alias: string; created_at: string }>(
+      `
+        SELECT user_id, alias, created_at
+        FROM music_artist_aliases
+        WHERE LOWER(user_id) = LOWER(?)
+        ORDER BY alias ASC
+      `,
+      [email]
+    )
+    return rows.map((r) => ({
+      userId: r.user_id,
+      alias: r.alias,
+      createdAt: r.created_at,
+    }))
+  }
+  const rows = await query<{ user_id: string; alias: string; created_at: string }>(
+    `
+      SELECT user_id, alias, created_at
+      FROM music_artist_aliases
+      ORDER BY user_id ASC, alias ASC
+      LIMIT 500
+    `
+  )
+  return rows.map((r) => ({
+    userId: r.user_id,
+    alias: r.alias,
+    createdAt: r.created_at,
+  }))
+}
+
+export async function upsertMusicArtistAlias(args: {
+  userId: string
+  alias: string
+}): Promise<MusicArtistAlias> {
+  const userId = args.userId.trim().toLowerCase()
+  const alias = args.alias.trim()
+  if (!userId || !alias) throw new Error("missing_required_fields")
+  if (alias.length > 200) throw new Error("alias_too_long")
+  const nowIso = new Date().toISOString()
+  await execute(
+    `
+      INSERT INTO music_artist_aliases (user_id, alias, created_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT (user_id, alias) DO NOTHING
+    `,
+    [userId, alias, nowIso]
+  )
+  const row = await queryOne<{ user_id: string; alias: string; created_at: string }>(
+    `
+      SELECT user_id, alias, created_at
+      FROM music_artist_aliases
+      WHERE user_id = ? AND alias = ?
+    `,
+    [userId, alias]
+  )
+  if (!row) throw new Error("alias_upsert_failed")
+  return { userId: row.user_id, alias: row.alias, createdAt: row.created_at }
+}
+
+export async function deleteMusicArtistAlias(args: {
+  userId: string
+  alias: string
+}): Promise<boolean> {
+  const userId = args.userId.trim().toLowerCase()
+  const alias = args.alias.trim()
+  if (!userId || !alias) throw new Error("missing_required_fields")
+  const changes = await execute(
+    `DELETE FROM music_artist_aliases WHERE user_id = ? AND alias = ?`,
+    [userId, alias]
+  )
+  return changes > 0
+}
+
+/** Пересобрать map по всем площадкам, у которых есть треки в импорте. */
+export async function rebuildAllCabinetMusicTrackMaps(): Promise<{ platforms: MusicPlatformKey[] }> {
+  const rows = await query<{ platform_key: string }>(
+    `SELECT DISTINCT platform_key FROM music_platform_tracks ORDER BY platform_key`
+  )
+  const platforms: MusicPlatformKey[] = []
+  for (const row of rows) {
+    const key = row.platform_key as MusicPlatformKey
+    if (!(key in MUSIC_PLATFORM_LABELS)) continue
+    await rebuildCabinetMusicTrackMapForPlatform(key)
+    platforms.push(key)
+  }
+  return { platforms }
 }
 
 export * from "./music-stats-shared"
