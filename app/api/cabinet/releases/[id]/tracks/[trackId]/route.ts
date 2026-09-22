@@ -3,6 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getReleaseById } from "@/lib/releases"
 import { getTrackById, updateTrack } from "@/lib/tracks"
 import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
+import { parseTrackAiLabeling } from "@/lib/track-ai-labeling"
 
 export async function PATCH(
   request: NextRequest,
@@ -47,6 +48,7 @@ export async function PATCH(
       mood,
       shortDescription: typeof body.shortDescription === "string" ? body.shortDescription : undefined,
       lyricsText: typeof body.lyricsText === "string" ? body.lyricsText : undefined,
+      lyricsLanguage: typeof body.lyricsLanguage === "string" ? body.lyricsLanguage : undefined,
       lyricsAuthor: typeof body.lyricsAuthor === "string" ? body.lyricsAuthor : undefined,
       musicAuthor: typeof body.musicAuthor === "string" ? body.musicAuthor : undefined,
       musicRights: typeof body.musicRights === "string" ? body.musicRights : undefined,
@@ -54,12 +56,30 @@ export async function PATCH(
       lyricsRights: typeof body.lyricsRights === "string" ? body.lyricsRights : undefined,
       performanceRights: typeof body.performanceRights === "string" ? body.performanceRights : undefined,
       isInstrumental: typeof body.isInstrumental === "boolean" ? body.isInstrumental : undefined,
+      hasExplicitLanguage:
+        typeof body.hasExplicitLanguage === "boolean"
+          ? body.hasExplicitLanguage
+          : body.hasExplicitLanguage === null
+            ? null
+            : undefined,
       backingAuthor: typeof body.backingAuthor === "string" ? body.backingAuthor : undefined,
       isrc: typeof body.isrc === "string" ? body.isrc : body.isrc === null ? null : undefined,
       transferFromOtherDistributor:
         typeof body.transferFromOtherDistributor === "boolean"
           ? body.transferFromOtherDistributor
           : undefined,
+      previousDistributor:
+        typeof body.previousDistributor === "string"
+          ? body.previousDistributor
+          : body.previousDistributor === null
+            ? null
+            : undefined,
+      aiLabeling:
+        body.aiLabeling === null
+          ? null
+          : body.aiLabeling && typeof body.aiLabeling === "object"
+            ? parseTrackAiLabeling(body.aiLabeling)
+            : undefined,
     })
 
     return NextResponse.json({ track: updated })

@@ -31,6 +31,28 @@ export const TRACK_MOODS = [
 ] as const
 export type TrackMood = (typeof TRACK_MOODS)[number]
 
+/** Язык текста песни (обязателен, если трек не инструментальный). */
+export const TRACK_LYRICS_LANGUAGES = [
+  "Русский",
+  "English",
+  "Украинский",
+  "Казахский",
+  "Белорусский",
+  "Испанский",
+  "Немецкий",
+  "Французский",
+  "Итальянский",
+  "Португальский",
+  "Польский",
+  "Турецкий",
+  "Китайский",
+  "Японский",
+  "Корейский",
+  "Арабский",
+  "Другой",
+] as const
+export type TrackLyricsLanguage = (typeof TRACK_LYRICS_LANGUAGES)[number]
+
 /** Для этих вариантов «Права на музыку» обязательно указать ИИ-сервис. */
 export function musicRightsRequiresAiService(musicRights: string): boolean {
   return (

@@ -11,6 +11,7 @@ import {
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { createAlbum } from "@/lib/albums"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
+import { isShortReleaseDate } from "@/lib/release-date-tiers"
 import {
   getReleaseById,
   releasePayloadForPricing,
@@ -18,6 +19,7 @@ import {
   type Release,
 } from "@/lib/releases"
 import { validateTrackMetadata } from "@/lib/track-meta-validation"
+import { validateTrackAiLabeling } from "@/lib/track-ai-labeling"
 import {
   getTracksByReleaseId,
   updateTrack,
@@ -87,6 +89,26 @@ export async function submitReleaseToModeration(
   if (!artistName) return { ok: false, error: "Укажите имя артиста / название группы", status: 400 }
   if (!release.releaseDate) return { ok: false, error: "Укажите желаемую дату релиза", status: 400 }
 
+  if (release.coverCreatedWithAi !== true && release.coverCreatedWithAi !== false) {
+    return {
+      ok: false,
+      error: "Укажите, создана ли обложка при помощи ИИ",
+      status: 400,
+    }
+  }
+
+  const releaseDateObj = new Date(release.releaseDate)
+  if (
+    isShortReleaseDate(releaseDateObj) &&
+    !release.acceptShortReleaseDate
+  ) {
+    return {
+      ok: false,
+      error: "Подтвердите согласие на короткий срок релиза",
+      status: 400,
+    }
+  }
+
   const hasCover = Boolean(release.coverPath)
   const hasAiCover = release.requestAiCover || Boolean(release.addons?.trackCover?.enabled)
   if (!hasCover && !hasAiCover) {
@@ -125,6 +147,11 @@ export async function submitReleaseToModeration(
   for (const track of tracks) {
     const metaError = validateTrackMetadata(track)
     if (metaError) return { ok: false, error: metaError, status: 400 }
+    const aiError = validateTrackAiLabeling(track.aiLabeling)
+    if (aiError) {
+      const label = track.trackName.trim() || "Трек"
+      return { ok: false, error: `${aiError} («${label}»)`, status: 400 }
+    }
     try {
       await fs.access(track.audioPath)
     } catch {

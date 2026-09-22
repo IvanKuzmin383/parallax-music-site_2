@@ -26,17 +26,29 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Progress } from "@/components/ui/progress"
+import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { isReleaseDateWeekend, MIN_RELEASE_DAYS_AHEAD } from "@/lib/release-date-validation"
+import { isReleaseDateWeekend, MIN_RELEASE_WORKING_DAYS_AHEAD } from "@/lib/release-date-validation"
 import {
   getEarliestAvailableReleaseDate,
+  getReleaseDateCalendarTier,
   getReleaseDateTier,
   isReleaseDateSelectable,
-  RELEASE_DATE_STANDARD_FROM_DAYS,
+  isShortReleaseDate,
+  RELEASE_DATE_ACCELERATED_WORKING_DAYS,
+  RELEASE_DATE_FAST_WORKING_DAYS,
+  RELEASE_DATE_STANDARD_FROM_WORKING_DAYS,
   RELEASE_DATE_TIER_LABEL,
   RELEASE_DATE_TIER_PRICE_RUB,
 } from "@/lib/release-date-tiers"
@@ -59,8 +71,17 @@ import type { Release, ReleaseKind } from "@/lib/releases"
 import type { Track } from "@/lib/tracks"
 import { AI_COVER_REQUEST_PRICE_RUB } from "@/lib/track-constants"
 import { validateTrackMetadata } from "@/lib/track-meta-validation"
-import { ReleaseUploadStepper } from "./release-upload-stepper"
+import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
+import {
+  AiLabelingIntroCard,
+  TrackAiLabelingFields,
+} from "./track-ai-labeling-fields"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  aiLabelingModeLabel,
+  validateTrackAiLabeling,
+} from "@/lib/track-ai-labeling"
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
 import { uploadReleaseTrackAudio } from "@/lib/cabinet-release-audio-upload"
 
@@ -83,7 +104,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [releaseId, setReleaseId] = useState<string | undefined>(initialReleaseId)
   const [release, setRelease] = useState<Release | null>(null)
   const [tracks, setTracks] = useState<Track[]>([])
-  const [step, setStep] = useState(Math.min(5, Math.max(1, stepFromUrl)))
+  const [step, setStep] = useState(Math.min(WIZARD_STEP_COUNT, Math.max(1, stepFromUrl)))
   const [maxStep, setMaxStep] = useState(step)
   const [loading, setLoading] = useState(Boolean(initialReleaseId))
   const [saving, setSaving] = useState(false)
@@ -103,9 +124,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
   const [requestAiCover, setRequestAiCover] = useState(false)
   const [aiCoverInfoOpen, setAiCoverInfoOpen] = useState(false)
+  const [coverCreatedWithAi, setCoverCreatedWithAi] = useState<boolean | null>(null)
+  const [acceptShortReleaseDate, setAcceptShortReleaseDate] = useState(false)
 
   const earliestAvailableDate = useMemo(() => getEarliestAvailableReleaseDate(), [])
   const selectedReleaseTier = releaseDate ? getReleaseDateTier(releaseDate) : null
+  const showShortDateRisk = Boolean(releaseDate && isShortReleaseDate(releaseDate))
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
   const [addonVerticalVideoCount, setAddonVerticalVideoCount] = useState(1)
   const [addonAiMastering, setAddonAiMastering] = useState(false)
@@ -116,7 +140,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [addonSpotifyVideoshot, setAddonSpotifyVideoshot] = useState(false)
 
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  const [audioTime, setAudioTime] = useState(0)
+  const [audioDuration, setAudioDuration] = useState(0)
+  const [metaAccordionOpen, setMetaAccordionOpen] = useState<string[]>([])
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioSeekingRef = useRef(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
   const tracksRef = useRef(tracks)
@@ -156,6 +185,19 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const isUploadingAudio = uploadQueue.some((item) => item.status === "pending" || item.status === "uploading")
   const formDisabled = saving || submitting || isUploadingAudio || profileCompleteForUpload === false
 
+  const trackIdsKey = tracks.map((t) => t.id).join(",")
+
+  useEffect(() => {
+    if (step !== 3) return
+    const ids = trackIdsKey ? trackIdsKey.split(",") : []
+    setMetaAccordionOpen((prev) => {
+      const idSet = new Set(ids)
+      const kept = prev.filter((id) => idSet.has(id))
+      if (kept.length > 0) return kept
+      return ids[0] ? [ids[0]] : []
+    })
+  }, [step, trackIdsKey])
+
   useEffect(() => {
     void (async () => {
       try {
@@ -193,6 +235,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setReleaseDate(loadedDate)
     if (loadedDate) setCalendarMonth(loadedDate)
     setRequestAiCover(r.requestAiCover)
+    setCoverCreatedWithAi(r.coverCreatedWithAi ?? null)
+    setAcceptShortReleaseDate(r.acceptShortReleaseDate === true)
     const a = r.addons
     setAddonVerticalVideo(Boolean(a?.verticalVideo?.enabled))
     setAddonVerticalVideoCount(Number(a?.verticalVideo?.videosCount ?? 1))
@@ -233,7 +277,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
   useEffect(() => {
     const payment = searchParams.get("payment")
-    if (payment === "return" && releaseId && step === 5) {
+    if (payment === "return" && releaseId && step === 6) {
       void (async () => {
         const res = await fetch(`/api/cabinet/releases/${releaseId}/submit`, {
           method: "POST",
@@ -256,7 +300,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }, [searchParams, releaseId, step, router])
 
   useEffect(() => {
-    const s = Math.min(5, Math.max(1, stepFromUrl))
+    const s = Math.min(WIZARD_STEP_COUNT, Math.max(1, stepFromUrl))
     setStep(s)
     setMaxStep((prev) => Math.max(prev, s))
   }, [stepFromUrl])
@@ -266,7 +310,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       toast.error("Дождитесь завершения загрузки аудио")
       return
     }
-    const clamped = Math.min(5, Math.max(1, next))
+    const clamped = Math.min(WIZARD_STEP_COUNT, Math.max(1, next))
     setStep(clamped)
     setMaxStep((prev) => Math.max(prev, clamped))
     const base = releaseId ? `/cabinet/upload/${releaseId}` : "/cabinet/upload"
@@ -281,6 +325,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     upc: upc || null,
     wizardStep: step,
     requestAiCover,
+    coverCreatedWithAi,
+    acceptShortReleaseDate: showShortDateRisk ? acceptShortReleaseDate : false,
     addons: {
       verticalVideo: addonVerticalVideo
         ? { enabled: true, videosCount: addonVerticalVideoCount }
@@ -301,6 +347,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     mood: track.mood,
     shortDescription: track.shortDescription,
     lyricsText: track.lyricsText,
+    lyricsLanguage: track.lyricsLanguage,
     lyricsAuthor: track.lyricsAuthor,
     musicAuthor: track.musicAuthor,
     musicRights: track.musicRights,
@@ -308,9 +355,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     lyricsRights: track.lyricsRights,
     performanceRights: track.performanceRights,
     isInstrumental: track.isInstrumental,
+    hasExplicitLanguage: track.hasExplicitLanguage,
     backingAuthor: track.backingAuthor,
     isrc: track.isrc,
     transferFromOtherDistributor: track.transferFromOtherDistributor,
+    previousDistributor: track.previousDistributor,
+    aiLabeling: track.aiLabeling ?? null,
   })
 
   const persistTrackMetadata = (trackId: string): Promise<boolean> => {
@@ -419,6 +469,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (releaseDate) fd.append("releaseDate", format(releaseDate, "yyyy-MM-dd"))
     if (upc) fd.append("upc", upc)
     if (requestAiCover) fd.append("requestAiCover", "true")
+    if (coverCreatedWithAi === true) fd.append("coverCreatedWithAi", "true")
+    if (coverCreatedWithAi === false) fd.append("coverCreatedWithAi", "false")
+    if (acceptShortReleaseDate) fd.append("acceptShortReleaseDate", "true")
     fd.append("cover", file)
 
     setSaving(true)
@@ -455,6 +508,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (releaseDate) fd.append("releaseDate", format(releaseDate, "yyyy-MM-dd"))
     if (upc) fd.append("upc", upc)
     fd.append("requestAiCover", "true")
+    if (coverCreatedWithAi === true) fd.append("coverCreatedWithAi", "true")
+    if (coverCreatedWithAi === false) fd.append("coverCreatedWithAi", "false")
+    if (acceptShortReleaseDate) fd.append("acceptShortReleaseDate", "true")
 
     const res = await fetch("/api/cabinet/releases", {
       method: "POST",
@@ -587,6 +643,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
   const deleteTrack = async (trackId: string) => {
     if (!releaseId) return
+    if (playingTrackId === trackId) stopAudio()
     const res = await fetch(`/api/cabinet/releases/${releaseId}/tracks/${trackId}`, {
       method: "DELETE",
       credentials: "include",
@@ -611,34 +668,109 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     })
   }
 
-  const togglePlay = (trackId: string) => {
-    if (playingTrackId === trackId) {
-      audioRef.current?.pause()
-      setPlayingTrackId(null)
-      return
-    }
+  const formatAudioClock = (sec: number) => {
+    if (!Number.isFinite(sec) || sec < 0) return "0:00"
+    const m = Math.floor(sec / 60)
+    const s = Math.floor(sec % 60)
+    return `${m}:${String(s).padStart(2, "0")}`
+  }
+
+  const stopAudio = () => {
     if (audioRef.current) {
       audioRef.current.pause()
+      audioRef.current.src = ""
+      audioRef.current = null
     }
+    setPlayingTrackId(null)
+    setIsAudioPlaying(false)
+    setAudioTime(0)
+    setAudioDuration(0)
+  }
+
+  const togglePlay = (trackId: string) => {
+    if (!releaseId) return
+
+    if (playingTrackId === trackId && audioRef.current) {
+      if (isAudioPlaying) {
+        audioRef.current.pause()
+        setIsAudioPlaying(false)
+      } else {
+        void audioRef.current.play().catch(() => toast.error("Не удалось воспроизвести"))
+      }
+      return
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
+    }
+
     const audio = new Audio(`/api/cabinet/releases/${releaseId}/audio/${trackId}`)
     audioRef.current = audio
-    audio.play().catch(() => toast.error("Не удалось воспроизвести"))
-    audio.onended = () => setPlayingTrackId(null)
+    audioSeekingRef.current = false
     setPlayingTrackId(trackId)
+    setIsAudioPlaying(false)
+    setAudioTime(0)
+    setAudioDuration(0)
+
+    audio.ontimeupdate = () => {
+      if (!audioSeekingRef.current) setAudioTime(audio.currentTime)
+    }
+    audio.onloadedmetadata = () => {
+      setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
+    }
+    audio.onended = () => {
+      setIsAudioPlaying(false)
+      setAudioTime(0)
+    }
+    audio.onplay = () => setIsAudioPlaying(true)
+    audio.onpause = () => setIsAudioPlaying(false)
+
+    void audio.play().catch(() => {
+      toast.error("Не удалось воспроизвести")
+      stopAudio()
+    })
   }
+
+  const seekAudio = (nextTime: number) => {
+    const audio = audioRef.current
+    if (!audio || !Number.isFinite(nextTime)) return
+    const capped =
+      Number.isFinite(audio.duration) && audio.duration > 0
+        ? Math.min(Math.max(0, nextTime), audio.duration)
+        : Math.max(0, nextTime)
+    audio.currentTime = capped
+    setAudioTime(capped)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ""
+        audioRef.current = null
+      }
+    }
+  }, [])
 
   const validateStep1 = (): string | null => {
     if (!title.trim()) return "Укажите название релиза"
     if (!artistName.trim()) return "Укажите имя артиста / название группы"
-    if (!releaseDate) return "Укажите желаемую дату релиза"
+    if (!releaseDate) return "Укажите дату релиза"
     if (!isReleaseDateSelectable(releaseDate)) {
       if (isReleaseDateWeekend(releaseDate)) {
         return "Дата публикации не может приходиться на выходной"
       }
-      return `Дата публикации должна быть не ранее чем через ${MIN_RELEASE_DAYS_AHEAD} дней от сегодня`
+      return `Дата публикации должна быть не ранее чем через ${MIN_RELEASE_WORKING_DAYS_AHEAD} рабочих дней от сегодня`
     }
     if (!release?.coverPath && !coverPreview && !requestAiCover) {
       return "Загрузите обложку или закажите AI-обложку"
+    }
+    if (coverCreatedWithAi !== true && coverCreatedWithAi !== false) {
+      return "Укажите, создана ли обложка при помощи ИИ"
+    }
+    if (isShortReleaseDate(releaseDate) && !acceptShortReleaseDate) {
+      return "Подтвердите согласие на короткий срок релиза"
     }
     return null
   }
@@ -656,6 +788,18 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     for (const track of tracks) {
       const err = validateTrackMetadata(track, { requireAudio: false })
       if (err) return err
+    }
+    return null
+  }
+
+  const validateStep4 = (): string | null => {
+    if (tracks.length === 0) return "Сначала загрузите треки на шаге «Файлы»"
+    for (const track of tracks) {
+      const err = validateTrackAiLabeling(track.aiLabeling)
+      if (err) {
+        const label = track.trackName.trim() || "Трек"
+        return `${err} («${label}»)`
+      }
     }
     return null
   }
@@ -704,6 +848,14 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       await saveDraft(true)
     }
     if (step === 4) {
+      const err = validateStep4()
+      if (err) {
+        toast.error(err)
+        return
+      }
+      await saveDraft(true)
+    }
+    if (step === 5) {
       await saveDraft(true)
     }
     goToStep(step + 1)
@@ -712,6 +864,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const handleSubmit = async () => {
     if (!consentOffer) {
       toast.error("Подтвердите согласие с публичной офертой")
+      return
+    }
+    const aiErr = validateStep4()
+    if (aiErr) {
+      toast.error(aiErr)
       return
     }
     if (!releaseId) return
@@ -793,7 +950,21 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               ? "Заказана AI-обложка"
               : undefined,
       },
+      {
+        ok: coverCreatedWithAi === true || coverCreatedWithAi === false,
+        label: "Обложка создана при помощи ИИ",
+        value:
+          coverCreatedWithAi === true ? "Да" : coverCreatedWithAi === false ? "Нет" : undefined,
+      },
     ]
+
+    if (showShortDateRisk) {
+      items.push({
+        ok: acceptShortReleaseDate,
+        label: "Короткий срок релиза",
+        value: acceptShortReleaseDate ? "Риск принят" : undefined,
+      })
+    }
 
     if (upc.trim()) {
       items.push({ ok: true, label: "UPC / EAN", value: upc.trim() })
@@ -817,6 +988,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         value: metaErr
           ? metaErr
           : [t.genre, t.mood].filter(Boolean).join(" · ") || undefined,
+      })
+      const aiErr = validateTrackAiLabeling(t.aiLabeling)
+      items.push({
+        ok: !aiErr,
+        label: `AI-маркировка: ${t.trackName}`,
+        value: aiErr ? aiErr : aiLabelingModeLabel(t.aiLabeling?.mode),
       })
     }
 
@@ -862,6 +1039,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     upc,
     tracks,
     requestAiCover,
+    coverCreatedWithAi,
+    showShortDateRisk,
+    acceptShortReleaseDate,
     addonVerticalVideo,
     addonVerticalVideoCount,
     addonAiMastering,
@@ -892,7 +1072,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
       {profileCompleteForUpload === false ? <CabinetUploadProfileGateBanner /> : null}
 
-      <ReleaseUploadStepper currentStep={step} maxReachedStep={maxStep} />
+      <ReleaseUploadStepper
+        currentStep={step}
+        maxReachedStep={maxStep}
+        onStepClick={(target) => {
+          if (target < step) goToStep(target)
+        }}
+      />
 
       {step === 1 ? (
         <div className="space-y-6">
@@ -924,7 +1110,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
               </div>
               <div>
-                <Label>Желаемая дата релиза *</Label>
+                <Label>Дата релиза *</Label>
                 <Popover
                   open={datePopoverOpen}
                   onOpenChange={(open) => {
@@ -950,14 +1136,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                       selected={releaseDate}
                       onSelect={(date) => {
                         setReleaseDate(date)
+                        if (date && !isShortReleaseDate(date)) {
+                          setAcceptShortReleaseDate(false)
+                        }
                         if (date) setDatePopoverOpen(false)
                       }}
                       autoFocus
                       disabled={(date) => formDisabled || !isReleaseDateSelectable(date)}
                       modifiers={{
-                        tierAccelerated: (date) => getReleaseDateTier(date) === "accelerated",
-                        tierFast: (date) => getReleaseDateTier(date) === "fast",
-                        tierStandard: (date) => getReleaseDateTier(date) === "standard",
+                        tierAccelerated: (date) => getReleaseDateCalendarTier(date) === "accelerated",
+                        tierFast: (date) => getReleaseDateCalendarTier(date) === "fast",
+                        tierStandard: (date) => getReleaseDateCalendarTier(date) === "standard",
                       }}
                       modifiersClassNames={{
                         tierAccelerated:
@@ -976,42 +1165,57 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
                         <span>
                           {RELEASE_DATE_TIER_LABEL.accelerated}: {RELEASE_DATE_TIER_PRICE_RUB.accelerated}₽
+                          {" "}({RELEASE_DATE_ACCELERATED_WORKING_DAYS.from}–{RELEASE_DATE_ACCELERATED_WORKING_DAYS.to} раб. дней)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
                         <span>
                           {RELEASE_DATE_TIER_LABEL.fast}: {RELEASE_DATE_TIER_PRICE_RUB.fast}₽
+                          {" "}({RELEASE_DATE_FAST_WORKING_DAYS.from}–{RELEASE_DATE_FAST_WORKING_DAYS.to} раб. дней)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
                         <span>
                           {RELEASE_DATE_TIER_LABEL.standard}: {RELEASE_DATE_TIER_PRICE_RUB.standard}₽
+                          {" "}(от {RELEASE_DATE_STANDARD_FROM_WORKING_DAYS} раб. дня)
                         </span>
                       </div>
                     </div>
                   </PopoverContent>
                 </Popover>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Питчинг доступен только если до даты релиза осталось минимум 14 дней.
+                </p>
                 {selectedReleaseTier ? (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
-                    {selectedReleaseTier === "standard"
-                      ? ` · от ${RELEASE_DATE_STANDARD_FROM_DAYS} дней — удобно для питчинга`
-                      : null}
                   </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Ближайшая доступная дата — через {MIN_RELEASE_DAYS_AHEAD} дней (без выходных). Стандарт бесплатно от{" "}
-                    {RELEASE_DATE_STANDARD_FROM_DAYS} дней.
-                  </p>
-                )}
+                ) : null}
+                {showShortDateRisk ? (
+                  <div className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+                    <p className="text-xs text-amber-100/90">
+                      Площадки могут не успеть проверить и доставить релиз вовремя. Промо и питчинг
+                      доступны минимум за 14 дней
+                    </p>
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        className="mt-0.5 shrink-0"
+                        checked={acceptShortReleaseDate}
+                        onCheckedChange={(c) => setAcceptShortReleaseDate(c === true)}
+                        disabled={formDisabled}
+                      />
+                      <span>Я принимаю риск короткого срока, отправить с этой датой</span>
+                    </label>
+                  </div>
+                ) : null}
               </div>
               <div>
                 <Label>UPC / EAN</Label>
                 <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Укажите UPC / EAN релиза, если переносите релиз от другого дистрибьютора
+                  Если у релиза уже есть UPC — укажите его. Если нет, мы присвоим код автоматически.
                 </p>
               </div>
               <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
@@ -1070,6 +1274,28 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               <p className="text-xs text-muted-foreground">
                 JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.
               </p>
+              <div>
+                <Label>Обложка создана при помощи ИИ *</Label>
+                <Select
+                  value={
+                    coverCreatedWithAi === true
+                      ? "yes"
+                      : coverCreatedWithAi === false
+                        ? "no"
+                        : undefined
+                  }
+                  onValueChange={(v) => setCoverCreatedWithAi(v === "yes")}
+                  disabled={formDisabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Да</SelectItem>
+                    <SelectItem value="no">Нет</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <input
                 ref={coverInputRef}
                 type="file"
@@ -1149,12 +1375,44 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             </ul>
           ) : null}
           <ul className="space-y-2">
-            {tracks.map((track, index) => (
+            {tracks.map((track, index) => {
+              const isActive = playingTrackId === track.id
+              return (
               <li key={track.id} className="flex items-center gap-2 rounded-md border border-border p-3">
-                <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
-                <span className="flex-1 truncate text-sm">{track.trackName}</span>
+                <span className="text-sm text-muted-foreground w-6 shrink-0">{index + 1}</span>
+                <span className="min-w-0 flex-1 truncate text-sm sm:max-w-[40%] md:max-w-[12rem]">{track.trackName}</span>
+                {isActive ? (
+                  <div className="flex min-w-0 flex-[1.5] items-center gap-2">
+                    <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                      {formatAudioClock(audioTime)}
+                    </span>
+                    <Slider
+                      className="min-w-0 flex-1"
+                      min={0}
+                      max={Math.max(audioDuration, 0.1)}
+                      step={0.1}
+                      value={[Math.min(audioTime, audioDuration || 0)]}
+                      disabled={!audioDuration}
+                      aria-label="Перемотка трека"
+                      onValueChange={(vals) => {
+                        audioSeekingRef.current = true
+                        setAudioTime(vals[0] ?? 0)
+                      }}
+                      onValueCommit={(vals) => {
+                        seekAudio(vals[0] ?? 0)
+                        audioSeekingRef.current = false
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                    <span className="w-10 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      {formatAudioClock(audioDuration)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="hidden min-w-0 flex-[1.5] sm:block" />
+                )}
                 <Button type="button" size="icon" variant="ghost" disabled={formDisabled} onClick={() => togglePlay(track.id)}>
-                  {playingTrackId === track.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {isActive && isAudioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
                 {kind === "album" ? (
                   <>
@@ -1170,30 +1428,71 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </div>
       ) : null}
 
       {step === 3 ? (
-        <div className="space-y-8">
+        <Accordion
+          type="multiple"
+          value={metaAccordionOpen}
+          onValueChange={setMetaAccordionOpen}
+          className="space-y-4"
+        >
           {tracks.map((track, index) => (
-            <div key={track.id} className="space-y-3">
-              <h3 className="font-medium">
-                {kind === "album" ? `Трек ${index + 1}: ${track.trackName}` : track.trackName}
-              </h3>
-              <TrackMetadataFields
-                track={track}
-                onChange={(patch) => void updateTrackLocal(track.id, patch)}
-                showTransferFields={Boolean(upc.trim())}
-                disabled={formDisabled}
-              />
-            </div>
+            <AccordionItem
+              key={track.id}
+              value={track.id}
+              className="overflow-hidden rounded-md border border-border px-4 last:border-b"
+            >
+              <AccordionTrigger className="py-4 hover:no-underline">
+                <span className="flex min-w-0 items-center gap-3 text-left">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 truncate font-semibold">
+                    {kind === "album" ? `Трек ${index + 1}: ${track.trackName}` : track.trackName}
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <TrackMetadataFields
+                  track={track}
+                  onChange={(patch) => void updateTrackLocal(track.id, patch)}
+                  showTransferFields
+                  disabled={formDisabled}
+                />
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       ) : null}
 
       {step === 4 ? (
+        <div className="space-y-6">
+          <AiLabelingIntroCard />
+          <div className="space-y-4">
+            {tracks.map((track, index) => (
+              <div key={track.id} className="rounded-md border border-border p-4">
+                <TrackAiLabelingFields
+                  trackTitle={
+                    kind === "album"
+                      ? `Трек ${index + 1}: ${track.trackName}`
+                      : track.trackName
+                  }
+                  value={track.aiLabeling}
+                  disabled={formDisabled}
+                  onChange={(next) => void updateTrackLocal(track.id, { aiLabeling: next })}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {step === 5 ? (
         <CabinetUploadAdditionalServicesSection
           formDisabled={formDisabled}
           layout="plain"
@@ -1238,7 +1537,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         />
       ) : null}
 
-      {step === 5 ? (
+      {step === 6 ? (
         <div className="space-y-6">
           <div className="flex gap-4">
             {coverPreview ? (
@@ -1305,7 +1604,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             {saving ? <Spinner className="h-4 w-4 mr-1" /> : <Save className="h-4 w-4 mr-1" />}
             Сохранить черновик
           </Button>
-          {step < 5 ? (
+          {step < WIZARD_STEP_COUNT ? (
             <Button type="button" onClick={() => void handleNext()} disabled={formDisabled}>
               Далее
             </Button>

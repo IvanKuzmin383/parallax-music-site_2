@@ -1,6 +1,9 @@
 import {
+  addWorkingDays,
+  countWorkingDaysAhead,
   isReleaseDateWeekend,
-  MIN_RELEASE_DAYS_AHEAD,
+  MIN_RELEASE_WORKING_DAYS_AHEAD,
+  startOfLocalDay,
 } from "@/lib/release-date-validation"
 
 export type ReleaseDateTier = "accelerated" | "fast" | "standard"
@@ -17,36 +20,29 @@ export const RELEASE_DATE_TIER_LABEL = {
   standard: "Стандартная загрузка",
 } as const
 
-/** С этого числа дней от сегодня — «быстрая» (включительно). */
-export const RELEASE_DATE_FAST_FROM_DAYS = 17
+/** Ускоренная: 4–6 рабочих дней включительно. */
+export const RELEASE_DATE_ACCELERATED_WORKING_DAYS = { from: 4, to: 6 } as const
 
-/** С этого числа дней от сегодня — «стандарт» / бесплатно (включительно). */
-export const RELEASE_DATE_STANDARD_FROM_DAYS = 21
+/** Быстрая: 7–13 рабочих дней включительно. */
+export const RELEASE_DATE_FAST_WORKING_DAYS = { from: 7, to: 13 } as const
 
-export function startOfLocalDay(date = new Date()): Date {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
+/** Стандарт бесплатно: от 14-го рабочего дня. */
+export const RELEASE_DATE_STANDARD_FROM_WORKING_DAYS = 14
 
-export function getReleaseDaysAhead(date: Date, from = new Date()): number {
-  const a = startOfLocalDay(date).getTime()
-  const b = startOfLocalDay(from).getTime()
-  return Math.round((a - b) / 86_400_000)
+/** @deprecated Используйте RELEASE_DATE_ACCELERATED_WORKING_DAYS.from */
+export const RELEASE_DATE_ACCELERATED_WORKING_DAY = RELEASE_DATE_ACCELERATED_WORKING_DAYS.from
+
+export function getReleaseWorkingDaysAhead(date: Date, from = new Date()): number {
+  return countWorkingDaysAhead(date, from)
 }
 
 export function isReleaseDateSelectable(date: Date, from = new Date()): boolean {
   if (isReleaseDateWeekend(date)) return false
-  return getReleaseDaysAhead(date, from) >= MIN_RELEASE_DAYS_AHEAD
+  return getReleaseWorkingDaysAhead(date, from) >= MIN_RELEASE_WORKING_DAYS_AHEAD
 }
 
 export function getEarliestAvailableReleaseDate(from = new Date()): Date {
-  const d = startOfLocalDay(from)
-  d.setDate(d.getDate() + MIN_RELEASE_DAYS_AHEAD)
-  while (isReleaseDateWeekend(d)) {
-    d.setDate(d.getDate() + 1)
-  }
-  return d
+  return addWorkingDays(startOfLocalDay(from), MIN_RELEASE_WORKING_DAYS_AHEAD)
 }
 
 export function getReleaseDateTier(
@@ -54,14 +50,36 @@ export function getReleaseDateTier(
   from = new Date(),
 ): ReleaseDateTier | null {
   if (!isReleaseDateSelectable(date, from)) return null
-  const days = getReleaseDaysAhead(date, from)
-  if (days < RELEASE_DATE_FAST_FROM_DAYS) return "accelerated"
-  if (days < RELEASE_DATE_STANDARD_FROM_DAYS) return "fast"
-  return "standard"
+  const wd = getReleaseWorkingDaysAhead(date, from)
+  if (
+    wd >= RELEASE_DATE_ACCELERATED_WORKING_DAYS.from &&
+    wd <= RELEASE_DATE_ACCELERATED_WORKING_DAYS.to
+  ) {
+    return "accelerated"
+  }
+  if (wd >= RELEASE_DATE_FAST_WORKING_DAYS.from && wd <= RELEASE_DATE_FAST_WORKING_DAYS.to) {
+    return "fast"
+  }
+  if (wd >= RELEASE_DATE_STANDARD_FROM_WORKING_DAYS) return "standard"
+  return null
+}
+
+/** Раскраска календаря совпадает с тарифом. */
+export function getReleaseDateCalendarTier(
+  date: Date,
+  from = new Date(),
+): ReleaseDateTier | null {
+  return getReleaseDateTier(date, from)
 }
 
 export function getReleaseDateTierPriceRub(date: Date, from = new Date()): number {
   const tier = getReleaseDateTier(date, from)
   if (!tier) return 0
   return RELEASE_DATE_TIER_PRICE_RUB[tier]
+}
+
+/** Дата раньше стандарта (менее 14 раб. дней) — нужен флаг принятия риска. */
+export function isShortReleaseDate(date: Date, from = new Date()): boolean {
+  if (!isReleaseDateSelectable(date, from)) return false
+  return getReleaseWorkingDaysAhead(date, from) < RELEASE_DATE_STANDARD_FROM_WORKING_DAYS
 }

@@ -33,6 +33,10 @@ export interface Release {
   wizardStep: number
   addons: ReleaseAddonsPayload
   requestAiCover: boolean
+  /** Обложка создана при помощи ИИ: null — не выбрано. */
+  coverCreatedWithAi: boolean | null
+  /** Согласие на дату релиза ранее 14 рабочих дней. */
+  acceptShortReleaseDate: boolean
   bundleOrderId?: string
   albumId?: string
   createdAt: string
@@ -53,6 +57,8 @@ interface ReleaseRow {
   wizard_step: number
   addons_json: string
   request_ai_cover: boolean | null
+  cover_created_with_ai?: boolean | null
+  accept_short_release_date?: boolean | null
   bundle_order_id: string | null
   album_id: string | null
   created_at: string
@@ -83,6 +89,13 @@ export function rowToRelease(row: ReleaseRow): Release {
     wizardStep: row.wizard_step,
     addons: parseAddons(row.addons_json),
     requestAiCover: row.request_ai_cover === true,
+    coverCreatedWithAi:
+      row.cover_created_with_ai === true
+        ? true
+        : row.cover_created_with_ai === false
+          ? false
+          : null,
+    acceptShortReleaseDate: row.accept_short_release_date === true,
     bundleOrderId: row.bundle_order_id ?? undefined,
     albumId: row.album_id ?? undefined,
     createdAt: row.created_at,
@@ -145,6 +158,8 @@ export type CreateReleaseInput = {
   upc?: string
   wizardStep?: number
   requestAiCover?: boolean
+  coverCreatedWithAi?: boolean | null
+  acceptShortReleaseDate?: boolean
 }
 
 export async function createRelease(data: CreateReleaseInput): Promise<Release> {
@@ -163,6 +178,13 @@ export async function createRelease(data: CreateReleaseInput): Promise<Release> 
     wizardStep: data.wizardStep ?? 1,
     addons: {},
     requestAiCover: data.requestAiCover === true,
+    coverCreatedWithAi:
+      data.coverCreatedWithAi === true
+        ? true
+        : data.coverCreatedWithAi === false
+          ? false
+          : null,
+    acceptShortReleaseDate: data.acceptShortReleaseDate === true,
     createdAt: now,
     updatedAt: now,
   }
@@ -170,8 +192,9 @@ export async function createRelease(data: CreateReleaseInput): Promise<Release> 
   await execute(
     `INSERT INTO releases (
       id, user_id, kind, title, artist_name, label_name, cover_path, release_date, upc,
-      status, wizard_step, addons_json, request_ai_cover, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      status, wizard_step, addons_json, request_ai_cover, cover_created_with_ai,
+      accept_short_release_date, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       release.id,
       release.userId,
@@ -186,6 +209,8 @@ export async function createRelease(data: CreateReleaseInput): Promise<Release> 
       release.wizardStep,
       JSON.stringify(release.addons),
       release.requestAiCover,
+      release.coverCreatedWithAi,
+      release.acceptShortReleaseDate,
       release.createdAt,
       release.updatedAt,
     ]
@@ -206,6 +231,8 @@ export type UpdateReleaseInput = Partial<{
   wizardStep: number
   addons: ReleaseAddonsPayload
   requestAiCover: boolean
+  coverCreatedWithAi: boolean | null
+  acceptShortReleaseDate: boolean
   bundleOrderId: string | null
   albumId: string | null
 }>
@@ -224,6 +251,14 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
     status: partial.status ?? current.status,
     wizardStep: partial.wizardStep ?? current.wizardStep,
     requestAiCover: partial.requestAiCover ?? current.requestAiCover,
+    coverCreatedWithAi:
+      partial.coverCreatedWithAi !== undefined
+        ? partial.coverCreatedWithAi
+        : current.coverCreatedWithAi,
+    acceptShortReleaseDate:
+      partial.acceptShortReleaseDate !== undefined
+        ? partial.acceptShortReleaseDate
+        : current.acceptShortReleaseDate,
     releaseDate: partial.releaseDate === null ? undefined : (partial.releaseDate ?? current.releaseDate),
     upc: partial.upc === null ? undefined : (partial.upc ?? current.upc),
     bundleOrderId: partial.bundleOrderId === null ? undefined : (partial.bundleOrderId ?? current.bundleOrderId),
@@ -236,7 +271,8 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
     `UPDATE releases SET
       kind = ?, title = ?, artist_name = ?, label_name = ?, cover_path = ?,
       release_date = ?, upc = ?, status = ?, wizard_step = ?, addons_json = ?,
-      request_ai_cover = ?, bundle_order_id = ?, album_id = ?, updated_at = ?
+      request_ai_cover = ?, cover_created_with_ai = ?, accept_short_release_date = ?,
+      bundle_order_id = ?, album_id = ?, updated_at = ?
     WHERE id = ?`,
     [
       updated.kind,
@@ -250,6 +286,8 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
       updated.wizardStep,
       JSON.stringify(updated.addons),
       updated.requestAiCover,
+      updated.coverCreatedWithAi,
+      updated.acceptShortReleaseDate,
       updated.bundleOrderId ?? null,
       updated.albumId ?? null,
       updated.updatedAt,

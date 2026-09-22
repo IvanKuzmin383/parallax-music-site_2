@@ -23,6 +23,7 @@ import {
 import {
   GENRES,
   LYRICS_TEXT_UPLOAD_HINT,
+  TRACK_LYRICS_LANGUAGES,
   TRACK_MOODS,
   musicRightsRequiresAiService,
 } from "@/lib/track-constants"
@@ -60,6 +61,7 @@ export type TrackDraftPatch = Partial<
     | "mood"
     | "shortDescription"
     | "lyricsText"
+    | "lyricsLanguage"
     | "lyricsAuthor"
     | "musicAuthor"
     | "musicRights"
@@ -67,9 +69,12 @@ export type TrackDraftPatch = Partial<
     | "lyricsRights"
     | "performanceRights"
     | "isInstrumental"
+    | "hasExplicitLanguage"
     | "backingAuthor"
     | "isrc"
     | "transferFromOtherDistributor"
+    | "previousDistributor"
+    | "aiLabeling"
   >
 >
 
@@ -194,12 +199,39 @@ export function TrackMetadataFields({
         <Checkbox
           id={`instrumental-${track.id}`}
           checked={track.isInstrumental}
-          onCheckedChange={(c) => onChange({ isInstrumental: c === true })}
+          onCheckedChange={(c) =>
+            onChange({
+              isInstrumental: c === true,
+              ...(c === true ? { lyricsLanguage: "" } : {}),
+            })
+          }
           disabled={disabled}
         />
         <Label htmlFor={`instrumental-${track.id}`} className="font-normal cursor-pointer">
           Инструментальный трек (без текста)
         </Label>
+      </div>
+      <div className="sm:col-span-2">
+        <Label>Ненормативная лексика *</Label>
+        <Select
+          value={
+            track.hasExplicitLanguage === true
+              ? "yes"
+              : track.hasExplicitLanguage === false
+                ? "no"
+                : undefined
+          }
+          onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
+          disabled={disabled}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Выберите" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="yes">Да</SelectItem>
+            <SelectItem value="no">Нет</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       {!track.isInstrumental ? (
         <>
@@ -237,6 +269,25 @@ export function TrackMetadataFields({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </div>
+          <div className="sm:col-span-2 max-w-md">
+            <Label>Язык текста *</Label>
+            <Select
+              value={track.lyricsLanguage || undefined}
+              onValueChange={(v) => onChange({ lyricsLanguage: v })}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите" />
+              </SelectTrigger>
+              <SelectContent>
+                {TRACK_LYRICS_LANGUAGES.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Автор текста</Label>
@@ -281,26 +332,54 @@ export function TrackMetadataFields({
       ) : null}
       {showTransferFields ? (
         <>
-          <div className="sm:col-span-2 flex items-center gap-2">
+          <div>
+            <Label>ISRC</Label>
+            <Input
+              value={track.isrc ?? ""}
+              onChange={(e) => onChange({ isrc: e.target.value })}
+              disabled={disabled}
+              maxLength={32}
+              placeholder="Необязательно"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Если у трека уже есть ISRC — укажите его. Если нет, мы присвоим код автоматически.
+            </p>
+          </div>
+          <div className="sm:col-span-2 flex items-start gap-2">
             <Checkbox
               id={`transfer-${track.id}`}
+              className="mt-0.5"
               checked={track.transferFromOtherDistributor}
-              onCheckedChange={(c) => onChange({ transferFromOtherDistributor: c === true })}
+              onCheckedChange={(c) =>
+                onChange({
+                  transferFromOtherDistributor: c === true,
+                  ...(c === true ? {} : { previousDistributor: null }),
+                })
+              }
               disabled={disabled}
             />
-            <Label htmlFor={`transfer-${track.id}`} className="font-normal cursor-pointer">
-              Перенос с другого дистрибьютора (нужен ISRC)
-            </Label>
+            <div className="space-y-1">
+              <Label htmlFor={`transfer-${track.id}`} className="font-normal cursor-pointer">
+                Перенос от другого дистрибьютора
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Отметьте, если релиз уже был на площадках у другого дистрибьютора
+              </p>
+            </div>
           </div>
           {track.transferFromOtherDistributor ? (
-            <div>
-              <Label>ISRC *</Label>
+            <div className="sm:col-span-2 max-w-md">
+              <Label>Предыдущий дистрибьютор *</Label>
               <Input
-                value={track.isrc ?? ""}
-                onChange={(e) => onChange({ isrc: e.target.value })}
+                value={track.previousDistributor ?? ""}
+                onChange={(e) => onChange({ previousDistributor: e.target.value })}
                 disabled={disabled}
-                maxLength={32}
+                maxLength={100}
+                placeholder="Название дистрибьютора"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Укажите, откуда переносится релиз
+              </p>
             </div>
           ) : null}
         </>

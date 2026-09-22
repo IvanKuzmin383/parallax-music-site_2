@@ -57,8 +57,8 @@ export async function POST(
   await markReleaseAwaitingPayment(id, order.id)
 
   const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}/cabinet/upload/${encodeURIComponent(id)}?step=5&payment=return`
-  const failUrl = `${siteBase}/cabinet/upload/${encodeURIComponent(id)}?step=5&payment=fail`
+  const returnUrl = `${siteBase}/cabinet/upload/${encodeURIComponent(id)}?step=6&payment=return`
+  const failUrl = `${siteBase}/cabinet/upload/${encodeURIComponent(id)}?step=6&payment=fail`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,

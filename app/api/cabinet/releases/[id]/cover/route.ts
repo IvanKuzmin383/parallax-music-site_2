@@ -66,7 +66,7 @@ export async function POST(
   try {
     const multipart = await parseMultipartRequestStream(request, {
       maxFiles: 1,
-      maxFields: 5,
+      maxFields: 16,
       maxFileSizeBytes: MAX_CABINET_COVER_BYTES,
       maxFieldSizeBytes: 64 * 1024,
     })

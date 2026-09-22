@@ -1,4 +1,4 @@
-import { GENRES, TRACK_MOODS, musicRightsRequiresAiService } from "@/lib/track-constants"
+import { GENRES, TRACK_LYRICS_LANGUAGES, TRACK_MOODS, musicRightsRequiresAiService } from "@/lib/track-constants"
 import type { Track } from "@/lib/tracks"
 
 const MUSIC_RIGHTS_ALLOWED = [
@@ -33,8 +33,11 @@ export type TrackMetadataFieldKey =
   | "musicAiService"
   | "lyricsRights"
   | "performanceRights"
+  | "lyricsLanguage"
   | "isrc"
   | "audioPath"
+  | "hasExplicitLanguage"
+  | "previousDistributor"
 
 export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> = {
   trackName: "Название трека",
@@ -46,8 +49,11 @@ export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> 
   musicAiService: "ИИ-сервис",
   lyricsRights: "Права на текст",
   performanceRights: "Права на исполнение",
+  lyricsLanguage: "Язык текста",
   isrc: "ISRC",
   audioPath: "Аудиофайл",
+  hasExplicitLanguage: "Ненормативная лексика",
+  previousDistributor: "Предыдущий дистрибьютор",
 }
 
 export type ValidateTrackMetadataOptions = {
@@ -75,6 +81,13 @@ export function getIncompleteTrackMetadataFields(
     missing.push("musicAiService")
   }
   if (!track.isInstrumental) {
+    if (
+      !TRACK_LYRICS_LANGUAGES.includes(
+        track.lyricsLanguage.trim() as (typeof TRACK_LYRICS_LANGUAGES)[number]
+      )
+    ) {
+      missing.push("lyricsLanguage")
+    }
     if (!LYRICS_RIGHTS_ALLOWED.includes(track.lyricsRights.trim() as (typeof LYRICS_RIGHTS_ALLOWED)[number])) {
       missing.push("lyricsRights")
     }
@@ -86,8 +99,14 @@ export function getIncompleteTrackMetadataFields(
       missing.push("performanceRights")
     }
   }
-  if (track.transferFromOtherDistributor && !(track.isrc ?? "").trim()) {
-    missing.push("isrc")
+  if (track.hasExplicitLanguage !== true && track.hasExplicitLanguage !== false) {
+    missing.push("hasExplicitLanguage")
+  }
+  if (
+    track.transferFromOtherDistributor &&
+    (track.previousDistributor ?? "").trim().length < 2
+  ) {
+    missing.push("previousDistributor")
   }
   if (requireAudio && !track.audioPath) {
     missing.push("audioPath")

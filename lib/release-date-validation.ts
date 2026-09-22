@@ -4,8 +4,45 @@ export function isReleaseDateWeekend(date: Date): boolean {
   return d === 0 || d === 6
 }
 
-/** Минимальный срок до даты релиза (дней от сегодня, локальный календарь). */
-export const MIN_RELEASE_DAYS_AHEAD = 14
+export function startOfLocalDay(date = new Date()): Date {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+/**
+ * Число рабочих дней строго после `from` до `date` включительно
+ * (день загрузки = 0; следующий пн–пт = 1).
+ */
+export function countWorkingDaysAhead(date: Date, from = new Date()): number {
+  const start = startOfLocalDay(from)
+  const end = startOfLocalDay(date)
+  if (end <= start) return 0
+  let count = 0
+  const cur = new Date(start)
+  while (cur < end) {
+    cur.setDate(cur.getDate() + 1)
+    if (!isReleaseDateWeekend(cur)) count += 1
+  }
+  return count
+}
+
+/** Дата через N рабочих дней после `from` (N ≥ 1). */
+export function addWorkingDays(from: Date, workingDays: number): Date {
+  const d = startOfLocalDay(from)
+  let added = 0
+  while (added < workingDays) {
+    d.setDate(d.getDate() + 1)
+    if (!isReleaseDateWeekend(d)) added += 1
+  }
+  return d
+}
+
+/** Минимальный срок до даты релиза (рабочих дней после загрузки). */
+export const MIN_RELEASE_WORKING_DAYS_AHEAD = 4
+
+/** @deprecated Используйте MIN_RELEASE_WORKING_DAYS_AHEAD */
+export const MIN_RELEASE_DAYS_AHEAD = MIN_RELEASE_WORKING_DAYS_AHEAD
 
 /** Разбор YYYY-MM-DD как локальной даты (без сдвига из‑за UTC). */
 export function parseLocalDateFromYyyyMmDd(s: string): Date | null {
@@ -28,12 +65,12 @@ export function isYyyyMmDdReleaseWeekend(yyyyMmDd: string): boolean {
 }
 
 /**
- * Проверка даты релиза (формат, выходные, минимум N дней от сегодня).
+ * Проверка даты релиза (формат, выходные, минимум N рабочих дней от сегодня).
  * Возвращает текст ошибки или null, если дата допустима.
  */
 export function validateReleaseDateYyyyMmDd(
   yyyyMmDd: string | undefined | null,
-  options?: { minDaysAhead?: number; required?: boolean },
+  options?: { minWorkingDaysAhead?: number; minDaysAhead?: number; required?: boolean },
 ): string | null {
   const required = options?.required !== false
   const trimmed = yyyyMmDd?.trim()
@@ -47,13 +84,14 @@ export function validateReleaseDateYyyyMmDd(
   if (isReleaseDateWeekend(date)) {
     return "Дата публикации не может приходиться на выходной день (суббота или воскресенье)"
   }
-  const minDays = options?.minDaysAhead ?? MIN_RELEASE_DAYS_AHEAD
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const minDate = new Date(today)
-  minDate.setDate(minDate.getDate() + minDays)
-  if (date < minDate) {
-    return `Дата публикации должна быть не ранее чем через ${minDays} дней от сегодня`
+  const minWorking =
+    options?.minWorkingDaysAhead ??
+    options?.minDaysAhead ??
+    MIN_RELEASE_WORKING_DAYS_AHEAD
+  const today = startOfLocalDay()
+  const workingAhead = countWorkingDaysAhead(date, today)
+  if (workingAhead < minWorking) {
+    return `Дата публикации должна быть не ранее чем через ${minWorking} рабочих дней от сегодня`
   }
   return null
 }

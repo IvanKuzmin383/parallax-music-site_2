@@ -53,6 +53,10 @@ export async function POST(request: NextRequest) {
       const releaseDate = multipart.getField("releaseDate")?.trim() || undefined
       const upc = multipart.getField("upc")?.trim() || undefined
       const requestAiCover = multipart.getField("requestAiCover") === "true"
+      const coverAiRaw = multipart.getField("coverCreatedWithAi")?.trim()
+      const coverCreatedWithAi =
+        coverAiRaw === "true" ? true : coverAiRaw === "false" ? false : null
+      const acceptShortReleaseDate = multipart.getField("acceptShortReleaseDate") === "true"
       const labelName = getEffectiveReleaseLabelName(
         multipart.getField("labelName")?.trim(),
         user.subscriptionName
@@ -102,6 +106,8 @@ export async function POST(request: NextRequest) {
         upc,
         wizardStep: 1,
         requestAiCover,
+        coverCreatedWithAi,
+        acceptShortReleaseDate,
       })
       return NextResponse.json({ release }, { status: 201 })
     } finally {

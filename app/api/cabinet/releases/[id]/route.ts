@@ -64,6 +64,14 @@ export async function PATCH(
     if (typeof body.wizardStep === "number") patch.wizardStep = body.wizardStep
     if (body.addons && typeof body.addons === "object") patch.addons = body.addons as typeof release.addons
     if (typeof body.requestAiCover === "boolean") patch.requestAiCover = body.requestAiCover
+    if (body.coverCreatedWithAi === true || body.coverCreatedWithAi === false) {
+      patch.coverCreatedWithAi = body.coverCreatedWithAi
+    } else if (body.coverCreatedWithAi === null) {
+      patch.coverCreatedWithAi = null
+    }
+    if (typeof body.acceptShortReleaseDate === "boolean") {
+      patch.acceptShortReleaseDate = body.acceptShortReleaseDate
+    }
 
     const updated = await updateRelease(id, patch)
 
