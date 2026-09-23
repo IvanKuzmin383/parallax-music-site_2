@@ -11,7 +11,6 @@ import type { ReleaseView } from "@/lib/cabinet/types"
 import { formatReleaseKindMeta } from "@/lib/cabinet/adapters/map-track-to-release"
 import {
   formatReleaseRelativeDate,
-  isReleasedStatus,
   releaseDetailHref,
 } from "@/lib/cabinet/release-presenters"
 import { cn } from "@/lib/utils"
@@ -21,7 +20,7 @@ type CabinetDashboardHeroProps = {
   featured: ReleaseView | null
   balance: number
   activeOrders: number
-  inProgressCount: number
+  releasesCount: number
 }
 
 export function CabinetDashboardHero({
@@ -29,13 +28,13 @@ export function CabinetDashboardHero({
   featured,
   balance,
   activeOrders,
-  inProgressCount,
+  releasesCount,
 }: CabinetDashboardHeroProps) {
   const greeting = displayName?.trim() || "Артист"
 
   if (!featured) {
     return (
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card to-primary/10">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card to-primary/10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/15 via-transparent to-transparent" />
         <div className="relative grid gap-8 p-6 md:p-10 lg:grid-cols-[1fr_280px] lg:items-center">
           <div className="space-y-5 max-w-xl">
@@ -63,16 +62,15 @@ export function CabinetDashboardHero({
             </div>
           </div>
         </div>
-        <HeroMetrics balance={balance} activeOrders={activeOrders} inProgressCount={inProgressCount} />
+        <HeroMetrics balance={balance} activeOrders={activeOrders} releasesCount={releasesCount} />
       </section>
     )
   }
 
   const relativeDate = formatReleaseRelativeDate(featured.releaseDate)
-  const released = isReleasedStatus(featured.status)
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-border bg-card">
+    <section className="relative overflow-hidden rounded-2xl bg-card">
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/40 z-[1]" />
       {featured.coverUrl ? (
         <Image
@@ -109,7 +107,7 @@ export function CabinetDashboardHero({
           </div>
           <div className="space-y-3 min-w-0 pt-1">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {released ? "Последний релиз" : "Сейчас в работе"}
+              Последний релиз
             </p>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">{featured.title}</h1>
             <p className="text-lg text-muted-foreground truncate">{featured.artist}</p>
@@ -144,7 +142,7 @@ export function CabinetDashboardHero({
           </div>
         </div>
       </div>
-      <HeroMetrics balance={balance} activeOrders={activeOrders} inProgressCount={inProgressCount} />
+      <HeroMetrics balance={balance} activeOrders={activeOrders} releasesCount={releasesCount} />
     </section>
   )
 }
@@ -152,11 +150,11 @@ export function CabinetDashboardHero({
 function HeroMetrics({
   balance,
   activeOrders,
-  inProgressCount,
+  releasesCount,
 }: {
   balance: number
   activeOrders: number
-  inProgressCount: number
+  releasesCount: number
 }) {
   const items: Array<{
     label: string
@@ -175,8 +173,8 @@ function HeroMetrics({
       href: "/cabinet/orders",
     },
     {
-      label: "В работе",
-      value: String(inProgressCount),
+      label: "Релизы",
+      value: String(releasesCount),
       href: "/cabinet/music/releases",
     },
     {
@@ -248,6 +246,18 @@ export function ReleaseCoverCard({
         <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4">
           <p className="font-semibold text-white truncate text-sm md:text-base">{release.title}</p>
           <p className="text-xs md:text-sm text-white/70 truncate">{release.artist}</p>
+          {release.format === "album" && release.tracks && release.tracks.length > 0 ? (
+            <ul className="mt-1.5 space-y-0.5 max-h-16 overflow-hidden">
+              {release.tracks.slice(0, 4).map((t, i) => (
+                <li key={t.id} className="truncate text-[11px] text-white/80">
+                  {i + 1}. {t.name}
+                </li>
+              ))}
+              {release.tracks.length > 4 ? (
+                <li className="text-[11px] text-white/60">+ ещё {release.tracks.length - 4}</li>
+              ) : null}
+            </ul>
+          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {kindMeta ? (
               <span className="inline-flex items-center rounded-md border border-white/20 bg-black/40 px-2 py-0.5 text-xs font-medium text-white">

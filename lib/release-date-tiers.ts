@@ -1,8 +1,6 @@
 import {
-  addWorkingDays,
   countWorkingDaysAhead,
   isReleaseDateWeekend,
-  MIN_RELEASE_WORKING_DAYS_AHEAD,
   startOfLocalDay,
 } from "@/lib/release-date-validation"
 
@@ -20,8 +18,8 @@ export const RELEASE_DATE_TIER_LABEL = {
   standard: "Стандартная загрузка",
 } as const
 
-/** Ускоренная: 4–6 рабочих дней включительно. */
-export const RELEASE_DATE_ACCELERATED_WORKING_DAYS = { from: 4, to: 6 } as const
+/** Ускоренная: с ближайшего доступного дня до 6 раб. дней включительно. */
+export const RELEASE_DATE_ACCELERATED_WORKING_DAYS = { from: 0, to: 6 } as const
 
 /** Быстрая: 7–13 рабочих дней включительно. */
 export const RELEASE_DATE_FAST_WORKING_DAYS = { from: 7, to: 13 } as const
@@ -36,13 +34,18 @@ export function getReleaseWorkingDaysAhead(date: Date, from = new Date()): numbe
   return countWorkingDaysAhead(date, from)
 }
 
+/** Доступна любая будня сегодня или позже (выходные нельзя). */
 export function isReleaseDateSelectable(date: Date, from = new Date()): boolean {
   if (isReleaseDateWeekend(date)) return false
-  return getReleaseWorkingDaysAhead(date, from) >= MIN_RELEASE_WORKING_DAYS_AHEAD
+  return startOfLocalDay(date).getTime() >= startOfLocalDay(from).getTime()
 }
 
 export function getEarliestAvailableReleaseDate(from = new Date()): Date {
-  return addWorkingDays(startOfLocalDay(from), MIN_RELEASE_WORKING_DAYS_AHEAD)
+  let d = startOfLocalDay(from)
+  while (isReleaseDateWeekend(d)) {
+    d.setDate(d.getDate() + 1)
+  }
+  return d
 }
 
 export function getReleaseDateTier(

@@ -5,7 +5,6 @@ import type { OrderView } from "../types"
 import type { OrderFilterKey } from "../order-status-map"
 import { matchesOrderFilter } from "../order-status-map"
 import { mapServiceFulfillmentToOrderView } from "../adapters/map-service-fulfillment"
-import { MOCK_ORDERS } from "../mock"
 
 export function useCabinetOrders(filter: OrderFilterKey = "all") {
   const [orders, setOrders] = useState<OrderView[]>([])
@@ -24,11 +23,10 @@ export function useCabinetOrders(filter: OrderFilterKey = "all") {
         const data = (await res.json()) as { items?: Parameters<typeof mapServiceFulfillmentToOrderView>[0][] }
         apiOrders = (data.items ?? []).map(mapServiceFulfillmentToOrderView)
       }
-      const merged = [...apiOrders, ...MOCK_ORDERS]
-      const filtered = merged.filter((o) => matchesOrderFilter(o.status, filter))
+      const filtered = apiOrders.filter((o) => matchesOrderFilter(o.status, filter))
       setOrders(filtered)
     } catch {
-      setOrders(MOCK_ORDERS.filter((o) => matchesOrderFilter(o.status, filter)))
+      setOrders([])
     } finally {
       setLoading(false)
     }

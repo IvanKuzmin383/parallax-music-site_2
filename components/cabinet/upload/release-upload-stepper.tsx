@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export const WIZARD_STEPS = [
   { id: 1, label: "Основное" },
   { id: 2, label: "Файлы" },
-  { id: 3, label: "Дополнительно" },
+  { id: 3, label: "Данные" },
   { id: 4, label: "AI-маркировка" },
   { id: 5, label: "Услуги" },
   { id: 6, label: "Проверка" },

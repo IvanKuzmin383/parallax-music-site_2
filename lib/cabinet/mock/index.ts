@@ -1,27 +1,4 @@
-import type { OrderView, TransactionView, ReferralView, TicketView } from "../types"
-
-export const MOCK_ORDERS: OrderView[] = [
-  {
-    id: "demo-001",
-    serviceName: "VK Реклама",
-    category: "promotion",
-    createdAt: "2026-06-10T12:00:00.000Z",
-    amount: 5000,
-    status: "in_progress",
-    description: "Продвижение сингла «Demo Track»",
-    isMock: true,
-  },
-  {
-    id: "demo-002",
-    serviceName: "AI Обложки",
-    category: "design",
-    createdAt: "2026-06-05T09:30:00.000Z",
-    amount: 500,
-    status: "completed",
-    description: "Обложка для EP",
-    isMock: true,
-  },
-]
+import type { TransactionView, ReferralView, TicketView } from "../types"
 
 export const MOCK_TRANSACTIONS: TransactionView[] = [
   {

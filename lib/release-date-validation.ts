@@ -38,8 +38,8 @@ export function addWorkingDays(from: Date, workingDays: number): Date {
   return d
 }
 
-/** Минимальный срок до даты релиза (рабочих дней после загрузки). */
-export const MIN_RELEASE_WORKING_DAYS_AHEAD = 4
+/** Минимальный срок до даты релиза (рабочих дней после загрузки). 0 = с сегодняшнего раб. дня. */
+export const MIN_RELEASE_WORKING_DAYS_AHEAD = 0
 
 /** @deprecated Используйте MIN_RELEASE_WORKING_DAYS_AHEAD */
 export const MIN_RELEASE_DAYS_AHEAD = MIN_RELEASE_WORKING_DAYS_AHEAD
@@ -84,11 +84,14 @@ export function validateReleaseDateYyyyMmDd(
   if (isReleaseDateWeekend(date)) {
     return "Дата публикации не может приходиться на выходной день (суббота или воскресенье)"
   }
+  const today = startOfLocalDay()
+  if (startOfLocalDay(date) < today) {
+    return "Дата публикации не может быть в прошлом"
+  }
   const minWorking =
     options?.minWorkingDaysAhead ??
     options?.minDaysAhead ??
     MIN_RELEASE_WORKING_DAYS_AHEAD
-  const today = startOfLocalDay()
   const workingAhead = countWorkingDaysAhead(date, today)
   if (workingAhead < minWorking) {
     return `Дата публикации должна быть не ранее чем через ${minWorking} рабочих дней от сегодня`

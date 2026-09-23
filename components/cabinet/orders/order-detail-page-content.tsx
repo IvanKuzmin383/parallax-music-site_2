@@ -115,9 +115,7 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
         <CardHeader><CardTitle className="text-base">Комментарии</CardTitle></CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            {order.isMock
-              ? "Демо-заказ. Переписка с менеджером будет доступна после подключения API."
-              : "Переписка по заказу будет отображаться здесь."}
+            Переписка по заказу будет отображаться здесь.
           </p>
         </CardContent>
       </Card>

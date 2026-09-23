@@ -19,7 +19,7 @@ import { CabinetActionTiles, CabinetContinueWork } from "./cabinet-action-tiles"
 export function CabinetDashboardPage() {
   const { user, loading: userLoading } = useCabinetSession()
   const { orders, loading: ordersLoading } = useCabinetOrders("all")
-  const { releases, inProgressCount, loading: releasesLoading } = useCabinetReleases()
+  const { releases, loading: releasesLoading } = useCabinetReleases()
 
   if (userLoading) {
     return (
@@ -47,7 +47,7 @@ export function CabinetDashboardPage() {
         featured={featured}
         balance={balance}
         activeOrders={ordersLoading ? 0 : activeOrders}
-        inProgressCount={releasesLoading ? 0 : inProgressCount}
+        releasesCount={releasesLoading ? 0 : releases.length}
       />
 
       {!releasesLoading && !ordersLoading ? (

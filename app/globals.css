@@ -373,6 +373,12 @@
   font-weight: 500;
 }
 
+/* Отступ между заголовком поля и самим полем (не трогаем label рядом с checkbox) */
+.cabinet-theme :where(div, fieldset, label) > [data-slot="label"]:first-child {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
 /* Outline-кнопки: сплошной фон поля (не трогаем табы и primary) */
 .cabinet-theme button.border:not([data-slot="tabs-trigger"]):not([data-state="on"]),
 .cabinet-theme a.border:not([data-slot="tabs-trigger"]) {

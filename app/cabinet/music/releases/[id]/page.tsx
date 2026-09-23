@@ -104,6 +104,22 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </section>
 
+      {release.tracks && release.tracks.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold">
+            {release.format === "album" ? "Треки альбома" : "Трек"}
+          </h2>
+          <ol className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+            {release.tracks.map((t, i) => (
+              <li key={t.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                <span className="w-6 text-muted-foreground tabular-nums">{i + 1}</span>
+                <span className="min-w-0 flex-1 truncate font-medium">{t.name}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       <section className="space-y-4">
         <div>
           <h2 className="text-xl font-semibold">Что можно сделать?</h2>

@@ -20,7 +20,7 @@ type TrackAiLabelingFieldsProps = {
   value: TrackAiLabeling | null | undefined
   onChange: (next: TrackAiLabeling) => void
   disabled?: boolean
-  trackTitle: string
+  trackTitle?: string
 }
 
 function ChoicePill({
@@ -84,7 +84,7 @@ export function TrackAiLabelingFields({
 
   return (
     <div className="space-y-5">
-      <p className="text-sm font-medium">{trackTitle}</p>
+      {trackTitle ? <p className="text-sm font-medium">{trackTitle}</p> : null}
 
       <RadioGroup
         value={mode ?? ""}

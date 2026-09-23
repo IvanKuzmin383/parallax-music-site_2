@@ -41,7 +41,7 @@ import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { isReleaseDateWeekend, MIN_RELEASE_WORKING_DAYS_AHEAD } from "@/lib/release-date-validation"
+import { isReleaseDateWeekend } from "@/lib/release-date-validation"
 import {
   getEarliestAvailableReleaseDate,
   getReleaseDateCalendarTier,
@@ -144,6 +144,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [audioTime, setAudioTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
   const [metaAccordionOpen, setMetaAccordionOpen] = useState<string[]>([])
+  const [aiLabelingAccordionOpen, setAiLabelingAccordionOpen] = useState<string[]>([])
   const [dragTrackIndex, setDragTrackIndex] = useState<number | null>(null)
   const [dragOverTrackIndex, setDragOverTrackIndex] = useState<number | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -194,6 +195,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (step !== 3) return
     const ids = trackIdsKey ? trackIdsKey.split(",") : []
     setMetaAccordionOpen((prev) => {
+      const idSet = new Set(ids)
+      const kept = prev.filter((id) => idSet.has(id))
+      if (kept.length > 0) return kept
+      return ids[0] ? [ids[0]] : []
+    })
+  }, [step, trackIdsKey])
+
+  useEffect(() => {
+    if (step !== 4) return
+    const ids = trackIdsKey ? trackIdsKey.split(",") : []
+    setAiLabelingAccordionOpen((prev) => {
       const idSet = new Set(ids)
       const kept = prev.filter((id) => idSet.has(id))
       if (kept.length > 0) return kept
@@ -843,11 +855,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (!title.trim()) return "Укажите название релиза"
     if (!artistName.trim()) return "Укажите имя артиста / название группы"
     if (!releaseDate) return "Укажите дату релиза"
+    if (isReleaseDateWeekend(releaseDate)) {
+      return "Дата публикации не может приходиться на выходной"
+    }
     if (!isReleaseDateSelectable(releaseDate)) {
-      if (isReleaseDateWeekend(releaseDate)) {
-        return "Дата публикации не может приходиться на выходной"
-      }
-      return `Дата публикации должна быть не ранее чем через ${MIN_RELEASE_WORKING_DAYS_AHEAD} рабочих дней от сегодня`
+      return "Дата публикации не может быть в прошлом"
     }
     if (!release?.coverPath && !coverPreview && !requestAiCover) {
       return "Загрузите обложку или закажите AI-обложку"
@@ -1628,22 +1640,40 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       {step === 4 ? (
         <div className="space-y-6">
           <AiLabelingIntroCard />
-          <div className="space-y-4">
+          <Accordion
+            type="multiple"
+            value={aiLabelingAccordionOpen}
+            onValueChange={setAiLabelingAccordionOpen}
+            className="space-y-4"
+          >
             {tracks.map((track, index) => (
-              <div key={track.id} className="rounded-md border border-border p-4">
-                <TrackAiLabelingFields
-                  trackTitle={
-                    kind === "album"
-                      ? `Трек ${index + 1}: ${track.trackName.trim() || "без названия"}`
-                      : track.trackName.trim() || `Трек ${index + 1}`
-                  }
-                  value={track.aiLabeling}
-                  disabled={formDisabled}
-                  onChange={(next) => void updateTrackLocal(track.id, { aiLabeling: next })}
-                />
-              </div>
+              <AccordionItem
+                key={track.id}
+                value={track.id}
+                className="overflow-hidden rounded-md border border-border px-4 last:border-b"
+              >
+                <AccordionTrigger className="py-4 hover:no-underline">
+                  <span className="flex min-w-0 items-center gap-3 text-left">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 truncate font-semibold">
+                      {kind === "album"
+                        ? `Трек ${index + 1}: ${track.trackName.trim() || "без названия"}`
+                        : track.trackName.trim() || `Трек ${index + 1}`}
+                    </span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <TrackAiLabelingFields
+                    value={track.aiLabeling}
+                    disabled={formDisabled}
+                    onChange={(next) => void updateTrackLocal(track.id, { aiLabeling: next })}
+                  />
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </div>
       ) : null}
 

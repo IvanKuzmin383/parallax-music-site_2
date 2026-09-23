@@ -85,6 +85,8 @@ export interface ReleaseView {
   /** Фактический формат релиза (сингл / альбом). */
   format?: "single" | "album"
   trackCount?: number
+  /** Треки внутри релиза (для альбома — список на карточке). */
+  tracks?: Array<{ id: string; name: string }>
   wizardStep?: number
   releaseStatus?: string
 }

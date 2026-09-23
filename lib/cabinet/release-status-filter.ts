@@ -59,9 +59,12 @@ export function matchesReleaseFilter(release: ReleaseView, filter: ReleaseFilter
 export function matchesReleaseSearch(release: ReleaseView, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  return (
+  if (
     release.title.toLowerCase().includes(q) ||
     release.artist.toLowerCase().includes(q) ||
     release.status.toLowerCase().includes(q)
-  )
+  ) {
+    return true
+  }
+  return Boolean(release.tracks?.some((t) => t.name.toLowerCase().includes(q)))
 }

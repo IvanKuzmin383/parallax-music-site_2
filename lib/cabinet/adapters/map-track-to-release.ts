@@ -1,6 +1,7 @@
 import type { ReleaseView } from "../types"
 import type { Track } from "@/lib/tracks"
 import type { Release } from "@/lib/releases"
+import type { Album } from "@/lib/albums"
 
 const TRACK_STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
@@ -24,25 +25,77 @@ const RELEASE_STATUS_LABELS: Record<string, string> = {
   postponed: "Отложен",
 }
 
-export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
-  const platforms: string[] = []
-  if (track.platformLinks) {
-    const links = track.platformLinks
-    if (links.yandex) platforms.push("Яндекс Музыка")
-    if (links.spotify) platforms.push("Spotify")
-    if (links.vk) platforms.push("VK Музыка")
-    if (links.appleMusic) platforms.push("Apple Music")
-    if (links.youtubeMusic) platforms.push("YouTube Music")
-    if (links.sberzvuk) platforms.push("СберЗвук")
-    if (links.kion) platforms.push("КИОН")
-  }
+/** Чем меньше индекс — тем «важнее» показать этот статус на групповой карточке. */
+const TRACK_STATUS_PRIORITY: Record<string, number> = {
+  rejected: 0,
+  postponed: 1,
+  on_moderation: 2,
+  upload_pending: 3,
+  sent_to_platforms: 4,
+  approved_by_platforms: 5,
+  released: 6,
+  draft: 7,
+}
 
+function platformsFromTrack(track: Track): string[] {
+  const platforms: string[] = []
+  if (!track.platformLinks) return platforms
+  const links = track.platformLinks
+  if (links.yandex) platforms.push("Яндекс Музыка")
+  if (links.spotify) platforms.push("Spotify")
+  if (links.vk) platforms.push("VK Музыка")
+  if (links.appleMusic) platforms.push("Apple Music")
+  if (links.youtubeMusic) platforms.push("YouTube Music")
+  if (links.sberzvuk) platforms.push("СберЗвук")
+  if (links.kion) platforms.push("КИОН")
+  return platforms
+}
+
+function sortTracks(tracks: Track[]): Track[] {
+  return [...tracks].sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0))
+}
+
+export function trackSummaries(tracks: Track[]): Array<{ id: string; name: string }> {
+  return sortTracks(tracks).map((t) => ({
+    id: t.id,
+    name: t.trackName.trim() || "Без названия",
+  }))
+}
+
+function pickGroupStatus(tracks: Track[]): string {
+  let best: Track | null = null
+  let bestPri = Number.POSITIVE_INFINITY
+  for (const t of tracks) {
+    const pri = TRACK_STATUS_PRIORITY[t.status] ?? 50
+    if (pri < bestPri) {
+      bestPri = pri
+      best = t
+    }
+  }
+  if (!best) return "На модерации"
+  return TRACK_STATUS_LABELS[best.status] ?? best.status
+}
+
+function mergePlatforms(tracks: Track[]): string[] {
+  const set = new Set<string>()
+  for (const t of tracks) {
+    for (const p of platformsFromTrack(t)) set.add(p)
+  }
+  return [...set]
+}
+
+/** Одна карточка = один трек (сингл без сущности релиза). */
+export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
   const format: "single" | "album" = track.albumId ? "album" : "single"
 
   if (track.status === "draft") {
     return {
       id: track.releaseId ?? track.id,
-      coverUrl: track.coverPath ? `/api/cabinet/releases/${track.releaseId}/cover` : undefined,
+      coverUrl: track.coverPath
+        ? track.releaseId
+          ? `/api/cabinet/releases/${track.releaseId}/cover`
+          : `/api/cabinet/uploads/cover/${track.id}`
+        : undefined,
       title: track.trackName,
       artist: track.artistName,
       status: "Черновик",
@@ -50,6 +103,7 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
       kind: "draft" as const,
       format,
       trackCount,
+      tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
     }
   }
 
@@ -60,14 +114,20 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
     artist: track.artistName,
     status: TRACK_STATUS_LABELS[track.status] ?? track.status,
     releaseDate: track.releaseDate,
-    platforms,
+    platforms: platformsFromTrack(track),
     kind: track.albumId ? "album" : "track",
-    format,
-    trackCount,
+    format: "single",
+    trackCount: 1,
+    tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
   }
 }
 
-export function mapReleaseEntityToView(release: Release, trackCount = 0): ReleaseView {
+export function mapReleaseEntityToView(
+  release: Release,
+  tracks: Track[] = [],
+): ReleaseView {
+  const summaries = trackSummaries(tracks)
+  const isDraftLike = release.status === "draft" || release.status === "awaiting_payment"
   return {
     id: release.id,
     coverUrl: release.coverPath ? `/api/cabinet/releases/${release.id}/cover` : undefined,
@@ -75,11 +135,37 @@ export function mapReleaseEntityToView(release: Release, trackCount = 0): Releas
     artist: release.artistName || "—",
     status: RELEASE_STATUS_LABELS[release.status] ?? release.status,
     releaseDate: release.releaseDate,
-    kind: release.status === "draft" || release.status === "awaiting_payment" ? "draft" : release.kind === "album" ? "album" : "track",
+    kind: isDraftLike ? "draft" : release.kind === "album" ? "album" : "track",
     format: release.kind === "album" ? "album" : "single",
-    trackCount,
+    trackCount: summaries.length,
+    tracks: summaries,
     wizardStep: release.wizardStep,
     releaseStatus: release.status,
+    platforms: mergePlatforms(tracks),
+  }
+}
+
+/** Группа треков одного альбома (без строки в `releases`). */
+export function mapAlbumTracksToRelease(
+  albumId: string,
+  tracks: Track[],
+  album?: Album | null,
+): ReleaseView {
+  const ordered = sortTracks(tracks)
+  const first = ordered[0]
+  const summaries = trackSummaries(ordered)
+  return {
+    id: albumId,
+    coverUrl: first?.coverPath ? `/api/cabinet/uploads/cover/${first.id}` : undefined,
+    title: album?.title?.trim() || first?.trackName?.trim() || "Альбом",
+    artist: album?.artistName?.trim() || first?.artistName || "—",
+    status: pickGroupStatus(ordered),
+    releaseDate: album?.releaseDate ?? first?.releaseDate,
+    platforms: mergePlatforms(ordered),
+    kind: "album",
+    format: "album",
+    trackCount: summaries.length,
+    tracks: summaries,
   }
 }
 
