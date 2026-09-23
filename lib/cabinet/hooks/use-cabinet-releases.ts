@@ -18,27 +18,44 @@ export function useCabinetReleases() {
         fetch("/api/cabinet/releases", { credentials: "include" }),
       ])
 
+      const allTracks: Track[] = tracksRes.ok
+        ? (((await tracksRes.json()) as { tracks?: Track[] }).tracks ?? [])
+        : []
+
+      const tracksByReleaseId = new Map<string, number>()
+      const tracksByAlbumId = new Map<string, number>()
+      for (const track of allTracks) {
+        if (track.releaseId) {
+          tracksByReleaseId.set(track.releaseId, (tracksByReleaseId.get(track.releaseId) ?? 0) + 1)
+        }
+        if (track.albumId) {
+          tracksByAlbumId.set(track.albumId, (tracksByAlbumId.get(track.albumId) ?? 0) + 1)
+        }
+      }
+
       const releaseEntities: ReleaseView[] = []
       if (releasesRes.ok) {
         const data = (await releasesRes.json()) as { releases?: Release[] }
         const active = (data.releases ?? []).filter(
           (r) => r.status === "draft" || r.status === "awaiting_payment"
         )
-        releaseEntities.push(...active.map(mapReleaseEntityToView))
+        releaseEntities.push(
+          ...active.map((r) => mapReleaseEntityToView(r, tracksByReleaseId.get(r.id) ?? 0))
+        )
       }
 
       const activeReleaseIds = new Set(releaseEntities.map((r) => r.id))
 
       const trackItems: ReleaseView[] = []
-      if (tracksRes.ok) {
-        const data = (await tracksRes.json()) as { tracks?: Track[] }
-        for (const track of data.tracks ?? []) {
-          if (track.status === "draft" && track.releaseId && activeReleaseIds.has(track.releaseId)) {
-            continue
-          }
-          if (track.status === "draft") continue
-          trackItems.push(mapTrackToRelease(track))
+      for (const track of allTracks) {
+        if (track.status === "draft" && track.releaseId && activeReleaseIds.has(track.releaseId)) {
+          continue
         }
+        if (track.status === "draft") continue
+        const count = track.albumId
+          ? (tracksByAlbumId.get(track.albumId) ?? 1)
+          : 1
+        trackItems.push(mapTrackToRelease(track, count))
       }
 
       const merged = [...releaseEntities, ...trackItems].sort((a, b) => {

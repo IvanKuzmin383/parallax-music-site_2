@@ -82,6 +82,9 @@ export interface ReleaseView {
   releaseDate?: string
   platforms?: string[]
   kind: "track" | "album" | "draft"
+  /** Фактический формат релиза (сингл / альбом). */
+  format?: "single" | "album"
+  trackCount?: number
   wizardStep?: number
   releaseStatus?: string
 }

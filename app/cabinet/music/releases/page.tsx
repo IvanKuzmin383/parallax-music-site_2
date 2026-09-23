@@ -99,7 +99,7 @@ export default function MusicReleasesPage() {
 
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader title="Мои релизы" description="Черновики и опубликованные релизы">
+      <PageHeader title="Мои релизы">
         <UploadReleaseButton />
       </PageHeader>
 

@@ -24,7 +24,7 @@ const RELEASE_STATUS_LABELS: Record<string, string> = {
   postponed: "Отложен",
 }
 
-export function mapTrackToRelease(track: Track): ReleaseView {
+export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
   const platforms: string[] = []
   if (track.platformLinks) {
     const links = track.platformLinks
@@ -37,6 +37,8 @@ export function mapTrackToRelease(track: Track): ReleaseView {
     if (links.kion) platforms.push("КИОН")
   }
 
+  const format: "single" | "album" = track.albumId ? "album" : "single"
+
   if (track.status === "draft") {
     return {
       id: track.releaseId ?? track.id,
@@ -46,6 +48,8 @@ export function mapTrackToRelease(track: Track): ReleaseView {
       status: "Черновик",
       releaseDate: track.releaseDate,
       kind: "draft" as const,
+      format,
+      trackCount,
     }
   }
 
@@ -58,10 +62,12 @@ export function mapTrackToRelease(track: Track): ReleaseView {
     releaseDate: track.releaseDate,
     platforms,
     kind: track.albumId ? "album" : "track",
+    format,
+    trackCount,
   }
 }
 
-export function mapReleaseEntityToView(release: Release): ReleaseView {
+export function mapReleaseEntityToView(release: Release, trackCount = 0): ReleaseView {
   return {
     id: release.id,
     coverUrl: release.coverPath ? `/api/cabinet/releases/${release.id}/cover` : undefined,
@@ -70,9 +76,31 @@ export function mapReleaseEntityToView(release: Release): ReleaseView {
     status: RELEASE_STATUS_LABELS[release.status] ?? release.status,
     releaseDate: release.releaseDate,
     kind: release.status === "draft" || release.status === "awaiting_payment" ? "draft" : release.kind === "album" ? "album" : "track",
+    format: release.kind === "album" ? "album" : "single",
+    trackCount,
     wizardStep: release.wizardStep,
     releaseStatus: release.status,
   }
+}
+
+/** «Сингл» / «Альбом · 12 треков» */
+export function formatReleaseKindMeta(release: Pick<ReleaseView, "format" | "trackCount" | "kind">): string | null {
+  const format =
+    release.format ??
+    (release.kind === "album" ? "album" : release.kind === "track" ? "single" : null)
+  if (!format) return null
+  if (format === "single") return "Сингл"
+  const count = Math.max(0, release.trackCount ?? 0)
+  return `Альбом · ${pluralizeTracks(count)}`
+}
+
+function pluralizeTracks(n: number): string {
+  const abs = Math.abs(n) % 100
+  const last = abs % 10
+  if (abs > 10 && abs < 20) return `${n} треков`
+  if (last === 1) return `${n} трек`
+  if (last >= 2 && last <= 4) return `${n} трека`
+  return `${n} треков`
 }
 
 export function isReleaseInProgress(release: ReleaseView): boolean {

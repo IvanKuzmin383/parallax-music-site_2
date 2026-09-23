@@ -373,11 +373,30 @@
   font-weight: 500;
 }
 
-/* Outline-кнопки: сплошной фон поля вместо прозрачного */
-.cabinet-theme button.border,
-.cabinet-theme a.border {
+/* Outline-кнопки: сплошной фон поля (не трогаем табы и primary) */
+.cabinet-theme button.border:not([data-slot="tabs-trigger"]):not([data-state="on"]),
+.cabinet-theme a.border:not([data-slot="tabs-trigger"]) {
   background-color: var(--input);
   border-color: var(--border);
+}
+
+/* Табы / переключатели: активный пункт цветом primary */
+.cabinet-theme [data-slot="tabs-list"] {
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.cabinet-theme [data-slot="tabs-trigger"] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--muted-foreground) !important;
+  box-shadow: none !important;
+}
+
+.cabinet-theme [data-slot="tabs-trigger"][data-state="active"] {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
 
 .cabinet-theme [data-slot="card"] {

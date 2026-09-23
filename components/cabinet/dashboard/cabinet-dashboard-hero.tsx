@@ -8,6 +8,7 @@ import { ArrowRight, BarChart3, Disc3, Music, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import type { ReleaseView } from "@/lib/cabinet/types"
+import { formatReleaseKindMeta } from "@/lib/cabinet/adapters/map-track-to-release"
 import {
   formatReleaseRelativeDate,
   isReleasedStatus,
@@ -218,6 +219,7 @@ export function ReleaseCoverCard({
 }) {
   const sizeClass =
     size === "lg" ? "aspect-square" : size === "sm" ? "aspect-[4/3]" : "aspect-square"
+  const kindMeta = formatReleaseKindMeta(release)
 
   return (
     <Link
@@ -246,7 +248,12 @@ export function ReleaseCoverCard({
         <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4">
           <p className="font-semibold text-white truncate text-sm md:text-base">{release.title}</p>
           <p className="text-xs md:text-sm text-white/70 truncate">{release.artist}</p>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {kindMeta ? (
+              <span className="inline-flex items-center rounded-md border border-white/20 bg-black/40 px-2 py-0.5 text-xs font-medium text-white">
+                {kindMeta}
+              </span>
+            ) : null}
             <StatusBadge
               status={release.status}
               kind="generic"

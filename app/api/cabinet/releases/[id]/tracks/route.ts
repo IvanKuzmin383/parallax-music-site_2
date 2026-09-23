@@ -62,9 +62,8 @@ export async function POST(
       const audioPath = path.join(audioDir, `${trackId}.wav`)
       await copyFileToPathAtomic(audio.tempFilePath, audioPath)
 
-      const baseName = audio.originalFilename.replace(/\.[^.]+$/, "").trim()
       const fieldTrackName = multipart.getField("trackName")?.trim()
-      const trackName = fieldTrackName || baseName || `Трек ${existingTracks.length + 1}`
+      const trackName = fieldTrackName || ""
 
       const track = await createTrack({
         userId: session.email,

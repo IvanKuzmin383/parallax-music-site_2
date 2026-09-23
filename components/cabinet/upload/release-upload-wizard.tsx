@@ -726,7 +726,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (next > 0) setAudioDuration(next)
   }
 
-  const stopAudio = () => {
+  const stopAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.src = ""
@@ -736,7 +736,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setIsAudioPlaying(false)
     setAudioTime(0)
     setAudioDuration(0)
-  }
+  }, [])
 
   const togglePlay = (trackId: string) => {
     if (!releaseId) return
@@ -801,6 +801,18 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       toast.error("Перемотка пока недоступна")
     }
   }
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) stopAudio()
+    }
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => document.removeEventListener("visibilitychange", onVisibility)
+  }, [stopAudio])
+
+  useEffect(() => {
+    if (step !== 2) stopAudio()
+  }, [step, stopAudio])
 
   useEffect(() => {
     return () => {
@@ -1460,7 +1472,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               return (
               <li key={track.id} className="flex items-center gap-2 rounded-md border border-border p-3">
                 <span className="text-sm text-muted-foreground w-6 shrink-0">{index + 1}</span>
-                <span className="min-w-0 flex-1 truncate text-sm sm:max-w-[40%] md:max-w-[12rem]">{track.trackName}</span>
+                <span className="min-w-0 flex-1 truncate text-sm sm:max-w-[40%] md:max-w-[12rem]">
+                  {track.trackName.trim() || `Трек ${index + 1}`}
+                </span>
                 {isActive ? (
                   <div className="flex min-w-0 flex-[1.5] items-center gap-2">
                     <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
@@ -1533,7 +1547,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     {index + 1}
                   </span>
                   <span className="min-w-0 truncate font-semibold">
-                    {kind === "album" ? `Трек ${index + 1}: ${track.trackName}` : track.trackName}
+                    {kind === "album"
+                      ? `Трек ${index + 1}: ${track.trackName.trim() || "без названия"}`
+                      : track.trackName.trim() || `Трек ${index + 1}`}
                   </span>
                 </span>
               </AccordionTrigger>
@@ -1559,8 +1575,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 <TrackAiLabelingFields
                   trackTitle={
                     kind === "album"
-                      ? `Трек ${index + 1}: ${track.trackName}`
-                      : track.trackName
+                      ? `Трек ${index + 1}: ${track.trackName.trim() || "без названия"}`
+                      : track.trackName.trim() || `Трек ${index + 1}`
                   }
                   value={track.aiLabeling}
                   disabled={formDisabled}
