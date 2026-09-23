@@ -339,5 +339,6 @@ export function releasePayloadForPricing(release: Release): UploadDraftPayload {
   return {
     addons: release.addons,
     requestAiCover: release.requestAiCover,
+    releaseDate: release.releaseDate,
   }
 }

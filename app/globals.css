@@ -328,6 +328,73 @@
   background-color: color-mix(in oklch, var(--sidebar-primary) 85%, white 15%);
 }
 
+/* Кабинет: слои фона / полей / текста — чтобы инпуты не сливались со страницей */
+.cabinet-theme {
+  --background: #0a0b0d;
+  --foreground: #e1e1e6;
+  --card: #121318;
+  --card-foreground: #e1e1e6;
+  --popover: #16171b;
+  --popover-foreground: #e1e1e6;
+  --secondary: #1a1b21;
+  --secondary-foreground: #e1e1e6;
+  --muted: #1a1b21;
+  --muted-foreground: #7a7c85;
+  --border: #2c2d33;
+  --input: #16171b;
+  --sidebar: #0e0f12;
+  --sidebar-foreground: #e1e1e6;
+  --sidebar-accent: #1a1b21;
+  --sidebar-accent-foreground: #e1e1e6;
+  --sidebar-border: #2c2d33;
+  --radius: 0.5rem;
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+.cabinet-theme [data-slot="input"],
+.cabinet-theme [data-slot="textarea"],
+.cabinet-theme [data-slot="select-trigger"] {
+  background-color: var(--input);
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.cabinet-theme [data-slot="select-trigger"]:hover,
+.cabinet-theme [data-slot="select-trigger"]:focus-visible,
+.cabinet-theme [data-slot="input"]:focus-visible,
+.cabinet-theme [data-slot="textarea"]:focus-visible {
+  background-color: #1a1b21;
+}
+
+.cabinet-theme [data-slot="label"] {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+/* Outline-кнопки: сплошной фон поля вместо прозрачного */
+.cabinet-theme button.border,
+.cabinet-theme a.border {
+  background-color: var(--input);
+  border-color: var(--border);
+}
+
+.cabinet-theme [data-slot="card"] {
+  background-color: var(--card);
+  border-color: var(--border);
+}
+
+.cabinet-theme [data-slot="accordion-item"] {
+  border-color: var(--border);
+}
+
+/* Подсказки под полями — чуть приглушённее лейблов */
+.cabinet-theme .text-xs.text-muted-foreground,
+.cabinet-theme p.text-xs.text-muted-foreground {
+  color: #5a5c63;
+}
+
 /* Compact native audio controls (admin track preview) */
 audio.admin-audio-compact {
   display: block;

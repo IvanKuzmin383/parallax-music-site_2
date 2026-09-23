@@ -1,5 +1,6 @@
 import type { UploadDraftPayload } from "./upload-drafts"
 import { calculateUploadAddonBundleAmount, getOrderById, type UploadAddonBundleItem } from "./orders"
+import { getReleaseDateTierPriceRubFromIso } from "./release-date-tiers"
 
 /** Не считать `addons.trackCover` дважды, если сингл уже заказал AI через `requestAiCover`. */
 export function payloadForUploadDraftPricing(payload: UploadDraftPayload): UploadDraftPayload {
@@ -45,9 +46,11 @@ export function uploadDraftAddonBundleTotalRub(payload: UploadDraftPayload): num
   return calculateUploadAddonBundleAmount(addonBundleItemsFromUploadDraftPayload(payload)).totalRub
 }
 
-/** Сумма к оплате перед finalize: допы из `addons` + ИИ-обложка сингла (`requestAiCover`). */
+/** Сумма к оплате перед finalize: допы из `addons` + ИИ-обложка сингла (`requestAiCover`) + тариф даты релиза. */
 export function uploadDraftRequiredPaymentRub(payload: UploadDraftPayload): number {
-  return uploadDraftAddonBundleTotalRub(payloadForUploadDraftPricing(payload))
+  const addonsRub = uploadDraftAddonBundleTotalRub(payloadForUploadDraftPricing(payload))
+  const releaseDateRub = getReleaseDateTierPriceRubFromIso(payload.releaseDate)
+  return addonsRub + releaseDateRub
 }
 
 const PAYMENT_CHANGED_ERROR =

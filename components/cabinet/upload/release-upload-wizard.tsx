@@ -20,6 +20,7 @@ import {
   Trash2,
   Upload,
   AlertCircle,
+  X,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -44,11 +45,9 @@ import {
   getEarliestAvailableReleaseDate,
   getReleaseDateCalendarTier,
   getReleaseDateTier,
+  getReleaseDateTierPriceRub,
   isReleaseDateSelectable,
   isShortReleaseDate,
-  RELEASE_DATE_ACCELERATED_WORKING_DAYS,
-  RELEASE_DATE_FAST_WORKING_DAYS,
-  RELEASE_DATE_STANDARD_FROM_WORKING_DAYS,
   RELEASE_DATE_TIER_LABEL,
   RELEASE_DATE_TIER_PRICE_RUB,
 } from "@/lib/release-date-tiers"
@@ -156,20 +155,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     tracksRef.current = tracks
   }, [tracks])
 
-  const paymentTotal = useMemo(
-    () =>
-      computeSelectedUploadAddonsTotalRub({
-        requestAiCover,
-        addonVerticalVideo,
-        addonVerticalVideoCount,
-        addonAiMastering,
-        addonAiMasteringCount,
-        addonYandexVideoshot,
-        addonYandexVideoshotCreation,
-        addonYandexVideoavatar,
-        addonSpotifyVideoshot,
-      }),
-    [
+  const paymentTotal = useMemo(() => {
+    const addonsRub = computeSelectedUploadAddonsTotalRub({
       requestAiCover,
       addonVerticalVideo,
       addonVerticalVideoCount,
@@ -179,8 +166,21 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       addonYandexVideoshotCreation,
       addonYandexVideoavatar,
       addonSpotifyVideoshot,
-    ]
-  )
+    })
+    const releaseDateRub = releaseDate ? getReleaseDateTierPriceRub(releaseDate) : 0
+    return addonsRub + releaseDateRub
+  }, [
+    requestAiCover,
+    addonVerticalVideo,
+    addonVerticalVideoCount,
+    addonAiMastering,
+    addonAiMasteringCount,
+    addonYandexVideoshot,
+    addonYandexVideoshotCreation,
+    addonYandexVideoavatar,
+    addonSpotifyVideoshot,
+    releaseDate,
+  ])
 
   const isUploadingAudio = uploadQueue.some((item) => item.status === "pending" || item.status === "uploading")
   const formDisabled = saving || submitting || isUploadingAudio || profileCompleteForUpload === false
@@ -496,6 +496,39 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
+  const handleClearCover = async () => {
+    if (formDisabled || !coverPreview) return
+
+    if (coverPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(coverPreview)
+    }
+    setCoverPreview(null)
+
+    if (!releaseId || !release?.coverPath) {
+      if (coverInputRef.current) coverInputRef.current.value = ""
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/cabinet/releases/${releaseId}/cover`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      const data = await parseCabinetApiJson<{ release?: Release }>(res)
+      if (!res.ok || !data.release) {
+        toast.error(data.error ?? "Не удалось удалить обложку")
+        setCoverPreview(`/api/cabinet/releases/${releaseId}/cover?t=${Date.now()}`)
+        return
+      }
+      setRelease(data.release)
+      if (coverInputRef.current) coverInputRef.current.value = ""
+      toast.success("Обложка удалена")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const createDraftWithoutCover = async (): Promise<string | null> => {
     if (profileCompleteForUpload === false) {
       toast.error("Заполните обязательные поля в профиле")
@@ -675,6 +708,24 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     return `${m}:${String(s).padStart(2, "0")}`
   }
 
+  const readAudioDuration = (audio: HTMLAudioElement): number => {
+    if (Number.isFinite(audio.duration) && audio.duration > 0) return audio.duration
+    try {
+      if (audio.seekable.length > 0) {
+        const end = audio.seekable.end(audio.seekable.length - 1)
+        if (Number.isFinite(end) && end > 0) return end
+      }
+    } catch {
+      // ignore
+    }
+    return 0
+  }
+
+  const syncAudioDuration = (audio: HTMLAudioElement) => {
+    const next = readAudioDuration(audio)
+    if (next > 0) setAudioDuration(next)
+  }
+
   const stopAudio = () => {
     if (audioRef.current) {
       audioRef.current.pause()
@@ -706,6 +757,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
 
     const audio = new Audio(`/api/cabinet/releases/${releaseId}/audio/${trackId}`)
+    audio.preload = "auto"
     audioRef.current = audio
     audioSeekingRef.current = false
     setPlayingTrackId(trackId)
@@ -715,10 +767,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
     audio.ontimeupdate = () => {
       if (!audioSeekingRef.current) setAudioTime(audio.currentTime)
+      syncAudioDuration(audio)
     }
-    audio.onloadedmetadata = () => {
-      setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
-    }
+    audio.onloadedmetadata = () => syncAudioDuration(audio)
+    audio.ondurationchange = () => syncAudioDuration(audio)
+    audio.onloadeddata = () => syncAudioDuration(audio)
+    audio.oncanplay = () => syncAudioDuration(audio)
     audio.onended = () => {
       setIsAudioPlaying(false)
       setAudioTime(0)
@@ -735,12 +789,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const seekAudio = (nextTime: number) => {
     const audio = audioRef.current
     if (!audio || !Number.isFinite(nextTime)) return
+    const duration = readAudioDuration(audio)
     const capped =
-      Number.isFinite(audio.duration) && audio.duration > 0
-        ? Math.min(Math.max(0, nextTime), audio.duration)
+      duration > 0
+        ? Math.min(Math.max(0, nextTime), duration)
         : Math.max(0, nextTime)
-    audio.currentTime = capped
-    setAudioTime(capped)
+    try {
+      audio.currentTime = capped
+      setAudioTime(capped)
+    } catch {
+      toast.error("Перемотка пока недоступна")
+    }
   }
 
   useEffect(() => {
@@ -1000,6 +1059,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (requestAiCover) {
       items.push({ ok: true, label: "Услуга", value: "AI обложка для трека" })
     }
+    if (selectedReleaseTier && RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier] > 0) {
+      items.push({
+        ok: true,
+        label: "Услуга",
+        value: `${RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: ${RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽`,
+      })
+    }
     if (addonVerticalVideo) {
       items.push({
         ok: true,
@@ -1042,6 +1108,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     coverCreatedWithAi,
     showShortDateRisk,
     acceptShortReleaseDate,
+    selectedReleaseTier,
     addonVerticalVideo,
     addonVerticalVideoCount,
     addonAiMastering,
@@ -1165,21 +1232,18 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
                         <span>
                           {RELEASE_DATE_TIER_LABEL.accelerated}: {RELEASE_DATE_TIER_PRICE_RUB.accelerated}₽
-                          {" "}({RELEASE_DATE_ACCELERATED_WORKING_DAYS.from}–{RELEASE_DATE_ACCELERATED_WORKING_DAYS.to} раб. дней)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
                         <span>
                           {RELEASE_DATE_TIER_LABEL.fast}: {RELEASE_DATE_TIER_PRICE_RUB.fast}₽
-                          {" "}({RELEASE_DATE_FAST_WORKING_DAYS.from}–{RELEASE_DATE_FAST_WORKING_DAYS.to} раб. дней)
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
                         <span>
                           {RELEASE_DATE_TIER_LABEL.standard}: {RELEASE_DATE_TIER_PRICE_RUB.standard}₽
-                          {" "}(от {RELEASE_DATE_STANDARD_FROM_WORKING_DAYS} раб. дня)
                         </span>
                       </div>
                     </div>
@@ -1215,7 +1279,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 <Label>UPC / EAN</Label>
                 <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Если у релиза уже есть UPC — укажите его. Если нет, мы присвоим код автоматически.
+                  Если у релиза уже есть UPC - укажите его. Если нет, мы присвоим код автоматически
                 </p>
               </div>
               <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
@@ -1262,15 +1326,31 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   <Upload className="h-12 w-12 text-muted-foreground" />
                 )}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => coverInputRef.current?.click()}
-                disabled={formDisabled}
-              >
-                {saving ? <Spinner className="h-4 w-4" /> : "Выбрать файл"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-w-0 flex-1"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={formDisabled}
+                >
+                  {saving ? <Spinner className="h-4 w-4" /> : "Выбрать файл"}
+                </Button>
+                {coverPreview ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => void handleClearCover()}
+                    disabled={formDisabled}
+                    aria-label="Удалить обложку"
+                    title="Удалить обложку"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">
                 JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.
               </p>
@@ -1389,10 +1469,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     <Slider
                       className="min-w-0 flex-1"
                       min={0}
-                      max={Math.max(audioDuration, 0.1)}
+                      max={Math.max(audioDuration, audioTime, 0.1)}
                       step={0.1}
-                      value={[Math.min(audioTime, audioDuration || 0)]}
-                      disabled={!audioDuration}
+                      value={[Math.min(audioTime, Math.max(audioDuration, audioTime, 0.1))]}
+                      disabled={!isActive}
                       aria-label="Перемотка трека"
                       onValueChange={(vals) => {
                         audioSeekingRef.current = true

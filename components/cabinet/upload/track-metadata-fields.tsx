@@ -211,28 +211,6 @@ export function TrackMetadataFields({
           Инструментальный трек (без текста)
         </Label>
       </div>
-      <div className="sm:col-span-2">
-        <Label>Ненормативная лексика *</Label>
-        <Select
-          value={
-            track.hasExplicitLanguage === true
-              ? "yes"
-              : track.hasExplicitLanguage === false
-                ? "no"
-                : undefined
-          }
-          onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
-          disabled={disabled}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Выберите" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="yes">Да</SelectItem>
-            <SelectItem value="no">Нет</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       {!track.isInstrumental ? (
         <>
           <div className="sm:col-span-2">
@@ -270,7 +248,7 @@ export function TrackMetadataFields({
               </DialogContent>
             </Dialog>
           </div>
-          <div className="sm:col-span-2 max-w-md">
+          <div>
             <Label>Язык текста *</Label>
             <Select
               value={track.lyricsLanguage || undefined}
@@ -286,6 +264,28 @@ export function TrackMetadataFields({
                     {lang}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Ненормативная лексика *</Label>
+            <Select
+              value={
+                track.hasExplicitLanguage === true
+                  ? "yes"
+                  : track.hasExplicitLanguage === false
+                    ? "no"
+                    : undefined
+              }
+              onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">Да</SelectItem>
+                <SelectItem value="no">Нет</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -329,7 +329,30 @@ export function TrackMetadataFields({
             </Select>
           </div>
         </>
-      ) : null}
+      ) : (
+        <div>
+          <Label>Ненормативная лексика *</Label>
+          <Select
+            value={
+              track.hasExplicitLanguage === true
+                ? "yes"
+                : track.hasExplicitLanguage === false
+                  ? "no"
+                  : undefined
+            }
+            onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Выберите" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="yes">Да</SelectItem>
+              <SelectItem value="no">Нет</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       {showTransferFields ? (
         <>
           <div>
@@ -342,7 +365,7 @@ export function TrackMetadataFields({
               placeholder="Необязательно"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Если у трека уже есть ISRC — укажите его. Если нет, мы присвоим код автоматически.
+              Если у трека уже есть ISRC - укажите его. Если нет, мы присвоим код автоматически
             </p>
           </div>
           <div className="sm:col-span-2 flex items-start gap-2">

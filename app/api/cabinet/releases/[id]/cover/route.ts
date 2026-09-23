@@ -105,3 +105,33 @@ export async function POST(
     return NextResponse.json({ error: "Не удалось загрузить обложку" }, { status: 500 })
   }
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const token = getCabinetToken(_request)
+  const session = getCabinetSession(token)
+  if (!session) return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
+
+  const { id } = await params
+  const release = await getReleaseById(id)
+  if (!release || release.userId.toLowerCase() !== session.email.toLowerCase()) {
+    return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
+  }
+
+  if (!["draft", "awaiting_payment"].includes(release.status)) {
+    return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
+  }
+
+  if (release.coverPath) {
+    try {
+      await fs.unlink(release.coverPath)
+    } catch {
+      // файл мог уже отсутствовать
+    }
+  }
+
+  const updated = await updateRelease(id, { coverPath: "" })
+  return NextResponse.json({ release: updated })
+}

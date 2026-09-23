@@ -237,8 +237,7 @@ export function AiLabelingIntroCard() {
         <div className="min-w-0 space-y-1">
           <h2 className="text-base font-semibold">Обязательная AI-маркировка</h2>
           <p className="text-sm text-muted-foreground">
-            Выберите один вариант для каждого трека. После загрузки система предупредит, если маркировку стоит
-            перепроверить.
+            Выберите один вариант для каждого трека
           </p>
         </div>
       </div>
@@ -249,14 +248,6 @@ export function AiLabelingIntroCard() {
             <span className="text-muted-foreground"> — {opt.description}</span>
           </div>
         ))}
-        <div className="rounded-md bg-muted/40 p-3 text-sm sm:col-span-2">
-          <span className="font-medium">«Нет информации»</span>
-          <span className="text-muted-foreground">
-            {" "}
-            — промежуточный вариант для черновика. Отправить релиз с ним нельзя: перед отправкой нужно выбрать
-            фактический способ создания.
-          </span>
-        </div>
       </div>
     </div>
   )
