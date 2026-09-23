@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getAdminToken, verifySession } from "@/lib/auth"
+import { getAlbumById, updateAlbum } from "@/lib/albums"
 import { getTracksByAlbumId, updateTrack, type TrackStatus } from "@/lib/tracks"
 import { mergePartialPlatformLinks, type PlatformLinks } from "@/lib/smartlink-platforms"
 
@@ -61,6 +62,11 @@ export async function PATCH(
     )
   }
 
+  const album = await getAlbumById(albumId)
+  if (!album) {
+    return NextResponse.json({ error: "Альбом не найден" }, { status: 404 })
+  }
+
   const tracksInAlbum = await getTracksByAlbumId(albumId)
   if (tracksInAlbum.length === 0) {
     return NextResponse.json(
@@ -75,6 +81,7 @@ export async function PATCH(
     platformLinks?: PlatformLinks
     status?: TrackStatus
     moderationNote?: string | null
+    smartlinkSlug?: string
   } = {}
   if (parsed.data.catalogNumber !== undefined) partial.catalogNumber = parsed.data.catalogNumber
   if (parsed.data.upc !== undefined) partial.upc = parsed.data.upc
@@ -125,6 +132,12 @@ export async function PATCH(
     )
   }
 
+  let albumPlatformLinks: PlatformLinks | undefined
+  if (incomingPlatformLinks !== undefined) {
+    albumPlatformLinks = mergePartialPlatformLinks(album.platformLinks, incomingPlatformLinks)
+    await updateAlbum(albumId, { platformLinks: albumPlatformLinks })
+  }
+
   const updated = []
   for (const track of tracksInAlbum) {
     const trackPartial = { ...partial }
@@ -133,9 +146,24 @@ export async function PATCH(
         track.platformLinks,
         incomingPlatformLinks
       )
+      // Явно сбрасываем per-track slug — смартлинк у альбома.
+      trackPartial.smartlinkSlug = ""
     }
     const next = await updateTrack(track.id, trackPartial)
     if (next) updated.push(next)
   }
-  return NextResponse.json({ updated: updated.length, tracks: updated })
+
+  const refreshedAlbum = await getAlbumById(albumId)
+  return NextResponse.json({
+    updated: updated.length,
+    tracks: updated,
+    album: refreshedAlbum
+      ? {
+          id: refreshedAlbum.id,
+          title: refreshedAlbum.title,
+          smartlinkSlug: refreshedAlbum.smartlinkSlug ?? null,
+          platformLinks: refreshedAlbum.platformLinks ?? {},
+        }
+      : null,
+  })
 }

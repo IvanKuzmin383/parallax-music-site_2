@@ -3,6 +3,8 @@ import path from "path"
 import crypto from "crypto"
 import { getCoversDir } from "./tracks"
 import { query, queryOne, execute } from "./database"
+import type { PlatformLinks } from "./smartlink-platforms"
+import { generateUniqueSmartlinkSlug } from "./smartlink-slug"
 
 export interface Album {
   id: string
@@ -12,6 +14,8 @@ export interface Album {
   labelName: string
   coverPath: string
   releaseDate?: string
+  smartlinkSlug?: string
+  platformLinks?: PlatformLinks
   createdAt: string
   updatedAt: string
 }
@@ -24,8 +28,24 @@ interface AlbumRow {
   label_name: string | null
   cover_path: string
   release_date: string | null
+  smartlink_slug?: string | null
+  platform_links?: string | null
   created_at: string
   updated_at: string
+}
+
+function parsePlatformLinks(raw: string | null | undefined): PlatformLinks | undefined {
+  if (!raw || !raw.trim()) return undefined
+  try {
+    return JSON.parse(raw) as PlatformLinks
+  } catch {
+    return undefined
+  }
+}
+
+function hasAnyPlatformLink(links?: PlatformLinks): boolean {
+  if (!links) return false
+  return Object.values(links).some((v) => typeof v === "string" && v.trim().length > 0)
 }
 
 function rowToAlbum(row: AlbumRow): Album {
@@ -37,6 +57,8 @@ function rowToAlbum(row: AlbumRow): Album {
     labelName: row.label_name ?? "Parallax Music",
     coverPath: row.cover_path,
     releaseDate: row.release_date ?? undefined,
+    smartlinkSlug: row.smartlink_slug ?? undefined,
+    platformLinks: parsePlatformLinks(row.platform_links),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -49,6 +71,11 @@ export async function getAllAlbums(): Promise<Album[]> {
 
 export async function getAlbumById(id: string): Promise<Album | null> {
   const row = await queryOne<AlbumRow>("SELECT * FROM albums WHERE id = ?", [id])
+  return row ? rowToAlbum(row) : null
+}
+
+export async function getAlbumBySmartlinkSlug(slug: string): Promise<Album | null> {
+  const row = await queryOne<AlbumRow>("SELECT * FROM albums WHERE smartlink_slug = ?", [slug])
   return row ? rowToAlbum(row) : null
 }
 
@@ -70,8 +97,8 @@ export async function createAlbum(
 
   await execute(
     `
-    INSERT INTO albums (id, user_id, title, artist_name, label_name, cover_path, release_date, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO albums (id, user_id, title, artist_name, label_name, cover_path, release_date, smartlink_slug, platform_links, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       album.id,
@@ -81,6 +108,8 @@ export async function createAlbum(
       album.labelName,
       album.coverPath,
       album.releaseDate ?? null,
+      album.smartlinkSlug ?? null,
+      album.platformLinks ? JSON.stringify(album.platformLinks) : null,
       album.createdAt,
       album.updatedAt,
     ]
@@ -100,15 +129,36 @@ export async function updateAlbum(
   const current = await getAlbumById(id)
   if (!current) return null
 
+  const hasIncomingSmartlinkSlug = Object.prototype.hasOwnProperty.call(partial, "smartlinkSlug")
+  const incomingSmartlinkSlug = hasIncomingSmartlinkSlug
+    ? typeof partial.smartlinkSlug === "string"
+      ? partial.smartlinkSlug.trim()
+      : ""
+    : undefined
+
+  let smartlinkSlug =
+    hasIncomingSmartlinkSlug && incomingSmartlinkSlug !== undefined
+      ? incomingSmartlinkSlug || undefined
+      : current.smartlinkSlug
+
+  const nextPlatformLinks = partial.platformLinks ?? current.platformLinks
+  const shouldAutoGenerateSmartlink =
+    !smartlinkSlug && hasAnyPlatformLink(nextPlatformLinks)
+
+  if (shouldAutoGenerateSmartlink) {
+    smartlinkSlug = await generateUniqueSmartlinkSlug()
+  }
+
   const updated: Album = {
     ...current,
     ...partial,
+    smartlinkSlug,
     updatedAt: new Date().toISOString(),
   }
 
   await execute(
     `
-    UPDATE albums SET title = ?, artist_name = ?, label_name = ?, cover_path = ?, release_date = ?, updated_at = ?
+    UPDATE albums SET title = ?, artist_name = ?, label_name = ?, cover_path = ?, release_date = ?, smartlink_slug = ?, platform_links = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -117,6 +167,8 @@ export async function updateAlbum(
       updated.labelName,
       updated.coverPath,
       updated.releaseDate ?? null,
+      updated.smartlinkSlug ?? null,
+      updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
       updated.updatedAt,
       id,
     ]

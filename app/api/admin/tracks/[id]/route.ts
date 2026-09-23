@@ -166,10 +166,23 @@ export async function PATCH(
     const slug = data.smartlinkSlug.trim()
     if (await isSmartlinkSlugTaken(slug, id)) {
       return NextResponse.json(
-        { error: "Такой смартлинк уже занят другим треком" },
+        { error: "Такой смартлинк уже занят другим релизом" },
         { status: 409 }
       )
     }
+  }
+
+  // У треков альбома смартлинк только на альбоме.
+  if (
+    current.albumId &&
+    data.smartlinkSlug !== undefined &&
+    data.smartlinkSlug &&
+    data.smartlinkSlug.trim()
+  ) {
+    return NextResponse.json(
+      { error: "У треков альбома один общий смартлинк — задайте его в карточке альбома (Артикул, UPC и ссылки)" },
+      { status: 400 }
+    )
   }
 
   const updatePayload: Partial<Omit<Track, "id" | "createdAt">> = {}

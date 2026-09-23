@@ -132,7 +132,9 @@ CREATE TABLE IF NOT EXISTS albums (
   release_date TEXT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
-  label_name TEXT NOT NULL DEFAULT 'Parallax Music'
+  label_name TEXT NOT NULL DEFAULT 'Parallax Music',
+  smartlink_slug TEXT UNIQUE,
+  platform_links TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_albums_user_id ON albums(user_id);
 

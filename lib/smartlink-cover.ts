@@ -10,7 +10,7 @@ import {
   cabinetCoverSharpSemaphore,
   ensureCabinetCoverSharpConfigured,
 } from "@/lib/cover-sharp-config"
-import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
+import { getReleasedSmartlinkRelease } from "@/lib/smartlink"
 
 ensureCabinetCoverSharpConfigured()
 
@@ -27,18 +27,18 @@ async function renderOgJpeg(coverPath: string, width: number, quality: number): 
 }
 
 /**
- * JPEG 1200×1200 для смартлинка (кэш рядом с обложками). null - трек не найден или нет файла.
+ * JPEG 1200×1200 для смартлинка (кэш рядом с обложками). null - релиз не найден или нет файла.
  */
 export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer | null> {
-  const track = await getReleasedSmartlinkTrack(slug)
-  if (!track) return null
+  const release = await getReleasedSmartlinkRelease(slug)
+  if (!release) return null
 
   try {
-    const srcStat = await stat(track.coverPath)
-    const coversDir = path.dirname(track.coverPath)
+    const srcStat = await stat(release.coverPath)
+    const coversDir = path.dirname(release.coverPath)
     const cachePath = buildCoverDerivativeCachePath({
       coversDir,
-      trackId: `smartlink-og-${track.id}`,
+      trackId: `smartlink-og-${release.kind}-${release.id}`,
       width: SMARTLINK_OG_WIDTH,
       quality: SMARTLINK_OG_QUALITY,
       format: "jpeg",
@@ -48,7 +48,7 @@ export async function renderSmartlinkOgCoverBuffer(slug: string): Promise<Buffer
     let buffer = await readCoverDerivativeCache(cachePath)
     if (!buffer) {
       buffer = await cabinetCoverSharpSemaphore.runExclusive(() =>
-        renderOgJpeg(track.coverPath, SMARTLINK_OG_WIDTH, SMARTLINK_OG_QUALITY)
+        renderOgJpeg(release.coverPath, SMARTLINK_OG_WIDTH, SMARTLINK_OG_QUALITY)
       )
       await writeCoverDerivativeCacheAtomically(cachePath, buffer)
     }

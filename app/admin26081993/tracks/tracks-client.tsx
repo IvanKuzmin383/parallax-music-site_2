@@ -118,6 +118,8 @@ type AdminAlbum = {
   id: string
   title: string
   artistName: string
+  smartlinkSlug?: string
+  platformLinks?: PlatformLinks
 }
 
 const EMPTY_TRACKS_STATS: AdminTracksStats = {
@@ -449,6 +451,7 @@ export default function TracksPageClient() {
   const [albumBulkUpc, setAlbumBulkUpc] = useState("")
   const [albumBulkCatalogNumber, setAlbumBulkCatalogNumber] = useState("")
   const [albumBulkPlatformLinks, setAlbumBulkPlatformLinks] = useState<PlatformLinks>({})
+  const [albumBulkSmartlinkSlug, setAlbumBulkSmartlinkSlug] = useState("")
   const [albumBulkSaving, setAlbumBulkSaving] = useState(false)
   const [resolvingTrackLinks, setResolvingTrackLinks] = useState(false)
   const [resolvingAlbumLinks, setResolvingAlbumLinks] = useState(false)
@@ -517,6 +520,8 @@ export default function TracksPageClient() {
           id: a.id,
           title: a.title,
           artistName: a.artistName,
+          smartlinkSlug: a.smartlinkSlug,
+          platformLinks: a.platformLinks,
         }))
       )
       setUploadDrafts(data.uploadDrafts as UploadDraft[])
@@ -1057,10 +1062,28 @@ export default function TracksPageClient() {
     })
   }
 
+  const trackAlbumById = useMemo(() => {
+    return albums.reduce<Record<string, AdminAlbum>>((acc, album) => {
+      acc[album.id] = album
+      return acc
+    }, {})
+  }, [albums])
+
+  const getEffectiveSmartlinkSlug = (track: Track): string => {
+    if (track.albumId) {
+      return trackAlbumById[track.albumId]?.smartlinkSlug?.trim() || ""
+    }
+    return track.smartlinkSlug?.trim() || ""
+  }
+
   const handleOpenSmartlink = (track: Track) => {
-    const slug = track.smartlinkSlug?.trim()
+    const slug = getEffectiveSmartlinkSlug(track)
     if (!slug) {
-      toast.error("У трека нет смартлинка")
+      toast.error(
+        track.albumId
+          ? "У альбома нет смартлинка — задайте ссылки в «Артикул, UPC и ссылки»"
+          : "У трека нет смартлинка"
+      )
       return
     }
     window.open(getSmartlinkUrl(slug), "_blank", "noopener,noreferrer")
@@ -1145,10 +1168,12 @@ export default function TracksPageClient() {
     const ordered = sortTracksByUploadOrder(albumTracks)
     setAlbumBulkAlbumId(albumId)
     setAlbumBulkTrackCount(ordered.length)
+    const album = albums.find((a) => a.id === albumId)
     const first = ordered[0]
     setAlbumBulkUpc(first?.upc ?? "")
     setAlbumBulkCatalogNumber(first?.catalogNumber ?? "")
-    setAlbumBulkPlatformLinks(first?.platformLinks ?? {})
+    setAlbumBulkPlatformLinks(album?.platformLinks ?? first?.platformLinks ?? {})
+    setAlbumBulkSmartlinkSlug(album?.smartlinkSlug ?? "")
     setAlbumBulkOpen(true)
   }
 
@@ -1245,7 +1270,25 @@ export default function TracksPageClient() {
       })
       if (response.ok) {
         const data = await response.json()
-        toast.success(`Обновлено треков: ${data.updated ?? 0}`)
+        if (data.album?.smartlinkSlug) {
+          setAlbumBulkSmartlinkSlug(data.album.smartlinkSlug)
+          setAlbums((prev) =>
+            prev.map((a) =>
+              a.id === albumBulkAlbumId
+                ? {
+                    ...a,
+                    smartlinkSlug: data.album.smartlinkSlug ?? undefined,
+                    platformLinks: data.album.platformLinks ?? a.platformLinks,
+                  }
+                : a
+            )
+          )
+        }
+        toast.success(
+          data.album?.smartlinkSlug
+            ? `Обновлено. Смартлинк альбома: /s/${data.album.smartlinkSlug}`
+            : `Обновлено треков: ${data.updated ?? 0}`
+        )
         setAlbumBulkOpen(false)
         loadTracks()
       } else {
@@ -1877,7 +1920,7 @@ export default function TracksPageClient() {
                                     className="h-8 w-8"
                                     title="Открыть смартлинк"
                                     aria-label="Открыть смартлинк"
-                                    disabled={!track.smartlinkSlug?.trim()}
+                                    disabled={!getEffectiveSmartlinkSlug(track)}
                                     onClick={() => handleOpenSmartlink(track)}
                                   >
                                     <Link2 className="h-4 w-4" />
@@ -2534,7 +2577,7 @@ export default function TracksPageClient() {
                                   className="h-8 w-8"
                                   title="Открыть смартлинк"
                                   aria-label="Открыть смартлинк"
-                                  disabled={!track.smartlinkSlug?.trim()}
+                                  disabled={!getEffectiveSmartlinkSlug(track)}
                                   onClick={() => handleOpenSmartlink(track)}
                                 >
                                   <Link2 className="h-4 w-4" />
@@ -3513,36 +3556,67 @@ export default function TracksPageClient() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admin-smart-slug">Слаг смартлинка (после /s/)</Label>
-                    <Input
-                      id="admin-smart-slug"
-                      className="font-mono max-w-md"
-                      value={trackDraft.smartlinkSlug}
-                      onChange={(e) =>
-                        setTrackDraft((d) =>
-                          d ? { ...d, smartlinkSlug: e.target.value } : d
-                        )
-                      }
-                      placeholder="например abc123xyz"
-                    />
-                    {trackDraft.smartlinkSlug.trim() && (
-                      <div className="flex items-center gap-2 mt-2">
+                    {selectedTrack?.albumId ? (
+                      <>
+                        <p className="text-xs text-muted-foreground">
+                          У трека альбома один общий смартлинк альбома (название альбома). Задайте
+                          ссылки в «Артикул, UPC и ссылки» у альбома.
+                        </p>
+                        {getEffectiveSmartlinkSlug(selectedTrack) ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <Input
+                              readOnly
+                              value={getSmartlinkUrl(getEffectiveSmartlinkSlug(selectedTrack))}
+                              className="font-mono text-sm flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                handleCopySmartlink(getEffectiveSmartlinkSlug(selectedTrack))
+                              }
+                              title="Копировать ссылку"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
                         <Input
-                          readOnly
-                          value={getSmartlinkUrl(trackDraft.smartlinkSlug.trim())}
-                          className="font-mono text-sm flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleCopySmartlink(trackDraft.smartlinkSlug.trim())
+                          id="admin-smart-slug"
+                          className="font-mono max-w-md"
+                          value={trackDraft.smartlinkSlug}
+                          onChange={(e) =>
+                            setTrackDraft((d) =>
+                              d ? { ...d, smartlinkSlug: e.target.value } : d
+                            )
                           }
-                          title="Копировать ссылку"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
+                          placeholder="например abc123xyz"
+                        />
+                        {trackDraft.smartlinkSlug.trim() && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <Input
+                              readOnly
+                              value={getSmartlinkUrl(trackDraft.smartlinkSlug.trim())}
+                              className="font-mono text-sm flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                handleCopySmartlink(trackDraft.smartlinkSlug.trim())
+                              }
+                              title="Копировать ссылку"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -3768,7 +3842,9 @@ export default function TracksPageClient() {
             <DialogHeader>
               <DialogTitle>Артикул, UPC и ссылки для альбома</DialogTitle>
               <DialogDescription>
-                Значения будут применены ко всем {albumBulkTrackCount} трекам альбома
+                Ссылки и смартлинк — общие на весь альбом ({albumBulkTrackCount}{" "}
+                {albumBulkTrackCount === 1 ? "трек" : "треков"}). Название в смартлинке —
+                название альбома.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -3830,9 +3906,34 @@ export default function TracksPageClient() {
                   ))}
                 </div>
               </div>
+              {albumBulkSmartlinkSlug.trim() ? (
+                <div className="space-y-2 rounded-md border p-3">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Смартлинк альбома (один на все треки)
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      readOnly
+                      className="font-mono text-sm"
+                      value={getSmartlinkUrl(albumBulkSmartlinkSlug.trim())}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleCopySmartlink(albumBulkSmartlinkSlug.trim())}
+                    >
+                      Копировать
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  После сохранения ссылок на площадки будет создан один смартлинк альбома.
+                </p>
+              )}
               <div className="flex gap-2 pt-2">
                 <Button onClick={handleAlbumBulkSave} disabled={albumBulkSaving}>
-                  {albumBulkSaving ? "Сохранение…" : "Применить ко всем трекам альбома"}
+                  {albumBulkSaving ? "Сохранение…" : "Сохранить для альбома"}
                 </Button>
                 <Button
                   variant="outline"

@@ -1298,6 +1298,33 @@ export default function CabinetPage() {
                               <p className="text-xs text-muted-foreground">
                                 Лейбл: {getReleaseLabelName(album?.labelName)}
                               </p>
+                              {album?.smartlinkSlug &&
+                                albumTracks.some((t) => t.status === "released") && (
+                                  <div className="flex flex-wrap items-center gap-2 pb-1">
+                                    <p className="text-xs text-muted-foreground break-all">
+                                      Смартлинк альбома:{" "}
+                                      {typeof window !== "undefined"
+                                        ? `${window.location.origin}/s/${album.smartlinkSlug}`
+                                        : `https://parallaxmusic.ru/s/${album.smartlinkSlug}`}
+                                    </p>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        const url =
+                                          typeof window !== "undefined"
+                                            ? `${window.location.origin}/s/${album.smartlinkSlug}`
+                                            : `https://parallaxmusic.ru/s/${album.smartlinkSlug}`
+                                        void navigator.clipboard
+                                          .writeText(url)
+                                          .then(() => toast.success("Ссылка скопирована"))
+                                      }}
+                                    >
+                                      <Link2 className="h-4 w-4 mr-2" />
+                                      Копировать
+                                    </Button>
+                                  </div>
+                                )}
                               <div className="grid gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                                 {albumTracks.map((track) => (
                                   <Card key={track.id} className="overflow-hidden">
@@ -1366,35 +1393,6 @@ export default function CabinetPage() {
                                             <p className="whitespace-pre-wrap">{(track as any).moderationNote}</p>
                                           </div>
                                         )}
-                                      {track.status === "released" && track.smartlinkSlug && (
-                                        <p className="text-xs text-muted-foreground break-all">
-                                          Смартлинк:{" "}
-                                          {typeof window !== "undefined"
-                                            ? `${window.location.origin}/s/${track.smartlinkSlug}`
-                                            : `https://parallaxmusic.ru/s/${track.smartlinkSlug}`}
-                                        </p>
-                                      )}
-                                      {track.status === "released" && track.smartlinkSlug && (
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1"
-                                            onClick={() => {
-                                              const url =
-                                                typeof window !== "undefined"
-                                                  ? `${window.location.origin}/s/${track.smartlinkSlug}`
-                                                  : `https://parallaxmusic.ru/s/${track.smartlinkSlug}`
-                                              void navigator.clipboard
-                                                .writeText(url)
-                                                .then(() => toast.success("Ссылка скопирована"))
-                                            }}
-                                          >
-                                            <Link2 className="h-4 w-4 mr-2" />
-                                            Копировать ссылку
-                                          </Button>
-                                        </div>
-                                      )}
                                       {track.status === "upload_pending" && (
                                         <Button
                                           size="sm"
@@ -1762,36 +1760,45 @@ export default function CabinetPage() {
                           </div>
                         </div>
 
-                        {selectedTrack.status === "released" && selectedTrack.smartlinkSlug && (
-                          <div className="border-t pt-4 space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Ссылка на трек (смартлинк)</p>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                readOnly
-                                value={
-                                  typeof window !== "undefined"
-                                    ? `${window.location.origin}/s/${selectedTrack.smartlinkSlug}`
-                                    : `https://parallaxmusic.ru/s/${selectedTrack.smartlinkSlug}`
-                                }
-                                className="font-mono text-sm flex-1"
-                              />
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => {
-                                  const url =
-                                    typeof window !== "undefined"
-                                      ? `${window.location.origin}/s/${selectedTrack.smartlinkSlug}`
-                                      : `https://parallaxmusic.ru/s/${selectedTrack.smartlinkSlug}`
-                                  void navigator.clipboard.writeText(url).then(() => toast.success("Ссылка скопирована"))
-                                }}
-                                title="Копировать ссылку"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                        {selectedTrack.status === "released" &&
+                          (() => {
+                            const slug = selectedTrack.albumId
+                              ? albums.find((a) => a.id === selectedTrack.albumId)?.smartlinkSlug
+                              : selectedTrack.smartlinkSlug
+                            if (!slug?.trim()) return null
+                            const url =
+                              typeof window !== "undefined"
+                                ? `${window.location.origin}/s/${slug}`
+                                : `https://parallaxmusic.ru/s/${slug}`
+                            return (
+                              <div className="border-t pt-4 space-y-2">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  {selectedTrack.albumId
+                                    ? "Ссылка на альбом (смартлинк)"
+                                    : "Ссылка на трек (смартлинк)"}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    readOnly
+                                    value={url}
+                                    className="font-mono text-sm flex-1"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => {
+                                      void navigator.clipboard
+                                        .writeText(url)
+                                        .then(() => toast.success("Ссылка скопирована"))
+                                    }}
+                                    title="Копировать ссылку"
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )
+                          })()}
                       </div>
                     )}
                   </DialogContent>

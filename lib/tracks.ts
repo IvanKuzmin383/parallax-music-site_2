@@ -1,11 +1,14 @@
 import { promises as fs } from "fs"
 import path from "path"
 import crypto from "crypto"
-import { nanoid } from "nanoid"
 import type { TrackGenre, TrackMood, TrackStreamingScope } from "./track-constants"
 import { normalizeStreamingScope } from "./track-constants"
 import type { PlatformLinks } from "./smartlink-platforms"
 import { query, queryOne, execute, normalizePgTimestamptz } from "./database"
+import {
+  generateUniqueSmartlinkSlug,
+  isSmartlinkSlugTaken as isSmartlinkSlugTakenShared,
+} from "./smartlink-slug"
 export {
   GENRES,
   TRACK_MOODS,
@@ -255,25 +258,12 @@ function hasAnyPlatformLink(links?: PlatformLinks): boolean {
   return values.some((v) => typeof v === "string" && v.trim().length > 0)
 }
 
-async function generateUniqueSmartlinkSlug(): Promise<string> {
-  const existing = await query<{ smartlink_slug: string }>(
-    "SELECT smartlink_slug FROM tracks WHERE smartlink_slug IS NOT NULL"
-  )
-  const set = new Set(existing.map((r) => r.smartlink_slug))
-  for (let i = 0; i < 100; i++) {
-    const slug = nanoid(10)
-    if (!set.has(slug)) return slug
-  }
-  return nanoid(10)
+async function generateUniqueSmartlinkSlugForTrack(): Promise<string> {
+  return generateUniqueSmartlinkSlug()
 }
 
 export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string): Promise<boolean> {
-  const trimmed = slug.trim()
-  if (!trimmed) return false
-  const row = await queryOne<{ id: string }>("SELECT id FROM tracks WHERE smartlink_slug = ?", [trimmed])
-  if (!row) return false
-  if (excludeTrackId && row.id === excludeTrackId) return false
-  return true
+  return isSmartlinkSlugTakenShared(slug, { excludeTrackId })
 }
 
 export type CreateTrackInput = Omit<
@@ -389,13 +379,21 @@ export async function updateTrack(
       : current.smartlinkSlug
 
   const nextPlatformLinks = partial.platformLinks ?? current.platformLinks
+  const albumId = partial.albumId !== undefined ? partial.albumId : current.albumId
+  const isAlbumTrack = Boolean(albumId)
   const shouldAutoGenerateSmartlink =
+    !isAlbumTrack &&
     !smartlinkSlug &&
     (hasAnyPlatformLink(nextPlatformLinks) ||
       ((partial.status ?? current.status) === "released" && hasAnyPlatformLink(current.platformLinks)))
 
   if (shouldAutoGenerateSmartlink) {
-    smartlinkSlug = await generateUniqueSmartlinkSlug()
+    smartlinkSlug = await generateUniqueSmartlinkSlugForTrack()
+  }
+
+  // У треков альбома смартлинк только на уровне альбома.
+  if (isAlbumTrack && !hasIncomingSmartlinkSlug) {
+    smartlinkSlug = undefined
   }
 
   const updated: Track = {
