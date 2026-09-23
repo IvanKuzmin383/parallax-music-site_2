@@ -14,6 +14,7 @@ import {
   Check,
   ChevronLeft,
   CreditCard,
+  GripVertical,
   Pause,
   Play,
   Save,
@@ -143,6 +144,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [audioTime, setAudioTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
   const [metaAccordionOpen, setMetaAccordionOpen] = useState<string[]>([])
+  const [dragTrackIndex, setDragTrackIndex] = useState<number | null>(null)
+  const [dragOverTrackIndex, setDragOverTrackIndex] = useState<number | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioSeekingRef = useRef(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -686,19 +689,31 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
-  const moveTrack = async (index: number, direction: -1 | 1) => {
-    const next = [...tracks]
-    const target = index + direction
-    if (target < 0 || target >= next.length) return
-    ;[next[index], next[target]] = [next[target], next[index]]
+  const persistTrackOrder = async (next: Track[]) => {
     setTracks(next)
     if (!releaseId) return
-    await fetch(`/api/cabinet/releases/${releaseId}/tracks/reorder`, {
+    const res = await fetch(`/api/cabinet/releases/${releaseId}/tracks/reorder`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ trackIds: next.map((t) => t.id) }),
     })
+    if (!res.ok) {
+      toast.error("Не удалось сохранить порядок треков")
+      void loadRelease(releaseId)
+    }
+  }
+
+  const reorderTracksByIndex = async (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= tracks.length || to >= tracks.length) return
+    const next = [...tracks]
+    const [item] = next.splice(from, 1)
+    next.splice(to, 0, item)
+    await persistTrackOrder(next)
+  }
+
+  const moveTrack = async (index: number, direction: -1 | 1) => {
+    await reorderTracksByIndex(index, index + direction)
   }
 
   const formatAudioClock = (sec: number) => {
@@ -1447,16 +1462,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               e.target.value = ""
             }}
           />
-          {uploadQueue.length > 0 ? (
+          {uploadQueue.some((item) => item.status !== "done") ? (
             <ul className="space-y-2">
-              {uploadQueue.map((item) => (
+              {uploadQueue
+                .filter((item) => item.status !== "done")
+                .map((item) => (
                 <li key={item.id} className="rounded-md border border-border p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <span className="truncate">{item.fileName}</span>
                     <span className="text-muted-foreground shrink-0">
                       {item.status === "pending" && "В очереди"}
                       {item.status === "uploading" && `${item.progress}%`}
-                      {item.status === "done" && "Готово"}
                       {item.status === "error" && "Ошибка"}
                     </span>
                   </div>
@@ -1469,8 +1485,51 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           <ul className="space-y-2">
             {tracks.map((track, index) => {
               const isActive = playingTrackId === track.id
+              const canReorder = kind === "album" && tracks.length > 1 && !formDisabled
               return (
-              <li key={track.id} className="flex items-center gap-2 rounded-md border border-border p-3">
+              <li
+                key={track.id}
+                className={cn(
+                  "flex items-center gap-2 rounded-md border border-border p-3 transition-colors",
+                  dragTrackIndex === index && "opacity-50",
+                  dragOverTrackIndex === index && dragTrackIndex !== index && "border-primary bg-primary/5",
+                )}
+                onDragOver={(e) => {
+                  if (!canReorder || dragTrackIndex === null) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = "move"
+                  if (dragOverTrackIndex !== index) setDragOverTrackIndex(index)
+                }}
+                onDrop={(e) => {
+                  if (!canReorder || dragTrackIndex === null) return
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const from = dragTrackIndex
+                  setDragTrackIndex(null)
+                  setDragOverTrackIndex(null)
+                  void reorderTracksByIndex(from, index)
+                }}
+                onDragEnd={() => {
+                  setDragTrackIndex(null)
+                  setDragOverTrackIndex(null)
+                }}
+              >
+                {canReorder ? (
+                  <div
+                    className="cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                    draggable
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Перетащить трек ${index + 1}`}
+                    onDragStart={(e) => {
+                      setDragTrackIndex(index)
+                      e.dataTransfer.effectAllowed = "move"
+                      e.dataTransfer.setData("text/plain", track.id)
+                    }}
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </div>
+                ) : null}
                 <span className="text-sm text-muted-foreground w-6 shrink-0">{index + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-sm sm:max-w-[40%] md:max-w-[12rem]">
                   {track.trackName.trim() || `Трек ${index + 1}`}
