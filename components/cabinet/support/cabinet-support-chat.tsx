@@ -55,16 +55,7 @@ export function CabinetSupportChat() {
       text,
       at: Date.now(),
     }
-    setMessages((prev) => [
-      ...prev,
-      userMsg,
-      {
-        id: `s-${Date.now()}`,
-        author: "support",
-        text: "Сообщение принято. Ответ поддержки появится здесь — чат скоро будет подключён к операторам.",
-        at: Date.now() + 1,
-      },
-    ])
+    setMessages((prev) => [...prev, userMsg])
     setDraft("")
   }, [draft])
 
@@ -94,7 +85,7 @@ export function CabinetSupportChat() {
             </Button>
           </div>
 
-          <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
+          <div ref={listRef} className="cabinet-sidebar-scroll flex-1 space-y-2 overflow-y-auto px-3 py-3">
             {messages.map((msg) => (
               <div
                 key={msg.id}

@@ -2,9 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -13,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import {
   CABINET_SIDEBAR_GROUPS,
@@ -20,6 +23,7 @@ import {
   isCabinetPromotionPath,
   isCabinetToolsPath,
 } from "@/lib/cabinet/navigation"
+import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { cn } from "@/lib/utils"
 
 function isActive(href: string, pathname: string): boolean {
@@ -35,22 +39,26 @@ function isActive(href: string, pathname: string): boolean {
 
 export function CabinetSidebar() {
   const pathname = usePathname() ?? ""
+  const { logout } = useCabinetSession()
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <span className="font-bold tracking-tighter text-base">
-                  <span className="text-sidebar-foreground">PARALLAX</span>
-                  <span className="text-sidebar-primary ml-1">MUSIC</span>
-                </span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="border-b border-sidebar-border px-2 py-3">
+        <div className="flex items-center gap-0.5">
+          <SidebarMenu className="min-w-0 flex-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link href="/">
+                  <span className="font-bold tracking-tighter text-base truncate">
+                    <span className="text-sidebar-foreground">PARALLAX</span>
+                    <span className="text-sidebar-primary ml-1">MUSIC</span>
+                  </span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <SidebarTrigger className="shrink-0" />
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="cabinet-sidebar-scroll gap-0">
@@ -86,6 +94,21 @@ export function CabinetSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Выйти"
+              className="h-10 gap-3 px-3 text-[15px]"
+              onClick={() => void logout()}
+            >
+              <LogOut />
+              <span>Выйти</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>

@@ -32,6 +32,7 @@ export function CabinetDashboardPage() {
       <DashboardMetricCards
         releasesCount={releasesLoading ? 0 : releases.length}
         balance={balance}
+        royalty={balance}
       />
 
       <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">

@@ -26,6 +26,7 @@ import {
   Disc3,
   MoreVertical,
   Music,
+  Banknote,
   Wallet,
 } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -118,19 +119,21 @@ function isDashboardTask(release: ReleaseView): boolean {
 export function DashboardMetricCards({
   releasesCount,
   balance,
+  royalty,
 }: {
   releasesCount: number
   balance: number
+  royalty: number
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Link
         href="/cabinet/music/releases"
         className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/60">
-            <Disc3 className="h-5 w-5 text-foreground/80" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <Disc3 className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground">Релизы</p>
@@ -154,6 +157,26 @@ export function DashboardMetricCards({
             <p className="text-sm text-muted-foreground">Баланс</p>
             <p className="text-2xl font-semibold tabular-nums leading-tight text-emerald-400">
               {formatRub(balance)}
+            </p>
+          </div>
+        </div>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground group-hover:border-primary/40 group-hover:text-primary transition-colors">
+          <ArrowUpRight className="h-4 w-4" />
+        </span>
+      </Link>
+
+      <Link
+        href="/cabinet/finance/royalty-withdrawal"
+        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card sm:col-span-2 lg:col-span-1"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
+            <Banknote className="h-5 w-5 text-amber-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">Роялти</p>
+            <p className="text-2xl font-semibold tabular-nums leading-tight text-amber-400">
+              {formatRub(royalty)}
             </p>
           </div>
         </div>
@@ -292,7 +315,7 @@ export function DashboardStatsPanel() {
           </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[220px] w-full aspect-auto">
-            <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
               <defs>
                 <linearGradient id="dashPlaysFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--color-plays)" stopOpacity={0.35} />
@@ -307,7 +330,19 @@ export function DashboardStatsPanel() {
                 tickMargin={8}
                 interval={0}
               />
-              <YAxis hide domain={[0, "auto"]} />
+              <YAxis
+                domain={[0, "auto"]}
+                width={40}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={6}
+                allowDecimals={false}
+                tickFormatter={(v: number) => {
+                  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}M`
+                  if (v >= 1000) return `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`
+                  return String(v)
+                }}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Area
                 type="monotone"

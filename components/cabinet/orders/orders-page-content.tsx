@@ -30,7 +30,7 @@ export function OrdersPageContent() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageHeader title="Заказы" description="Все ваши заказы услуг и их статусы" />
+      <PageHeader title="Заказы" />
 
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (

@@ -151,61 +151,63 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
   const audioReleaseId = entityRelease?.id ?? tracks[0]?.releaseId ?? null
 
   return (
-    <div className="w-full max-w-none space-y-10">
-      <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link href="/cabinet/music/releases">
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Все релизы
-        </Link>
-      </Button>
+    <div className="w-full max-w-none space-y-8">
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" asChild className="-ml-2">
+          <Link href="/cabinet/music/releases">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Все релизы
+          </Link>
+        </Button>
 
-      <section className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        <div className="flex flex-col sm:flex-row gap-6 items-start min-w-0 flex-1">
-          <div className="relative h-48 w-48 sm:h-56 sm:w-56 shrink-0 rounded-xl overflow-hidden shadow-xl ring-1 ring-border">
-            {coverUrl ? (
-              <Image src={coverUrl} alt="" fill className="object-cover" unoptimized sizes="224px" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted">
-                <Music className="h-12 w-12 text-muted-foreground" />
+        <section className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="flex flex-col sm:flex-row gap-6 items-start min-w-0 flex-1">
+            <div className="relative h-48 w-48 sm:h-56 sm:w-56 shrink-0 rounded-xl overflow-hidden shadow-xl ring-1 ring-border">
+              {coverUrl ? (
+                <Image src={coverUrl} alt="" fill className="object-cover" unoptimized sizes="224px" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-muted">
+                  <Music className="h-12 w-12 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="space-y-3 min-w-0 flex-1">
+              <div>
+                <p className="text-sm text-muted-foreground uppercase tracking-widest">
+                  {isAlbum ? "Альбом" : "Сингл"}
+                </p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
+                <p className="text-lg text-muted-foreground mt-1">{artist}</p>
               </div>
-            )}
-          </div>
-          <div className="space-y-3 min-w-0 flex-1">
-            <div>
-              <p className="text-sm text-muted-foreground uppercase tracking-widest">
-                {isAlbum ? "Альбом" : "Сингл"}
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
-              <p className="text-lg text-muted-foreground mt-1">{artist}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={statusLabel} kind="generic" />
-              {kindMeta ? (
-                <span className="text-xs rounded-md border border-border px-2 py-0.5 text-muted-foreground">
-                  {kindMeta}
-                </span>
-              ) : null}
-            </div>
-            {releaseDate ? (
-              <p className="text-sm text-muted-foreground">
-                {format(new Date(releaseDate), "d MMMM yyyy", { locale: ru })}
-                {relativeDate ? ` · ${relativeDate}` : ""}
-              </p>
-            ) : null}
-            {releaseView?.platforms && releaseView.platforms.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {releaseView.platforms.map((p) => (
-                  <span key={p} className="text-xs rounded-full border border-border px-2.5 py-1">
-                    {p}
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={statusLabel} kind="generic" />
+                {kindMeta ? (
+                  <span className="text-xs rounded-md border border-border px-2 py-0.5 text-muted-foreground">
+                    {kindMeta}
                   </span>
-                ))}
+                ) : null}
               </div>
-            ) : null}
-            <ReleaseInfoButton release={entityRelease} tracks={tracks} />
+              {releaseDate ? (
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(releaseDate), "d MMMM yyyy", { locale: ru })}
+                  {relativeDate ? ` · ${relativeDate}` : ""}
+                </p>
+              ) : null}
+              {releaseView?.platforms && releaseView.platforms.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {releaseView.platforms.map((p) => (
+                    <span key={p} className="text-xs rounded-full border border-border px-2.5 py-1">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <ReleaseInfoButton release={entityRelease} tracks={tracks} />
+            </div>
           </div>
-        </div>
-        {moderationNote ? <ModerationNoteAside note={moderationNote} /> : null}
-      </section>
+          {moderationNote ? <ModerationNoteAside note={moderationNote} /> : null}
+        </section>
+      </div>
 
       {tracks.length > 0 ? (
         <section className="space-y-3">

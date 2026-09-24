@@ -57,7 +57,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       toast.error("Укажите название релиза или проекта")
       return
     }
-    toast.success("Заявка создана (демо). Заказ появится в разделе «Заказы» после подключения API.")
+    toast.error("Оформление этой услуги пока недоступно")
   }
 
   const handleCardPay = async () => {

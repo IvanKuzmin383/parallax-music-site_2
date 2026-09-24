@@ -434,21 +434,64 @@ export function ReleaseInfoButton({
   )
 }
 
-export function ModerationNoteAside({ note }: { note: string }) {
+export function ModerationNoteAside({
+  note,
+  maxHeight,
+}: {
+  note: string
+  /** Не выше блока обложки; длинный текст — скролл или «Показать полностью». */
+  maxHeight?: number | null
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const bodyRef = useRef<HTMLParagraphElement>(null)
+  const [overflows, setOverflows] = useState(false)
+
+  const cap = !expanded && maxHeight && maxHeight > 0 ? maxHeight : undefined
+
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const check = () => {
+      setOverflows(el.scrollHeight > el.clientHeight + 2)
+    }
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [note, cap, expanded])
+
+  const showToggle = Boolean(cap) && (overflows || expanded)
+
   return (
     <aside
       className={cn(
-        "w-full sm:max-w-sm shrink-0 rounded-lg border px-4 py-3",
+        "flex w-full sm:max-w-sm shrink-0 flex-col rounded-lg border px-4 py-3",
         "border-[#C08240]/55 bg-[#D48C48]/15",
         "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
       )}
+      style={cap ? { maxHeight: cap } : undefined}
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#E8B86D]">
+      <p className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#E8B86D]">
         Комментарий модерации
       </p>
-      <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-[#F8E6C8]">
+      <p
+        ref={bodyRef}
+        className={cn(
+          "mt-1.5 min-h-0 flex-1 text-sm leading-relaxed whitespace-pre-wrap text-[#F8E6C8]",
+          cap && "cabinet-sidebar-scroll overflow-y-auto",
+        )}
+      >
         {note}
       </p>
+      {showToggle ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 shrink-0 self-start text-xs font-medium text-[#E8B86D] underline-offset-2 hover:underline"
+        >
+          {expanded ? "Свернуть" : "Показать полностью"}
+        </button>
+      ) : null}
     </aside>
   )
 }

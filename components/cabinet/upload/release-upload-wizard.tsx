@@ -87,6 +87,7 @@ import {
 import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
+import { ModerationNoteAside } from "@/components/cabinet/releases/release-detail-panels"
 import {
   TrackAiLabelingFields,
 } from "./track-ai-labeling-fields"
@@ -167,10 +168,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const audioSeekingRef = useRef(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
+  const reviewPreviewRef = useRef<HTMLDivElement>(null)
   const tracksRef = useRef(tracks)
   const streamingScopeRef = useRef(streamingScope)
   const trackSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const trackSaveChainsRef = useRef<Record<string, Promise<boolean>>>({})
+  const [reviewPreviewHeight, setReviewPreviewHeight] = useState<number | null>(null)
 
   useEffect(() => {
     tracksRef.current = tracks
@@ -1111,6 +1114,20 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     return null
   }, [tracks])
 
+  useEffect(() => {
+    if (step !== 6 || !moderationNote) {
+      setReviewPreviewHeight(null)
+      return
+    }
+    const el = reviewPreviewRef.current
+    if (!el) return
+    const sync = () => setReviewPreviewHeight(el.offsetHeight)
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [step, moderationNote, coverPreview, title, artistName, releaseDate, kind])
+
   const reviewChecks = useMemo(() => {
     const items: { ok: boolean; label: string; value?: string }[] = [
       {
@@ -1865,7 +1882,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       {step === 6 ? (
         <div className="space-y-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex gap-4 min-w-0">
+            <div ref={reviewPreviewRef} className="flex gap-4 min-w-0">
               {coverPreview ? (
                 <div className="h-24 w-24 rounded overflow-hidden relative shrink-0">
                   <Image src={coverPreview} alt="" fill className="object-cover" unoptimized />
@@ -1885,20 +1902,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               </div>
             </div>
             {moderationNote ? (
-              <aside
-                className={cn(
-                  "sm:ml-auto w-full sm:max-w-sm shrink-0 rounded-lg border px-4 py-3",
-                  "border-[#C08240]/55 bg-[#D48C48]/15 text-[#F3D5A8]",
-                  "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
-                )}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#E8B86D]">
-                  Комментарий модерации
-                </p>
-                <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-[#F8E6C8]">
-                  {moderationNote}
-                </p>
-              </aside>
+              <div className="sm:ml-auto w-full sm:max-w-sm shrink-0">
+                <ModerationNoteAside note={moderationNote} maxHeight={reviewPreviewHeight} />
+              </div>
             ) : null}
           </div>
           <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">

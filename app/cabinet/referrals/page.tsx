@@ -1,24 +1,31 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { format } from "date-fns"
-import { ru } from "date-fns/locale"
-import { Copy, Plus } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Copy } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
-import { StatusBadge } from "@/components/cabinet/shared/status-badge"
-import { MOCK_REFERRALS, MOCK_REFERRAL_STATS } from "@/lib/cabinet/mock"
+import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
+import { Spinner } from "@/components/ui/spinner"
 
 export default function ReferralsPage() {
+  const { user, loading } = useCabinetSession()
   const [copied, setCopied] = useState(false)
 
+  const referralLink = useMemo(() => {
+    if (typeof window === "undefined") return ""
+    const email = user?.email?.trim()
+    if (!email) return `${window.location.origin}/?ref=`
+    const code = encodeURIComponent(email.split("@")[0] || email)
+    return `${window.location.origin}/?ref=${code}`
+  }, [user?.email])
+
   const copyLink = async () => {
+    if (!referralLink) return
     try {
-      await navigator.clipboard.writeText(MOCK_REFERRAL_STATS.referralLink)
+      await navigator.clipboard.writeText(referralLink)
       setCopied(true)
       toast.success("Ссылка скопирована")
       setTimeout(() => setCopied(false), 2000)
@@ -27,42 +34,50 @@ export default function ReferralsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner className="h-8 w-8" />
+      </div>
+    )
+  }
+
   return (
-    <div className="w-full max-w-none space-y-8">
+    <div className="w-full max-w-none space-y-5">
       <PageHeader title="Партнёрка" description="Приглашайте артистов и получайте бонус с их заказов" />
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Реферальная ссылка</CardTitle>
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-medium">Реферальная ссылка</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-3">
-          <code className="flex-1 text-sm bg-muted px-3 py-2 rounded break-all">{MOCK_REFERRAL_STATS.referralLink}</code>
-          <Button variant="outline" onClick={() => void copyLink()}>
+        <CardContent className="flex flex-col sm:flex-row gap-2 px-4 pb-4">
+          <code className="flex-1 text-sm bg-muted px-3 py-2 rounded break-all">{referralLink}</code>
+          <Button variant="outline" size="sm" onClick={() => void copyLink()}>
             <Copy className="h-4 w-4 mr-2" />
             {copied ? "Скопировано" : "Скопировать"}
           </Button>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Приглашено", value: MOCK_REFERRAL_STATS.invitedCount },
-          { label: "Сумма заказов", value: `${MOCK_REFERRAL_STATS.ordersTotal.toLocaleString("ru-RU")} ₽` },
-          { label: "Начислено", value: `${MOCK_REFERRAL_STATS.bonusEarned.toLocaleString("ru-RU")} ₽` },
-          { label: "Доступно", value: `${MOCK_REFERRAL_STATS.availableBonus.toLocaleString("ru-RU")} ₽` },
+          { label: "Приглашено", value: "0" },
+          { label: "Сумма заказов", value: "0 ₽" },
+          { label: "Начислено", value: "0 ₽" },
+          { label: "Доступно", value: "0 ₽" },
         ].map((stat) => (
           <Card key={stat.label}>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="text-2xl font-bold">{stat.value}</p>
+            <CardContent className="px-4 py-3">
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-lg font-semibold tabular-nums leading-tight mt-0.5">{stat.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Рефералы</CardTitle>
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-medium">Рефералы</CardTitle>
         </CardHeader>
         <Table>
           <TableHeader>
@@ -75,22 +90,14 @@ export default function ReferralsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {MOCK_REFERRALS.map((ref) => (
-              <TableRow key={ref.id}>
-                <TableCell>{ref.userName}</TableCell>
-                <TableCell>{format(new Date(ref.registeredAt), "d MMM yyyy", { locale: ru })}</TableCell>
-                <TableCell>{ref.ordersTotal.toLocaleString("ru-RU")} ₽</TableCell>
-                <TableCell>{ref.bonus.toLocaleString("ru-RU")} ₽</TableCell>
-                <TableCell>
-                  <StatusBadge status={ref.status === "active" ? "completed" : "awaiting_payment"} kind="generic" />
-                </TableCell>
-              </TableRow>
-            ))}
+            <TableRow>
+              <TableCell colSpan={5} className="text-center text-muted-foreground py-6 text-sm">
+                Пока нет приглашённых пользователей
+              </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </Card>
-
-      <p className="text-sm text-muted-foreground">Демо-данные. Реферальная программа будет подключена к API позже.</p>
     </div>
   )
 }

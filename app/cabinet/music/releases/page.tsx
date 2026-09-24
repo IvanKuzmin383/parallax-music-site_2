@@ -29,7 +29,6 @@ import {
   RELEASE_FILTERS,
   type ReleaseFilterKey,
 } from "@/lib/cabinet/release-status-filter"
-import { resolveStatusTone } from "@/components/cabinet/shared/status-badge"
 import { cn } from "@/lib/utils"
 
 const STAT_LABELS: Record<ReleaseFilterKey, string> = {
@@ -63,30 +62,6 @@ const STAT_ACTIVE_BG: Record<ReleaseFilterKey, string> = {
   on_platforms: "bg-violet-500/20 ring-1 ring-violet-500/50",
   released: "bg-emerald-500/20 ring-1 ring-emerald-500/50",
   rejected: "bg-zinc-500/20 ring-1 ring-zinc-500/50",
-}
-
-const FILTER_TONE_CLASS: Record<string, string> = {
-  slate:
-    "border-slate-500/40 text-slate-200 hover:bg-slate-500/15 data-[active=true]:bg-slate-500/30 data-[active=true]:text-slate-50",
-  amber:
-    "border-amber-500/40 text-amber-200 hover:bg-amber-500/15 data-[active=true]:bg-amber-500/35 data-[active=true]:text-amber-50",
-  orange:
-    "border-orange-500/40 text-orange-200 hover:bg-orange-500/15 data-[active=true]:bg-orange-500/35 data-[active=true]:text-orange-50",
-  sky: "border-sky-500/40 text-sky-200 hover:bg-sky-500/15 data-[active=true]:bg-sky-500/35 data-[active=true]:text-sky-50",
-  blue: "border-blue-500/40 text-blue-200 hover:bg-blue-500/15 data-[active=true]:bg-blue-500/35 data-[active=true]:text-blue-50",
-  violet:
-    "border-violet-500/40 text-violet-200 hover:bg-violet-500/15 data-[active=true]:bg-violet-500/35 data-[active=true]:text-violet-50",
-  teal: "border-teal-500/40 text-teal-200 hover:bg-teal-500/15 data-[active=true]:bg-teal-500/35 data-[active=true]:text-teal-50",
-  emerald:
-    "border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/15 data-[active=true]:bg-emerald-500/35 data-[active=true]:text-emerald-50",
-  red: "border-red-500/40 text-red-200 hover:bg-red-500/15 data-[active=true]:bg-red-500/35 data-[active=true]:text-red-50",
-  zinc: "border-zinc-500/40 text-zinc-300 hover:bg-zinc-500/15 data-[active=true]:bg-zinc-500/35 data-[active=true]:text-zinc-50",
-}
-
-function filterTone(key: ReleaseFilterKey): string {
-  if (key === "all") return ""
-  if (key === "on_platforms") return FILTER_TONE_CLASS.violet
-  return FILTER_TONE_CLASS[resolveStatusTone(key)] ?? ""
 }
 
 type SortKey = "newest" | "oldest" | "title"
@@ -189,87 +164,58 @@ export default function MusicReleasesPage() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageHeader title="Мои релизы">
+      <PageHeader title="Мои релизы" className="mb-0 sm:items-center">
+        <div className="relative w-full sm:w-[16rem]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск по названию или артисту"
+            className="pl-9 h-9"
+            aria-label="Поиск релизов"
+          />
+        </div>
         <UploadReleaseButton />
       </PageHeader>
 
       {!loading && releases.length > 0 ? (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-card/40 p-2 sm:p-2.5">
-            {RELEASE_FILTERS.map((f) => {
-              const active = filter === f.key
-              return (
-                <button
-                  key={`stat-${f.key}`}
-                  type="button"
-                  onClick={() => setFilter(f.key)}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card/40 p-2 sm:p-2.5">
+          {RELEASE_FILTERS.map((f) => {
+            const active = filter === f.key
+            return (
+              <button
+                key={`stat-${f.key}`}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-left transition-colors",
+                  active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50",
+                )}
+              >
+                <span className={cn("text-lg font-semibold tabular-nums", COUNT_TONE[f.key])}>
+                  {counts[f.key]}
+                </span>{" "}
+                <span
                   className={cn(
-                    "rounded-lg px-3 py-2 text-left transition-colors",
-                    active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50",
+                    "text-sm",
+                    active ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
-                  <span className={cn("text-lg font-semibold tabular-nums", COUNT_TONE[f.key])}>
-                    {counts[f.key]}
-                  </span>{" "}
-                  <span
-                    className={cn(
-                      "text-sm",
-                      active ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {STAT_LABELS[f.key]}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap gap-2">
-              {RELEASE_FILTERS.map((f) => (
-                <Button
-                  key={f.key}
-                  size="sm"
-                  variant="outline"
-                  data-active={filter === f.key}
-                  className={cn(
-                    "rounded-full",
-                    filter === f.key &&
-                      f.key === "all" &&
-                      "bg-primary text-primary-foreground border-primary",
-                    f.key !== "all" && filterTone(f.key),
-                    filter === f.key && f.key !== "all" && "ring-1 ring-current/30",
-                  )}
-                  onClick={() => setFilter(f.key)}
-                >
-                  {f.label}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end shrink-0">
-              <div className="relative w-full sm:w-[16rem]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Поиск по названию или артисту"
-                  className="pl-9 h-9"
-                  aria-label="Поиск релизов"
-                />
-              </div>
-              <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-                <SelectTrigger className="h-9 w-full sm:w-[11.5rem]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Сначала новые</SelectItem>
-                  <SelectItem value="oldest">Сначала старые</SelectItem>
-                  <SelectItem value="title">По названию</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                  {STAT_LABELS[f.key]}
+                </span>
+              </button>
+            )
+          })}
+          <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+            <SelectTrigger className="ml-auto h-9 w-full sm:w-[11.5rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Сначала новые</SelectItem>
+              <SelectItem value="oldest">Сначала старые</SelectItem>
+              <SelectItem value="title">По названию</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       ) : null}
 
