@@ -38,6 +38,8 @@ export interface Track {
   releaseId?: string
   trackOrder?: number
   trackName: string
+  /** Версия трека (Radio Edit, Remix и т.п.), опционально. */
+  trackVersion: string
   artistName: string
   labelName: string
   genre: TrackGenre
@@ -57,7 +59,7 @@ export interface Track {
   backingAuthor: string
   /** С какой секунды начинать звук в TikTok (0 = с начала). */
   tiktokSoundStartSec?: number | null
-  /** Обязательная AI-маркировка трека. */
+  /**AI-маркировка трека. */
   aiLabeling?: TrackAiLabeling | null
   coverPath: string
   /** Пользователь заказал ИИ-обложку; файла обложки ещё нет (coverPath может быть пустым). */
@@ -91,6 +93,7 @@ export interface TrackRow {
   release_id: string | null
   track_order: number | null
   track_name: string
+  track_version?: string | null
   artist_name: string
   label_name: string | null
   genre: string
@@ -144,6 +147,7 @@ export function rowToTrack(row: TrackRow): Track {
     releaseId: row.release_id ?? undefined,
     trackOrder: row.track_order ?? undefined,
     trackName: row.track_name,
+    trackVersion: row.track_version ?? "",
     artistName: row.artist_name,
     labelName: row.label_name ?? "Parallax Music",
     genre: row.genre as TrackGenre,
@@ -337,6 +341,7 @@ export type CreateTrackInput = Omit<
   | "hasExplicitLanguage"
   | "lyricsLanguage"
   | "aiLabeling"
+  | "trackVersion"
 > & {
   needsAiCover?: boolean
   fixPackCreditsCharged?: boolean
@@ -344,6 +349,7 @@ export type CreateTrackInput = Omit<
   hasExplicitLanguage?: boolean | null
   lyricsLanguage?: string
   aiLabeling?: TrackAiLabeling | null
+  trackVersion?: string
 }
 
 export async function setTrackFixPackCreditsCharged(id: string, charged: boolean): Promise<void> {
@@ -364,6 +370,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
     hasExplicitLanguage: data.hasExplicitLanguage ?? null,
     lyricsLanguage: data.lyricsLanguage ?? "",
     aiLabeling: data.aiLabeling ?? null,
+    trackVersion: data.trackVersion ?? "",
     streamingScope: data.streamingScope ?? "all",
     fixPackCreditsCharged: data.fixPackCreditsCharged ?? false,
     id: crypto.randomUUID(),
@@ -373,8 +380,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, artist_name, label_name, genre, mood, short_description, lyrics_text, lyrics_language, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, has_explicit_language, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, ai_labeling_json, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, track_version, artist_name, label_name, genre, mood, short_description, lyrics_text, lyrics_language, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, has_explicit_language, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, ai_labeling_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -383,6 +390,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.releaseId ?? null,
       track.trackOrder ?? 0,
       track.trackName,
+      track.trackVersion || null,
       track.artistName,
       track.labelName,
       track.genre,
@@ -476,7 +484,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -485,6 +493,7 @@ export async function updateTrack(
       updated.releaseId ?? null,
       updated.trackOrder ?? 0,
       updated.trackName,
+      updated.trackVersion || null,
       updated.artistName,
       updated.labelName,
       updated.genre,

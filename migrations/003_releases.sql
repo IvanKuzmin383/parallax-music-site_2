@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS releases (
   wizard_step INTEGER NOT NULL DEFAULT 1,
   addons_json TEXT NOT NULL DEFAULT '{}',
   request_ai_cover BOOLEAN NOT NULL DEFAULT FALSE,
-  cover_created_with_ai BOOLEAN,
+  cover_created_with_ai TEXT,
   accept_short_release_date BOOLEAN NOT NULL DEFAULT FALSE,
   bundle_order_id TEXT,
   album_id TEXT,

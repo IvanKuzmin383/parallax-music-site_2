@@ -11,6 +11,7 @@ import {
 import { validateCabinetCoverImageFromFilePath } from "@/lib/cabinet-cover-validation"
 import { createAlbum } from "@/lib/albums"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
+import { parseCoverAiLevel } from "@/lib/cover-ai-level"
 import { isShortReleaseDate } from "@/lib/release-date-tiers"
 import {
   getReleaseById,
@@ -89,7 +90,7 @@ export async function submitReleaseToModeration(
   if (!artistName) return { ok: false, error: "Укажите имя артиста / название группы", status: 400 }
   if (!release.releaseDate) return { ok: false, error: "Укажите желаемую дату релиза", status: 400 }
 
-  if (release.coverCreatedWithAi !== true && release.coverCreatedWithAi !== false) {
+  if (!parseCoverAiLevel(release.coverCreatedWithAi)) {
     return {
       ok: false,
       error: "Укажите, создана ли обложка при помощи ИИ",

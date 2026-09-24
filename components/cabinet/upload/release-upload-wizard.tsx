@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -68,13 +69,17 @@ import {
 } from "@/components/cabinet-upload-additional-services-section"
 import { CabinetUploadAiCoverInfoDialog } from "@/components/cabinet-upload-ai-cover-info-dialog"
 import type { Release, ReleaseKind } from "@/lib/releases"
+import {
+  COVER_AI_LEVEL_LABELS,
+  COVER_AI_LEVELS,
+  type CoverAiLevel,
+} from "@/lib/cover-ai-level"
 import type { Track } from "@/lib/tracks"
 import { AI_COVER_REQUEST_PRICE_RUB } from "@/lib/track-constants"
 import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
 import {
-  AiLabelingIntroCard,
   TrackAiLabelingFields,
 } from "./track-ai-labeling-fields"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -123,8 +128,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [consentOffer, setConsentOffer] = useState(false)
 
   const [requestAiCover, setRequestAiCover] = useState(false)
+  const [aiCoverComment, setAiCoverComment] = useState("")
   const [aiCoverInfoOpen, setAiCoverInfoOpen] = useState(false)
-  const [coverCreatedWithAi, setCoverCreatedWithAi] = useState<boolean | null>(null)
+  const [coverCreatedWithAi, setCoverCreatedWithAi] = useState<CoverAiLevel | null>(null)
   const [acceptShortReleaseDate, setAcceptShortReleaseDate] = useState(false)
 
   const earliestAvailableDate = useMemo(() => getEarliestAvailableReleaseDate(), [])
@@ -132,6 +138,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const showShortDateRisk = Boolean(releaseDate && isShortReleaseDate(releaseDate))
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
   const [addonVerticalVideoCount, setAddonVerticalVideoCount] = useState(1)
+  const [addonVerticalVideoComment, setAddonVerticalVideoComment] = useState("")
   const [addonAiMastering, setAddonAiMastering] = useState(false)
   const [addonAiMasteringCount, setAddonAiMasteringCount] = useState(1)
   const [addonYandexVideoshot, setAddonYandexVideoshot] = useState(false)
@@ -253,8 +260,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setCoverCreatedWithAi(r.coverCreatedWithAi ?? null)
     setAcceptShortReleaseDate(r.acceptShortReleaseDate === true)
     const a = r.addons
+    setAiCoverComment(a?.trackCover?.comment ?? "")
     setAddonVerticalVideo(Boolean(a?.verticalVideo?.enabled))
     setAddonVerticalVideoCount(Number(a?.verticalVideo?.videosCount ?? 1))
+    setAddonVerticalVideoComment(a?.verticalVideo?.comment ?? "")
     setAddonAiMastering(Boolean(a?.aiMastering?.enabled))
     setAddonAiMasteringCount(Number(a?.aiMastering?.tracksCount ?? 1))
     setAddonYandexVideoshot(Boolean(a?.yandexVideoshot?.enabled))
@@ -343,8 +352,20 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     coverCreatedWithAi,
     acceptShortReleaseDate: showShortDateRisk ? acceptShortReleaseDate : false,
     addons: {
+      trackCover: requestAiCover
+        ? {
+            enabled: true,
+            comment: aiCoverComment.trim() || undefined,
+            trackTitle: title.trim() || undefined,
+          }
+        : undefined,
       verticalVideo: addonVerticalVideo
-        ? { enabled: true, videosCount: addonVerticalVideoCount }
+        ? {
+            enabled: true,
+            videosCount: addonVerticalVideoCount,
+            comment: addonVerticalVideoComment.trim() || undefined,
+            trackTitle: title.trim() || undefined,
+          }
         : undefined,
       aiMastering: addonAiMastering
         ? { enabled: true, tracksCount: addonAiMasteringCount }
@@ -358,6 +379,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
   const buildTrackMetadataPatch = (track: Track): TrackDraftPatch => ({
     trackName: track.trackName,
+    trackVersion: track.trackVersion,
     genre: track.genre,
     mood: track.mood,
     shortDescription: track.shortDescription,
@@ -376,6 +398,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     transferFromOtherDistributor: track.transferFromOtherDistributor,
     previousDistributor: track.previousDistributor,
     aiLabeling: track.aiLabeling ?? null,
+    streamingScope: track.streamingScope,
+    tiktokSoundStartSec: track.tiktokSoundStartSec ?? 0,
   })
 
   const persistTrackMetadata = (trackId: string): Promise<boolean> => {
@@ -484,8 +508,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (releaseDate) fd.append("releaseDate", format(releaseDate, "yyyy-MM-dd"))
     if (upc) fd.append("upc", upc)
     if (requestAiCover) fd.append("requestAiCover", "true")
-    if (coverCreatedWithAi === true) fd.append("coverCreatedWithAi", "true")
-    if (coverCreatedWithAi === false) fd.append("coverCreatedWithAi", "false")
+    if (coverCreatedWithAi) fd.append("coverCreatedWithAi", coverCreatedWithAi)
     if (acceptShortReleaseDate) fd.append("acceptShortReleaseDate", "true")
     fd.append("cover", file)
 
@@ -556,8 +579,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (releaseDate) fd.append("releaseDate", format(releaseDate, "yyyy-MM-dd"))
     if (upc) fd.append("upc", upc)
     fd.append("requestAiCover", "true")
-    if (coverCreatedWithAi === true) fd.append("coverCreatedWithAi", "true")
-    if (coverCreatedWithAi === false) fd.append("coverCreatedWithAi", "false")
+    if (coverCreatedWithAi) fd.append("coverCreatedWithAi", coverCreatedWithAi)
     if (acceptShortReleaseDate) fd.append("acceptShortReleaseDate", "true")
 
     const res = await fetch("/api/cabinet/releases", {
@@ -864,8 +886,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (!release?.coverPath && !coverPreview && !requestAiCover) {
       return "Загрузите обложку или закажите AI-обложку"
     }
-    if (coverCreatedWithAi !== true && coverCreatedWithAi !== false) {
+    if (!coverCreatedWithAi) {
       return "Укажите, создана ли обложка при помощи ИИ"
+    }
+    if (requestAiCover && aiCoverComment.trim().length < 2) {
+      return "Укажите пожелания / комментарий для AI обложки"
     }
     if (isShortReleaseDate(releaseDate) && !acceptShortReleaseDate) {
       return "Подтвердите согласие на короткий срок релиза"
@@ -898,6 +923,16 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         const label = track.trackName.trim() || "Трек"
         return `${err} («${label}»)`
       }
+    }
+    return null
+  }
+
+  const validateStep5 = (): string | null => {
+    if (requestAiCover && aiCoverComment.trim().length < 2) {
+      return "Укажите пожелания / комментарий для AI обложки"
+    }
+    if (addonVerticalVideo && addonVerticalVideoComment.trim().length < 2) {
+      return "Укажите пожелания / комментарий для видео"
     }
     return null
   }
@@ -954,6 +989,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       await saveDraft(true)
     }
     if (step === 5) {
+      const err = validateStep5()
+      if (err) {
+        toast.error(err)
+        return
+      }
       await saveDraft(true)
     }
     goToStep(step + 1)
@@ -967,6 +1007,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     const aiErr = validateStep4()
     if (aiErr) {
       toast.error(aiErr)
+      return
+    }
+    const servicesErr = validateStep5()
+    if (servicesErr) {
+      toast.error(servicesErr)
       return
     }
     if (!releaseId) return
@@ -1049,10 +1094,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               : undefined,
       },
       {
-        ok: coverCreatedWithAi === true || coverCreatedWithAi === false,
+        ok: Boolean(coverCreatedWithAi),
         label: "Обложка создана при помощи ИИ",
-        value:
-          coverCreatedWithAi === true ? "Да" : coverCreatedWithAi === false ? "Нет" : undefined,
+        value: coverCreatedWithAi ? COVER_AI_LEVEL_LABELS[coverCreatedWithAi] : undefined,
       },
     ]
 
@@ -1173,7 +1217,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         <Button variant="ghost" size="icon" asChild>
           <Link href="/cabinet/music/releases"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
-        <h1 className="text-xl font-semibold">Новый релиз</h1>
+        <h1 className="min-w-0 truncate text-xl font-semibold">
+          Новый релиз
+          {artistName.trim() || title.trim()
+            ? ` ${[artistName.trim(), title.trim()].filter(Boolean).join(" - ")}`
+            : ""}
+        </h1>
       </div>
 
       {profileCompleteForUpload === false ? <CabinetUploadProfileGateBanner /> : null}
@@ -1229,7 +1278,14 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   }}
                 >
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start", !releaseDate && "text-muted-foreground")} disabled={formDisabled}>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start hover:scale-100 hover:shadow-none hover:border-border focus-visible:ring-0 focus-visible:border-border active:scale-100",
+                        !releaseDate && "text-muted-foreground",
+                      )}
+                      disabled={formDisabled}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
                     </Button>
@@ -1346,6 +1402,21 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   </Button>
                 </div>
               </div>
+              {requestAiCover ? (
+                <div className="space-y-1">
+                  <Label htmlFor="ai-cover-comment-step1">Пожелания / комментарии *</Label>
+                  <Textarea
+                    id="ai-cover-comment-step1"
+                    value={aiCoverComment}
+                    onChange={(e) => setAiCoverComment(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                    placeholder="Стиль, референсы, цвета, текст на обложке"
+                    disabled={formDisabled}
+                  />
+                  <p className="text-xs text-muted-foreground">Поле обязательно для заполнения.</p>
+                </div>
+              ) : null}
               {requestAiCover && !coverPreview ? (
                 <p className="text-xs text-muted-foreground">
                   Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
@@ -1396,22 +1467,19 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               <div>
                 <Label>Обложка создана при помощи ИИ *</Label>
                 <Select
-                  value={
-                    coverCreatedWithAi === true
-                      ? "yes"
-                      : coverCreatedWithAi === false
-                        ? "no"
-                        : undefined
-                  }
-                  onValueChange={(v) => setCoverCreatedWithAi(v === "yes")}
+                  value={coverCreatedWithAi ?? undefined}
+                  onValueChange={(v) => setCoverCreatedWithAi(v as CoverAiLevel)}
                   disabled={formDisabled}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="yes">Да</SelectItem>
-                    <SelectItem value="no">Нет</SelectItem>
+                    {COVER_AI_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {COVER_AI_LEVEL_LABELS[level]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1639,7 +1707,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
       {step === 4 ? (
         <div className="space-y-6">
-          <AiLabelingIntroCard />
           <Accordion
             type="multiple"
             value={aiLabelingAccordionOpen}
@@ -1682,6 +1749,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           formDisabled={formDisabled}
           layout="plain"
           requestAiCover={requestAiCover}
+          aiCoverComment={aiCoverComment}
+          setAiCoverComment={setAiCoverComment}
           renderAiCoverRow={(openAddonInfo) => (
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
@@ -1705,6 +1774,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           setAddonVerticalVideo={setAddonVerticalVideo}
           addonVerticalVideoCount={addonVerticalVideoCount}
           setAddonVerticalVideoCount={setAddonVerticalVideoCount}
+          addonVerticalVideoComment={addonVerticalVideoComment}
+          setAddonVerticalVideoComment={setAddonVerticalVideoComment}
           addonAiMastering={addonAiMastering}
           setAddonAiMastering={setAddonAiMastering}
           addonAiMasteringCount={addonAiMasteringCount}

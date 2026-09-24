@@ -38,6 +38,7 @@ export type TrackMetadataFieldKey =
   | "audioPath"
   | "hasExplicitLanguage"
   | "previousDistributor"
+  | "tiktokSoundStartSec"
 
 export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> = {
   trackName: "Название трека",
@@ -54,6 +55,7 @@ export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> 
   audioPath: "Аудиофайл",
   hasExplicitLanguage: "Ненормативная лексика",
   previousDistributor: "Предыдущий дистрибьютор",
+  tiktokSoundStartSec: "Начало звука в ТикТок",
 }
 
 export type ValidateTrackMetadataOptions = {
@@ -98,15 +100,21 @@ export function getIncompleteTrackMetadataFields(
     ) {
       missing.push("performanceRights")
     }
-  }
-  if (track.hasExplicitLanguage !== true && track.hasExplicitLanguage !== false) {
-    missing.push("hasExplicitLanguage")
+    if (track.hasExplicitLanguage !== true && track.hasExplicitLanguage !== false) {
+      missing.push("hasExplicitLanguage")
+    }
   }
   if (
     track.transferFromOtherDistributor &&
     (track.previousDistributor ?? "").trim().length < 2
   ) {
     missing.push("previousDistributor")
+  }
+  if (
+    track.tiktokSoundStartSec != null &&
+    (!Number.isFinite(track.tiktokSoundStartSec) || track.tiktokSoundStartSec < 0)
+  ) {
+    missing.push("tiktokSoundStartSec")
   }
   if (requireAudio && !track.audioPath) {
     missing.push("audioPath")

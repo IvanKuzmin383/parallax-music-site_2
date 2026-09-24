@@ -4,6 +4,7 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
 import { getReleaseById, updateRelease } from "@/lib/releases"
 import { getTracksByReleaseId } from "@/lib/tracks"
+import { isCoverAiLevel, parseCoverAiLevel } from "@/lib/cover-ai-level"
 
 export async function GET(
   _request: NextRequest,
@@ -64,10 +65,10 @@ export async function PATCH(
     if (typeof body.wizardStep === "number") patch.wizardStep = body.wizardStep
     if (body.addons && typeof body.addons === "object") patch.addons = body.addons as typeof release.addons
     if (typeof body.requestAiCover === "boolean") patch.requestAiCover = body.requestAiCover
-    if (body.coverCreatedWithAi === true || body.coverCreatedWithAi === false) {
-      patch.coverCreatedWithAi = body.coverCreatedWithAi
-    } else if (body.coverCreatedWithAi === null) {
+    if (body.coverCreatedWithAi === null) {
       patch.coverCreatedWithAi = null
+    } else if (isCoverAiLevel(body.coverCreatedWithAi) || typeof body.coverCreatedWithAi === "boolean") {
+      patch.coverCreatedWithAi = parseCoverAiLevel(body.coverCreatedWithAi)
     }
     if (typeof body.acceptShortReleaseDate === "boolean") {
       patch.acceptShortReleaseDate = body.acceptShortReleaseDate

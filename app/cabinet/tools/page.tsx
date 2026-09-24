@@ -26,10 +26,7 @@ const TOOL_SECTIONS = [
 export default function CabinetToolsPage() {
   return (
     <div className="max-w-5xl space-y-10">
-      <PageHeader
-        title="Инструменты"
-        description="Сделай сам: обложка, мастеринг, пресс-релиз, депонирование и другие инструменты для релиза"
-      />
+      <PageHeader title="Инструменты" />
 
       {TOOL_SECTIONS.map((section) => (
         <section key={section.title} className="space-y-4">

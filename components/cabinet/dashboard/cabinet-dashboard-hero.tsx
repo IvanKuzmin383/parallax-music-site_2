@@ -246,18 +246,6 @@ export function ReleaseCoverCard({
         <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4">
           <p className="font-semibold text-white truncate text-sm md:text-base">{release.title}</p>
           <p className="text-xs md:text-sm text-white/70 truncate">{release.artist}</p>
-          {release.format === "album" && release.tracks && release.tracks.length > 0 ? (
-            <ul className="mt-1.5 space-y-0.5 max-h-16 overflow-hidden">
-              {release.tracks.slice(0, 4).map((t, i) => (
-                <li key={t.id} className="truncate text-[11px] text-white/80">
-                  {i + 1}. {t.name}
-                </li>
-              ))}
-              {release.tracks.length > 4 ? (
-                <li className="text-[11px] text-white/60">+ ещё {release.tracks.length - 4}</li>
-              ) : null}
-            </ul>
-          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {kindMeta ? (
               <span className="inline-flex items-center rounded-md border border-white/20 bg-black/40 px-2 py-0.5 text-xs font-medium text-white">

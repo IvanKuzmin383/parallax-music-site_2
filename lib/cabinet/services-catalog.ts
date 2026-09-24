@@ -60,8 +60,8 @@ function mockService(
 export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
   mockService(
     "vk-ads",
-    "VK Реклама",
-    "Настройка таргетированной рекламы во ВКонтакте.",
+    "Продвижение в VK",
+    "Таргетированная реклама в VK.",
     "от 5 000 ₽",
     "promotion",
     "/cabinet/promotion/vk",
@@ -78,8 +78,8 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
   ),
   mockService(
     "playlists",
-    "Плейлисты Яндекс Музыки",
-    "Размещение трека в кураторских плейлистах.",
+    "Плейлисты ЯМ",
+    "Продвижение в плейлистах Яндекс Музыка.",
     "от 3 000 ₽",
     "promotion",
     "/cabinet/promotion/playlists",
@@ -106,7 +106,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
   mockService(
     "business-music",
     "Музыка для бизнеса",
-    "Добавление трека в каталог фоновой музыки для публичных заведений.",
+    "Продвижение в кафе, ресторанах.",
     "от 1 500 ₽",
     "promotion",
     "/cabinet/promotion/business-music",

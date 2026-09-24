@@ -8,11 +8,11 @@ export const AI_TERNARY_CHOICES = ["human", "human_ai", "ai"] as const
 export type AiTernaryChoice = (typeof AI_TERNARY_CHOICES)[number]
 
 export type TrackAiLabelingDetails = {
-  musicAuthorship: AiBinaryChoice
-  lyricsAuthorship: AiBinaryChoice
-  performance: AiTernaryChoice
-  vocals: AiTernaryChoice
-  processing: AiTernaryChoice
+  musicAuthorship: AiBinaryChoice | ""
+  lyricsAuthorship: AiBinaryChoice | ""
+  performance: AiTernaryChoice | ""
+  vocals: AiTernaryChoice | ""
+  processing: AiTernaryChoice | ""
 }
 
 export type TrackAiLabeling = {
@@ -66,11 +66,11 @@ export const AI_LABELING_RECORDING_FIELDS = [
 
 export function emptyAiLabelingDetails(): TrackAiLabelingDetails {
   return {
-    musicAuthorship: "human",
-    lyricsAuthorship: "human",
-    performance: "human",
-    vocals: "human",
-    processing: "human",
+    musicAuthorship: "",
+    lyricsAuthorship: "",
+    performance: "",
+    vocals: "",
+    processing: "",
   }
 }
 
@@ -96,11 +96,11 @@ export function parseTrackAiLabeling(raw: unknown): TrackAiLabeling | null {
   return {
     mode,
     details: {
-      musicAuthorship: isBinary(details.musicAuthorship) ? details.musicAuthorship : "human",
-      lyricsAuthorship: isBinary(details.lyricsAuthorship) ? details.lyricsAuthorship : "human",
-      performance: isTernary(details.performance) ? details.performance : "human",
-      vocals: isTernary(details.vocals) ? details.vocals : "human",
-      processing: isTernary(details.processing) ? details.processing : "human",
+      musicAuthorship: isBinary(details.musicAuthorship) ? details.musicAuthorship : "",
+      lyricsAuthorship: isBinary(details.lyricsAuthorship) ? details.lyricsAuthorship : "",
+      performance: isTernary(details.performance) ? details.performance : "",
+      vocals: isTernary(details.vocals) ? details.vocals : "",
+      processing: isTernary(details.processing) ? details.processing : "",
     },
   }
 }

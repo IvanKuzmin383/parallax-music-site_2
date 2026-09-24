@@ -1,6 +1,5 @@
 "use client"
 
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import {
   AI_LABELING_COMPOSITION_FIELDS,
@@ -27,31 +26,64 @@ function ChoicePill({
   selected,
   label,
   disabled,
+  onClick,
 }: {
   selected: boolean
   label: string
   disabled?: boolean
+  onClick?: () => void
 }) {
   return (
-    <span
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      onClick={onClick}
       className={cn(
         "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors",
         selected
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border text-muted-foreground",
-        disabled && "opacity-50"
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       )}
     >
       <span
         className={cn(
           "flex h-4 w-4 items-center justify-center rounded-full border",
-          selected ? "border-primary" : "border-muted-foreground/50"
+          selected ? "border-primary" : "border-muted-foreground/50",
         )}
       >
         {selected ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
       </span>
       {label}
-    </span>
+    </button>
+  )
+}
+
+function DetailChoiceRow({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  value: string
+  options: Record<string, string>
+  disabled?: boolean
+  onChange: (next: string) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2" role="radiogroup">
+      {Object.entries(options).map(([choice, label]) => (
+        <ChoicePill
+          key={choice}
+          selected={value === choice}
+          label={label}
+          disabled={disabled}
+          onClick={() => onChange(choice)}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -66,7 +98,7 @@ export function TrackAiLabelingFields({
 
   const setMode = (nextMode: AiLabelingMode) => {
     if (nextMode === "partial") {
-      onChange({ mode: nextMode, details: value?.details ?? emptyAiLabelingDetails() })
+      onChange({ mode: nextMode, details: emptyAiLabelingDetails() })
       return
     }
     onChange({ mode: nextMode, details: null })
@@ -74,7 +106,7 @@ export function TrackAiLabelingFields({
 
   const setDetail = <K extends keyof TrackAiLabelingDetails>(
     key: K,
-    next: TrackAiLabelingDetails[K]
+    next: TrackAiLabelingDetails[K],
   ) => {
     onChange({
       mode: "partial",
@@ -86,29 +118,39 @@ export function TrackAiLabelingFields({
     <div className="space-y-5">
       {trackTitle ? <p className="text-sm font-medium">{trackTitle}</p> : null}
 
-      <RadioGroup
-        value={mode ?? ""}
-        onValueChange={(v) => setMode(v as AiLabelingMode)}
-        disabled={disabled}
-        className="gap-2"
-      >
-        {AI_LABELING_MODE_OPTIONS.map((opt) => (
-          <label
-            key={opt.value}
-            className={cn(
-              "flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 transition-colors",
-              mode === opt.value && "border-primary bg-primary/5",
-              disabled && "cursor-not-allowed opacity-50"
-            )}
-          >
-            <RadioGroupItem value={opt.value} className="mt-0.5" disabled={disabled} />
-            <span className="min-w-0 space-y-0.5">
-              <span className="block text-sm font-medium">{opt.label}</span>
-              <span className="block text-xs text-muted-foreground">{opt.description}</span>
-            </span>
-          </label>
-        ))}
-      </RadioGroup>
+      <div className="grid gap-2" role="radiogroup" aria-label="AI-маркировка">
+        {AI_LABELING_MODE_OPTIONS.map((opt) => {
+          const selected = mode === opt.value
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              onClick={() => setMode(opt.value)}
+              className={cn(
+                "flex w-full items-start gap-3 rounded-md border border-border p-3 text-left transition-colors",
+                selected && "border-primary bg-primary/5",
+                disabled && "cursor-not-allowed opacity-50",
+              )}
+            >
+              <span
+                className={cn(
+                  "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
+                  selected ? "border-primary" : "border-muted-foreground/50",
+                )}
+              >
+                {selected ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+              </span>
+              <span className="min-w-0 space-y-0.5">
+                <span className="block text-sm font-medium">{opt.label}</span>
+                <span className="block text-xs text-muted-foreground">{opt.description}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
 
       {mode === "partial" ? (
         <div className="space-y-4 rounded-md border border-border p-4">
@@ -133,25 +175,12 @@ export function TrackAiLabelingFields({
                     {AI_LABELING_COMPOSITION_FIELDS[0].label}
                   </td>
                   <td className="px-3 py-2.5">
-                    <RadioGroup
+                    <DetailChoiceRow
                       value={details.musicAuthorship}
-                      onValueChange={(v) => setDetail("musicAuthorship", v as AiBinaryChoice)}
+                      options={AI_LABELING_DETAIL_BINARY_LABELS}
                       disabled={disabled}
-                      className="flex flex-wrap gap-2"
-                    >
-                      {(Object.keys(AI_LABELING_DETAIL_BINARY_LABELS) as AiBinaryChoice[]).map(
-                        (choice) => (
-                          <label key={choice} className="cursor-pointer">
-                            <RadioGroupItem value={choice} className="sr-only" disabled={disabled} />
-                            <ChoicePill
-                              selected={details.musicAuthorship === choice}
-                              label={AI_LABELING_DETAIL_BINARY_LABELS[choice]}
-                              disabled={disabled}
-                            />
-                          </label>
-                        )
-                      )}
-                    </RadioGroup>
+                      onChange={(v) => setDetail("musicAuthorship", v as AiBinaryChoice)}
+                    />
                   </td>
                 </tr>
                 <tr className="border-b border-border">
@@ -159,32 +188,21 @@ export function TrackAiLabelingFields({
                     {AI_LABELING_COMPOSITION_FIELDS[1].label}
                   </td>
                   <td className="px-3 py-2.5">
-                    <RadioGroup
+                    <DetailChoiceRow
                       value={details.lyricsAuthorship}
-                      onValueChange={(v) => setDetail("lyricsAuthorship", v as AiBinaryChoice)}
+                      options={AI_LABELING_DETAIL_BINARY_LABELS}
                       disabled={disabled}
-                      className="flex flex-wrap gap-2"
-                    >
-                      {(Object.keys(AI_LABELING_DETAIL_BINARY_LABELS) as AiBinaryChoice[]).map(
-                        (choice) => (
-                          <label key={choice} className="cursor-pointer">
-                            <RadioGroupItem value={choice} className="sr-only" disabled={disabled} />
-                            <ChoicePill
-                              selected={details.lyricsAuthorship === choice}
-                              label={AI_LABELING_DETAIL_BINARY_LABELS[choice]}
-                              disabled={disabled}
-                            />
-                          </label>
-                        )
-                      )}
-                    </RadioGroup>
+                      onChange={(v) => setDetail("lyricsAuthorship", v as AiBinaryChoice)}
+                    />
                   </td>
                 </tr>
 
                 {AI_LABELING_RECORDING_FIELDS.map((field, index) => (
                   <tr
                     key={field.key}
-                    className={cn(index < AI_LABELING_RECORDING_FIELDS.length - 1 && "border-b border-border")}
+                    className={cn(
+                      index < AI_LABELING_RECORDING_FIELDS.length - 1 && "border-b border-border",
+                    )}
                   >
                     {index === 0 ? (
                       <td
@@ -196,25 +214,12 @@ export function TrackAiLabelingFields({
                     ) : null}
                     <td className="border-r border-border px-3 py-2.5">{field.label}</td>
                     <td className="px-3 py-2.5">
-                      <RadioGroup
+                      <DetailChoiceRow
                         value={details[field.key] as string}
-                        onValueChange={(v) => setDetail(field.key, v as AiTernaryChoice)}
+                        options={AI_LABELING_DETAIL_TERNARY_LABELS}
                         disabled={disabled}
-                        className="flex flex-wrap gap-2"
-                      >
-                        {(Object.keys(AI_LABELING_DETAIL_TERNARY_LABELS) as AiTernaryChoice[]).map(
-                          (choice) => (
-                            <label key={choice} className="cursor-pointer">
-                              <RadioGroupItem value={choice} className="sr-only" disabled={disabled} />
-                              <ChoicePill
-                                selected={details[field.key] === choice}
-                                label={AI_LABELING_DETAIL_TERNARY_LABELS[choice]}
-                                disabled={disabled}
-                              />
-                            </label>
-                          )
-                        )}
-                      </RadioGroup>
+                        onChange={(v) => setDetail(field.key, v as AiTernaryChoice)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -223,32 +228,6 @@ export function TrackAiLabelingFields({
           </div>
         </div>
       ) : null}
-    </div>
-  )
-}
-
-export function AiLabelingIntroCard() {
-  return (
-    <div className="space-y-4 rounded-lg border border-primary/40 bg-primary/5 p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-          AI
-        </div>
-        <div className="min-w-0 space-y-1">
-          <h2 className="text-base font-semibold">Обязательная AI-маркировка</h2>
-          <p className="text-sm text-muted-foreground">
-            Выберите один вариант для каждого трека
-          </p>
-        </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {AI_LABELING_MODE_OPTIONS.map((opt) => (
-          <div key={opt.value} className="rounded-md bg-muted/40 p-3 text-sm">
-            <span className="font-medium">«{opt.label}»</span>
-            <span className="text-muted-foreground"> — {opt.description}</span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }

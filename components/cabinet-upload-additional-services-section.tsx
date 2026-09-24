@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
@@ -245,10 +247,14 @@ export type CabinetUploadAdditionalServicesSectionProps = {
   /** Строка AI обложки; получает `openAddonInfo` для кнопки «Подробнее» */
   renderAiCoverRow: (openAddonInfo: (key: CabinetUploadAddonInfoKey) => void) => ReactNode
   requestAiCover: boolean
+  aiCoverComment?: string
+  setAiCoverComment?: (v: string) => void
   addonVerticalVideo: boolean
   setAddonVerticalVideo: (v: boolean) => void
   addonVerticalVideoCount: number
   setAddonVerticalVideoCount: (n: number) => void
+  addonVerticalVideoComment?: string
+  setAddonVerticalVideoComment?: (v: string) => void
   addonAiMastering: boolean
   setAddonAiMastering: (v: boolean) => void
   addonAiMasteringCount: number
@@ -272,10 +278,14 @@ export function CabinetUploadAdditionalServicesSection({
   formDisabled,
   renderAiCoverRow,
   requestAiCover,
+  aiCoverComment = "",
+  setAiCoverComment,
   addonVerticalVideo,
   setAddonVerticalVideo,
   addonVerticalVideoCount,
   setAddonVerticalVideoCount,
+  addonVerticalVideoComment = "",
+  setAddonVerticalVideoComment,
   addonAiMastering,
   setAddonAiMastering,
   addonAiMasteringCount,
@@ -354,6 +364,21 @@ export function CabinetUploadAdditionalServicesSection({
         {isPlain || isAdditionalOpen ? (
           <>
             {renderAiCoverRow(openAddonInfo)}
+            {requestAiCover && setAiCoverComment ? (
+              <div className="space-y-1">
+                <Label htmlFor="upload-ai-cover-comment">Пожелания / комментарии *</Label>
+                <Textarea
+                  id="upload-ai-cover-comment"
+                  value={aiCoverComment}
+                  onChange={(e) => setAiCoverComment(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                  placeholder="Стиль, референсы, цвета, текст на обложке"
+                  disabled={formDisabled}
+                />
+                <p className="text-xs text-muted-foreground">Поле обязательно для заполнения.</p>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
@@ -374,19 +399,36 @@ export function CabinetUploadAdditionalServicesSection({
               </div>
             </div>
             {addonVerticalVideo ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                <Input
-                  type="number"
-                  min={1}
-                  value={addonVerticalVideoCount}
-                  onChange={(e) => setAddonVerticalVideoCount(Math.max(1, Number(e.target.value || 1)))}
-                  className="max-w-48"
-                  disabled={formDisabled}
-                />
-                <p className="text-xs text-muted-foreground sm:text-sm">
-                  Стоимость: {verticalVideoUnitPrice} руб. / шт. × {addonVerticalVideoCount} ={" "}
-                  {verticalVideoAddonTotal} руб.
-                </p>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={addonVerticalVideoCount}
+                    onChange={(e) => setAddonVerticalVideoCount(Math.max(1, Number(e.target.value || 1)))}
+                    className="max-w-48"
+                    disabled={formDisabled}
+                  />
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    Стоимость: {verticalVideoUnitPrice} руб. / шт. × {addonVerticalVideoCount} ={" "}
+                    {verticalVideoAddonTotal} руб.
+                  </p>
+                </div>
+                {setAddonVerticalVideoComment ? (
+                  <div className="space-y-1">
+                    <Label htmlFor="upload-vertical-video-comment">Пожелания / комментарии *</Label>
+                    <Textarea
+                      id="upload-vertical-video-comment"
+                      value={addonVerticalVideoComment}
+                      onChange={(e) => setAddonVerticalVideoComment(e.target.value)}
+                      rows={3}
+                      className="resize-none"
+                      placeholder="Напишите детали, референсы и пожелания"
+                      disabled={formDisabled}
+                    />
+                    <p className="text-xs text-muted-foreground">Поле обязательно для заполнения.</p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">

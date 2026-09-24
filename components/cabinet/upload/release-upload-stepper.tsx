@@ -43,7 +43,7 @@ export function ReleaseUploadStepper({
         )
 
         const className = cn(
-          "flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors",
+          "flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
           active && "bg-primary text-primary-foreground",
           done && !active && "text-green-500",
           !active && !done && reachable && "text-foreground",

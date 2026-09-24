@@ -1,18 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -26,10 +17,10 @@ import {
   TRACK_LYRICS_LANGUAGES,
   TRACK_MOODS,
   musicRightsRequiresAiService,
+  type TrackStreamingScope,
 } from "@/lib/track-constants"
-import type { TrackMetadataFieldKey } from "@/lib/track-meta-validation"
 import type { Track } from "@/lib/tracks"
-import { cn } from "@/lib/utils"
+import { StreamingServicesField } from "@/components/streaming-services-field"
 
 const MUSIC_RIGHTS_OPTIONS = [
   "Музыка написана мной. Есть проект",
@@ -57,6 +48,7 @@ export type TrackDraftPatch = Partial<
   Pick<
     Track,
     | "trackName"
+    | "trackVersion"
     | "genre"
     | "mood"
     | "shortDescription"
@@ -75,6 +67,8 @@ export type TrackDraftPatch = Partial<
     | "transferFromOtherDistributor"
     | "previousDistributor"
     | "aiLabeling"
+    | "streamingScope"
+    | "tiktokSoundStartSec"
   >
 >
 
@@ -91,33 +85,25 @@ export function TrackMetadataFields({
   disabled,
   showTransferFields,
 }: TrackMetadataFieldsProps) {
-  const [lyricsDialogOpen, setLyricsDialogOpen] = useState(false)
-  const [lyricsDraft, setLyricsDraft] = useState("")
-
-  const openLyricsDialog = () => {
-    setLyricsDraft(track.lyricsText)
-    setLyricsDialogOpen(true)
-  }
-
-  const saveLyrics = () => {
-    onChange({ lyricsText: lyricsDraft })
-    setLyricsDialogOpen(false)
-  }
-
-  const lyricsPreview =
-    track.lyricsText.trim().length > 0
-      ? track.lyricsText.trim().slice(0, 120) + (track.lyricsText.trim().length > 120 ? "…" : "")
-      : null
-
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="sm:col-span-2">
+      <div>
         <Label>Название трека *</Label>
         <Input
           value={track.trackName}
           onChange={(e) => onChange({ trackName: e.target.value })}
           disabled={disabled}
           maxLength={100}
+        />
+      </div>
+      <div>
+        <Label>Версия</Label>
+        <Input
+          value={track.trackVersion}
+          onChange={(e) => onChange({ trackVersion: e.target.value })}
+          disabled={disabled}
+          maxLength={100}
+          placeholder="Radio Edit / Remix"
         />
       </div>
       <div>
@@ -202,7 +188,9 @@ export function TrackMetadataFields({
           onCheckedChange={(c) =>
             onChange({
               isInstrumental: c === true,
-              ...(c === true ? { lyricsLanguage: "" } : {}),
+              ...(c === true
+                ? { lyricsLanguage: "", hasExplicitLanguage: null }
+                : {}),
             })
           }
           disabled={disabled}
@@ -216,37 +204,15 @@ export function TrackMetadataFields({
           <div className="sm:col-span-2">
             <Label>Текст песни</Label>
             <p className="text-xs text-muted-foreground mb-1">{LYRICS_TEXT_UPLOAD_HINT}</p>
-            <div className="rounded-md border border-border p-3 space-y-2">
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words min-h-[2.5rem]">
-                {lyricsPreview ?? "Текст не добавлен"}
-              </p>
-              <Button type="button" variant="outline" size="sm" onClick={openLyricsDialog} disabled={disabled}>
-                {track.lyricsText.trim() ? "Редактировать текст" : "Добавить текст"}
-              </Button>
-            </div>
-            <Dialog open={lyricsDialogOpen} onOpenChange={setLyricsDialogOpen}>
-              <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Текст песни</DialogTitle>
-                </DialogHeader>
-                <Textarea
-                  value={lyricsDraft}
-                  onChange={(e) => setLyricsDraft(e.target.value)}
-                  disabled={disabled}
-                  maxLength={5000}
-                  rows={12}
-                  className="resize-none"
-                />
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setLyricsDialogOpen(false)}>
-                    Отмена
-                  </Button>
-                  <Button type="button" onClick={saveLyrics} disabled={disabled}>
-                    Сохранить
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Textarea
+              value={track.lyricsText}
+              onChange={(e) => onChange({ lyricsText: e.target.value })}
+              disabled={disabled}
+              maxLength={5000}
+              rows={8}
+              className="resize-none overflow-y-auto"
+              placeholder="Введите текст песни"
+            />
           </div>
           <div>
             <Label>Язык текста *</Label>
@@ -329,30 +295,38 @@ export function TrackMetadataFields({
             </Select>
           </div>
         </>
-      ) : (
-        <div>
-          <Label>Ненормативная лексика *</Label>
-          <Select
-            value={
-              track.hasExplicitLanguage === true
-                ? "yes"
-                : track.hasExplicitLanguage === false
-                  ? "no"
-                  : undefined
-            }
-            onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Выберите" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="yes">Да</SelectItem>
-              <SelectItem value="no">Нет</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      ) : null}
+      <div className="sm:col-span-2">
+        <StreamingServicesField
+          value={track.streamingScope}
+          onChange={(value: TrackStreamingScope) => onChange({ streamingScope: value })}
+          disabled={disabled}
+          idPrefix={`streaming-${track.id}`}
+        />
+      </div>
+      <div>
+        <Label htmlFor={`tiktok-start-${track.id}`}>Начало звука в ТикТок *</Label>
+        <Input
+          id={`tiktok-start-${track.id}`}
+          type="number"
+          min={0}
+          max={600}
+          step={1}
+          value={track.tiktokSoundStartSec ?? 0}
+          onChange={(e) =>
+            onChange({
+              tiktokSoundStartSec:
+                e.target.value === ""
+                  ? null
+                  : Math.max(0, Math.trunc(Number(e.target.value)) || 0),
+            })
+          }
+          disabled={disabled}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Укажите с какой секунды должен начинаться звук в ТикТок
+        </p>
+      </div>
       {showTransferFields ? (
         <>
           <div>

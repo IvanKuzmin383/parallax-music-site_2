@@ -4,6 +4,7 @@ import path from "path"
 import { query, queryOne, execute } from "./database"
 import { getUploadsBasePath } from "./tracks"
 import type { UploadDraftPayload } from "./upload-drafts"
+import { parseCoverAiLevel, type CoverAiLevel } from "./cover-ai-level"
 
 export type ReleaseKind = "single" | "album"
 
@@ -34,7 +35,7 @@ export interface Release {
   addons: ReleaseAddonsPayload
   requestAiCover: boolean
   /** Обложка создана при помощи ИИ: null — не выбрано. */
-  coverCreatedWithAi: boolean | null
+  coverCreatedWithAi: CoverAiLevel | null
   /** Согласие на дату релиза ранее 14 рабочих дней. */
   acceptShortReleaseDate: boolean
   bundleOrderId?: string
@@ -57,7 +58,7 @@ interface ReleaseRow {
   wizard_step: number
   addons_json: string
   request_ai_cover: boolean | null
-  cover_created_with_ai?: boolean | null
+  cover_created_with_ai?: string | boolean | null
   accept_short_release_date?: boolean | null
   bundle_order_id: string | null
   album_id: string | null
@@ -89,12 +90,7 @@ export function rowToRelease(row: ReleaseRow): Release {
     wizardStep: row.wizard_step,
     addons: parseAddons(row.addons_json),
     requestAiCover: row.request_ai_cover === true,
-    coverCreatedWithAi:
-      row.cover_created_with_ai === true
-        ? true
-        : row.cover_created_with_ai === false
-          ? false
-          : null,
+    coverCreatedWithAi: parseCoverAiLevel(row.cover_created_with_ai),
     acceptShortReleaseDate: row.accept_short_release_date === true,
     bundleOrderId: row.bundle_order_id ?? undefined,
     albumId: row.album_id ?? undefined,
@@ -158,7 +154,7 @@ export type CreateReleaseInput = {
   upc?: string
   wizardStep?: number
   requestAiCover?: boolean
-  coverCreatedWithAi?: boolean | null
+  coverCreatedWithAi?: CoverAiLevel | null
   acceptShortReleaseDate?: boolean
 }
 
@@ -178,12 +174,7 @@ export async function createRelease(data: CreateReleaseInput): Promise<Release> 
     wizardStep: data.wizardStep ?? 1,
     addons: {},
     requestAiCover: data.requestAiCover === true,
-    coverCreatedWithAi:
-      data.coverCreatedWithAi === true
-        ? true
-        : data.coverCreatedWithAi === false
-          ? false
-          : null,
+    coverCreatedWithAi: parseCoverAiLevel(data.coverCreatedWithAi),
     acceptShortReleaseDate: data.acceptShortReleaseDate === true,
     createdAt: now,
     updatedAt: now,
@@ -231,7 +222,7 @@ export type UpdateReleaseInput = Partial<{
   wizardStep: number
   addons: ReleaseAddonsPayload
   requestAiCover: boolean
-  coverCreatedWithAi: boolean | null
+  coverCreatedWithAi: CoverAiLevel | null
   acceptShortReleaseDate: boolean
   bundleOrderId: string | null
   albumId: string | null

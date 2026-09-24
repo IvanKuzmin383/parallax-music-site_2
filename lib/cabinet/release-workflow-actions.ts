@@ -1,14 +1,11 @@
 import type { LucideIcon } from "lucide-react"
 import {
   Building2,
-  Image,
   ListMusic,
   Megaphone,
   Radio,
   Shield,
-  Sparkles,
   Video,
-  Wand2,
 } from "lucide-react"
 
 export type ReleaseWorkflowAction = {
@@ -22,14 +19,6 @@ export type ReleaseWorkflowAction = {
 
 export const RELEASE_WORKFLOW_ACTIONS: ReleaseWorkflowAction[] = [
   {
-    id: "ai-cover",
-    label: "AI-обложка",
-    description: "Новый визуал для релиза",
-    href: "/cabinet/design/covers",
-    icon: Image,
-    accent: "violet",
-  },
-  {
     id: "vertical-video",
     label: "Вертикальное видео",
     description: "Клип для соцсетей",
@@ -39,16 +28,16 @@ export const RELEASE_WORKFLOW_ACTIONS: ReleaseWorkflowAction[] = [
   },
   {
     id: "vk-ads",
-    label: "Запустить рекламу",
-    description: "VK и таргет",
+    label: "Продвижение в VK",
+    description: "Таргетированная реклама в VK",
     href: "/cabinet/promotion/vk",
     icon: Megaphone,
     accent: "primary",
   },
   {
     id: "playlists",
-    label: "Плейлисты",
-    description: "Подача в редакторские",
+    label: "Плейлисты ЯМ",
+    description: "Продвижение в плейлистах Яндекс Музыка",
     href: "/cabinet/promotion/playlists",
     icon: ListMusic,
     accent: "emerald",
@@ -64,7 +53,7 @@ export const RELEASE_WORKFLOW_ACTIONS: ReleaseWorkflowAction[] = [
   {
     id: "business",
     label: "Музыка для бизнеса",
-    description: "Коммерческое использование",
+    description: "Продвижение в кафе, ресторанах",
     href: "/cabinet/promotion/business-music",
     icon: Building2,
     accent: "blue",
@@ -76,21 +65,5 @@ export const RELEASE_WORKFLOW_ACTIONS: ReleaseWorkflowAction[] = [
     href: "/cabinet/protect/deposit",
     icon: Shield,
     accent: "emerald",
-  },
-  {
-    id: "ai-mastering",
-    label: "AI-мастеринг",
-    description: "Финальная обработка",
-    href: "/cabinet/design/mastering",
-    icon: Wand2,
-    accent: "violet",
-  },
-  {
-    id: "ai-track",
-    label: "Создать AI-трек",
-    description: "Генерация идей",
-    href: "/cabinet/ai/tracks",
-    icon: Sparkles,
-    accent: "primary",
   },
 ]

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getReleaseById } from "@/lib/releases"
 import { getTrackById, updateTrack } from "@/lib/tracks"
-import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
+import { GENRES, TRACK_MOODS, normalizeStreamingScope, STREAMING_SCOPES } from "@/lib/track-constants"
+import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
 import { parseTrackAiLabeling } from "@/lib/track-ai-labeling"
 
 export async function PATCH(
@@ -44,6 +45,7 @@ export async function PATCH(
 
     const updated = await updateTrack(trackId, {
       trackName: typeof body.trackName === "string" ? body.trackName : undefined,
+      trackVersion: typeof body.trackVersion === "string" ? body.trackVersion : undefined,
       genre,
       mood,
       shortDescription: typeof body.shortDescription === "string" ? body.shortDescription : undefined,
@@ -79,6 +81,17 @@ export async function PATCH(
           ? null
           : body.aiLabeling && typeof body.aiLabeling === "object"
             ? parseTrackAiLabeling(body.aiLabeling)
+            : undefined,
+      streamingScope:
+        typeof body.streamingScope === "string" &&
+        STREAMING_SCOPES.includes(body.streamingScope as (typeof STREAMING_SCOPES)[number])
+          ? normalizeStreamingScope(body.streamingScope)
+          : undefined,
+      tiktokSoundStartSec:
+        body.tiktokSoundStartSec === null
+          ? null
+          : body.tiktokSoundStartSec !== undefined
+            ? parseTiktokSoundStartSec(body.tiktokSoundStartSec)
             : undefined,
     })
 

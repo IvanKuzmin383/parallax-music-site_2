@@ -17,6 +17,7 @@ import {
 import { getCoversDir } from "@/lib/tracks"
 import { createRelease, listReleasesByUserId } from "@/lib/releases"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
+import { parseCoverAiLevel } from "@/lib/cover-ai-level"
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -54,8 +55,7 @@ export async function POST(request: NextRequest) {
       const upc = multipart.getField("upc")?.trim() || undefined
       const requestAiCover = multipart.getField("requestAiCover") === "true"
       const coverAiRaw = multipart.getField("coverCreatedWithAi")?.trim()
-      const coverCreatedWithAi =
-        coverAiRaw === "true" ? true : coverAiRaw === "false" ? false : null
+      const coverCreatedWithAi = parseCoverAiLevel(coverAiRaw)
       const acceptShortReleaseDate = multipart.getField("acceptShortReleaseDate") === "true"
       const labelName = getEffectiveReleaseLabelName(
         multipart.getField("labelName")?.trim(),
