@@ -4,6 +4,7 @@ export type ReleaseFilterKey =
   | "all"
   | "draft"
   | "awaiting_payment"
+  | "upload_pending"
   | "on_moderation"
   | "on_platforms"
   | "released"
@@ -13,6 +14,7 @@ export const RELEASE_FILTERS: { key: ReleaseFilterKey; label: string }[] = [
   { key: "all", label: "Все" },
   { key: "draft", label: "Черновики" },
   { key: "awaiting_payment", label: "Ожидает оплаты" },
+  { key: "upload_pending", label: "Требуется доработка" },
   { key: "on_moderation", label: "На модерации" },
   { key: "on_platforms", label: "На площадках" },
   { key: "released", label: "Выпущены" },
@@ -30,12 +32,21 @@ export function matchesReleaseFilter(release: ReleaseView, filter: ReleaseFilter
       return (
         label === "Черновик" ||
         raw === "draft" ||
-        (release.kind === "draft" && raw !== "awaiting_payment")
+        (release.kind === "draft" &&
+          raw !== "awaiting_payment" &&
+          raw !== "upload_pending" &&
+          raw !== "rejected")
       )
     case "awaiting_payment":
       return label.includes("оплат") || raw === "awaiting_payment"
+    case "upload_pending":
+      return label.includes("доработ") || raw === "upload_pending"
     case "on_moderation":
-      return label.includes("модерац") || raw === "on_moderation"
+      return (
+        (label.includes("модерац") || raw === "on_moderation") &&
+        raw !== "upload_pending" &&
+        !label.includes("доработ")
+      )
     case "on_platforms":
       return (
         label.includes("площадк") ||

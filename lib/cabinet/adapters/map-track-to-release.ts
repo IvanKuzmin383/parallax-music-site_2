@@ -5,7 +5,7 @@ import type { Album } from "@/lib/albums"
 
 const TRACK_STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
-  upload_pending: "Ожидает загрузки",
+  upload_pending: "Требуется доработка",
   on_moderation: "На модерации",
   sent_to_platforms: "Отправлен на площадки",
   approved_by_platforms: "Одобрен площадками",
@@ -17,6 +17,7 @@ const TRACK_STATUS_LABELS: Record<string, string> = {
 const RELEASE_STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
   awaiting_payment: "Ожидает оплаты",
+  upload_pending: "Требуется доработка",
   on_moderation: "На модерации",
   sent_to_platforms: "Отправлен на площадки",
   approved_by_platforms: "Одобрен площадками",
@@ -127,7 +128,11 @@ export function mapReleaseEntityToView(
   tracks: Track[] = [],
 ): ReleaseView {
   const summaries = trackSummaries(tracks)
-  const isDraftLike = release.status === "draft" || release.status === "awaiting_payment"
+  const isDraftLike =
+    release.status === "draft" ||
+    release.status === "awaiting_payment" ||
+    release.status === "upload_pending" ||
+    release.status === "rejected"
   return {
     id: release.id,
     coverUrl: release.coverPath ? `/api/cabinet/releases/${release.id}/cover` : undefined,
@@ -192,13 +197,22 @@ function pluralizeTracks(n: number): string {
 export function isReleaseInProgress(release: ReleaseView): boolean {
   return (
     release.kind === "draft" ||
+    release.releaseStatus === "upload_pending" ||
+    release.releaseStatus === "rejected" ||
     release.status.includes("модерац") ||
+    release.status.includes("доработ") ||
     release.status.includes("Ожидает") ||
     release.status.includes("Черновик")
   )
 }
 
 export function releaseContinueHref(release: ReleaseView): string {
+  if (
+    release.releaseStatus === "upload_pending" ||
+    release.releaseStatus === "rejected"
+  ) {
+    return `/cabinet/upload/${release.id}?step=${release.wizardStep ?? 1}`
+  }
   if (release.kind !== "draft") return "/cabinet/music/releases"
   const step = release.wizardStep ?? 1
   if (release.releaseStatus === "awaiting_payment") {

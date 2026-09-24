@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
-import { getReleaseById, updateRelease } from "@/lib/releases"
+import { getReleaseById, isReleaseEditableStatus, updateRelease } from "@/lib/releases"
 import { getTracksByReleaseId } from "@/lib/tracks"
 import { isCoverAiLevel, parseCoverAiLevel } from "@/lib/cover-ai-level"
 
@@ -38,7 +38,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
   }
 
-  if (!["draft", "awaiting_payment"].includes(release.status)) {
+  if (!isReleaseEditableStatus(release.status)) {
     return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 

@@ -37,21 +37,21 @@ export function CabinetAppShell({ children }: CabinetAppShellProps) {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
-            <p className="text-sm text-muted-foreground truncate hidden sm:block">
-              {user?.email ?? "Личный кабинет"}
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-sm text-muted-foreground truncate hidden sm:block">
+                {user?.email ?? "Личный кабинет"}
+              </p>
               <Link
                 href="/cabinet/settings"
-                className="inline-flex max-w-[11rem] sm:max-w-[14rem] items-center truncate rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                className="inline-flex max-w-[11rem] sm:max-w-[14rem] items-center truncate rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted shrink-0"
                 title="Настройки тарифа"
               >
                 {tariffLabel(user)}
               </Link>
-              <Button size="sm" variant="outline" onClick={() => void logout()} className="uppercase tracking-wider text-xs">
-                Выйти
-              </Button>
             </div>
+            <Button size="sm" variant="outline" onClick={() => void logout()} className="shrink-0 uppercase tracking-wider text-xs">
+              Выйти
+            </Button>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>

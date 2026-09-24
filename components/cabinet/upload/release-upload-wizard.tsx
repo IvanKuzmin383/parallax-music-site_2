@@ -75,7 +75,15 @@ import {
   type CoverAiLevel,
 } from "@/lib/cover-ai-level"
 import type { Track } from "@/lib/tracks"
-import { AI_COVER_REQUEST_PRICE_RUB } from "@/lib/track-constants"
+import {
+  AI_COVER_REQUEST_PRICE_RUB,
+  normalizeStreamingScope,
+  type TrackStreamingScope,
+} from "@/lib/track-constants"
+import {
+  StreamingServicesField,
+  streamingScopeShortLabel,
+} from "@/components/streaming-services-field"
 import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
@@ -124,6 +132,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [datePopoverOpen, setDatePopoverOpen] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => getEarliestAvailableReleaseDate())
   const [upc, setUpc] = useState("")
+  const [streamingScope, setStreamingScope] = useState<TrackStreamingScope>("all")
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [consentOffer, setConsentOffer] = useState(false)
 
@@ -159,12 +168,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const coverInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
   const tracksRef = useRef(tracks)
+  const streamingScopeRef = useRef(streamingScope)
   const trackSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const trackSaveChainsRef = useRef<Record<string, Promise<boolean>>>({})
 
   useEffect(() => {
     tracksRef.current = tracks
   }, [tracks])
+
+  useEffect(() => {
+    streamingScopeRef.current = streamingScope
+  }, [streamingScope])
 
   const paymentTotal = useMemo(() => {
     const addonsRub = computeSelectedUploadAddonsTotalRub({
@@ -253,6 +267,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setTitle(r.title)
     setArtistName(r.artistName)
     setUpc(r.upc ?? "")
+    setStreamingScope(normalizeStreamingScope(t[0]?.streamingScope))
     const loadedDate = r.releaseDate ? new Date(r.releaseDate) : undefined
     setReleaseDate(loadedDate)
     if (loadedDate) setCalendarMonth(loadedDate)
@@ -398,7 +413,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     transferFromOtherDistributor: track.transferFromOtherDistributor,
     previousDistributor: track.previousDistributor,
     aiLabeling: track.aiLabeling ?? null,
-    streamingScope: track.streamingScope,
+    streamingScope: streamingScopeRef.current,
     tiktokSoundStartSec: track.tiktokSoundStartSec ?? 0,
   })
 
@@ -665,10 +680,18 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           )
         })
         if (data.tracks) {
-          latestTracks = data.tracks
-          setTracks(data.tracks)
+          latestTracks = data.tracks.map((track) => ({
+            ...track,
+            streamingScope: streamingScopeRef.current,
+          }))
+          tracksRef.current = latestTracks
+          setTracks(latestTracks)
         } else if (data.track) {
-          latestTracks = [...latestTracks, data.track]
+          latestTracks = [
+            ...latestTracks,
+            { ...data.track, streamingScope: streamingScopeRef.current },
+          ]
+          tracksRef.current = latestTracks
           setTracks(latestTracks)
         }
         setUploadQueue((prev) =>
@@ -691,6 +714,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     const uploadedCount = successCount
     if (uploadedCount > 0) {
       toast.success(uploadedCount === 1 ? "Аудио загружено" : `Загружено файлов: ${uploadedCount}`)
+      void flushTrackMetadataSaves()
     }
   }
 
@@ -709,6 +733,24 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         if (!ok) toast.error("Не удалось сохранить поля трека")
       })
     }, 450)
+  }
+
+  const applyStreamingScope = (value: TrackStreamingScope) => {
+    setStreamingScope(value)
+    streamingScopeRef.current = value
+    setTracks((prev) => {
+      const next = prev.map((t) => ({ ...t, streamingScope: value }))
+      tracksRef.current = next
+      return next
+    })
+    if (!releaseId || tracksRef.current.length === 0) return
+    for (const timer of Object.values(trackSaveTimersRef.current)) {
+      clearTimeout(timer)
+    }
+    trackSaveTimersRef.current = {}
+    void flushTrackMetadataSaves().then((ok) => {
+      if (!ok) toast.error("Не удалось сохранить стриминг-сервисы")
+    })
   }
 
   const deleteTrack = async (trackId: string) => {
@@ -1112,6 +1154,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       items.push({ ok: true, label: "UPC / EAN", value: upc.trim() })
     }
 
+    items.push({
+      ok: true,
+      label: "Стриминг-сервисы",
+      value: streamingScopeShortLabel(streamingScope),
+    })
+
     const minTracks = kind === "album" ? 2 : 1
     items.push({
       ok: tracks.length >= minTracks,
@@ -1186,6 +1234,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     release?.coverPath,
     coverPreview,
     upc,
+    streamingScope,
     tracks,
     requestAiCover,
     coverCreatedWithAi,
@@ -1377,6 +1426,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   Если у релиза уже есть UPC - укажите его. Если нет, мы присвоим код автоматически
                 </p>
               </div>
+              <StreamingServicesField
+                value={streamingScope}
+                onChange={applyStreamingScope}
+                disabled={formDisabled}
+                idPrefix="release-streaming"
+              />
               <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
                 <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                   <Checkbox

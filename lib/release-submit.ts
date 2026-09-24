@@ -80,7 +80,10 @@ export async function submitReleaseToModeration(
     return { ok: true, release, tracks: await getTracksByReleaseId(releaseId) }
   }
 
-  if (!["draft", "awaiting_payment"].includes(release.status)) {
+  const isResubmitAfterRevision =
+    release.status === "upload_pending" || release.status === "rejected"
+
+  if (!["draft", "awaiting_payment", "upload_pending", "rejected"].includes(release.status)) {
     return { ok: false, error: "Релиз уже отправлен", status: 400 }
   }
 
@@ -165,7 +168,7 @@ export async function submitReleaseToModeration(
   const pricingPayload = releasePayloadForPricing(release)
   const requiredRub = uploadDraftRequiredPaymentRub(pricingPayload)
 
-  if (requiredRub > 0 && !options?.skipPaymentCheck) {
+  if (requiredRub > 0 && !options?.skipPaymentCheck && !isResubmitAfterRevision) {
     const paymentGate = await assertUploadDraftBundlePayment(pricingPayload, release.bundleOrderId)
     if (!paymentGate.ok) {
       return { ok: false, error: paymentGate.error, status: 400 }
@@ -178,8 +181,10 @@ export async function submitReleaseToModeration(
   const artistPolicyErr = await getUploadArtistPolicyViolationWithSlots(user, artistName)
   if (artistPolicyErr) return { ok: false, error: artistPolicyErr, status: 400 }
 
-  const creditsGate = assertFixPackCreditsAvailable(user, tracks.length)
-  if (!creditsGate.ok) return { ok: false, error: creditsGate.error, status: 403 }
+  if (!isResubmitAfterRevision) {
+    const creditsGate = assertFixPackCreditsAvailable(user, tracks.length)
+    if (!creditsGate.ok) return { ok: false, error: creditsGate.error, status: 403 }
+  }
 
   const releaseLabelName = getEffectiveReleaseLabelName(release.labelName, user.subscriptionName)
   const upc = release.upc?.trim() || undefined
@@ -225,7 +230,9 @@ export async function submitReleaseToModeration(
   if (!updatedRelease) return { ok: false, error: "Не удалось обновить релиз", status: 500 }
 
   await logLicenseAcceptances(updatedTracks, release.userId, context)
-  await deductFixPackCreditsOnUpload(user, tracks.length)
+  if (!isResubmitAfterRevision) {
+    await deductFixPackCreditsOnUpload(user, tracks.length)
+  }
 
   return { ok: true, release: updatedRelease, tracks: updatedTracks }
 }

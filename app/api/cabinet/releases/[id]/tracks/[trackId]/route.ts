@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
-import { getReleaseById } from "@/lib/releases"
+import { getReleaseById, isReleaseEditableStatus } from "@/lib/releases"
 import { getTrackById, updateTrack } from "@/lib/tracks"
 import { GENRES, TRACK_MOODS, normalizeStreamingScope, STREAMING_SCOPES } from "@/lib/track-constants"
 import { parseTiktokSoundStartSec } from "@/lib/tiktok-sound-start"
@@ -25,7 +25,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
   }
 
-  if (!["draft", "awaiting_payment"].includes(release.status)) {
+  if (!isReleaseEditableStatus(release.status)) {
     return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 

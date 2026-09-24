@@ -10,7 +10,7 @@ import {
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { createTrack, getAudioDir, getTracksByReleaseId } from "@/lib/tracks"
 import { GENRES } from "@/lib/track-constants"
-import { getReleaseById } from "@/lib/releases"
+import { getReleaseById, isReleaseEditableStatus } from "@/lib/releases"
 
 const MAX_AUDIO_SIZE = 80 * 1024 * 1024
 
@@ -28,7 +28,7 @@ export async function POST(
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
   }
 
-  if (!["draft", "awaiting_payment"].includes(release.status)) {
+  if (!isReleaseEditableStatus(release.status)) {
     return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 

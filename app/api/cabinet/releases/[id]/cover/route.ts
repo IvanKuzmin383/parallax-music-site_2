@@ -13,7 +13,7 @@ import {
   parseMultipartRequestStream,
 } from "@/lib/node-streaming-multipart"
 import { getCoversDir } from "@/lib/tracks"
-import { getReleaseById, updateRelease } from "@/lib/releases"
+import { getReleaseById, isReleaseEditableStatus, updateRelease } from "@/lib/releases"
 
 export async function GET(
   _request: NextRequest,
@@ -59,7 +59,7 @@ export async function POST(
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
   }
 
-  if (!["draft", "awaiting_payment"].includes(release.status)) {
+  if (!isReleaseEditableStatus(release.status)) {
     return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 
@@ -120,7 +120,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
   }
 
-  if (!["draft", "awaiting_payment"].includes(release.status)) {
+  if (!isReleaseEditableStatus(release.status)) {
     return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 

@@ -8,6 +8,10 @@ import {
   isSmartlinkSlugTaken,
   type Track,
 } from "@/lib/tracks"
+import {
+  applyReleaseModerationStatus,
+  resolveReleaseIdForTrack,
+} from "@/lib/admin-release-moderation"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getAlbumById } from "@/lib/albums"
 import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
@@ -204,7 +208,14 @@ export async function PATCH(
     updatePayload.tiktokSoundStartSec = data.tiktokSoundStartSec
   }
   if (data.isInstrumental !== undefined) updatePayload.isInstrumental = data.isInstrumental
-  if (data.status !== undefined) updatePayload.status = data.status
+  // Статус/комментарий модерации для релизных треков — через sync на весь релиз ниже.
+  const releaseIdForModeration = await resolveReleaseIdForTrack(current)
+  const syncReleaseModeration =
+    Boolean(releaseIdForModeration) &&
+    (data.status !== undefined || data.moderationNote !== undefined)
+  if (data.status !== undefined && !syncReleaseModeration) {
+    updatePayload.status = data.status
+  }
   if (data.releaseDate !== undefined) {
     if (data.releaseDate === null || data.releaseDate === "") {
       updatePayload.releaseDate = undefined
@@ -212,7 +223,7 @@ export async function PATCH(
       updatePayload.releaseDate = data.releaseDate
     }
   }
-  if (data.moderationNote !== undefined) {
+  if (data.moderationNote !== undefined && !syncReleaseModeration) {
     updatePayload.moderationNote =
       data.moderationNote && data.moderationNote.trim().length > 0
         ? data.moderationNote.trim()
@@ -292,9 +303,23 @@ export async function PATCH(
     }
   }
 
-  const updated = await updateTrack(id, updatePayload)
-  if (!updated) {
-    return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
+  let updated = current
+  if (Object.keys(updatePayload).length > 0) {
+    const next = await updateTrack(id, updatePayload)
+    if (!next) {
+      return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
+    }
+    updated = next
+  }
+
+  if (syncReleaseModeration && releaseIdForModeration) {
+    const synced = await applyReleaseModerationStatus({
+      releaseId: releaseIdForModeration,
+      status: data.status,
+      moderationNote: data.moderationNote,
+    })
+    const syncedTrack = synced.tracks.find((t) => t.id === id) ?? updated
+    return NextResponse.json({ track: syncedTrack, release: synced.release })
   }
 
   return NextResponse.json({ track: updated })

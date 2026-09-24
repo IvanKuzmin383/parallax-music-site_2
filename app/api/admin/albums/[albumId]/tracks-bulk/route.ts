@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getAdminToken, verifySession } from "@/lib/auth"
 import { getTracksByAlbumId, updateTrack, type TrackStatus } from "@/lib/tracks"
+import { getReleaseByAlbumId } from "@/lib/releases"
+import { applyReleaseModerationStatus } from "@/lib/admin-release-moderation"
 import { mergePartialPlatformLinks, type PlatformLinks } from "@/lib/smartlink-platforms"
 
 const optionalUrl = z.union([z.string().url(), z.literal("")]).optional()
@@ -108,8 +110,16 @@ export async function PATCH(
       incomingPlatformLinks.kion = links.kion === "" ? undefined : links.kion
     }
   }
-  if (parsed.data.status !== undefined) partial.status = parsed.data.status
-  if (parsed.data.moderationNote !== undefined) {
+
+  const releaseForAlbum = await getReleaseByAlbumId(albumId)
+  const syncReleaseModeration =
+    Boolean(releaseForAlbum) &&
+    (parsed.data.status !== undefined || parsed.data.moderationNote !== undefined)
+
+  if (parsed.data.status !== undefined && !syncReleaseModeration) {
+    partial.status = parsed.data.status
+  }
+  if (parsed.data.moderationNote !== undefined && !syncReleaseModeration) {
     const n = parsed.data.moderationNote
     partial.moderationNote =
       n && typeof n === "string" && n.trim().length > 0 ? n.trim() : null
@@ -117,7 +127,8 @@ export async function PATCH(
 
   if (
     Object.keys(partial).length === 0 &&
-    incomingPlatformLinks === undefined
+    incomingPlatformLinks === undefined &&
+    !syncReleaseModeration
   ) {
     return NextResponse.json(
       { error: "Укажите поля для обновления (артикул, UPC, ссылки, статус и/или комментарий)" },
@@ -134,8 +145,26 @@ export async function PATCH(
         incomingPlatformLinks
       )
     }
+    if (Object.keys(trackPartial).length === 0) {
+      updated.push(track)
+      continue
+    }
     const next = await updateTrack(track.id, trackPartial)
     if (next) updated.push(next)
   }
+
+  if (syncReleaseModeration && releaseForAlbum) {
+    const synced = await applyReleaseModerationStatus({
+      releaseId: releaseForAlbum.id,
+      status: parsed.data.status,
+      moderationNote: parsed.data.moderationNote,
+    })
+    return NextResponse.json({
+      updated: synced.tracks.length,
+      tracks: synced.tracks,
+      release: synced.release,
+    })
+  }
+
   return NextResponse.json({ updated: updated.length, tracks: updated })
 }

@@ -11,12 +11,25 @@ export type ReleaseKind = "single" | "album"
 export type ReleaseStatus =
   | "draft"
   | "awaiting_payment"
+  | "upload_pending"
   | "on_moderation"
   | "sent_to_platforms"
   | "approved_by_platforms"
   | "released"
   | "rejected"
   | "postponed"
+
+/** Статусы, в которых артист может править релиз в мастере. */
+export const RELEASE_EDITABLE_STATUSES: readonly ReleaseStatus[] = [
+  "draft",
+  "awaiting_payment",
+  "upload_pending",
+  "rejected",
+] as const
+
+export function isReleaseEditableStatus(status: ReleaseStatus): boolean {
+  return (RELEASE_EDITABLE_STATUSES as readonly string[]).includes(status)
+}
 
 export type ReleaseAddonsPayload = UploadDraftPayload["addons"]
 
@@ -125,6 +138,14 @@ export async function getReleaseById(id: string): Promise<Release | null> {
   return row ? rowToRelease(row) : null
 }
 
+export async function getReleaseByAlbumId(albumId: string): Promise<Release | null> {
+  const row = await queryOne<ReleaseRow>(
+    "SELECT * FROM releases WHERE album_id = ? ORDER BY updated_at DESC LIMIT 1",
+    [albumId]
+  )
+  return row ? rowToRelease(row) : null
+}
+
 export async function listReleasesByUserId(userId: string, limit = 100): Promise<Release[]> {
   const rows = await query<ReleaseRow>(
     `SELECT * FROM releases WHERE LOWER(user_id) = LOWER(?) ORDER BY updated_at DESC LIMIT ?`,
@@ -136,7 +157,7 @@ export async function listReleasesByUserId(userId: string, limit = 100): Promise
 export async function listActiveReleasesByUserId(userId: string): Promise<Release[]> {
   const rows = await query<ReleaseRow>(
     `SELECT * FROM releases WHERE LOWER(user_id) = LOWER(?)
-     AND status IN ('draft', 'awaiting_payment')
+     AND status IN ('draft', 'awaiting_payment', 'upload_pending', 'rejected')
      ORDER BY updated_at DESC`,
     [userId]
   )

@@ -17,10 +17,8 @@ import {
   TRACK_LYRICS_LANGUAGES,
   TRACK_MOODS,
   musicRightsRequiresAiService,
-  type TrackStreamingScope,
 } from "@/lib/track-constants"
 import type { Track } from "@/lib/tracks"
-import { StreamingServicesField } from "@/components/streaming-services-field"
 
 const MUSIC_RIGHTS_OPTIONS = [
   "Музыка написана мной. Есть проект",
@@ -210,7 +208,7 @@ export function TrackMetadataFields({
               disabled={disabled}
               maxLength={5000}
               rows={8}
-              className="resize-none overflow-y-auto"
+              className="field-sizing-fixed h-48 min-h-48 max-h-48 resize-none overflow-y-auto"
               placeholder="Введите текст песни"
             />
           </div>
@@ -296,14 +294,6 @@ export function TrackMetadataFields({
           </div>
         </>
       ) : null}
-      <div className="sm:col-span-2">
-        <StreamingServicesField
-          value={track.streamingScope}
-          onChange={(value: TrackStreamingScope) => onChange({ streamingScope: value })}
-          disabled={disabled}
-          idPrefix={`streaming-${track.id}`}
-        />
-      </div>
       <div>
         <Label htmlFor={`tiktok-start-${track.id}`}>Начало звука в ТикТок *</Label>
         <Input

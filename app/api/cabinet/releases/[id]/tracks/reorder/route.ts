@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
-import { getReleaseById } from "@/lib/releases"
+import { getReleaseById, isReleaseEditableStatus } from "@/lib/releases"
 import { reorderReleaseTracks } from "@/lib/tracks"
 
 export async function POST(
@@ -15,6 +15,10 @@ export async function POST(
   const release = await getReleaseById(releaseId)
   if (!release || release.userId.toLowerCase() !== session.email.toLowerCase()) {
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
+  }
+
+  if (!isReleaseEditableStatus(release.status)) {
+    return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 
   if (release.kind !== "album") {
