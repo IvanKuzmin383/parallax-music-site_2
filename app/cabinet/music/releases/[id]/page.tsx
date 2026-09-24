@@ -151,7 +151,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
   const audioReleaseId = entityRelease?.id ?? tracks[0]?.releaseId ?? null
 
   return (
-    <div className="max-w-4xl space-y-10">
+    <div className="w-full max-w-none space-y-10">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link href="/cabinet/music/releases">
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -225,7 +225,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
             Следующие шаги для «{title}» — продвижение, оформление и инструменты
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {RELEASE_WORKFLOW_ACTIONS.map((action) => (
             <Link
               key={action.id}

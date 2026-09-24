@@ -25,13 +25,13 @@ const TOOL_SECTIONS = [
 
 export default function CabinetToolsPage() {
   return (
-    <div className="max-w-5xl space-y-10">
+    <div className="w-full max-w-none space-y-10">
       <PageHeader title="Инструменты" />
 
       {TOOL_SECTIONS.map((section) => (
         <section key={section.title} className="space-y-4">
           <h2 className="text-lg font-semibold">{section.title}</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {section.items.map((item) => (
               <Link
                 key={item.href}

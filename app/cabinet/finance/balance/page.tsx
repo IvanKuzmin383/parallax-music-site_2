@@ -17,7 +17,7 @@ export default function FinanceBalancePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader title="Баланс" description="Средства от стриминга и операции по счёту" />
 
       <Card>

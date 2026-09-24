@@ -42,10 +42,10 @@ export function ReleaseListCard({ release }: { release: ReleaseView }) {
   const kindParts = kindMeta?.split(" · ") ?? []
 
   return (
-    <article className="relative flex gap-3 sm:gap-4 rounded-xl border border-border bg-card/70 p-3 sm:p-4">
+    <article className="relative flex gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-4">
       <Link
         href={href}
-        className="relative h-20 w-20 sm:h-[5.5rem] sm:w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border"
+        className="relative h-20 w-20 sm:h-[5.5rem] sm:w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-muted"
       >
         {release.coverUrl ? (
           <Image

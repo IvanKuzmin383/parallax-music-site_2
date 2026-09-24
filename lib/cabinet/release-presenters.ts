@@ -1,4 +1,4 @@
-import { formatDistanceToNow, parseISO } from "date-fns"
+import { differenceInCalendarDays, formatDistanceToNow, parseISO, startOfDay } from "date-fns"
 import { ru } from "date-fns/locale"
 import type { ReleaseView } from "./types"
 import { releaseContinueHref } from "./adapters/map-track-to-release"
@@ -17,6 +17,35 @@ export function pickFeaturedRelease(releases: ReleaseView[]): ReleaseView | null
   }
   const sorted = [...releases].sort((a, b) => priority(a) - priority(b))
   return sorted[0] ?? null
+}
+
+/** Ближайший будущий релиз по дате выхода. */
+export function pickUpcomingRelease(releases: ReleaseView[]): ReleaseView | null {
+  const today = startOfDay(new Date())
+  const upcoming = releases
+    .filter((r) => {
+      if (!r.releaseDate?.trim()) return false
+      try {
+        const d = startOfDay(parseISO(r.releaseDate))
+        if (Number.isNaN(d.getTime())) return false
+        return d >= today
+      } catch {
+        return false
+      }
+    })
+    .sort((a, b) => (a.releaseDate ?? "").localeCompare(b.releaseDate ?? ""))
+  return upcoming[0] ?? null
+}
+
+export function daysUntilRelease(releaseDate?: string): number | null {
+  if (!releaseDate?.trim()) return null
+  try {
+    const d = startOfDay(parseISO(releaseDate))
+    if (Number.isNaN(d.getTime())) return null
+    return differenceInCalendarDays(d, startOfDay(new Date()))
+  } catch {
+    return null
+  }
 }
 
 export function formatReleaseRelativeDate(releaseDate?: string): string | null {

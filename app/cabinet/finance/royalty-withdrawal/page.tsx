@@ -114,7 +114,7 @@ export default function FinanceRoyaltyWithdrawalPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="w-full max-w-none space-y-8">
       <PageHeader title="Вывод роялти" description="Доступно от 1 000 ₽. Выводится весь текущий баланс роялти." />
 
       <Card>

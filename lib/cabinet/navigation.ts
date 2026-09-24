@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Disc3,
   Home,
-  LifeBuoy,
   Megaphone,
   Settings,
   Users,
@@ -30,7 +29,7 @@ export interface NavGroup {
  * Меню кабинета:
  * (без заголовка) Главная · Релизы · Статистика
  * Услуги — Продвижение · Инструменты · Заказы
- * Кабинет — Финансы · Партнёрка · Поддержка · Настройки
+ * Кабинет — Финансы · Партнёрка · Настройки
  */
 export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
   {
@@ -57,7 +56,6 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
     items: [
       { id: "finance", label: "Финансы", href: "/cabinet/finance/balance", icon: Wallet },
       { id: "referrals", label: "Партнёрка", href: "/cabinet/referrals", icon: Users },
-      { id: "support", label: "Поддержка", href: "/cabinet/support", icon: LifeBuoy },
       { id: "settings", label: "Настройки", href: "/cabinet/settings", icon: Settings },
     ],
   },

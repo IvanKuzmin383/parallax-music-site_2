@@ -29,7 +29,7 @@ export function OrdersPageContent() {
   const { orders, loading } = useCabinetOrders(filter)
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader title="Заказы" description="Все ваши заказы услуг и их статусы" />
 
       <div className="flex flex-wrap gap-2">

@@ -26,7 +26,7 @@ export default function PromotionPage() {
   )
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader
         title="Продвижение"
         description="Реклама, плейлисты, радио и другие услуги для роста прослушиваний"
@@ -36,7 +36,7 @@ export default function PromotionPage() {
         </Button>
       </PageHeader>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {services.map((service) => (
           <Card key={service.slug} className="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-lg">
             <CardHeader className="flex flex-1 flex-col gap-2">

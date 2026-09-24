@@ -150,7 +150,7 @@ export default function CabinetProfilePage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="w-full max-w-none space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" asChild>

@@ -271,5 +271,4 @@ export const QUICK_ACTIONS = [
   { label: "Запустить продвижение", href: "/cabinet/promotion/vk", description: "Реклама и промо" },
   { label: "AI-мастеринг", href: "/cabinet/design/mastering", description: "Обработка фонограммы" },
   { label: "Задепонировать", href: "/cabinet/protect/deposit", description: "Защита авторства" },
-  { label: "Написать в поддержку", href: "/cabinet/support", description: "Помощь и вопросы" },
 ] as const

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { ComingSoonButton } from "@/components/cabinet/shared/coming-soon-button"
+import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import Link from "next/link"
 import { CheckCircle2 } from "lucide-react"
@@ -101,8 +102,8 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   return (
     <div className="max-w-4xl space-y-8">
       <PageHeader title={service.title} description={service.shortDescription}>
-        <Button asChild variant="outline">
-          <Link href="/cabinet/support">Задать вопрос</Link>
+        <Button type="button" variant="outline" onClick={() => openCabinetSupportChat()}>
+          Задать вопрос
         </Button>
       </PageHeader>
 

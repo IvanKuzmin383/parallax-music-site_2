@@ -54,6 +54,17 @@ const COUNT_TONE: Record<ReleaseFilterKey, string> = {
   rejected: "text-zinc-400",
 }
 
+const STAT_ACTIVE_BG: Record<ReleaseFilterKey, string> = {
+  all: "bg-primary/20 ring-1 ring-primary/50",
+  draft: "bg-muted ring-1 ring-border",
+  awaiting_payment: "bg-amber-500/20 ring-1 ring-amber-500/50",
+  upload_pending: "bg-red-500/20 ring-1 ring-red-500/50",
+  on_moderation: "bg-blue-500/20 ring-1 ring-blue-500/50",
+  on_platforms: "bg-violet-500/20 ring-1 ring-violet-500/50",
+  released: "bg-emerald-500/20 ring-1 ring-emerald-500/50",
+  rejected: "bg-zinc-500/20 ring-1 ring-zinc-500/50",
+}
+
 const FILTER_TONE_CLASS: Record<string, string> = {
   slate:
     "border-slate-500/40 text-slate-200 hover:bg-slate-500/15 data-[active=true]:bg-slate-500/30 data-[active=true]:text-slate-50",
@@ -177,30 +188,40 @@ export default function MusicReleasesPage() {
   }, [releases, filter, query, sort])
 
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader title="Мои релизы">
         <UploadReleaseButton />
       </PageHeader>
 
       {!loading && releases.length > 0 ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-border bg-card/40 px-4 py-3">
-            {RELEASE_FILTERS.map((f) => (
-              <button
-                key={`stat-${f.key}`}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className={cn(
-                  "text-left transition-opacity hover:opacity-100",
-                  filter === f.key ? "opacity-100" : "opacity-80",
-                )}
-              >
-                <span className={cn("text-lg font-semibold tabular-nums", COUNT_TONE[f.key])}>
-                  {counts[f.key]}
-                </span>{" "}
-                <span className="text-sm text-muted-foreground">{STAT_LABELS[f.key]}</span>
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-card/40 p-2 sm:p-2.5">
+            {RELEASE_FILTERS.map((f) => {
+              const active = filter === f.key
+              return (
+                <button
+                  key={`stat-${f.key}`}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-left transition-colors",
+                    active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50",
+                  )}
+                >
+                  <span className={cn("text-lg font-semibold tabular-nums", COUNT_TONE[f.key])}>
+                    {counts[f.key]}
+                  </span>{" "}
+                  <span
+                    className={cn(
+                      "text-sm",
+                      active ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {STAT_LABELS[f.key]}
+                  </span>
+                </button>
+              )
+            })}
           </div>
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

@@ -3,12 +3,14 @@
 import Link from "next/link"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
+import { Plus } from "lucide-react"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { CabinetSidebar } from "./cabinet-sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { CabinetAnnouncementsHost } from "@/components/cabinet-announcements-host"
+import { CabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 
 interface CabinetAppShellProps {
   children: React.ReactNode
@@ -49,14 +51,23 @@ export function CabinetAppShell({ children }: CabinetAppShellProps) {
                 {tariffLabel(user)}
               </Link>
             </div>
-            <Button size="sm" variant="outline" onClick={() => void logout()} className="shrink-0 uppercase tracking-wider text-xs">
-              Выйти
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button size="sm" asChild className="hidden sm:inline-flex">
+                <Link href="/cabinet/upload">
+                  <Plus className="mr-1 h-4 w-4" />
+                  Загрузить релиз
+                </Link>
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => void logout()} className="shrink-0 uppercase tracking-wider text-xs">
+                Выйти
+              </Button>
+            </div>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
       <CabinetAnnouncementsHost />
+      <CabinetSupportChat />
     </SidebarProvider>
   )
 }

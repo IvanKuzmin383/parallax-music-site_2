@@ -26,7 +26,7 @@ export default function CabinetServicesPage() {
   })).filter((g) => g.items.length > 0)
 
   return (
-    <div className="max-w-5xl space-y-10">
+    <div className="w-full max-w-none space-y-10">
       <PageHeader
         title="Каталог услуг"
         description="Закажите продвижение, оформление и инструменты для уже выпущенных релизов"

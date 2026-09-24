@@ -28,7 +28,7 @@ export default function ReferralsPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="w-full max-w-none space-y-8">
       <PageHeader title="Партнёрка" description="Приглашайте артистов и получайте бонус с их заказов" />
 
       <Card>

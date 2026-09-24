@@ -32,14 +32,32 @@ function formatAudioClock(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`
 }
 
-function MetaRow({ label, value }: { label: string; value?: string | number | null | boolean }) {
+function MetaRow({
+  label,
+  value,
+  scrollable,
+}: {
+  label: string
+  value?: string | number | null | boolean
+  /** Длинный текст — фиксированная высота со скроллом, без растягивания. */
+  scrollable?: boolean
+}) {
   if (value === undefined || value === null || value === "") return null
   const display =
     typeof value === "boolean" ? (value ? "Да" : "Нет") : String(value)
   return (
     <div className="grid grid-cols-[minmax(7rem,10rem)_1fr] gap-x-3 gap-y-1 text-sm py-1.5 border-b border-border/50 last:border-0">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 whitespace-pre-wrap break-words">{display}</dd>
+      <dd
+        className={cn(
+          "min-w-0 break-words",
+          scrollable
+            ? "max-h-28 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/40 bg-muted/20 px-2.5 py-2"
+            : "whitespace-pre-wrap",
+        )}
+      >
+        {display}
+      </dd>
     </div>
   )
 }
@@ -69,7 +87,7 @@ function TrackMetaList({ track }: { track: Track }) {
             }
           />
           <MetaRow label="Язык текста" value={track.lyricsLanguage || null} />
-          <MetaRow label="Текст песни" value={track.lyricsText || null} />
+          <MetaRow label="Текст песни" value={track.lyricsText || null} scrollable />
           <MetaRow label="Автор слов" value={track.lyricsAuthor || null} />
           <MetaRow label="Права на текст" value={track.lyricsRights || null} />
         </>

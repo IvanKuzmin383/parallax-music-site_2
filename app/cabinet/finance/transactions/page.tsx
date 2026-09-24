@@ -10,7 +10,7 @@ import { MOCK_TRANSACTIONS, TRANSACTION_TYPE_LABELS } from "@/lib/cabinet/mock"
 
 export default function FinanceTransactionsPage() {
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader title="История операций" description="Демо-данные. Полный ledger будет подключён позже." />
 
       <Card>
