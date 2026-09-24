@@ -11,6 +11,17 @@ export function startOfLocalDay(date = new Date()): Date {
 }
 
 /**
+ * Число календарных дней строго после `from` до `date` включительно
+ * (сегодня = 0; завтра = 1).
+ */
+export function countCalendarDaysAhead(date: Date, from = new Date()): number {
+  const start = startOfLocalDay(from)
+  const end = startOfLocalDay(date)
+  if (end <= start) return 0
+  return Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+/**
  * Число рабочих дней строго после `from` до `date` включительно
  * (день загрузки = 0; следующий пн–пт = 1).
  */
@@ -38,8 +49,8 @@ export function addWorkingDays(from: Date, workingDays: number): Date {
   return d
 }
 
-/** Минимальный срок до даты релиза (рабочих дней после загрузки). 0 = с сегодняшнего раб. дня. */
-export const MIN_RELEASE_WORKING_DAYS_AHEAD = 0
+/** Минимальный срок до даты релиза: 3-й рабочий день от сегодня. */
+export const MIN_RELEASE_WORKING_DAYS_AHEAD = 3
 
 /** @deprecated Используйте MIN_RELEASE_WORKING_DAYS_AHEAD */
 export const MIN_RELEASE_DAYS_AHEAD = MIN_RELEASE_WORKING_DAYS_AHEAD

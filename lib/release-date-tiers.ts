@@ -1,6 +1,9 @@
 import {
+  addWorkingDays,
+  countCalendarDaysAhead,
   countWorkingDaysAhead,
   isReleaseDateWeekend,
+  MIN_RELEASE_WORKING_DAYS_AHEAD,
   startOfLocalDay,
 } from "@/lib/release-date-validation"
 
@@ -18,14 +21,23 @@ export const RELEASE_DATE_TIER_LABEL = {
   standard: "Стандартная загрузка",
 } as const
 
-/** Ускоренная: с ближайшего доступного дня до 6 раб. дней включительно. */
-export const RELEASE_DATE_ACCELERATED_WORKING_DAYS = { from: 0, to: 6 } as const
+/**
+ * Ускоренная: с минимально доступного (3-й раб. день) до 6 раб. дней включительно.
+ * Только пока не наступил стандартный календарный порог.
+ */
+export const RELEASE_DATE_ACCELERATED_WORKING_DAYS = {
+  from: MIN_RELEASE_WORKING_DAYS_AHEAD,
+  to: 6,
+} as const
 
-/** Быстрая: 7–13 рабочих дней включительно. */
+/** Быстрая: с 7-го рабочего дня до дня перед стандартом. */
 export const RELEASE_DATE_FAST_WORKING_DAYS = { from: 7, to: 13 } as const
 
-/** Стандарт бесплатно: от 14-го рабочего дня. */
-export const RELEASE_DATE_STANDARD_FROM_WORKING_DAYS = 14
+/** Стандарт бесплатно: с 14-го календарного дня (не рабочего). */
+export const RELEASE_DATE_STANDARD_FROM_CALENDAR_DAYS = 14
+
+/** @deprecated Используйте RELEASE_DATE_STANDARD_FROM_CALENDAR_DAYS */
+export const RELEASE_DATE_STANDARD_FROM_WORKING_DAYS = RELEASE_DATE_STANDARD_FROM_CALENDAR_DAYS
 
 /** @deprecated Используйте RELEASE_DATE_ACCELERATED_WORKING_DAYS.from */
 export const RELEASE_DATE_ACCELERATED_WORKING_DAY = RELEASE_DATE_ACCELERATED_WORKING_DAYS.from
@@ -34,18 +46,20 @@ export function getReleaseWorkingDaysAhead(date: Date, from = new Date()): numbe
   return countWorkingDaysAhead(date, from)
 }
 
-/** Доступна любая будня сегодня или позже (выходные нельзя). */
-export function isReleaseDateSelectable(date: Date, from = new Date()): boolean {
-  if (isReleaseDateWeekend(date)) return false
-  return startOfLocalDay(date).getTime() >= startOfLocalDay(from).getTime()
+export function getReleaseCalendarDaysAhead(date: Date, from = new Date()): number {
+  return countCalendarDaysAhead(date, from)
 }
 
+/** Ближайшая допустимая дата: 3-й рабочий день от сегодня (не выходной). */
 export function getEarliestAvailableReleaseDate(from = new Date()): Date {
-  let d = startOfLocalDay(from)
-  while (isReleaseDateWeekend(d)) {
-    d.setDate(d.getDate() + 1)
-  }
-  return d
+  return addWorkingDays(from, MIN_RELEASE_WORKING_DAYS_AHEAD)
+}
+
+/** Доступны будни не раньше 3-го рабочего дня. */
+export function isReleaseDateSelectable(date: Date, from = new Date()): boolean {
+  if (isReleaseDateWeekend(date)) return false
+  const earliest = getEarliestAvailableReleaseDate(from)
+  return startOfLocalDay(date).getTime() >= earliest.getTime()
 }
 
 export function getReleaseDateTier(
@@ -53,6 +67,12 @@ export function getReleaseDateTier(
   from = new Date(),
 ): ReleaseDateTier | null {
   if (!isReleaseDateSelectable(date, from)) return null
+
+  const calendarDays = getReleaseCalendarDaysAhead(date, from)
+  if (calendarDays >= RELEASE_DATE_STANDARD_FROM_CALENDAR_DAYS) {
+    return "standard"
+  }
+
   const wd = getReleaseWorkingDaysAhead(date, from)
   if (
     wd >= RELEASE_DATE_ACCELERATED_WORKING_DAYS.from &&
@@ -60,10 +80,9 @@ export function getReleaseDateTier(
   ) {
     return "accelerated"
   }
-  if (wd >= RELEASE_DATE_FAST_WORKING_DAYS.from && wd <= RELEASE_DATE_FAST_WORKING_DAYS.to) {
+  if (wd >= RELEASE_DATE_FAST_WORKING_DAYS.from) {
     return "fast"
   }
-  if (wd >= RELEASE_DATE_STANDARD_FROM_WORKING_DAYS) return "standard"
   return null
 }
 
@@ -102,8 +121,8 @@ export function getReleaseDateTierPriceRubFromIso(
   return getReleaseDateTierPriceRub(date, from)
 }
 
-/** Дата раньше стандарта (менее 14 раб. дней) — нужен флаг принятия риска. */
+/** Дата раньше стандарта (менее 14 календарных дней) — нужен флаг принятия риска. */
 export function isShortReleaseDate(date: Date, from = new Date()): boolean {
   if (!isReleaseDateSelectable(date, from)) return false
-  return getReleaseWorkingDaysAhead(date, from) < RELEASE_DATE_STANDARD_FROM_WORKING_DAYS
+  return getReleaseCalendarDaysAhead(date, from) < RELEASE_DATE_STANDARD_FROM_CALENDAR_DAYS
 }

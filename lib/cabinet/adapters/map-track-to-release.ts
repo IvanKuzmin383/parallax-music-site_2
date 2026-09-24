@@ -174,15 +174,56 @@ export function mapAlbumTracksToRelease(
   }
 }
 
-/** «Сингл» / «Альбом · 12 треков» */
+/** «Сингл · 1 трек» / «Альбом · 12 треков» */
 export function formatReleaseKindMeta(release: Pick<ReleaseView, "format" | "trackCount" | "kind">): string | null {
   const format =
     release.format ??
     (release.kind === "album" ? "album" : release.kind === "track" ? "single" : null)
-  if (!format) return null
-  if (format === "single") return "Сингл"
-  const count = Math.max(0, release.trackCount ?? 0)
+  if (!format) {
+    if (release.kind === "draft") {
+      const count = Math.max(0, release.trackCount ?? 0)
+      if (count > 1) return `Альбом · ${pluralizeTracks(count)}`
+      return count === 1 ? `Сингл · ${pluralizeTracks(1)}` : "Черновик"
+    }
+    return null
+  }
+  const count = Math.max(format === "single" ? 1 : 0, release.trackCount ?? (format === "single" ? 1 : 0))
+  if (format === "single") return `Сингл · ${pluralizeTracks(Math.max(1, count))}`
   return `Альбом · ${pluralizeTracks(count)}`
+}
+
+export function releaseStatusHint(release: ReleaseView): string {
+  const raw = release.releaseStatus
+  const label = release.status
+  if (raw === "upload_pending" || label.includes("доработ")) {
+    return "Необходимо внести изменения в материалы релиза"
+  }
+  if (raw === "awaiting_payment" || label.includes("оплат")) {
+    return "Оплатите услуги, чтобы отправить релиз на модерацию"
+  }
+  if (raw === "draft" || label === "Черновик" || release.kind === "draft") {
+    return "Продолжите заполнение и отправку релиза"
+  }
+  if (raw === "on_moderation" || label.includes("модерац")) {
+    return "Релиз на проверке у модераторов"
+  }
+  if (
+    raw === "sent_to_platforms" ||
+    raw === "approved_by_platforms" ||
+    label.includes("площадк")
+  ) {
+    return "Релиз передан на площадки"
+  }
+  if (raw === "released" || label === "Выпущен") {
+    return "Релиз доступен на всех площадках"
+  }
+  if (raw === "rejected" || label.includes("Отклон")) {
+    return "Релиз отклонён модерацией"
+  }
+  if (raw === "postponed" || label === "Отложен") {
+    return "Релиз временно отложен"
+  }
+  return "Статус релиза обновляется автоматически"
 }
 
 function pluralizeTracks(n: number): string {
@@ -219,4 +260,21 @@ export function releaseContinueHref(release: ReleaseView): string {
     return `/cabinet/upload/${release.id}?step=6`
   }
   return `/cabinet/upload/${release.id}?step=${step}`
+}
+
+/** Подпись CTA для черновика / доработки. */
+export function releaseContinueLabel(release: ReleaseView): string {
+  if (
+    release.releaseStatus === "upload_pending" ||
+    release.status.includes("доработ")
+  ) {
+    return "Исправить"
+  }
+  if (
+    release.releaseStatus === "awaiting_payment" ||
+    release.status.includes("Ожидает оплаты")
+  ) {
+    return "Оплатить"
+  }
+  return "Продолжить"
 }

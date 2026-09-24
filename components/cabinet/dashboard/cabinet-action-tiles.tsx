@@ -12,6 +12,7 @@ import {
   Wand2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 
 type ActionTile = {
   id: string
@@ -160,9 +161,9 @@ export function CabinetContinueWork({
                 </div>
               )}
             </div>
-            <div className="p-3 space-y-0.5">
+            <div className="p-3 space-y-1.5">
               <p className="text-sm font-medium truncate">{item.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+              <StatusBadge status={item.subtitle} kind="generic" className="text-[10px]" />
             </div>
           </Link>
         ))}

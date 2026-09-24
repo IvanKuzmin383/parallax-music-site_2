@@ -8,7 +8,7 @@ import { ArrowRight, BarChart3, Disc3, Music, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import type { ReleaseView } from "@/lib/cabinet/types"
-import { formatReleaseKindMeta } from "@/lib/cabinet/adapters/map-track-to-release"
+import { formatReleaseKindMeta, releaseContinueLabel } from "@/lib/cabinet/adapters/map-track-to-release"
 import {
   formatReleaseRelativeDate,
   releaseDetailHref,
@@ -135,7 +135,7 @@ export function CabinetDashboardHero({
             ) : null}
             <Button asChild className="mt-2">
               <Link href={releaseDetailHref(featured)}>
-                {featured.kind === "draft" ? "Продолжить релиз" : "Открыть релиз"}
+                {featured.kind === "draft" ? releaseContinueLabel(featured) : "Открыть релиз"}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>
@@ -255,7 +255,7 @@ export function ReleaseCoverCard({
             <StatusBadge
               status={release.status}
               kind="generic"
-              className="bg-black/40 border-white/20 text-white text-[10px]"
+              className="text-[10px] shadow-sm"
             />
           </div>
         </div>

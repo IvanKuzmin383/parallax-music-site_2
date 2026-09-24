@@ -1103,6 +1103,14 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }
 
+  const moderationNote = useMemo(() => {
+    for (const track of tracks) {
+      const note = track.moderationNote?.trim()
+      if (note) return note
+    }
+    return null
+  }, [tracks])
+
   const reviewChecks = useMemo(() => {
     const items: { ok: boolean; label: string; value?: string }[] = [
       {
@@ -1280,7 +1288,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         currentStep={step}
         maxReachedStep={maxStep}
         onStepClick={(target) => {
-          if (target < step) goToStep(target)
+          if (target !== step && target <= maxStep) goToStep(target)
         }}
       />
 
@@ -1355,20 +1363,25 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                       autoFocus
                       disabled={(date) => formDisabled || !isReleaseDateSelectable(date)}
                       modifiers={{
-                        tierAccelerated: (date) => getReleaseDateCalendarTier(date) === "accelerated",
-                        tierFast: (date) => getReleaseDateCalendarTier(date) === "fast",
-                        tierStandard: (date) => getReleaseDateCalendarTier(date) === "standard",
+                        tierAccelerated: (date) =>
+                          !formDisabled && getReleaseDateCalendarTier(date) === "accelerated",
+                        tierFast: (date) =>
+                          !formDisabled && getReleaseDateCalendarTier(date) === "fast",
+                        tierStandard: (date) =>
+                          !formDisabled && getReleaseDateCalendarTier(date) === "standard",
                       }}
                       modifiersClassNames={{
                         tierAccelerated:
-                          "[&_button]:bg-emerald-500/25 [&_button]:text-emerald-200 [&_button]:border [&_button]:border-emerald-500/70 [&_button]:rounded-md",
+                          "[&_button]:!bg-emerald-500/30 [&_button]:!text-emerald-100 [&_button]:!border [&_button]:!border-emerald-500/80 [&_button]:rounded-md",
                         tierFast:
-                          "[&_button]:bg-sky-500/25 [&_button]:text-sky-200 [&_button]:border [&_button]:border-sky-500/70 [&_button]:rounded-md",
+                          "[&_button]:!bg-sky-500/30 [&_button]:!text-sky-100 [&_button]:!border [&_button]:!border-sky-500/80 [&_button]:rounded-md",
                         tierStandard:
-                          "[&_button]:bg-orange-500/20 [&_button]:text-orange-200 [&_button]:border [&_button]:border-orange-500/60 [&_button]:rounded-md",
+                          "[&_button]:!bg-orange-500/25 [&_button]:!text-orange-100 [&_button]:!border [&_button]:!border-orange-500/70 [&_button]:rounded-md",
                       }}
                       classNames={{
                         today: "bg-transparent",
+                        selected:
+                          "[&_button]:!bg-primary [&_button]:!text-primary-foreground [&_button]:!border-primary",
                       }}
                     />
                     <div className="space-y-1.5 border-t border-border px-3 py-2.5 text-xs">
@@ -1394,7 +1407,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   </PopoverContent>
                 </Popover>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Питчинг доступен только если до даты релиза осталось минимум 14 дней.
+                  Ближайшая доступная дата — 3-й рабочий день. Стандартная загрузка (0₽) — с 14-го
+                  календарного дня. Питчинг — минимум за 14 дней.
                 </p>
                 {selectedReleaseTier ? (
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -1404,8 +1418,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 {showShortDateRisk ? (
                   <div className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
                     <p className="text-xs text-amber-100/90">
-                      Площадки могут не успеть проверить и доставить релиз вовремя. Промо и питчинг
-                      доступны минимум за 14 дней
+                      Площадки могут не успеть проверить и доставить релиз вовремя. Стандартный срок и
+                      питчинг — минимум за 14 календарных дней.
                     </p>
                     <label className="flex items-start gap-2 text-sm">
                       <Checkbox
@@ -1850,24 +1864,42 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
       {step === 6 ? (
         <div className="space-y-6">
-          <div className="flex gap-4">
-            {coverPreview ? (
-              <div className="h-24 w-24 rounded overflow-hidden relative shrink-0">
-                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized />
-              </div>
-            ) : null}
-            <div>
-              <h2 className="text-lg font-semibold">{title}</h2>
-              <p className="text-muted-foreground">{artistName}</p>
-              <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                <span className="rounded-full bg-muted px-2 py-0.5">{kind === "single" ? "Сингл" : "Альбом"}</span>
-                {releaseDate ? (
-                  <span className="rounded-full bg-muted px-2 py-0.5">
-                    {format(releaseDate, "dd.MM.yyyy")}
-                  </span>
-                ) : null}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex gap-4 min-w-0">
+              {coverPreview ? (
+                <div className="h-24 w-24 rounded overflow-hidden relative shrink-0">
+                  <Image src={coverPreview} alt="" fill className="object-cover" unoptimized />
+                </div>
+              ) : null}
+              <div>
+                <h2 className="text-lg font-semibold">{title}</h2>
+                <p className="text-muted-foreground">{artistName}</p>
+                <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                  <span className="rounded-full bg-muted px-2 py-0.5">{kind === "single" ? "Сингл" : "Альбом"}</span>
+                  {releaseDate ? (
+                    <span className="rounded-full bg-muted px-2 py-0.5">
+                      {format(releaseDate, "dd.MM.yyyy")}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
+            {moderationNote ? (
+              <aside
+                className={cn(
+                  "sm:ml-auto w-full sm:max-w-sm shrink-0 rounded-lg border px-4 py-3",
+                  "border-[#C08240]/55 bg-[#D48C48]/15 text-[#F3D5A8]",
+                  "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
+                )}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#E8B86D]">
+                  Комментарий модерации
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-[#F8E6C8]">
+                  {moderationNote}
+                </p>
+              </aside>
+            ) : null}
           </div>
           <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
             {reviewChecks.map((c, idx) => (

@@ -29,7 +29,7 @@ export function ReleaseUploadStepper({
         const done = step.id < currentStep
         const active = step.id === currentStep
         const reachable = step.id <= maxReachedStep
-        const canGoBack = Boolean(onStepClick) && step.id < currentStep
+        const canNavigate = Boolean(onStepClick) && reachable && !active
 
         const content = (
           <>
@@ -48,7 +48,8 @@ export function ReleaseUploadStepper({
           done && !active && "text-green-500",
           !active && !done && reachable && "text-foreground",
           !active && !done && !reachable && "text-muted-foreground",
-          canGoBack && "cursor-pointer hover:bg-muted/60 hover:text-green-400",
+          canNavigate && "cursor-pointer hover:bg-muted/60",
+          canNavigate && done && "hover:text-green-400",
         )
 
         return (
@@ -56,12 +57,12 @@ export function ReleaseUploadStepper({
             {index > 0 ? (
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
             ) : null}
-            {canGoBack ? (
+            {canNavigate ? (
               <button
                 type="button"
                 className={className}
                 onClick={() => onStepClick?.(step.id)}
-                aria-label={`Вернуться к этапу «${step.label}»`}
+                aria-label={`${step.id < currentStep ? "Перейти" : "Перейти вперёд"} к этапу «${step.label}»`}
               >
                 {content}
               </button>

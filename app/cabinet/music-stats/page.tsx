@@ -256,8 +256,11 @@ export default function CabinetMusicStatsPage() {
 
   const [selectedPlatformKeys, setSelectedPlatformKeys] = useState<MusicPlatformKey[]>(PLATFORM_KEYS)
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("month")
-  const [customPeriodStart, setCustomPeriodStart] = useState<string>("")
-  const [customPeriodEnd, setCustomPeriodEnd] = useState<string>("")
+  const [customPeriodStart, setCustomPeriodStart] = useState<string>(() => {
+    const endYmd = getYesterdayIsoLocal()
+    return getRangeByPreset("month", endYmd, "1970-01-01").startIso
+  })
+  const [customPeriodEnd, setCustomPeriodEnd] = useState<string>(() => getYesterdayIsoLocal())
 
   const [selectedTrackIds, setSelectedTrackIds] = useState<string[]>([])
 
@@ -301,11 +304,14 @@ export default function CabinetMusicStatsPage() {
   }, [stats])
 
   useEffect(() => {
-    if (!chartData.length) return
-    const minDate = chartData[0]!.date
     let endYmd = getYesterdayIsoLocal()
-    if (endYmd < minDate) endYmd = minDate
-    const { startIso, endIso } = getRangeByPreset(periodFilter, endYmd, minDate)
+    const minDate = chartData[0]?.date
+    if (minDate && endYmd < minDate) endYmd = minDate
+    const { startIso, endIso } = getRangeByPreset(
+      periodFilter,
+      endYmd,
+      minDate ?? "1970-01-01",
+    )
     setCustomPeriodStart(startIso)
     setCustomPeriodEnd(endIso)
   }, [chartData, periodFilter])

@@ -49,7 +49,7 @@ export interface Release {
   requestAiCover: boolean
   /** Обложка создана при помощи ИИ: null — не выбрано. */
   coverCreatedWithAi: CoverAiLevel | null
-  /** Согласие на дату релиза ранее 14 рабочих дней. */
+  /** Согласие на дату релиза ранее 14 календарных дней. */
   acceptShortReleaseDate: boolean
   bundleOrderId?: string
   albumId?: string
