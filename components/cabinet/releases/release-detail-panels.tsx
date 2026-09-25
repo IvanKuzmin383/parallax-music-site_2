@@ -439,14 +439,15 @@ export function ModerationNoteAside({
   maxHeight,
 }: {
   note: string
-  /** Не выше блока обложки; длинный текст — скролл или «Показать полностью». */
+  /** Не выше блока обложки; длинный текст — скролл и «Показать полностью» в модалке. */
   maxHeight?: number | null
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [open, setOpen] = useState(false)
   const bodyRef = useRef<HTMLParagraphElement>(null)
   const [overflows, setOverflows] = useState(false)
 
-  const cap = !expanded && maxHeight && maxHeight > 0 ? maxHeight : undefined
+  const LINE_EXTRA_PX = 46 // ≈ 2 строки text-sm leading-relaxed
+  const cap = maxHeight && maxHeight > 0 ? maxHeight + LINE_EXTRA_PX : undefined
 
   useEffect(() => {
     const el = bodyRef.current
@@ -458,40 +459,51 @@ export function ModerationNoteAside({
     const ro = new ResizeObserver(check)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [note, cap, expanded])
+  }, [note, cap])
 
-  const showToggle = Boolean(cap) && (overflows || expanded)
+  const showToggle = Boolean(cap) && overflows
 
   return (
-    <aside
-      className={cn(
-        "flex w-full sm:max-w-sm shrink-0 flex-col rounded-lg border px-4 py-3",
-        "border-[#C08240]/55 bg-[#D48C48]/15",
-        "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
-      )}
-      style={cap ? { maxHeight: cap } : undefined}
-    >
-      <p className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#E8B86D]">
-        Комментарий модерации
-      </p>
-      <p
-        ref={bodyRef}
+    <>
+      <aside
         className={cn(
-          "mt-1.5 min-h-0 flex-1 text-sm leading-relaxed whitespace-pre-wrap text-[#F8E6C8]",
-          cap && "cabinet-sidebar-scroll overflow-y-auto",
+          "flex w-full sm:max-w-sm shrink-0 flex-col rounded-lg border px-4 py-3",
+          "border-[#C08240]/55 bg-[#D48C48]/15",
+          "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
         )}
+        style={cap ? { maxHeight: cap } : undefined}
       >
-        {note}
-      </p>
-      {showToggle ? (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 shrink-0 self-start text-xs font-medium text-[#E8B86D] underline-offset-2 hover:underline"
+        <p className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#E8B86D]">
+          Комментарий модерации
+        </p>
+        <p
+          ref={bodyRef}
+          className={cn(
+            "mt-1.5 min-h-0 flex-1 text-sm leading-relaxed whitespace-pre-wrap text-[#F8E6C8]",
+            cap && "cabinet-sidebar-scroll overflow-y-auto",
+          )}
         >
-          {expanded ? "Свернуть" : "Показать полностью"}
-        </button>
-      ) : null}
-    </aside>
+          {note}
+        </p>
+        {showToggle ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="mt-2 shrink-0 self-start text-xs font-medium text-[#E8B86D] underline-offset-2 hover:underline"
+          >
+            Показать полностью
+          </button>
+        ) : null}
+      </aside>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Комментарий модерации</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">{note}</p>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

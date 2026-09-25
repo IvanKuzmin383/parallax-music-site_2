@@ -42,7 +42,12 @@ import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { isReleaseDateWeekend } from "@/lib/release-date-validation"
+import {
+  isReleaseDateWeekend,
+  RELEASE_DATE_OCCUPIED_MESSAGE,
+  isReleaseDateOccupyingStatus,
+  toReleaseDateYyyyMmDd,
+} from "@/lib/release-date-validation"
 import {
   getEarliestAvailableReleaseDate,
   getReleaseDateCalendarTier,
@@ -98,6 +103,7 @@ import {
 } from "@/lib/track-ai-labeling"
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
 import { uploadReleaseTrackAudio } from "@/lib/cabinet-release-audio-upload"
+import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 
 type AudioUploadItem = {
   id: string
@@ -146,6 +152,29 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const earliestAvailableDate = useMemo(() => getEarliestAvailableReleaseDate(), [])
   const selectedReleaseTier = releaseDate ? getReleaseDateTier(releaseDate) : null
   const showShortDateRisk = Boolean(releaseDate && isShortReleaseDate(releaseDate))
+  const { releases: existingReleases } = useCabinetReleases()
+
+  const occupiedReleaseDates = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of existingReleases) {
+      if (releaseId && r.id === releaseId) continue
+      const raw = r.releaseStatus
+      const occupies =
+        (raw ? isReleaseDateOccupyingStatus(raw) : false) ||
+        r.status.includes("модерац") ||
+        r.status === "Выпущен" ||
+        r.status.includes("площадк") ||
+        r.status === "Отложен"
+      if (!occupies) continue
+      const ymd = toReleaseDateYyyyMmDd(r.releaseDate)
+      if (ymd) set.add(ymd)
+    }
+    return set
+  }, [existingReleases, releaseId])
+
+  const releaseDateOccupied = Boolean(
+    releaseDate && occupiedReleaseDates.has(format(releaseDate, "yyyy-MM-dd"))
+  )
   const [addonVerticalVideo, setAddonVerticalVideo] = useState(false)
   const [addonVerticalVideoCount, setAddonVerticalVideoCount] = useState(1)
   const [addonVerticalVideoComment, setAddonVerticalVideoComment] = useState("")
@@ -928,6 +957,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (!isReleaseDateSelectable(releaseDate)) {
       return "Дата публикации не может быть в прошлом"
     }
+    if (occupiedReleaseDates.has(format(releaseDate, "yyyy-MM-dd"))) {
+      return RELEASE_DATE_OCCUPIED_MESSAGE
+    }
     if (!release?.coverPath && !coverPreview && !requestAiCover) {
       return "Загрузите обложку или закажите AI-обложку"
     }
@@ -1049,6 +1081,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       toast.error("Подтвердите согласие с публичной офертой")
       return
     }
+    if (releaseDate && occupiedReleaseDates.has(format(releaseDate, "yyyy-MM-dd"))) {
+      toast.error(RELEASE_DATE_OCCUPIED_MESSAGE)
+      goToStep(1)
+      return
+    }
     const aiErr = validateStep4()
     if (aiErr) {
       toast.error(aiErr)
@@ -1141,9 +1178,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         value: title.trim() || undefined,
       },
       {
-        ok: Boolean(releaseDate),
+        ok: Boolean(releaseDate) && !releaseDateOccupied,
         label: "Дата релиза",
-        value: releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : undefined,
+        value: releaseDateOccupied
+          ? "Дата занята — выберите другую"
+          : releaseDate
+            ? format(releaseDate, "dd.MM.yyyy", { locale: ru })
+            : undefined,
       },
       {
         ok: kind === "single" || kind === "album",
@@ -1255,6 +1296,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     artistName,
     title,
     releaseDate,
+    releaseDateOccupied,
     kind,
     release?.coverPath,
     coverPreview,
@@ -1347,7 +1389,21 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     if (open) {
                       const focusDate = releaseDate ?? earliestAvailableDate
                       setCalendarMonth(focusDate)
-                      if (!releaseDate) setReleaseDate(earliestAvailableDate)
+                      if (!releaseDate) {
+                        let candidate = earliestAvailableDate
+                        for (let i = 0; i < 60; i++) {
+                          const ymd = format(candidate, "yyyy-MM-dd")
+                          if (
+                            isReleaseDateSelectable(candidate) &&
+                            !occupiedReleaseDates.has(ymd)
+                          ) {
+                            setReleaseDate(candidate)
+                            break
+                          }
+                          candidate = new Date(candidate)
+                          candidate.setDate(candidate.getDate() + 1)
+                        }
+                      }
                     }
                   }}
                 >
@@ -1371,6 +1427,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                       onMonthChange={setCalendarMonth}
                       selected={releaseDate}
                       onSelect={(date) => {
+                        if (date && occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))) {
+                          toast.error(RELEASE_DATE_OCCUPIED_MESSAGE)
+                          return
+                        }
                         setReleaseDate(date)
                         if (date && !isShortReleaseDate(date)) {
                           setAcceptShortReleaseDate(false)
@@ -1378,7 +1438,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                         if (date) setDatePopoverOpen(false)
                       }}
                       autoFocus
-                      disabled={(date) => formDisabled || !isReleaseDateSelectable(date)}
+                      disabled={(date) =>
+                        formDisabled ||
+                        !isReleaseDateSelectable(date) ||
+                        occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))
+                      }
                       modifiers={{
                         tierAccelerated: (date) =>
                           !formDisabled && getReleaseDateCalendarTier(date) === "accelerated",
@@ -1425,8 +1489,14 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 </Popover>
                 <p className="text-xs text-muted-foreground mt-1">
                   Ближайшая доступная дата — 3-й рабочий день. Стандартная загрузка (0₽) — с 14-го
-                  календарного дня. Питчинг — минимум за 14 дней.
+                  календарного дня. Питчинг — минимум за 14 дней. В один день — не больше одного релиза
+                  на модерации и дальше.
                 </p>
+                {releaseDateOccupied ? (
+                  <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {RELEASE_DATE_OCCUPIED_MESSAGE}
+                  </div>
+                ) : null}
                 {selectedReleaseTier ? (
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
@@ -1958,7 +2028,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               Далее
             </Button>
           ) : (
-            <Button type="button" onClick={() => void handleSubmit()} disabled={submitting || !consentOffer || formDisabled}>
+            <Button type="button" onClick={() => void handleSubmit()} disabled={submitting || !consentOffer || formDisabled || releaseDateOccupied}>
               {submitting ? (
                 <Spinner className="h-4 w-4 mr-1" />
               ) : paymentTotal > 0 ? (

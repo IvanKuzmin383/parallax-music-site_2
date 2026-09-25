@@ -277,7 +277,7 @@ export function DashboardStatsPanel() {
           <h2 className="text-lg font-semibold">Статистика</h2>
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-primary" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-primary animate-cabinet-dot-pulse" />
               Прослушивания
             </span>
           </div>
@@ -380,8 +380,8 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
           </Button>
         </div>
       ) : (
-        <div className="mt-4 flex flex-1 flex-col gap-4">
-          <div className="relative mx-auto aspect-square w-full max-w-[220px] overflow-hidden rounded-xl bg-muted">
+        <div className="mt-4 flex flex-1 items-stretch gap-4">
+          <div className="relative aspect-square w-[7.5rem] sm:w-[9rem] shrink-0 overflow-hidden rounded-xl bg-muted self-start">
             {release.coverUrl ? (
               <Image
                 src={release.coverUrl}
@@ -389,27 +389,31 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
                 fill
                 className="object-cover"
                 unoptimized
-                sizes="220px"
+                sizes="144px"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <Music className="h-12 w-12 text-muted-foreground" />
+                <Music className="h-10 w-10 text-muted-foreground" />
               </div>
             )}
           </div>
-          <div className="space-y-1 text-center sm:text-left">
-            <p className="text-lg font-semibold truncate">{release.title || "Без названия"}</p>
-            <p className="text-sm text-muted-foreground">
-              {days == null
-                ? "Дата выхода не указана"
-                : days === 0
-                  ? "Релиз выходит сегодня"
-                  : `Релиз выйдет через ${days} ${pluralDays(days)}`}
-            </p>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="space-y-1">
+              <p className="text-lg font-semibold leading-snug line-clamp-2">
+                {release.title || "Без названия"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {days == null
+                  ? "Дата выхода не указана"
+                  : days === 0
+                    ? "Релиз выходит сегодня"
+                    : `Релиз выйдет через ${days} ${pluralDays(days)}`}
+              </p>
+            </div>
+            <Button asChild className="mt-auto w-fit">
+              <Link href={href}>Открыть</Link>
+            </Button>
           </div>
-          <Button asChild className="mt-auto w-full sm:w-auto sm:self-start">
-            <Link href={href}>Открыть</Link>
-          </Button>
         </div>
       )}
     </section>

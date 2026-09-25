@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
-import { getReleaseById, releasePayloadForPricing, updateRelease } from "@/lib/releases"
+import { getReleaseById, findUserReleaseOccupyingDate, releasePayloadForPricing, updateRelease } from "@/lib/releases"
 import { submitReleaseToModeration } from "@/lib/release-submit"
+import { RELEASE_DATE_OCCUPIED_MESSAGE } from "@/lib/release-date-validation"
 
 function clientIp(request: NextRequest): string | null {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
@@ -24,6 +25,17 @@ export async function POST(
 
   const body = (await request.json().catch(() => ({}))) as { action?: string }
   const requiredRub = uploadDraftRequiredPaymentRub(releasePayloadForPricing(release))
+
+  if (release.releaseDate) {
+    const occupying = await findUserReleaseOccupyingDate(
+      release.userId,
+      release.releaseDate,
+      release.id
+    )
+    if (occupying) {
+      return NextResponse.json({ error: RELEASE_DATE_OCCUPIED_MESSAGE }, { status: 400 })
+    }
+  }
 
   if (body.action === "prepare_payment") {
     if (requiredRub <= 0) {

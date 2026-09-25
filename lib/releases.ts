@@ -5,6 +5,10 @@ import { query, queryOne, execute } from "./database"
 import { getUploadsBasePath } from "./tracks"
 import type { UploadDraftPayload } from "./upload-drafts"
 import { parseCoverAiLevel, type CoverAiLevel } from "./cover-ai-level"
+import {
+  isReleaseDateOccupyingStatus,
+  toReleaseDateYyyyMmDd,
+} from "./release-date-validation"
 
 export type ReleaseKind = "single" | "album"
 
@@ -152,6 +156,23 @@ export async function listReleasesByUserId(userId: string, limit = 100): Promise
     [userId, limit]
   )
   return rows.map(rowToRelease)
+}
+
+/** Есть ли у пользователя другой релиз на эту дату в статусе «модерация и выше». */
+export async function findUserReleaseOccupyingDate(
+  userId: string,
+  releaseDateYmd: string,
+  excludeReleaseId?: string
+): Promise<Release | null> {
+  const target = toReleaseDateYyyyMmDd(releaseDateYmd)
+  if (!target) return null
+  const releases = await listReleasesByUserId(userId, 300)
+  for (const r of releases) {
+    if (excludeReleaseId && r.id === excludeReleaseId) continue
+    if (!isReleaseDateOccupyingStatus(r.status)) continue
+    if (toReleaseDateYyyyMmDd(r.releaseDate) === target) return r
+  }
+  return null
 }
 
 export async function listActiveReleasesByUserId(userId: string): Promise<Release[]> {

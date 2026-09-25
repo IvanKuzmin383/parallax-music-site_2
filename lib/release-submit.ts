@@ -15,10 +15,12 @@ import { parseCoverAiLevel } from "@/lib/cover-ai-level"
 import { isShortReleaseDate } from "@/lib/release-date-tiers"
 import {
   getReleaseById,
+  findUserReleaseOccupyingDate,
   releasePayloadForPricing,
   updateRelease,
   type Release,
 } from "@/lib/releases"
+import { RELEASE_DATE_OCCUPIED_MESSAGE } from "@/lib/release-date-validation"
 import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import { validateTrackAiLabeling } from "@/lib/track-ai-labeling"
 import {
@@ -92,6 +94,15 @@ export async function submitReleaseToModeration(
   if (!title) return { ok: false, error: "Укажите название релиза", status: 400 }
   if (!artistName) return { ok: false, error: "Укажите имя артиста / название группы", status: 400 }
   if (!release.releaseDate) return { ok: false, error: "Укажите желаемую дату релиза", status: 400 }
+
+  const occupying = await findUserReleaseOccupyingDate(
+    release.userId,
+    release.releaseDate,
+    release.id
+  )
+  if (occupying) {
+    return { ok: false, error: RELEASE_DATE_OCCUPIED_MESSAGE, status: 400 }
+  }
 
   if (!parseCoverAiLevel(release.coverCreatedWithAi)) {
     return {

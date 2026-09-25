@@ -110,6 +110,47 @@ export function validateReleaseDateYyyyMmDd(
   return null
 }
 
+/** Статусы, при которых дата релиза считается занятой (модерация и выше). */
+export const RELEASE_DATE_OCCUPYING_STATUSES = [
+  "on_moderation",
+  "sent_to_platforms",
+  "approved_by_platforms",
+  "released",
+  "postponed",
+] as const
+
+export type ReleaseDateOccupyingStatus = (typeof RELEASE_DATE_OCCUPYING_STATUSES)[number]
+
+export function isReleaseDateOccupyingStatus(status: string | null | undefined): boolean {
+  if (!status) return false
+  return (RELEASE_DATE_OCCUPYING_STATUSES as readonly string[]).includes(status)
+}
+
+export const RELEASE_DATE_OCCUPIED_MESSAGE =
+  "Эта дата уже занята другим вашим релизом (на модерации или дальше). В один день можно отправить только один релиз — укажите другую дату."
+
+/** Нормализация даты к YYYY-MM-DD. */
+export function toReleaseDateYyyyMmDd(value: string | Date | null | undefined): string | null {
+  if (value == null) return null
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const fromIso = parseLocalDateFromYyyyMmDd(trimmed.slice(0, 10))
+    if (fromIso) return trimmed.slice(0, 10)
+    const d = new Date(trimmed)
+    if (Number.isNaN(d.getTime())) return null
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${y}-${m}-${day}`
+  }
+  if (Number.isNaN(value.getTime())) return null
+  const y = value.getFullYear()
+  const m = String(value.getMonth() + 1).padStart(2, "0")
+  const day = String(value.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
 /** Дата релиза для проверки: payload → альбом → первый трек с датой. */
 export function resolveAlbumReleaseDateYyyyMmDd(params: {
   payloadReleaseDate?: string | null
