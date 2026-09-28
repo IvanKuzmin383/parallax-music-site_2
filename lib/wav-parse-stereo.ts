@@ -4,6 +4,16 @@ import { WAV_FILE_READ_ERROR } from "@/lib/cabinet-upload-client"
 export const WAV_MONO_NOT_ALLOWED_ERROR =
   "Аудиофайл монофонический (mono, 1 канал). Загружайте WAV со стерео или многоканальной разводкой (от 2 каналов: стерео, 5.1 и т.д.)."
 
+/** Классический PCM (WAVE_FORMAT_PCM) */
+export const WAV_FORMAT_PCM = 1
+/** WAVE_FORMAT_EXTENSIBLE: обёртка заголовка, которую пишут многие DAW для того же PCM */
+export const WAV_FORMAT_EXTENSIBLE = 0xfffe
+
+/** Несжатый PCM: тег 1 или extensible-заголовок (65534) */
+export function isUncompressedPcmFormat(audioFormat: number): boolean {
+  return audioFormat === WAV_FORMAT_PCM || audioFormat === WAV_FORMAT_EXTENSIBLE
+}
+
 export type ParsedWavFmt = {
   audioFormat: number
   numChannels: number
@@ -70,7 +80,7 @@ export function validateWavChannels(numChannels: number): string | null {
  */
 export function validateWavStereoFromPrefix(data: Uint8Array): string | null {
   const parsed = parseWavFmtChunk(data)
-  if (!parsed || parsed.audioFormat !== 1) {
+  if (!parsed || !isUncompressedPcmFormat(parsed.audioFormat)) {
     return null
   }
   return validateWavChannels(parsed.numChannels)

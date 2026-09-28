@@ -61,7 +61,7 @@ import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-prof
 import { PROFILE_INCOMPLETE_UPLOAD_ERROR_CODE } from "@/lib/cabinet-upload-profile-gate"
 import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
-import { checkWavFileIsStereo, parseWavFmtChunk } from "@/lib/wav-parse-stereo"
+import { checkWavFileIsStereo, isUncompressedPcmFormat, parseWavFmtChunk } from "@/lib/wav-parse-stereo"
 import type { UploadDraftStatus } from "@/lib/upload-drafts"
 import {
   CabinetUploadAdditionalServicesSection,
@@ -106,7 +106,7 @@ async function checkWavFileSampleRateAndBitDepth(
     return messages.invalidHeader
   }
 
-  if (parsed.audioFormat !== 1) {
+  if (!isUncompressedPcmFormat(parsed.audioFormat)) {
     return messages.invalidPcm.replace("{code}", String(parsed.audioFormat))
   }
 
