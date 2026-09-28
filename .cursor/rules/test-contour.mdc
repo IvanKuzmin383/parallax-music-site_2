@@ -1,0 +1,37 @@
+---
+description: Test/staging contour SSH and hosting (not production)
+alwaysApply: true
+---
+
+# Test / staging hosting
+
+**Тестовый контур ≠ прод.** Прод — Yandex Cloud `ubuntu@111.88.251.195` (см. `production-yandex-cloud.mdc`).
+
+## Доступ
+
+```powershell
+ssh -i C:\Users\Admin\.ssh\id_ed25519 root@83.217.192.143
+```
+
+- Host: `83.217.192.143` (`8659557-ya635027.twc1.net`)
+- User: `root`
+- Key: тот же `id_ed25519`, что и для прода
+- URL: `https://soundbridge.ru` (`www.soundbridge.ru`)
+- App path: `/var/www/parallaxmusic`
+- Process manager: `pm2`, имя процесса: `parallaxmusic`
+- Обычно крутится ветка `feature/cabinet-saas-redesign` (проверяй `git branch` на сервере)
+
+При вопросах про тест / стейджинг / песочницу подключайся сюда, **не на прод**.
+
+## Обновление теста
+
+```bash
+cd /var/www/parallaxmusic
+git pull
+pnpm install
+pnpm generate-hero-webp
+pnpm build
+pm2 restart parallaxmusic --update-env
+```
+
+Проверка: `pm2 status`, `pm2 logs parallaxmusic --lines 50`.

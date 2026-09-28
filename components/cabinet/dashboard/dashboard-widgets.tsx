@@ -368,10 +368,10 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
       : releaseDetailHref(release)
     : "/cabinet/upload"
 
-  return (
-    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
-      <h2 className="text-lg font-semibold">Ближайший релиз</h2>
-      {!release ? (
+  if (!release) {
+    return (
+      <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
+        <h2 className="text-lg font-semibold">Ближайший релиз</h2>
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-4 rounded-xl bg-muted/20 p-6 text-center">
           <Music className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Нет запланированных релизов</p>
@@ -379,43 +379,46 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
             <Link href="/cabinet/upload">Загрузить релиз</Link>
           </Button>
         </div>
-      ) : (
-        <div className="mt-4 flex flex-1 items-stretch gap-4">
-          <div className="relative aspect-square w-[7.5rem] sm:w-[9rem] shrink-0 overflow-hidden rounded-xl bg-muted self-start">
-            {release.coverUrl ? (
-              <Image
-                src={release.coverUrl}
-                alt=""
-                fill
-                className="object-cover"
-                unoptimized
-                sizes="144px"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Music className="h-10 w-10 text-muted-foreground" />
-              </div>
-            )}
+      </section>
+    )
+  }
+
+  return (
+    <section className="flex h-full min-h-[11rem] overflow-hidden rounded-2xl bg-card/80">
+      <div className="relative w-[7.5rem] sm:w-36 shrink-0 self-stretch bg-muted">
+        {release.coverUrl ? (
+          <Image
+            src={release.coverUrl}
+            alt=""
+            fill
+            className="object-cover"
+            unoptimized
+            sizes="144px"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Music className="h-10 w-10 text-muted-foreground" />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div className="space-y-1">
-              <p className="text-lg font-semibold leading-snug line-clamp-2">
-                {release.title || "Без названия"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {days == null
-                  ? "Дата выхода не указана"
-                  : days === 0
-                    ? "Релиз выходит сегодня"
-                    : `Релиз выйдет через ${days} ${pluralDays(days)}`}
-              </p>
-            </div>
-            <Button asChild className="mt-auto w-fit">
-              <Link href={href}>Открыть</Link>
-            </Button>
-          </div>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-5">
+        <h2 className="text-lg font-semibold">Ближайший релиз</h2>
+        <div className="space-y-1 min-w-0">
+          <p className="text-lg font-semibold leading-snug line-clamp-2">
+            {release.title || "Без названия"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {days == null
+              ? "Дата выхода не указана"
+              : days === 0
+                ? "Релиз выходит сегодня"
+                : `Релиз выйдет через ${days} ${pluralDays(days)}`}
+          </p>
         </div>
-      )}
+        <Button asChild className="mt-auto w-fit">
+          <Link href={href}>Открыть</Link>
+        </Button>
+      </div>
     </section>
   )
 }

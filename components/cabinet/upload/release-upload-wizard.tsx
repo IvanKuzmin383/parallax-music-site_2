@@ -197,12 +197,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const audioSeekingRef = useRef(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
-  const reviewPreviewRef = useRef<HTMLDivElement>(null)
   const tracksRef = useRef(tracks)
   const streamingScopeRef = useRef(streamingScope)
   const trackSaveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const trackSaveChainsRef = useRef<Record<string, Promise<boolean>>>({})
-  const [reviewPreviewHeight, setReviewPreviewHeight] = useState<number | null>(null)
 
   useEffect(() => {
     tracksRef.current = tracks
@@ -1151,20 +1149,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     return null
   }, [tracks])
 
-  useEffect(() => {
-    if (step !== 6 || !moderationNote) {
-      setReviewPreviewHeight(null)
-      return
-    }
-    const el = reviewPreviewRef.current
-    if (!el) return
-    const sync = () => setReviewPreviewHeight(el.offsetHeight)
-    sync()
-    const ro = new ResizeObserver(sync)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [step, moderationNote, coverPreview, title, artistName, releaseDate, kind])
-
   const reviewChecks = useMemo(() => {
     const items: { ok: boolean; label: string; value?: string }[] = [
       {
@@ -1951,46 +1935,36 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
       {step === 6 ? (
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div ref={reviewPreviewRef} className="flex gap-4 min-w-0">
+          {moderationNote ? (
+            <ModerationNoteAside note={moderationNote} maxHeight={140} />
+          ) : null}
+          <div className="flex items-stretch overflow-hidden rounded-lg border border-border bg-muted/20">
+            <div className="relative w-[7.5rem] sm:w-40 shrink-0 self-stretch bg-muted min-h-[10rem]">
               {coverPreview ? (
-                <div className="h-24 w-24 rounded overflow-hidden relative shrink-0">
-                  <Image src={coverPreview} alt="" fill className="object-cover" unoptimized />
+                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized sizes="160px" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
                 </div>
-              ) : null}
-              <div>
-                <h2 className="text-lg font-semibold">{title}</h2>
-                <p className="text-muted-foreground">{artistName}</p>
-                <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                  <span className="rounded-full bg-muted px-2 py-0.5">{kind === "single" ? "Сингл" : "Альбом"}</span>
-                  {releaseDate ? (
-                    <span className="rounded-full bg-muted px-2 py-0.5">
-                      {format(releaseDate, "dd.MM.yyyy")}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
+              )}
             </div>
-            {moderationNote ? (
-              <div className="sm:ml-auto w-full sm:max-w-sm shrink-0">
-                <ModerationNoteAside note={moderationNote} maxHeight={reviewPreviewHeight} />
-              </div>
-            ) : null}
-          </div>
-          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-            {reviewChecks.map((c, idx) => (
-              <div key={`${c.label}-${idx}`} className="flex items-start gap-2 text-sm">
-                {c.ok ? (
-                  <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                )}
-                <div className="min-w-0">
-                  <span className="text-muted-foreground">{c.label}: </span>
-                  <span className={cn(!c.ok && "text-amber-200")}>{c.value ?? (c.ok ? "OK" : "Не заполнено")}</span>
+            <div className="min-w-0 flex-1 space-y-3 p-4">
+              {reviewChecks.map((c, idx) => (
+                <div key={`${c.label}-${idx}`} className="flex items-start gap-2 text-sm">
+                  {c.ok ? (
+                    <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground">{c.label}: </span>
+                    <span className={cn(!c.ok && "text-amber-200")}>
+                      {c.value ?? (c.ok ? "OK" : "Не заполнено")}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
           <div className="flex flex-row items-start gap-3 rounded-md border border-border p-4">
             <Checkbox
