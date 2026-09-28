@@ -76,6 +76,12 @@ export async function PATCH(
           : body.previousDistributor === null
             ? null
             : undefined,
+      originalReleaseDate:
+        typeof body.originalReleaseDate === "string"
+          ? body.originalReleaseDate.trim() || null
+          : body.originalReleaseDate === null
+            ? null
+            : undefined,
       aiLabeling:
         body.aiLabeling === null
           ? null

@@ -46,6 +46,23 @@ export async function listPendingAnnouncementsForUser(userId: string): Promise<C
   return rows.map(rowToAnnouncement)
 }
 
+/** Все активные новости ЛК (для раздела «Новости»). */
+export async function listActiveCabinetAnnouncements(): Promise<CabinetAnnouncement[]> {
+  const rows = await query<{
+    id: string
+    title: string
+    body: string
+    active: boolean
+    created_at: string
+  }>(
+    `SELECT id, title, body, active, created_at
+     FROM cabinet_announcements
+     WHERE active = TRUE
+     ORDER BY created_at DESC`
+  )
+  return rows.map(rowToAnnouncement)
+}
+
 export async function dismissCabinetAnnouncement(userId: string, announcementId: string): Promise<boolean> {
   const exists = await queryOne(`SELECT 1 FROM cabinet_announcements WHERE id = ?`, [announcementId])
   if (!exists) return false

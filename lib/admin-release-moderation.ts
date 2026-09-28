@@ -11,6 +11,7 @@ import {
   type Track,
   type TrackStatus,
 } from "@/lib/tracks"
+import { archiveModerationNote } from "@/lib/moderation-note-history"
 
 /** Статусы модерации, общие для релиза и треков. */
 const SHARED_MODERATION_STATUSES = new Set<string>([
@@ -55,14 +56,28 @@ export async function applyReleaseModerationStatus(params: {
 
   const tracks = await getTracksByReleaseId(releaseId)
   const updatedTracks: Track[] = []
+  const nextNote =
+    moderationNote === undefined
+      ? undefined
+      : moderationNote && moderationNote.trim().length > 0
+        ? moderationNote.trim()
+        : null
+
   for (const track of tracks) {
-    const patch: Partial<Pick<Track, "status" | "moderationNote">> = {}
+    const patch: Partial<Pick<Track, "status" | "moderationNote" | "moderationNotesHistory">> = {}
     if (status !== undefined && isSharedModerationStatus(status)) {
       patch.status = status as TrackStatus
     }
-    if (moderationNote !== undefined) {
-      patch.moderationNote =
-        moderationNote && moderationNote.trim().length > 0 ? moderationNote.trim() : null
+    if (nextNote !== undefined) {
+      const prev = track.moderationNote?.trim()
+      if (prev && prev !== (nextNote ?? "")) {
+        patch.moderationNotesHistory = archiveModerationNote(
+          track.moderationNotesHistory,
+          prev,
+          track.status
+        )
+      }
+      patch.moderationNote = nextNote
     }
     if (Object.keys(patch).length === 0) {
       updatedTracks.push(track)

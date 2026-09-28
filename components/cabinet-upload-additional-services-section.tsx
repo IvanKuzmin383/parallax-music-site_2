@@ -18,6 +18,9 @@ import { cn } from "@/lib/utils"
 import {
   AI_COVER_REQUEST_PRICE_RUB,
 } from "@/lib/track-constants"
+
+const ADDON_CHECKBOX_CLASS =
+  "mt-0.5 shrink-0 border-red-600 data-[state=checked]:border-red-600 data-[state=checked]:bg-red-600 data-[state=checked]:text-white dark:data-[state=checked]:border-red-600 dark:data-[state=checked]:bg-red-600"
 import { getVerticalVideoUnitPrice } from "@/lib/vertical-video-pricing"
 import { AI_MASTERING_PRICE_RUB } from "@/lib/ai-mastering-pricing"
 import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
@@ -382,7 +385,7 @@ export function CabinetUploadAdditionalServicesSection({
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className={ADDON_CHECKBOX_CLASS}
                   checked={addonVerticalVideo}
                   onCheckedChange={(v) => setAddonVerticalVideo(v === true)}
                   disabled={formDisabled}
@@ -434,7 +437,7 @@ export function CabinetUploadAdditionalServicesSection({
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className={ADDON_CHECKBOX_CLASS}
                   checked={addonAiMastering}
                   onCheckedChange={(v) => setAddonAiMastering(v === true)}
                   disabled={formDisabled}
@@ -469,7 +472,7 @@ export function CabinetUploadAdditionalServicesSection({
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className={ADDON_CHECKBOX_CLASS}
                   checked={addonYandexVideoshot}
                   onCheckedChange={(v) => setAddonYandexVideoshot(v === true)}
                   disabled={formDisabled}
@@ -488,7 +491,7 @@ export function CabinetUploadAdditionalServicesSection({
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className={ADDON_CHECKBOX_CLASS}
                   checked={addonYandexVideoshotCreation}
                   onCheckedChange={(v) => setAddonYandexVideoshotCreation(v === true)}
                   disabled={formDisabled}
@@ -515,7 +518,7 @@ export function CabinetUploadAdditionalServicesSection({
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className={ADDON_CHECKBOX_CLASS}
                   checked={addonYandexVideoavatar}
                   onCheckedChange={(v) => setAddonYandexVideoavatar(v === true)}
                   disabled={formDisabled}
@@ -534,7 +537,7 @@ export function CabinetUploadAdditionalServicesSection({
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className={ADDON_CHECKBOX_CLASS}
                   checked={addonSpotifyVideoshot}
                   onCheckedChange={(v) => setAddonSpotifyVideoshot(v === true)}
                   disabled={formDisabled}

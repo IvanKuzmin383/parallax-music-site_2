@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleHelp, Globe, Landmark, Monitor } from "lucide-react"
+import { CircleHelp, Globe, Plane, RussianRuble } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -12,9 +12,9 @@ import {
 } from "@/lib/track-constants"
 
 const ICONS = {
-  all: Monitor,
-  ru: Landmark,
-  foreign: Globe,
+  all: Globe,
+  ru: RussianRuble,
+  foreign: Plane,
 } as const
 
 type StreamingServicesFieldProps = {

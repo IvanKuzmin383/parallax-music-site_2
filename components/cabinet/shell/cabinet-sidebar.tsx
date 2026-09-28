@@ -80,7 +80,7 @@ export function CabinetSidebar() {
                       asChild
                       isActive={isActive(item.href, pathname)}
                       tooltip={item.label}
-                      className="h-10 gap-3 px-3 text-[15px]"
+                      className="h-10 gap-3 px-3 text-[15px] origin-left transition-transform duration-200 hover:scale-[1.04]"
                     >
                       <Link href={item.href}>
                         <item.icon />
@@ -100,7 +100,7 @@ export function CabinetSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Выйти"
-              className="h-10 gap-3 px-3 text-[15px]"
+              className="h-10 gap-3 px-3 text-[15px] origin-left transition-transform duration-200 hover:scale-[1.04]"
               onClick={() => void logout()}
             >
               <LogOut />

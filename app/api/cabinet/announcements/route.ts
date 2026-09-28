@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { listPendingAnnouncementsForUser } from "@/lib/cabinet-announcements"
+import {
+  listActiveCabinetAnnouncements,
+  listPendingAnnouncementsForUser,
+} from "@/lib/cabinet-announcements"
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -16,7 +19,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
     }
 
-    const announcements = await listPendingAnnouncementsForUser(user.id)
+    const all = request.nextUrl.searchParams.get("all") === "1"
+    const announcements = all
+      ? await listActiveCabinetAnnouncements()
+      : await listPendingAnnouncementsForUser(user.id)
     return NextResponse.json({ announcements })
   } catch (error) {
     console.error("Error listing cabinet announcements:", error)

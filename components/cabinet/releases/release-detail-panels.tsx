@@ -111,6 +111,10 @@ function TrackMetaList({ track }: { track: Track }) {
         value={track.transferFromOtherDistributor ? "Да" : null}
       />
       <MetaRow label="Предыдущий дистрибьютор" value={track.previousDistributor || null} />
+      <MetaRow
+        label="Оригинальная дата релиза"
+        value={track.originalReleaseDate || null}
+      />
       <MetaRow label="AI-маркировка" value={aiLabelingModeLabel(ai?.mode)} />
       {ai?.mode === "partial" && ai.details
         ? [
@@ -469,8 +473,8 @@ export function ModerationNoteAside({
     <>
       <aside
         className={cn(
-          "flex w-full shrink-0 flex-col rounded-lg border px-4 py-3",
-          "border-[#C08240]/55 bg-[#D48C48]/15",
+          "flex w-full shrink-0 flex-col rounded-lg px-4 py-3",
+          "bg-[#D48C48]/15",
           "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
           className,
         )}

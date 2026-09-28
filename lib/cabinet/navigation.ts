@@ -5,6 +5,7 @@ import {
   Disc3,
   Home,
   Megaphone,
+  Newspaper,
   Settings,
   Users,
   Wallet,
@@ -27,7 +28,7 @@ export interface NavGroup {
 
 /**
  * Меню кабинета:
- * (без заголовка) Главная · Релизы · Статистика
+ * (без заголовка) Главная · Релизы · Статистика · Новости
  * Услуги — Продвижение · Инструменты · Заказы
  * Кабинет — Финансы · Партнёрка · Настройки
  */
@@ -39,6 +40,7 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
       { id: "home", label: "Главная", href: "/cabinet", icon: Home },
       { id: "releases", label: "Релизы", href: "/cabinet/music/releases", icon: Disc3 },
       { id: "stats", label: "Статистика", href: "/cabinet/music-stats", icon: BarChart3 },
+      { id: "news", label: "Новости", href: "/cabinet/news", icon: Newspaper },
     ],
   },
   {

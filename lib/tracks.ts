@@ -10,6 +10,11 @@ import {
   parseTrackAiLabeling,
   type TrackAiLabeling,
 } from "./track-ai-labeling"
+import {
+  parseModerationNotesHistory,
+  serializeModerationNotesHistory,
+  type ModerationNoteHistoryEntry,
+} from "./moderation-note-history"
 export {
   GENRES,
   TRACK_MOODS,
@@ -68,6 +73,8 @@ export interface Track {
   status: TrackStatus
   releaseDate?: string
   moderationNote?: string | null
+  /** Архив предыдущих комментариев модерации */
+  moderationNotesHistory?: ModerationNoteHistoryEntry[]
   /** Внутренний артикул релиза (например PRLXM000025) */
   catalogNumber?: string | null
   upc?: string | null
@@ -76,6 +83,8 @@ export interface Track {
   transferFromOtherDistributor?: boolean
   /** Название предыдущего дистрибьютора при переносе */
   previousDistributor?: string | null
+  /** Дата первой публикации на площадках (при переносе) */
+  originalReleaseDate?: string | null
   /** Область дистрибуции на стриминг-площадках */
   streamingScope: TrackStreamingScope
   smartlinkSlug?: string
@@ -118,11 +127,13 @@ export interface TrackRow {
   status: string
   release_date: string | null
   moderation_note: string | null
+  moderation_notes_json?: string | null
   catalog_number: string | null
   upc: string | null
   isrc: string | null
   transfer_from_other_distributor?: boolean | null
   previous_distributor?: string | null
+  original_release_date?: string | null
   streaming_scope?: string | null
   smartlink_slug: string | null
   platform_links: string | null
@@ -183,11 +194,13 @@ export function rowToTrack(row: TrackRow): Track {
     status: row.status as TrackStatus,
     releaseDate: row.release_date ?? undefined,
     moderationNote: row.moderation_note ?? null,
+    moderationNotesHistory: parseModerationNotesHistory(row.moderation_notes_json),
     catalogNumber: row.catalog_number ?? undefined,
     upc: row.upc ?? undefined,
     isrc: row.isrc ?? undefined,
     transferFromOtherDistributor: row.transfer_from_other_distributor === true,
     previousDistributor: row.previous_distributor ?? undefined,
+    originalReleaseDate: row.original_release_date ?? undefined,
     streamingScope: normalizeStreamingScope(row.streaming_scope),
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
@@ -380,8 +393,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, track_version, artist_name, label_name, genre, mood, short_description, lyrics_text, lyrics_language, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, has_explicit_language, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, ai_labeling_json, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, track_version, artist_name, label_name, genre, mood, short_description, lyrics_text, lyrics_language, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, has_explicit_language, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, moderation_notes_json, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, original_release_date, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, ai_labeling_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -413,11 +426,13 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.status,
       track.releaseDate ?? null,
       track.moderationNote ?? null,
+      serializeModerationNotesHistory(track.moderationNotesHistory ?? []),
       track.catalogNumber ?? null,
       track.upc ?? null,
       track.isrc ?? null,
       track.transferFromOtherDistributor,
       track.previousDistributor ?? null,
+      track.originalReleaseDate ?? null,
       track.streamingScope,
       track.smartlinkSlug ?? null,
       track.platformLinks ? JSON.stringify(track.platformLinks) : null,
@@ -484,7 +499,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, moderation_notes_json = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, original_release_date = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -516,11 +531,13 @@ export async function updateTrack(
       updated.status,
       updated.releaseDate ?? null,
       updated.moderationNote ?? null,
+      serializeModerationNotesHistory(updated.moderationNotesHistory ?? []),
       updated.catalogNumber ?? null,
       updated.upc ?? null,
       updated.isrc ?? null,
       updated.transferFromOtherDistributor,
       updated.previousDistributor ?? null,
+      updated.originalReleaseDate ?? null,
       updated.streamingScope,
       updated.smartlinkSlug ?? null,
       updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,

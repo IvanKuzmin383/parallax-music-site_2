@@ -64,6 +64,7 @@ export type TrackDraftPatch = Partial<
     | "isrc"
     | "transferFromOtherDistributor"
     | "previousDistributor"
+    | "originalReleaseDate"
     | "aiLabeling"
     | "streamingScope"
     | "tiktokSoundStartSec"
@@ -111,7 +112,7 @@ export function TrackMetadataFields({
           onValueChange={(v) => onChange({ genre: v as Track["genre"] })}
           disabled={disabled}
         >
-          <SelectTrigger><SelectValue placeholder="Выберите жанр" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Выберите жанр" /></SelectTrigger>
           <SelectContent>
             {GENRES.map((g) => (
               <SelectItem key={g} value={g}>{g}</SelectItem>
@@ -126,7 +127,7 @@ export function TrackMetadataFields({
           onValueChange={(v) => onChange({ mood: v as Track["mood"] })}
           disabled={disabled}
         >
-          <SelectTrigger><SelectValue placeholder="Выберите настроение" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Выберите настроение" /></SelectTrigger>
           <SelectContent>
             {TRACK_MOODS.map((m) => (
               <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -160,7 +161,7 @@ export function TrackMetadataFields({
           onValueChange={(v) => onChange({ musicRights: v })}
           disabled={disabled}
         >
-          <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
           <SelectContent>
             {MUSIC_RIGHTS_OPTIONS.map((o) => (
               <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -219,7 +220,7 @@ export function TrackMetadataFields({
               onValueChange={(v) => onChange({ lyricsLanguage: v })}
               disabled={disabled}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Выберите" />
               </SelectTrigger>
               <SelectContent>
@@ -244,7 +245,7 @@ export function TrackMetadataFields({
               onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
               disabled={disabled}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Выберите" />
               </SelectTrigger>
               <SelectContent>
@@ -269,7 +270,7 @@ export function TrackMetadataFields({
               onValueChange={(v) => onChange({ lyricsRights: v })}
               disabled={disabled}
             >
-              <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
               <SelectContent>
                 {LYRICS_RIGHTS_OPTIONS.map((o) => (
                   <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -284,7 +285,7 @@ export function TrackMetadataFields({
               onValueChange={(v) => onChange({ performanceRights: v })}
               disabled={disabled}
             >
-              <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
               <SelectContent>
                 {PERFORMANCE_RIGHTS_OPTIONS.map((o) => (
                   <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -340,7 +341,9 @@ export function TrackMetadataFields({
               onCheckedChange={(c) =>
                 onChange({
                   transferFromOtherDistributor: c === true,
-                  ...(c === true ? {} : { previousDistributor: null }),
+                  ...(c === true
+                    ? {}
+                    : { previousDistributor: null, originalReleaseDate: null }),
                 })
               }
               disabled={disabled}
@@ -355,19 +358,42 @@ export function TrackMetadataFields({
             </div>
           </div>
           {track.transferFromOtherDistributor ? (
-            <div className="sm:col-span-2 max-w-md">
-              <Label>Предыдущий дистрибьютор *</Label>
-              <Input
-                value={track.previousDistributor ?? ""}
-                onChange={(e) => onChange({ previousDistributor: e.target.value })}
-                disabled={disabled}
-                maxLength={100}
-                placeholder="Название дистрибьютора"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Укажите, откуда переносится релиз
-              </p>
-            </div>
+            <>
+              <div className="sm:col-span-2 max-w-md">
+                <Label>Предыдущий дистрибьютор *</Label>
+                <Input
+                  value={track.previousDistributor ?? ""}
+                  onChange={(e) => onChange({ previousDistributor: e.target.value })}
+                  disabled={disabled}
+                  maxLength={100}
+                  placeholder="Название дистрибьютора"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Укажите, откуда переносится релиз
+                </p>
+              </div>
+              <div className="sm:col-span-2 max-w-md">
+                <Label htmlFor={`original-release-date-${track.id}`}>
+                  Оригинальная дата релиза *
+                </Label>
+                <Input
+                  id={`original-release-date-${track.id}`}
+                  type="date"
+                  value={
+                    /^\d{4}-\d{2}-\d{2}/.test(track.originalReleaseDate ?? "")
+                      ? (track.originalReleaseDate as string).slice(0, 10)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    onChange({ originalReleaseDate: e.target.value || null })
+                  }
+                  disabled={disabled}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Дата, когда этот релиз был опубликован впервые
+                </p>
+              </div>
+            </>
           ) : null}
         </>
       ) : null}

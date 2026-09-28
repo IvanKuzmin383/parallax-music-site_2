@@ -384,8 +384,8 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
   }
 
   return (
-    <section className="flex h-auto self-start overflow-hidden rounded-2xl bg-card/80">
-      <div className="relative aspect-square w-40 sm:w-48 shrink-0 bg-muted">
+    <section className="flex items-stretch overflow-hidden rounded-2xl bg-card/80">
+      <div className="relative aspect-square shrink-0 self-stretch bg-muted">
         {release.coverUrl ? (
           <Image
             src={release.coverUrl}
@@ -393,7 +393,7 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
             fill
             className="object-cover"
             unoptimized
-            sizes="192px"
+            sizes="240px"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

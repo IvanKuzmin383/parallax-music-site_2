@@ -182,6 +182,9 @@ function transferDistributorValidationError(d: TrackDraft): string | null {
   if (!d.previousDistributor.trim() || d.previousDistributor.trim().length < 2) {
     return "При переносе с другого дистрибьютора укажите предыдущего дистрибьютора"
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d.originalReleaseDate.trim())) {
+    return "При переносе с другого дистрибьютора укажите оригинальную дату релиза"
+  }
   return null
 }
 
@@ -228,6 +231,10 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     upc: `${p.transferUpc ?? ""}`,
     isrc: `${p.transferIsrc ?? ""}`,
     previousDistributor: `${p.previousDistributor ?? ""}`,
+    originalReleaseDate:
+      typeof p.originalReleaseDate === "string" && /^\d{4}-\d{2}-\d{2}/.test(p.originalReleaseDate)
+        ? p.originalReleaseDate.slice(0, 10)
+        : "",
     moderationNote: "",
     albumId: d.albumId ?? "__none__",
     platformLinks: {},
@@ -264,6 +271,9 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
     transferIsrc: d.isrc.trim(),
     previousDistributor: d.transferFromOtherDistributor
       ? d.previousDistributor.trim()
+      : "",
+    originalReleaseDate: d.transferFromOtherDistributor
+      ? d.originalReleaseDate.trim()
       : "",
     addons: prev.addons ?? {},
   }
@@ -341,6 +351,7 @@ type TrackDraft = {
   upc: string
   isrc: string
   previousDistributor: string
+  originalReleaseDate: string
   moderationNote: string
   albumId: string
   platformLinks: PlatformLinks
@@ -386,6 +397,13 @@ function trackToDraft(t: Track): TrackDraft {
     upc: t.upc ?? "",
     isrc: t.isrc ?? "",
     previousDistributor: t.previousDistributor ?? "",
+    originalReleaseDate: (() => {
+      const raw = t.originalReleaseDate
+      if (!raw) return ""
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+      const d = new Date(raw)
+      return Number.isNaN(d.getTime()) ? "" : format(d, "yyyy-MM-dd")
+    })(),
     moderationNote: t.moderationNote ?? "",
     albumId: t.albumId ?? "__none__",
     platformLinks: { ...(t.platformLinks ?? {}) },
@@ -1015,6 +1033,9 @@ export default function TracksPageClient() {
         transferFromOtherDistributor: trackDraft.transferFromOtherDistributor,
         previousDistributor: trackDraft.transferFromOtherDistributor
           ? trackDraft.previousDistributor.trim() || null
+          : null,
+        originalReleaseDate: trackDraft.transferFromOtherDistributor
+          ? trackDraft.originalReleaseDate.trim() || null
           : null,
         moderationNote: trackDraft.moderationNote.trim() || null,
         albumId: trackDraft.albumId === "__none__" ? null : trackDraft.albumId,
@@ -2886,7 +2907,9 @@ export default function TracksPageClient() {
                               ? {
                                   ...d,
                                   transferFromOtherDistributor: on,
-                                  ...(!on ? { previousDistributor: "" } : {}),
+                                  ...(!on
+                                    ? { previousDistributor: "", originalReleaseDate: "" }
+                                    : {}),
                                 }
                               : d
                           )
@@ -2900,21 +2923,41 @@ export default function TracksPageClient() {
                       </label>
                     </div>
                     {trackDraft.transferFromOtherDistributor ? (
-                      <div className="md:col-span-2 space-y-2">
-                        <Label htmlFor="admin-previous-distributor">
-                          Предыдущий дистрибьютор
-                        </Label>
-                        <Input
-                          id="admin-previous-distributor"
-                          placeholder="Название дистрибьютора"
-                          value={trackDraft.previousDistributor}
-                          onChange={(e) =>
-                            setTrackDraft((d) =>
-                              d ? { ...d, previousDistributor: e.target.value } : d
-                            )
-                          }
-                        />
-                      </div>
+                      <>
+                        <div className="md:col-span-2 space-y-2">
+                          <Label htmlFor="admin-previous-distributor">
+                            Предыдущий дистрибьютор
+                          </Label>
+                          <Input
+                            id="admin-previous-distributor"
+                            placeholder="Название дистрибьютора"
+                            value={trackDraft.previousDistributor}
+                            onChange={(e) =>
+                              setTrackDraft((d) =>
+                                d ? { ...d, previousDistributor: e.target.value } : d
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="md:col-span-2 space-y-2">
+                          <Label htmlFor="admin-original-release-date">
+                            Оригинальная дата релиза
+                          </Label>
+                          <Input
+                            id="admin-original-release-date"
+                            type="date"
+                            value={trackDraft.originalReleaseDate}
+                            onChange={(e) =>
+                              setTrackDraft((d) =>
+                                d ? { ...d, originalReleaseDate: e.target.value } : d
+                              )
+                            }
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Дата, когда этот релиз был опубликован впервые
+                          </p>
+                        </div>
+                      </>
                     ) : null}
                     <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
@@ -2976,6 +3019,40 @@ export default function TracksPageClient() {
                             )
                           }
                         />
+                        {(selectedTrack.moderationNotesHistory?.length ?? 0) > 0 ? (
+                          <div className="space-y-2 rounded-md bg-muted/30 px-3 py-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              История комментариев
+                            </p>
+                            <ul className="space-y-2">
+                              {[...(selectedTrack.moderationNotesHistory ?? [])]
+                                .slice()
+                                .reverse()
+                                .map((entry, idx) => (
+                                  <li
+                                    key={`${entry.at}-${idx}`}
+                                    className="border-l-2 border-border/60 pl-3 text-sm"
+                                  >
+                                    <p className="text-xs text-muted-foreground">
+                                      {(() => {
+                                        try {
+                                          return format(new Date(entry.at), "d MMM yyyy, HH:mm", {
+                                            locale: ru,
+                                          })
+                                        } catch {
+                                          return entry.at
+                                        }
+                                      })()}
+                                      {entry.fromStatus ? ` · ${entry.fromStatus}` : null}
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-muted-foreground/90">
+                                      {entry.note}
+                                    </p>
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
 

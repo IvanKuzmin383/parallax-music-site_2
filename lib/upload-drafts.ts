@@ -32,6 +32,8 @@ export interface UploadDraftPayload {
   transferIsrc?: string
   /** Название предыдущего дистрибьютора (если transferFromOtherDistributor) */
   previousDistributor?: string
+  /** Оригинальная дата релиза при переносе (yyyy-MM-dd) */
+  originalReleaseDate?: string
   /** Область дистрибуции: all | ru | foreign */
   streamingScope?: string
   albumTitle?: string

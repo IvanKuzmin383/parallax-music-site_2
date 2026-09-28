@@ -38,6 +38,7 @@ export type TrackMetadataFieldKey =
   | "audioPath"
   | "hasExplicitLanguage"
   | "previousDistributor"
+  | "originalReleaseDate"
   | "tiktokSoundStartSec"
 
 export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> = {
@@ -55,6 +56,7 @@ export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> 
   audioPath: "Аудиофайл",
   hasExplicitLanguage: "Ненормативная лексика",
   previousDistributor: "Предыдущий дистрибьютор",
+  originalReleaseDate: "Оригинальная дата релиза",
   tiktokSoundStartSec: "Начало звука в ТикТок",
 }
 
@@ -109,6 +111,12 @@ export function getIncompleteTrackMetadataFields(
     (track.previousDistributor ?? "").trim().length < 2
   ) {
     missing.push("previousDistributor")
+  }
+  if (
+    track.transferFromOtherDistributor &&
+    !/^\d{4}-\d{2}-\d{2}$/.test((track.originalReleaseDate ?? "").trim())
+  ) {
+    missing.push("originalReleaseDate")
   }
   if (
     track.tiktokSoundStartSec != null &&

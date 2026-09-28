@@ -93,6 +93,7 @@ import { validateTrackMetadata } from "@/lib/track-meta-validation"
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
 import { ModerationNoteAside } from "@/components/cabinet/releases/release-detail-panels"
+import { shouldShowModerationNoteToArtist } from "@/lib/moderation-note-history"
 import {
   TrackAiLabelingFields,
 } from "./track-ai-labeling-fields"
@@ -442,6 +443,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     isrc: track.isrc,
     transferFromOtherDistributor: track.transferFromOtherDistributor,
     previousDistributor: track.previousDistributor,
+    originalReleaseDate: track.originalReleaseDate,
     aiLabeling: track.aiLabeling ?? null,
     streamingScope: streamingScopeRef.current,
     tiktokSoundStartSec: track.tiktokSoundStartSec ?? 0,
@@ -1142,6 +1144,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }
 
   const moderationNote = useMemo(() => {
+    const status = tracks[0]?.status
+    if (!shouldShowModerationNoteToArtist(status)) return null
     for (const track of tracks) {
       const note = track.moderationNote?.trim()
       if (note) return note
@@ -1356,160 +1360,159 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start">
             <div className="space-y-4 min-w-0">
-              <div>
-                <Label>Название релиза *</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} disabled={formDisabled} />
+              <div className="grid gap-4 md:grid-cols-2 md:items-start">
+                <div>
+                  <Label>Название релиза *</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} disabled={formDisabled} />
+                </div>
+                <div>
+                  <Label>Имя артиста / название группы *</Label>
+                  <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
+                </div>
               </div>
-              <div>
-                <Label>Имя артиста / название группы *</Label>
-                <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
-              </div>
-              <div>
-                <Label>Дата релиза *</Label>
-                <Popover
-                  open={datePopoverOpen}
-                  onOpenChange={(open) => {
-                    setDatePopoverOpen(open)
-                    if (open) {
-                      const focusDate = releaseDate ?? earliestAvailableDate
-                      setCalendarMonth(focusDate)
-                      if (!releaseDate) {
-                        let candidate = earliestAvailableDate
-                        for (let i = 0; i < 60; i++) {
-                          const ymd = format(candidate, "yyyy-MM-dd")
-                          if (
-                            isReleaseDateSelectable(candidate) &&
-                            !occupiedReleaseDates.has(ymd)
-                          ) {
-                            setReleaseDate(candidate)
-                            break
+              <div className="grid gap-4 md:grid-cols-2 md:items-start">
+                <div>
+                  <Label>Дата релиза *</Label>
+                  <Popover
+                    open={datePopoverOpen}
+                    onOpenChange={(open) => {
+                      setDatePopoverOpen(open)
+                      if (open) {
+                        const focusDate = releaseDate ?? earliestAvailableDate
+                        setCalendarMonth(focusDate)
+                        if (!releaseDate) {
+                          let candidate = earliestAvailableDate
+                          for (let i = 0; i < 60; i++) {
+                            const ymd = format(candidate, "yyyy-MM-dd")
+                            if (
+                              isReleaseDateSelectable(candidate) &&
+                              !occupiedReleaseDates.has(ymd)
+                            ) {
+                              setReleaseDate(candidate)
+                              break
+                            }
+                            candidate = new Date(candidate)
+                            candidate.setDate(candidate.getDate() + 1)
                           }
-                          candidate = new Date(candidate)
-                          candidate.setDate(candidate.getDate() + 1)
                         }
                       }
-                    }
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start hover:scale-100 hover:shadow-none hover:border-border focus-visible:ring-0 focus-visible:border-border active:scale-100",
-                        !releaseDate && "text-muted-foreground",
-                      )}
-                      disabled={formDisabled}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      month={calendarMonth}
-                      onMonthChange={setCalendarMonth}
-                      selected={releaseDate}
-                      onSelect={(date) => {
-                        if (date && occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))) {
-                          toast.error(RELEASE_DATE_OCCUPIED_MESSAGE)
-                          return
-                        }
-                        setReleaseDate(date)
-                        if (date && !isShortReleaseDate(date)) {
-                          setAcceptShortReleaseDate(false)
-                        }
-                        if (date) setDatePopoverOpen(false)
-                      }}
-                      autoFocus
-                      disabled={(date) =>
-                        formDisabled ||
-                        !isReleaseDateSelectable(date) ||
-                        occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))
-                      }
-                      modifiers={{
-                        tierAccelerated: (date) =>
-                          !formDisabled && getReleaseDateCalendarTier(date) === "accelerated",
-                        tierFast: (date) =>
-                          !formDisabled && getReleaseDateCalendarTier(date) === "fast",
-                        tierStandard: (date) =>
-                          !formDisabled && getReleaseDateCalendarTier(date) === "standard",
-                      }}
-                      modifiersClassNames={{
-                        tierAccelerated:
-                          "[&_button]:!bg-emerald-500/30 [&_button]:!text-emerald-100 [&_button]:!border [&_button]:!border-emerald-500/80 [&_button]:rounded-md",
-                        tierFast:
-                          "[&_button]:!bg-sky-500/30 [&_button]:!text-sky-100 [&_button]:!border [&_button]:!border-sky-500/80 [&_button]:rounded-md",
-                        tierStandard:
-                          "[&_button]:!bg-orange-500/25 [&_button]:!text-orange-100 [&_button]:!border [&_button]:!border-orange-500/70 [&_button]:rounded-md",
-                      }}
-                      classNames={{
-                        today: "bg-transparent",
-                        selected:
-                          "[&_button]:!bg-primary [&_button]:!text-primary-foreground [&_button]:!border-primary",
-                      }}
-                    />
-                    <div className="space-y-1.5 border-t border-border px-3 py-2.5 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
-                        <span>
-                          {RELEASE_DATE_TIER_LABEL.accelerated}: {RELEASE_DATE_TIER_PRICE_RUB.accelerated}₽
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
-                        <span>
-                          {RELEASE_DATE_TIER_LABEL.fast}: {RELEASE_DATE_TIER_PRICE_RUB.fast}₽
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
-                        <span>
-                          {RELEASE_DATE_TIER_LABEL.standard}: {RELEASE_DATE_TIER_PRICE_RUB.standard}₽
-                        </span>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ближайшая доступная дата — 3-й рабочий день. Стандартная загрузка (0₽) — с 14-го
-                  календарного дня. Питчинг — минимум за 14 дней. В один день — не больше одного релиза
-                  на модерации и дальше.
-                </p>
-                {releaseDateOccupied ? (
-                  <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                    {RELEASE_DATE_OCCUPIED_MESSAGE}
-                  </div>
-                ) : null}
-                {selectedReleaseTier ? (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
-                  </p>
-                ) : null}
-                {showShortDateRisk ? (
-                  <div className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
-                    <p className="text-xs text-amber-100/90">
-                      Площадки могут не успеть проверить и доставить релиз вовремя. Стандартный срок и
-                      питчинг — минимум за 14 календарных дней.
-                    </p>
-                    <label className="flex items-start gap-2 text-sm">
-                      <Checkbox
-                        className="mt-0.5 shrink-0"
-                        checked={acceptShortReleaseDate}
-                        onCheckedChange={(c) => setAcceptShortReleaseDate(c === true)}
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start hover:scale-100 hover:shadow-none hover:border-border focus-visible:ring-0 focus-visible:border-border active:scale-100",
+                          !releaseDate && "text-muted-foreground",
+                        )}
                         disabled={formDisabled}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {releaseDate ? format(releaseDate, "dd.MM.yyyy", { locale: ru }) : "Выберите дату"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        month={calendarMonth}
+                        onMonthChange={setCalendarMonth}
+                        selected={releaseDate}
+                        onSelect={(date) => {
+                          if (date && occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))) {
+                            toast.error(RELEASE_DATE_OCCUPIED_MESSAGE)
+                            return
+                          }
+                          setReleaseDate(date)
+                          if (date && !isShortReleaseDate(date)) {
+                            setAcceptShortReleaseDate(false)
+                          }
+                          if (date) setDatePopoverOpen(false)
+                        }}
+                        autoFocus
+                        disabled={(date) =>
+                          formDisabled ||
+                          !isReleaseDateSelectable(date) ||
+                          occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))
+                        }
+                        modifiers={{
+                          tierAccelerated: (date) =>
+                            !formDisabled && getReleaseDateCalendarTier(date) === "accelerated",
+                          tierFast: (date) =>
+                            !formDisabled && getReleaseDateCalendarTier(date) === "fast",
+                          tierStandard: (date) =>
+                            !formDisabled && getReleaseDateCalendarTier(date) === "standard",
+                        }}
+                        modifiersClassNames={{
+                          tierAccelerated:
+                            "[&_button]:!bg-emerald-500/30 [&_button]:!text-emerald-100 [&_button]:!border [&_button]:!border-emerald-500/80 [&_button]:rounded-md",
+                          tierFast:
+                            "[&_button]:!bg-sky-500/30 [&_button]:!text-sky-100 [&_button]:!border [&_button]:!border-sky-500/80 [&_button]:rounded-md",
+                          tierStandard:
+                            "[&_button]:!bg-orange-500/25 [&_button]:!text-orange-100 [&_button]:!border [&_button]:!border-orange-500/70 [&_button]:rounded-md",
+                        }}
+                        classNames={{
+                          today: "bg-transparent",
+                          selected:
+                            "[&_button]:!bg-primary [&_button]:!text-primary-foreground [&_button]:!border-primary",
+                        }}
                       />
-                      <span>Я принимаю риск короткого срока, отправить с этой датой</span>
-                    </label>
-                  </div>
-                ) : null}
-              </div>
-              <div>
-                <Label>UPC / EAN</Label>
-                <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Если у релиза уже есть UPC - укажите его. Если нет, мы присвоим код автоматически
-                </p>
+                      <div className="space-y-1.5 border-t border-border px-3 py-2.5 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+                          <span>
+                            {RELEASE_DATE_TIER_LABEL.accelerated}: {RELEASE_DATE_TIER_PRICE_RUB.accelerated}₽
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
+                          <span>
+                            {RELEASE_DATE_TIER_LABEL.fast}: {RELEASE_DATE_TIER_PRICE_RUB.fast}₽
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
+                          <span>
+                            {RELEASE_DATE_TIER_LABEL.standard}: {RELEASE_DATE_TIER_PRICE_RUB.standard}₽
+                          </span>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {releaseDateOccupied ? (
+                    <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                      {RELEASE_DATE_OCCUPIED_MESSAGE}
+                    </div>
+                  ) : null}
+                  {selectedReleaseTier ? (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
+                    </p>
+                  ) : null}
+                  {showShortDateRisk ? (
+                    <div className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+                      <p className="text-xs text-amber-100/90">
+                        Площадки могут не успеть проверить и доставить релиз вовремя. Стандартный срок и
+                        питчинг — минимум за 14 календарных дней.
+                      </p>
+                      <label className="flex items-start gap-2 text-sm">
+                        <Checkbox
+                          className="mt-0.5 shrink-0"
+                          checked={acceptShortReleaseDate}
+                          onCheckedChange={(c) => setAcceptShortReleaseDate(c === true)}
+                          disabled={formDisabled}
+                        />
+                        <span>Я принимаю риск короткого срока, отправить с этой датой</span>
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+                <div>
+                  <Label>UPC / EAN</Label>
+                  <Input value={upc} onChange={(e) => setUpc(e.target.value)} maxLength={32} placeholder="Необязательно" disabled={formDisabled} />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Если у релиза уже есть UPC - укажите его. Если нет, мы присвоим код автоматически
+                  </p>
+                </div>
               </div>
               <StreamingServicesField
                 value={streamingScope}
@@ -1520,7 +1523,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
                 <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                   <Checkbox
-                    className="mt-0.5 shrink-0"
+                    className="mt-0.5 shrink-0 border-red-600 data-[state=checked]:border-red-600 data-[state=checked]:bg-red-600 data-[state=checked]:text-white dark:data-[state=checked]:border-red-600 dark:data-[state=checked]:bg-red-600"
                     checked={requestAiCover}
                     onCheckedChange={(c) => setRequestAiCover(c === true)}
                     disabled={formDisabled}
@@ -1528,7 +1531,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   <span>Необходимо создание AI-обложки</span>
                 </label>
                 <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-                  <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">
+                  <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-emerald-500">
                     {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
                   </span>
                   <Button
@@ -1601,7 +1604,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   </Button>
                 ) : null}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm font-medium text-amber-200">
                 JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.
               </p>
               <div>
@@ -1611,7 +1614,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   onValueChange={(v) => setCoverCreatedWithAi(v as CoverAiLevel)}
                   disabled={formDisabled}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Выберите" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1895,7 +1898,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
                 <Checkbox
-                  className="mt-0.5 shrink-0"
+                  className="mt-0.5 shrink-0 border-red-600 data-[state=checked]:border-red-600 data-[state=checked]:bg-red-600 data-[state=checked]:text-white dark:data-[state=checked]:border-red-600 dark:data-[state=checked]:bg-red-600"
                   checked={requestAiCover}
                   onCheckedChange={(c) => setRequestAiCover(c === true)}
                   disabled={formDisabled}
@@ -1903,7 +1906,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 <span>AI обложка для трека</span>
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums">500 руб. / шт.</span>
+                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-emerald-500">500 руб. / шт.</span>
                 <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("aiCover")} disabled={formDisabled}>
                   Подробнее
                 </Button>
@@ -1938,10 +1941,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           {moderationNote ? (
             <ModerationNoteAside note={moderationNote} maxHeight={140} />
           ) : null}
-          <div className="flex items-start overflow-hidden rounded-lg border border-border bg-muted/20">
-            <div className="relative aspect-square w-40 sm:w-48 shrink-0 bg-muted">
+          <div className="flex items-stretch overflow-hidden rounded-lg bg-muted/20">
+            <div className="relative aspect-square shrink-0 self-stretch bg-muted">
               {coverPreview ? (
-                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized sizes="192px" />
+                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized sizes="320px" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Upload className="h-8 w-8 text-muted-foreground" />
@@ -1966,7 +1969,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               ))}
             </div>
           </div>
-          <div className="flex flex-row items-start gap-3 rounded-md border border-border p-4">
+          <div className="flex flex-row items-start gap-3 rounded-md p-4">
             <Checkbox
               id="consent-offer"
               checked={consentOffer}

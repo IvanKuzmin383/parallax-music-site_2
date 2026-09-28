@@ -18,6 +18,7 @@ import { applySharedAlbumReleaseDate } from "@/lib/album-release-date-sync"
 import { GENRES, TRACK_MOODS, STREAMING_SCOPES } from "@/lib/track-constants"
 import { DEFAULT_RELEASE_LABEL_NAME } from "@/lib/release-label"
 import { mergePartialPlatformLinks } from "@/lib/smartlink-platforms"
+import { archiveModerationNote } from "@/lib/moderation-note-history"
 
 const optionalUrl = z.union([z.string().url(), z.literal("")]).optional()
 
@@ -64,6 +65,13 @@ const patchBodySchema = z.object({
   isrc: z.string().max(32).optional().nullable(),
   transferFromOtherDistributor: z.boolean().optional(),
   previousDistributor: z.string().max(100).optional().nullable(),
+  originalReleaseDate: z
+    .union([
+      z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      z.literal(""),
+      z.null(),
+    ])
+    .optional(),
   streamingScope: z.enum([...STREAMING_SCOPES] as [string, ...string[]]).optional(),
   smartlinkSlug: z.string().max(80).optional().nullable(),
   albumId: z.string().uuid().optional().nullable(),
@@ -224,10 +232,19 @@ export async function PATCH(
     }
   }
   if (data.moderationNote !== undefined && !syncReleaseModeration) {
-    updatePayload.moderationNote =
+    const nextNote =
       data.moderationNote && data.moderationNote.trim().length > 0
         ? data.moderationNote.trim()
         : null
+    const prev = current.moderationNote?.trim()
+    if (prev && prev !== (nextNote ?? "")) {
+      updatePayload.moderationNotesHistory = archiveModerationNote(
+        current.moderationNotesHistory,
+        prev,
+        current.status
+      )
+    }
+    updatePayload.moderationNote = nextNote
   }
   if (data.catalogNumber !== undefined) {
     updatePayload.catalogNumber = data.catalogNumber?.trim() || null
@@ -239,6 +256,11 @@ export async function PATCH(
   }
   if (data.previousDistributor !== undefined) {
     updatePayload.previousDistributor = data.previousDistributor?.trim() || null
+  }
+  if (data.originalReleaseDate !== undefined) {
+    const raw = data.originalReleaseDate
+    updatePayload.originalReleaseDate =
+      typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? raw.trim() : null
   }
   if (data.streamingScope !== undefined) {
     updatePayload.streamingScope = data.streamingScope as Track["streamingScope"]

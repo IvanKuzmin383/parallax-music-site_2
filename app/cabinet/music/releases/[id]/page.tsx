@@ -22,8 +22,14 @@ import {
   ReleaseInfoButton,
   ReleaseTrackListPlayer,
 } from "@/components/cabinet/releases/release-detail-panels"
+import { ReleaseStatusTimeline } from "@/components/cabinet/releases/release-status-timeline"
+import { ReleasePlatformMeta } from "@/components/cabinet/releases/release-platform-meta"
 import type { Release } from "@/lib/releases"
 import type { Track } from "@/lib/tracks"
+import { shouldShowModerationNoteToArtist } from "@/lib/moderation-note-history"
+import { streamingScopeShortLabel } from "@/components/streaming-services-field"
+import type { PlatformLinks } from "@/lib/smartlink-platforms"
+import { PLATFORM_LINK_KEYS } from "@/lib/smartlink-platforms"
 import { cn } from "@/lib/utils"
 
 const ACCENT_BG: Record<string, string> = {
@@ -86,12 +92,14 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
   }, [id])
 
   const moderationNote = useMemo(() => {
+    const status = entityRelease?.status ?? tracks[0]?.status
+    if (!shouldShowModerationNoteToArtist(status)) return null
     for (const t of tracks) {
       const note = t.moderationNote?.trim()
       if (note) return note
     }
     return null
-  }, [tracks])
+  }, [entityRelease?.status, tracks])
 
   const loading = listLoading || detailLoading
 
@@ -149,6 +157,42 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         ? `Альбом · ${tracks.length}`
         : "Сингл"
   const audioReleaseId = entityRelease?.id ?? tracks[0]?.releaseId ?? null
+  const pipelineStatus = entityRelease?.status ?? tracks[0]?.status
+  const pipelineCreatedAt = entityRelease?.createdAt ?? tracks[0]?.createdAt
+  const pipelineUpdatedAt = entityRelease?.updatedAt ?? tracks[0]?.updatedAt
+
+  const upc =
+    entityRelease?.upc?.trim() ||
+    tracks.map((t) => t.upc?.trim()).find(Boolean) ||
+    null
+  const isrc = (() => {
+    const values = tracks.map((t) => t.isrc?.trim()).filter(Boolean) as string[]
+    if (values.length === 0) return null
+    if (!isAlbum) return values[0]
+    const unique = [...new Set(values)]
+    return unique.length === 1 ? unique[0] : unique.join(", ")
+  })()
+  const genre = (() => {
+    const values = tracks.map((t) => t.genre?.trim()).filter(Boolean) as string[]
+    if (values.length === 0) return null
+    return [...new Set(values)].join(", ")
+  })()
+  const territory = tracks[0]?.streamingScope
+    ? streamingScopeShortLabel(tracks[0].streamingScope)
+    : null
+  const smartlinkSlug = tracks.map((t) => t.smartlinkSlug?.trim()).find(Boolean) || null
+  const platformLinks = (() => {
+    const merged: PlatformLinks = {}
+    for (const track of tracks) {
+      const links = track.platformLinks
+      if (!links) continue
+      for (const key of PLATFORM_LINK_KEYS) {
+        const url = links[key]?.trim()
+        if (url && !merged[key]) merged[key] = url
+      }
+    }
+    return merged
+  })()
 
   return (
     <div className="w-full max-w-none space-y-8">
@@ -193,20 +237,29 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
                   {relativeDate ? ` · ${relativeDate}` : ""}
                 </p>
               ) : null}
-              {releaseView?.platforms && releaseView.platforms.length > 0 ? (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {releaseView.platforms.map((p) => (
-                    <span key={p} className="text-xs rounded-full border border-border px-2.5 py-1">
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
               <ReleaseInfoButton release={entityRelease} tracks={tracks} />
             </div>
           </div>
           {moderationNote ? <ModerationNoteAside note={moderationNote} className="sm:max-w-sm" /> : null}
         </section>
+
+        <ReleaseStatusTimeline
+          status={pipelineStatus}
+          createdAt={pipelineCreatedAt}
+          updatedAt={pipelineUpdatedAt}
+          releaseDate={releaseDate}
+          className="pt-2 sm:pt-4"
+        />
+
+        <ReleasePlatformMeta
+          upc={upc}
+          isrc={isrc}
+          genre={genre}
+          territory={territory}
+          smartlinkSlug={smartlinkSlug}
+          platformLinks={platformLinks}
+          className="pt-2"
+        />
       </div>
 
       {tracks.length > 0 ? (
@@ -224,7 +277,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         <div>
           <h2 className="text-xl font-semibold">Что можно сделать?</h2>
           <p className="text-sm text-muted-foreground">
-            Следующие шаги для «{title}» — продвижение, оформление и инструменты
+            Следующие шаги для релиза «{title}» — продвижение, оформление и инструменты
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

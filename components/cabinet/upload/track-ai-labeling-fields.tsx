@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import {
   AI_LABELING_COMPOSITION_FIELDS,
@@ -41,17 +42,17 @@ function ChoicePill({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors",
+        "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
         selected
-          ? "border-primary bg-primary/10 text-foreground"
-          : "border-border text-muted-foreground",
+          ? "bg-primary/15 text-foreground"
+          : "bg-muted/40 text-muted-foreground hover:bg-muted/60",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       )}
     >
       <span
         className={cn(
           "flex h-4 w-4 items-center justify-center rounded-full border",
-          selected ? "border-primary" : "border-muted-foreground/50",
+          selected ? "border-primary" : "border-muted-foreground/40",
         )}
       >
         {selected ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
@@ -83,6 +84,21 @@ function DetailChoiceRow({
           onClick={() => onChange(choice)}
         />
       ))}
+    </div>
+  )
+}
+
+function DetailFieldRow({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <p className="text-sm text-muted-foreground sm:min-w-[14rem] sm:shrink-0">{label}</p>
+      <div className="min-w-0 sm:flex-1 sm:flex sm:justify-end">{children}</div>
     </div>
   )
 }
@@ -153,79 +169,49 @@ export function TrackAiLabelingFields({
       </div>
 
       {mode === "partial" ? (
-        <div className="space-y-4 rounded-md border border-border p-4">
+        <div className="space-y-6 rounded-xl bg-muted/20 px-4 py-4 sm:px-5">
           <div>
-            <h4 className="font-medium">Подробно об ИИ в треке</h4>
-            <p className="text-xs text-muted-foreground mt-1">
+            <h4 className="font-medium">Детально об ИИ в треке</h4>
+            <p className="mt-1 text-xs text-muted-foreground">
               Укажите, кто участвовал в каждом этапе создания композиции и итоговой фонограммы.
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[36rem] text-sm">
-              <tbody>
-                <tr className="border-b border-border">
-                  <td
-                    rowSpan={AI_LABELING_COMPOSITION_FIELDS.length}
-                    className="w-40 align-middle border-r border-border bg-muted/20 px-3 py-3 font-medium"
-                  >
-                    Композиция (авторство)
-                  </td>
-                  <td className="border-r border-border px-3 py-2.5">
-                    {AI_LABELING_COMPOSITION_FIELDS[0].label}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <DetailChoiceRow
-                      value={details.musicAuthorship}
-                      options={AI_LABELING_DETAIL_BINARY_LABELS}
-                      disabled={disabled}
-                      onChange={(v) => setDetail("musicAuthorship", v as AiBinaryChoice)}
-                    />
-                  </td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="border-r border-border px-3 py-2.5">
-                    {AI_LABELING_COMPOSITION_FIELDS[1].label}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <DetailChoiceRow
-                      value={details.lyricsAuthorship}
-                      options={AI_LABELING_DETAIL_BINARY_LABELS}
-                      disabled={disabled}
-                      onChange={(v) => setDetail("lyricsAuthorship", v as AiBinaryChoice)}
-                    />
-                  </td>
-                </tr>
+          <section className="space-y-3">
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Композиция (авторство)
+            </h5>
+            <div className="space-y-3">
+              {AI_LABELING_COMPOSITION_FIELDS.map((field) => (
+                <DetailFieldRow key={field.key} label={field.label}>
+                  <DetailChoiceRow
+                    value={details[field.key] as string}
+                    options={AI_LABELING_DETAIL_BINARY_LABELS}
+                    disabled={disabled}
+                    onChange={(v) => setDetail(field.key, v as AiBinaryChoice)}
+                  />
+                </DetailFieldRow>
+              ))}
+            </div>
+          </section>
 
-                {AI_LABELING_RECORDING_FIELDS.map((field, index) => (
-                  <tr
-                    key={field.key}
-                    className={cn(
-                      index < AI_LABELING_RECORDING_FIELDS.length - 1 && "border-b border-border",
-                    )}
-                  >
-                    {index === 0 ? (
-                      <td
-                        rowSpan={AI_LABELING_RECORDING_FIELDS.length}
-                        className="w-40 align-middle border-r border-border bg-muted/20 px-3 py-3 font-medium"
-                      >
-                        Звукозапись трека
-                      </td>
-                    ) : null}
-                    <td className="border-r border-border px-3 py-2.5">{field.label}</td>
-                    <td className="px-3 py-2.5">
-                      <DetailChoiceRow
-                        value={details[field.key] as string}
-                        options={AI_LABELING_DETAIL_TERNARY_LABELS}
-                        disabled={disabled}
-                        onChange={(v) => setDetail(field.key, v as AiTernaryChoice)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <section className="space-y-3">
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Звукозапись трека
+            </h5>
+            <div className="space-y-3">
+              {AI_LABELING_RECORDING_FIELDS.map((field) => (
+                <DetailFieldRow key={field.key} label={field.label}>
+                  <DetailChoiceRow
+                    value={details[field.key] as string}
+                    options={AI_LABELING_DETAIL_TERNARY_LABELS}
+                    disabled={disabled}
+                    onChange={(v) => setDetail(field.key, v as AiTernaryChoice)}
+                  />
+                </DetailFieldRow>
+              ))}
+            </div>
+          </section>
         </div>
       ) : null}
     </div>

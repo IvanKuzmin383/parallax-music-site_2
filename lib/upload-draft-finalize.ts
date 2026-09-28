@@ -34,6 +34,7 @@ import {
   backfillMissingTrackAcceptancesForUser,
   tryRecordLicenseAcceptanceForTrack,
 } from "@/lib/legal-acceptance"
+import { archiveModerationNote } from "@/lib/moderation-note-history"
 
 export type FinalizeUploadDraftContext = {
   clientIp?: string | null
@@ -100,6 +101,7 @@ function readSingleTrackTransferFromPayload(payload: {
   transferUpc?: unknown
   transferIsrc?: unknown
   previousDistributor?: unknown
+  originalReleaseDate?: unknown
 }):
   | {
       ok: true
@@ -107,12 +109,14 @@ function readSingleTrackTransferFromPayload(payload: {
       upc: string | null
       isrc: string | null
       previousDistributor: string | null
+      originalReleaseDate: string | null
     }
   | { ok: false; error: string } {
   const transfer = Boolean(payload.transferFromOtherDistributor)
   const upc = `${payload.transferUpc ?? ""}`.trim()
   const isrc = `${payload.transferIsrc ?? ""}`.trim()
   const previousDistributor = `${payload.previousDistributor ?? ""}`.trim()
+  const originalReleaseDateRaw = `${payload.originalReleaseDate ?? ""}`.trim().slice(0, 10)
   if (upc.length > 32) return { ok: false, error: "UPC не длиннее 32 символов" }
   if (isrc.length > 32) return { ok: false, error: "ISRC не длиннее 32 символов" }
   if (previousDistributor.length > 100) {
@@ -121,12 +125,16 @@ function readSingleTrackTransferFromPayload(payload: {
   if (transfer && previousDistributor.length < 2) {
     return { ok: false, error: "Укажите предыдущего дистрибьютора" }
   }
+  if (transfer && !/^\d{4}-\d{2}-\d{2}$/.test(originalReleaseDateRaw)) {
+    return { ok: false, error: "Укажите оригинальную дату релиза" }
+  }
   return {
     ok: true,
     transfer,
     upc: upc || null,
     isrc: isrc || null,
     previousDistributor: transfer ? previousDistributor : null,
+    originalReleaseDate: transfer ? originalReleaseDateRaw : null,
   }
 }
 
@@ -257,7 +265,20 @@ export async function finalizeUploadDraftCore(
       const toCharge = pendingTracks.filter((t) => !t.fixPackCreditsCharged)
       for (const t of tracks) {
         if (t.status === "upload_pending") {
-          await updateTrack(t.id, { status: "on_moderation" })
+          const note = t.moderationNote?.trim()
+          await updateTrack(t.id, {
+            status: "on_moderation",
+            ...(note
+              ? {
+                  moderationNote: null,
+                  moderationNotesHistory: archiveModerationNote(
+                    t.moderationNotesHistory,
+                    note,
+                    t.status
+                  ),
+                }
+              : {}),
+          })
         }
       }
       await logLicenseAcceptancesForTracks(tracks, context, { occurredAtIso: new Date().toISOString() })
@@ -292,6 +313,7 @@ export async function finalizeUploadDraftCore(
     const albumUpc = `${payload.transferUpc ?? ""}`.trim()
     const albumTransfer = Boolean(payload.transferFromOtherDistributor)
     const previousDistributor = `${payload.previousDistributor ?? ""}`.trim()
+    const originalReleaseDateRaw = `${payload.originalReleaseDate ?? ""}`.trim().slice(0, 10)
     if (albumUpc.length > 32) {
       return { ok: false, error: "UPC не длиннее 32 символов", status: 400 }
     }
@@ -300,6 +322,9 @@ export async function finalizeUploadDraftCore(
     }
     if (albumTransfer && previousDistributor.length < 2) {
       return { ok: false, error: "Укажите предыдущего дистрибьютора", status: 400 }
+    }
+    if (albumTransfer && !/^\d{4}-\d{2}-\d{2}$/.test(originalReleaseDateRaw)) {
+      return { ok: false, error: "Укажите оригинальную дату релиза", status: 400 }
     }
     for (const t of tracksRaw) {
       const isrc = `${t.isrc ?? ""}`.trim()
@@ -468,6 +493,7 @@ export async function finalizeUploadDraftCore(
         isrc: `${t.isrc ?? ""}`.trim() || undefined,
         transferFromOtherDistributor: albumTransfer,
         previousDistributor: albumTransfer ? previousDistributor : undefined,
+        originalReleaseDate: albumTransfer ? originalReleaseDateRaw : undefined,
       })
       createdTracks.push(track)
     }
@@ -596,6 +622,7 @@ export async function finalizeUploadDraftCore(
       }
     }
 
+    const prevNote = sourceTrack.moderationNote?.trim()
     const track = await updateTrack(sourceTrack.id, {
       trackName,
       artistName,
@@ -623,6 +650,17 @@ export async function finalizeUploadDraftCore(
       isrc: xfer.isrc,
       transferFromOtherDistributor: xfer.transfer,
       previousDistributor: xfer.previousDistributor,
+      originalReleaseDate: xfer.originalReleaseDate,
+      ...(prevNote
+        ? {
+            moderationNote: null,
+            moderationNotesHistory: archiveModerationNote(
+              sourceTrack.moderationNotesHistory,
+              prevNote,
+              sourceTrack.status
+            ),
+          }
+        : {}),
     })
 
     if (!track) return { ok: false, error: "Не удалось обновить трек", status: 500 }
@@ -698,6 +736,7 @@ export async function finalizeUploadDraftCore(
     isrc: xferNew.isrc ?? undefined,
     transferFromOtherDistributor: xferNew.transfer,
     previousDistributor: xferNew.previousDistributor ?? undefined,
+    originalReleaseDate: xferNew.originalReleaseDate ?? undefined,
   })
 
   await logLicenseAcceptancesForTracks([track], context)

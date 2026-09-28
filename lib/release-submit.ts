@@ -29,6 +29,7 @@ import {
   type Track,
 } from "@/lib/tracks"
 import { withTransaction } from "@/lib/database"
+import { archiveModerationNote } from "@/lib/moderation-note-history"
 import {
   backfillMissingTrackAcceptancesForUser,
   tryRecordLicenseAcceptanceForTrack,
@@ -217,7 +218,8 @@ export async function submitReleaseToModeration(
 
   const updatedTracks: Track[] = []
   for (const track of tracks) {
-    const updated = await updateTrack(track.id, {
+    const note = track.moderationNote?.trim()
+    const patch: Parameters<typeof updateTrack>[1] = {
       trackName: track.trackName.trim(),
       artistName,
       labelName: releaseLabelName,
@@ -228,7 +230,16 @@ export async function submitReleaseToModeration(
       upc: upc ?? track.upc,
       albumId: albumId ?? track.albumId,
       releaseId: release.id,
-    })
+    }
+    if (isResubmitAfterRevision && note) {
+      patch.moderationNote = null
+      patch.moderationNotesHistory = archiveModerationNote(
+        track.moderationNotesHistory,
+        note,
+        release.status
+      )
+    }
+    const updated = await updateTrack(track.id, patch)
     if (!updated) return { ok: false, error: "Не удалось обновить трек", status: 500 }
     updatedTracks.push(updated)
   }
