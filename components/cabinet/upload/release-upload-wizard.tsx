@@ -1938,10 +1938,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           {moderationNote ? (
             <ModerationNoteAside note={moderationNote} maxHeight={140} />
           ) : null}
-          <div className="flex items-stretch overflow-hidden rounded-lg border border-border bg-muted/20">
-            <div className="relative w-[7.5rem] sm:w-40 shrink-0 self-stretch bg-muted min-h-[10rem]">
+          <div className="flex items-start overflow-hidden rounded-lg border border-border bg-muted/20">
+            <div className="relative aspect-square w-40 sm:w-48 shrink-0 bg-muted">
               {coverPreview ? (
-                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized sizes="160px" />
+                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized sizes="192px" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Upload className="h-8 w-8 text-muted-foreground" />

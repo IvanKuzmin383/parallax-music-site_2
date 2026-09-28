@@ -205,7 +205,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
               <ReleaseInfoButton release={entityRelease} tracks={tracks} />
             </div>
           </div>
-          {moderationNote ? <ModerationNoteAside note={moderationNote} /> : null}
+          {moderationNote ? <ModerationNoteAside note={moderationNote} className="sm:max-w-sm" /> : null}
         </section>
       </div>
 

@@ -437,10 +437,12 @@ export function ReleaseInfoButton({
 export function ModerationNoteAside({
   note,
   maxHeight,
+  className,
 }: {
   note: string
   /** Не выше блока обложки; длинный текст — скролл и «Показать полностью» в модалке. */
   maxHeight?: number | null
+  className?: string
 }) {
   const [open, setOpen] = useState(false)
   const bodyRef = useRef<HTMLParagraphElement>(null)
@@ -467,9 +469,10 @@ export function ModerationNoteAside({
     <>
       <aside
         className={cn(
-          "flex w-full sm:max-w-sm shrink-0 flex-col rounded-lg border px-4 py-3",
+          "flex w-full shrink-0 flex-col rounded-lg border px-4 py-3",
           "border-[#C08240]/55 bg-[#D48C48]/15",
           "shadow-[0_0_24px_-8px_rgba(212,140,72,0.45)]",
+          className,
         )}
         style={cap ? { maxHeight: cap } : undefined}
       >

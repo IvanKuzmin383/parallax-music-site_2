@@ -10,7 +10,7 @@ function CabinetHomeContent() {
   const { loading, authenticated, refresh } = useCabinetSession()
 
   if (loading) {
-    return (
+  return (
       <div className="flex justify-center py-20">
         <Spinner className="h-8 w-8" />
       </div>
@@ -25,12 +25,12 @@ function CabinetHomeContent() {
 }
 
 export default function CabinetPage() {
-  return (
+    return (
     <Suspense
       fallback={
         <div className="flex justify-center py-20">
           <Spinner className="h-8 w-8" />
-        </div>
+          </div>
       }
     >
       <CabinetHomeContent />
