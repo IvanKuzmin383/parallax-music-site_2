@@ -1,9 +1,4 @@
-import {
-  isUncompressedPcmFormat,
-  parseWavFmtChunk,
-  validateWavChannels,
-  WAV_MONO_NOT_ALLOWED_ERROR,
-} from "@/lib/wav-parse-stereo"
+import { parseWavFmtChunk, validateWavChannels, WAV_MONO_NOT_ALLOWED_ERROR } from "@/lib/wav-parse-stereo"
 
 /** Допустима только частота CD: 44100 Hz */
 export const ALLOWED_WAV_SAMPLE_RATES = new Set([44100])
@@ -27,11 +22,7 @@ export function validateWavFormat(audioBuffer: Buffer): string | null {
     return "В файле нет корректного заголовка RIFF/WAVE - это не WAV или файл повреждён. Нужен несжатый WAV (PCM), 44.1 kHz (44100 Hz), 16 или 24 bit."
   }
 
-  const { audioFormat, numChannels, sampleRate, bitsPerSample } = parsed
-
-  if (!isUncompressedPcmFormat(audioFormat)) {
-    return `В файле не PCM, а другой формат (код ${audioFormat}). Нужен WAV PCM, 44.1 kHz (44100 Hz), 16 или 24 bit.`
-  }
+  const { numChannels, sampleRate, bitsPerSample } = parsed
 
   const channelError = validateWavChannels(numChannels)
   if (channelError) {

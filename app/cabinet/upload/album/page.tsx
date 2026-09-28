@@ -61,7 +61,7 @@ import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-prof
 import { PROFILE_INCOMPLETE_UPLOAD_ERROR_CODE } from "@/lib/cabinet-upload-profile-gate"
 import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, TRACK_PRICE_RUB } from "@/lib/track-pricing"
-import { checkWavFileIsStereo, isUncompressedPcmFormat, parseWavFmtChunk } from "@/lib/wav-parse-stereo"
+import { checkWavFileIsStereo, parseWavFmtChunk } from "@/lib/wav-parse-stereo"
 import type { UploadDraftStatus } from "@/lib/upload-drafts"
 import {
   CabinetUploadAdditionalServicesSection,
@@ -85,7 +85,6 @@ const CLIENT_WAV_PREFIX_BYTES = 512 * 1024
 type AlbumAudioValidationMessages = {
   invalidSmallFile: string
   invalidHeader: string
-  invalidPcm: string
   invalidParams: string
 }
 
@@ -104,10 +103,6 @@ async function checkWavFileSampleRateAndBitDepth(
   const parsed = parseWavFmtChunk(new Uint8Array(prefixBuffer))
   if (!parsed) {
     return messages.invalidHeader
-  }
-
-  if (!isUncompressedPcmFormat(parsed.audioFormat)) {
-    return messages.invalidPcm.replace("{code}", String(parsed.audioFormat))
   }
 
   const badSampleRate = parsed.sampleRate !== 44100
