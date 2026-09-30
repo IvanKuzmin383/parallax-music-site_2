@@ -1484,8 +1484,16 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     </div>
                   ) : null}
                   {selectedReleaseTier ? (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
+                    <p
+                      className={cn(
+                        "mt-0.5 text-xs",
+                        selectedReleaseTier === "standard"
+                          ? "text-muted-foreground"
+                          : "font-medium text-emerald-400",
+                      )}
+                    >
+                      {RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}:{" "}
+                      {RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽
                     </p>
                   ) : null}
                   {showShortDateRisk ? (
@@ -1531,7 +1539,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   <span>Необходимо создание AI-обложки</span>
                 </label>
                 <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-                  <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-emerald-500">
+                  <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
                     {AI_COVER_REQUEST_PRICE_RUB} руб. / шт.
                   </span>
                   <Button
@@ -1604,7 +1612,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   </Button>
                 ) : null}
               </div>
-              <p className="text-sm font-medium text-amber-200">
+              <p className="text-sm text-amber-200">
                 JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.
               </p>
               <div>
@@ -1906,7 +1914,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 <span>AI обложка для трека</span>
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-emerald-500">500 руб. / шт.</span>
+                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">500 руб. / шт.</span>
                 <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("aiCover")} disabled={formDisabled}>
                   Подробнее
                 </Button>
@@ -1941,10 +1949,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           {moderationNote ? (
             <ModerationNoteAside note={moderationNote} maxHeight={140} />
           ) : null}
-          <div className="flex items-stretch overflow-hidden rounded-lg bg-muted/20">
-            <div className="relative aspect-square shrink-0 self-stretch bg-muted">
+          <div className="flex flex-col overflow-hidden rounded-lg bg-muted/20 sm:flex-row sm:items-stretch">
+            <div className="relative mx-auto aspect-square w-48 shrink-0 bg-muted sm:mx-0 sm:h-auto sm:w-52 sm:min-h-[13rem] md:w-60 lg:w-64">
               {coverPreview ? (
-                <Image src={coverPreview} alt="" fill className="object-cover" unoptimized sizes="320px" />
+                <Image
+                  src={coverPreview}
+                  alt="Обложка релиза"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="256px"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Upload className="h-8 w-8 text-muted-foreground" />

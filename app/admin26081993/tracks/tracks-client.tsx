@@ -422,6 +422,7 @@ export default function TracksPageClient() {
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [lyricsExpanded, setLyricsExpanded] = useState(false)
+  const [moderationHistoryExpanded, setModerationHistoryExpanded] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null)
   const [deleteUploadDraftDialogOpen, setDeleteUploadDraftDialogOpen] = useState(false)
@@ -3021,36 +3022,53 @@ export default function TracksPageClient() {
                         />
                         {(selectedTrack.moderationNotesHistory?.length ?? 0) > 0 ? (
                           <div className="space-y-2 rounded-md bg-muted/30 px-3 py-2">
-                            <p className="text-xs font-medium text-muted-foreground">
-                              История комментариев
-                            </p>
-                            <ul className="space-y-2">
-                              {[...(selectedTrack.moderationNotesHistory ?? [])]
-                                .slice()
-                                .reverse()
-                                .map((entry, idx) => (
-                                  <li
-                                    key={`${entry.at}-${idx}`}
-                                    className="border-l-2 border-border/60 pl-3 text-sm"
-                                  >
-                                    <p className="text-xs text-muted-foreground">
-                                      {(() => {
-                                        try {
-                                          return format(new Date(entry.at), "d MMM yyyy, HH:mm", {
-                                            locale: ru,
-                                          })
-                                        } catch {
-                                          return entry.at
-                                        }
-                                      })()}
-                                      {entry.fromStatus ? ` · ${entry.fromStatus}` : null}
-                                    </p>
-                                    <p className="whitespace-pre-wrap text-muted-foreground/90">
-                                      {entry.note}
-                                    </p>
-                                  </li>
-                                ))}
-                            </ul>
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-between gap-2 text-left"
+                              onClick={() => setModerationHistoryExpanded((v) => !v)}
+                              aria-expanded={moderationHistoryExpanded}
+                            >
+                              <p className="text-xs font-medium text-muted-foreground">
+                                История комментариев
+                                <span className="ml-1.5 tabular-nums text-muted-foreground/70">
+                                  ({selectedTrack.moderationNotesHistory?.length ?? 0})
+                                </span>
+                              </p>
+                              {moderationHistoryExpanded ? (
+                                <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                              )}
+                            </button>
+                            {moderationHistoryExpanded ? (
+                              <ul className="space-y-2">
+                                {[...(selectedTrack.moderationNotesHistory ?? [])]
+                                  .slice()
+                                  .reverse()
+                                  .map((entry, idx) => (
+                                    <li
+                                      key={`${entry.at}-${idx}`}
+                                      className="border-l-2 border-border/60 pl-3 text-sm"
+                                    >
+                                      <p className="text-xs text-muted-foreground">
+                                        {(() => {
+                                          try {
+                                            return format(new Date(entry.at), "d MMM yyyy, HH:mm", {
+                                              locale: ru,
+                                            })
+                                          } catch {
+                                            return entry.at
+                                          }
+                                        })()}
+                                        {entry.fromStatus ? ` · ${entry.fromStatus}` : null}
+                                      </p>
+                                      <p className="whitespace-pre-wrap text-muted-foreground/90">
+                                        {entry.note}
+                                      </p>
+                                    </li>
+                                  ))}
+                              </ul>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>

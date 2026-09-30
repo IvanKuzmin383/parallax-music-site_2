@@ -1,5 +1,6 @@
 "use client"
 
+import { CircleHelp } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   GENRES,
   LYRICS_TEXT_UPLOAD_HINT,
@@ -146,7 +148,24 @@ export function TrackMetadataFields({
         />
       </div>
       <div>
-        <Label>Автор музыки *</Label>
+        <Label>
+          Автор музыки *
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground"
+                aria-label="Подсказка: Автор музыки"
+              >
+                <CircleHelp className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs text-balance">
+              Указывается полное ФИО человека. ИИ не может быть автором, если вам помогала нейросеть,
+              автором всё равно указывается человек
+            </TooltipContent>
+          </Tooltip>
+        </Label>
         <Input
           value={track.musicAuthor}
           onChange={(e) => onChange({ musicAuthor: e.target.value })}

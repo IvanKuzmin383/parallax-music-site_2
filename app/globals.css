@@ -397,11 +397,22 @@
   margin-bottom: 0.5rem;
 }
 
-/* Outline-кнопки: сплошной фон поля (не трогаем табы и primary) */
-.cabinet-theme button.border:not([data-slot="tabs-trigger"]):not([data-state="on"]),
+/* Outline-кнопки: сплошной фон поля (не трогаем табы, toggle и checkbox) */
+.cabinet-theme button.border:not([data-slot="tabs-trigger"]):not([data-slot="checkbox"]):not([data-state="on"]),
 .cabinet-theme a.border:not([data-slot="tabs-trigger"]) {
   background-color: var(--input);
   border-color: var(--border);
+}
+
+/* Красные сервисные чекбоксы (AI / аддоны) — !important против cabinet button.border */
+.cabinet-theme [data-slot="checkbox"].border-red-600 {
+  border-color: #dc2626 !important;
+  background-color: transparent !important;
+}
+.cabinet-theme [data-slot="checkbox"].border-red-600[data-state="checked"] {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
 }
 
 /* Табы / переключатели: активный пункт цветом primary */
@@ -471,11 +482,12 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 }
 
 @keyframes release-status-dots-move {
-  0% {
-    transform: translateX(-12px);
-  }
-  100% {
+  from {
     transform: translateX(0);
+  }
+  to {
+    /* Ровно один шаг паттерна (background-size), иначе цикл даёт рывок */
+    transform: translateX(12px);
   }
 }
 
@@ -485,13 +497,14 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 
 .release-status-dots {
   background-image: radial-gradient(
-    circle,
-    rgba(16, 185, 129, 0.95) 1.25px,
-    transparent 1.35px
+    circle at center,
+    rgba(16, 185, 129, 0.95) 1.4px,
+    transparent 1.6px
   );
-  background-size: 10px 100%;
+  background-size: 12px 100%;
   background-repeat: repeat-x;
   background-position: left center;
-  animation: release-status-dots-move 1.1s linear infinite;
+  animation: release-status-dots-move 0.9s linear infinite;
+  will-change: transform;
   opacity: 0.9;
 }

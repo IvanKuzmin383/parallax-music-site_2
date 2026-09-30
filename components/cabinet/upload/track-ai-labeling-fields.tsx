@@ -96,7 +96,7 @@ function DetailFieldRow({
   children: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+    <div className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <p className="text-sm text-muted-foreground sm:min-w-[14rem] sm:shrink-0">{label}</p>
       <div className="min-w-0 sm:flex-1 sm:flex sm:justify-end">{children}</div>
     </div>
@@ -181,7 +181,7 @@ export function TrackAiLabelingFields({
             <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Композиция (авторство)
             </h5>
-            <div className="space-y-3">
+            <div className="divide-y divide-border/50">
               {AI_LABELING_COMPOSITION_FIELDS.map((field) => (
                 <DetailFieldRow key={field.key} label={field.label}>
                   <DetailChoiceRow
@@ -199,7 +199,7 @@ export function TrackAiLabelingFields({
             <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Звукозапись трека
             </h5>
-            <div className="space-y-3">
+            <div className="divide-y divide-border/50">
               {AI_LABELING_RECORDING_FIELDS.map((field) => (
                 <DetailFieldRow key={field.key} label={field.label}>
                   <DetailChoiceRow
