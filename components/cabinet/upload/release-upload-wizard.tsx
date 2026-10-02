@@ -1435,14 +1435,24 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                           occupiedReleaseDates.has(format(date, "yyyy-MM-dd"))
                         }
                         modifiers={{
+                          occupied: (date) =>
+                            occupiedReleaseDates.has(format(date, "yyyy-MM-dd")),
                           tierAccelerated: (date) =>
-                            !formDisabled && getReleaseDateCalendarTier(date) === "accelerated",
+                            !formDisabled &&
+                            !occupiedReleaseDates.has(format(date, "yyyy-MM-dd")) &&
+                            getReleaseDateCalendarTier(date) === "accelerated",
                           tierFast: (date) =>
-                            !formDisabled && getReleaseDateCalendarTier(date) === "fast",
+                            !formDisabled &&
+                            !occupiedReleaseDates.has(format(date, "yyyy-MM-dd")) &&
+                            getReleaseDateCalendarTier(date) === "fast",
                           tierStandard: (date) =>
-                            !formDisabled && getReleaseDateCalendarTier(date) === "standard",
+                            !formDisabled &&
+                            !occupiedReleaseDates.has(format(date, "yyyy-MM-dd")) &&
+                            getReleaseDateCalendarTier(date) === "standard",
                         }}
                         modifiersClassNames={{
+                          occupied:
+                            "[&_button]:!bg-rose-500/40 [&_button]:!text-rose-50 [&_button]:!border [&_button]:!border-rose-500 [&_button]:!opacity-100 [&_button]:rounded-md [&_button]:line-through",
                           tierAccelerated:
                             "[&_button]:!bg-emerald-500/30 [&_button]:!text-emerald-100 [&_button]:!border [&_button]:!border-emerald-500/80 [&_button]:rounded-md",
                           tierFast:
@@ -1474,6 +1484,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                           <span>
                             {RELEASE_DATE_TIER_LABEL.standard}: {RELEASE_DATE_TIER_PRICE_RUB.standard}₽
                           </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500" />
+                          <span>Занято другим релизом</span>
                         </div>
                       </div>
                     </PopoverContent>
@@ -1950,21 +1964,23 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             <ModerationNoteAside note={moderationNote} maxHeight={140} />
           ) : null}
           <div className="flex flex-col overflow-hidden rounded-lg bg-muted/20 sm:flex-row sm:items-stretch">
-            <div className="relative mx-auto aspect-square w-48 shrink-0 bg-muted sm:mx-0 sm:h-auto sm:w-52 sm:min-h-[13rem] md:w-60 lg:w-64">
-              {coverPreview ? (
-                <Image
-                  src={coverPreview}
-                  alt="Обложка релиза"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                  sizes="256px"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                </div>
-              )}
+            <div className="relative mx-auto w-full max-w-xs shrink-0 self-stretch bg-muted sm:mx-0 sm:w-auto sm:max-w-none">
+              <div className="relative aspect-square w-full sm:h-full sm:w-auto">
+                {coverPreview ? (
+                  <Image
+                    src={coverPreview}
+                    alt="Обложка релиза"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    sizes="(max-width: 640px) 20rem, 50vw"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="min-w-0 flex-1 space-y-3 p-4">
               {reviewChecks.map((c, idx) => (

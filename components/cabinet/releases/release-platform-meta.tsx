@@ -5,7 +5,7 @@ import { Check, Copy, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { SMARTLINK_PLATFORMS, type PlatformLinks, type PlatformLinkKey } from "@/lib/smartlink-platforms"
+import { SMARTLINK_PLATFORMS, PLATFORM_ICON_SRC, type PlatformLinks, type PlatformLinkKey } from "@/lib/smartlink-platforms"
 
 function CopyField({
   label,
@@ -55,18 +55,6 @@ function CopyField({
       </div>
     </div>
   )
-}
-
-/** Официальные ассеты площадок из public/platforms. */
-const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
-  spotify: "/platforms/spotify.svg",
-  appleMusic: "/platforms/apple-music.svg",
-  deezer: "/platforms/deezer.png",
-  yandex: "/platforms/yandex.svg",
-  youtubeMusic: "/platforms/youtube-music.svg",
-  vk: "/platforms/vk.png",
-  sberzvuk: "/platforms/sberzvuk.svg",
-  kion: "/platforms/kion.svg",
 }
 
 /** Фирменные знаки. Со ссылкой — цветные; без — grayscale. */

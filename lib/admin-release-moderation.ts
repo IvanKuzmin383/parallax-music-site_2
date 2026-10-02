@@ -44,13 +44,17 @@ export async function applyReleaseModerationStatus(params: {
   releaseId: string
   status?: TrackStatus
   moderationNote?: string | null
+  /** Кто меняет статус (для истории версий). */
+  actor?: string | null
 }): Promise<{ release: Release | null; tracks: Track[] }> {
-  const { releaseId, status, moderationNote } = params
+  const { releaseId, status, moderationNote, actor } = params
   const release = await getReleaseById(releaseId)
   if (!release) return { release: null, tracks: [] }
 
   let updatedRelease: Release | null = release
+  let changed = false
   if (status !== undefined && isSharedModerationStatus(status)) {
+    if (release.status !== status) changed = true
     updatedRelease = await updateRelease(releaseId, { status: status as ReleaseStatus })
   }
 
@@ -77,6 +81,7 @@ export async function applyReleaseModerationStatus(params: {
           track.status
         )
       }
+      if ((prev || "") !== (nextNote ?? "")) changed = true
       patch.moderationNote = nextNote
     }
     if (Object.keys(patch).length === 0) {
@@ -85,6 +90,19 @@ export async function applyReleaseModerationStatus(params: {
     }
     const next = await updateTrack(track.id, patch)
     updatedTracks.push(next ?? track)
+  }
+
+  if (changed) {
+    const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
+    const noteParts: string[] = []
+    if (status !== undefined) noteParts.push(`status→${status}`)
+    if (nextNote !== undefined) noteParts.push(nextNote ? `note: ${nextNote}` : "note: cleared")
+    await tryCreateReleaseEntityVersion({
+      releaseId,
+      reason: "admin_status_change",
+      actor: actor ?? "admin",
+      note: noteParts.join("; ") || null,
+    })
   }
 
   return { release: updatedRelease, tracks: updatedTracks }

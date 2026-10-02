@@ -349,6 +349,14 @@ export async function deleteRelease(id: string): Promise<boolean> {
   if (!release) return false
   if (release.status !== "draft") return false
 
+  const { getTracksByReleaseId, deleteTrack } = await import("./tracks")
+  const { getTracksByAlbumId, deleteAlbum } = await import("./albums")
+
+  const tracks = await getTracksByReleaseId(id)
+  for (const track of tracks) {
+    await deleteTrack(track.id)
+  }
+
   try {
     const mediaDir = path.join(await getReleasesDir(), id)
     await fs.rm(mediaDir, { recursive: true, force: true })
@@ -356,7 +364,7 @@ export async function deleteRelease(id: string): Promise<boolean> {
     // ignore
   }
 
-  if (release.coverPath) {
+  if (release.coverPath?.trim()) {
     try {
       await fs.unlink(release.coverPath)
     } catch {
@@ -365,7 +373,23 @@ export async function deleteRelease(id: string): Promise<boolean> {
   }
 
   const changes = await execute("DELETE FROM releases WHERE id = ?", [id])
-  return changes > 0
+  if (changes <= 0) return false
+
+  try {
+    const { deleteReleaseEntityVersions } = await import("./release-entity-versions")
+    await deleteReleaseEntityVersions(id)
+  } catch {
+    // ignore
+  }
+
+  if (release.albumId) {
+    const remaining = await getTracksByAlbumId(release.albumId)
+    if (remaining.length === 0) {
+      await deleteAlbum(release.albumId)
+    }
+  }
+
+  return true
 }
 
 export function releasePayloadForPricing(release: Release): UploadDraftPayload {

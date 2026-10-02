@@ -128,7 +128,7 @@ function UploadReleaseButton({ variant = "default" }: { variant?: "default" | "o
 }
 
 export default function MusicReleasesPage() {
-  const { releases, loading } = useCabinetReleases()
+  const { releases, loading, reload } = useCabinetReleases()
   const [filter, setFilter] = useState<ReleaseFilterKey>("all")
   const [query, setQuery] = useState("")
   const [sort, setSort] = useState<SortKey>("newest")
@@ -250,7 +250,7 @@ export default function MusicReleasesPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((release) => (
-            <ReleaseListCard key={release.id} release={release} />
+            <ReleaseListCard key={release.id} release={release} onDeleted={() => void reload()} />
           ))}
         </div>
       )}

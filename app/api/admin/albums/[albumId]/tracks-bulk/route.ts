@@ -154,15 +154,52 @@ export async function PATCH(
   }
 
   if (syncReleaseModeration && releaseForAlbum) {
+    const sample = tracksInAlbum[0]
+    const prevStatus = sample?.status
+    const prevNote = sample?.moderationNote?.trim() || null
+    const nextNote =
+      parsed.data.moderationNote === undefined
+        ? undefined
+        : parsed.data.moderationNote && parsed.data.moderationNote.trim().length > 0
+          ? parsed.data.moderationNote.trim()
+          : null
+    const statusChanged =
+      parsed.data.status !== undefined && parsed.data.status !== prevStatus
+    const noteChanged = nextNote !== undefined && nextNote !== prevNote
+    const hadBulkMeta =
+      parsed.data.catalogNumber !== undefined ||
+      parsed.data.upc !== undefined ||
+      incomingPlatformLinks !== undefined
+
     const synced = await applyReleaseModerationStatus({
       releaseId: releaseForAlbum.id,
       status: parsed.data.status,
       moderationNote: parsed.data.moderationNote,
+      actor: "admin",
     })
+    if (hadBulkMeta && !statusChanged && !noteChanged) {
+      const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
+      await tryCreateReleaseEntityVersion({
+        releaseId: releaseForAlbum.id,
+        reason: "admin_edit",
+        actor: "admin",
+        note: "album bulk",
+      })
+    }
     return NextResponse.json({
       updated: synced.tracks.length,
       tracks: synced.tracks,
       release: synced.release,
+    })
+  }
+
+  if (releaseForAlbum && updated.length > 0) {
+    const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
+    await tryCreateReleaseEntityVersion({
+      releaseId: releaseForAlbum.id,
+      reason: "admin_edit",
+      actor: "admin",
+      note: "album bulk",
     })
   }
 

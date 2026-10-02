@@ -326,7 +326,8 @@ export async function PATCH(
   }
 
   let updated = current
-  if (Object.keys(updatePayload).length > 0) {
+  const hadMetaEdit = Object.keys(updatePayload).length > 0
+  if (hadMetaEdit) {
     const next = await updateTrack(id, updatePayload)
     if (!next) {
       return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
@@ -335,13 +336,47 @@ export async function PATCH(
   }
 
   if (syncReleaseModeration && releaseIdForModeration) {
+    const prevStatus = current.status
+    const prevNote = current.moderationNote?.trim() || null
+    const nextNote =
+      data.moderationNote === undefined
+        ? undefined
+        : data.moderationNote && data.moderationNote.trim().length > 0
+          ? data.moderationNote.trim()
+          : null
+    const statusChanged = data.status !== undefined && data.status !== prevStatus
+    const noteChanged = nextNote !== undefined && nextNote !== prevNote
+
     const synced = await applyReleaseModerationStatus({
       releaseId: releaseIdForModeration,
       status: data.status,
       moderationNote: data.moderationNote,
+      actor: "admin",
     })
     const syncedTrack = synced.tracks.find((t) => t.id === id) ?? updated
+
+    // Снимок статуса уже включает meta; отдельный admin_edit — только если
+    // статус/комментарий не менялись, а метаданные трека правили.
+    if (hadMetaEdit && !statusChanged && !noteChanged) {
+      const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
+      await tryCreateReleaseEntityVersion({
+        releaseId: releaseIdForModeration,
+        reason: "admin_edit",
+        actor: "admin",
+        note: `track ${id}`,
+      })
+    }
     return NextResponse.json({ track: syncedTrack, release: synced.release })
+  }
+
+  if (hadMetaEdit && releaseIdForModeration) {
+    const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
+    await tryCreateReleaseEntityVersion({
+      releaseId: releaseIdForModeration,
+      reason: "admin_edit",
+      actor: "admin",
+      note: `track ${id}`,
+    })
   }
 
   return NextResponse.json({ track: updated })

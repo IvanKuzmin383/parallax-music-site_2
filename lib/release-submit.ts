@@ -256,6 +256,13 @@ export async function submitReleaseToModeration(
     await deductFixPackCreditsOnUpload(user, tracks.length)
   }
 
+  const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
+  await tryCreateReleaseEntityVersion({
+    releaseId,
+    reason: isResubmitAfterRevision ? "resubmit_after_revision" : "submit_moderation",
+    actor: release.userId,
+  })
+
   return { ok: true, release: updatedRelease, tracks: updatedTracks }
 }
 

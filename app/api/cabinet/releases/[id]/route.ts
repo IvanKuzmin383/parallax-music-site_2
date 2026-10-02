@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
-import { getReleaseById, isReleaseEditableStatus, updateRelease } from "@/lib/releases"
+import { getReleaseById, isReleaseEditableStatus, updateRelease, deleteRelease } from "@/lib/releases"
 import { getTracksByReleaseId } from "@/lib/tracks"
 import { isCoverAiLevel, parseCoverAiLevel } from "@/lib/cover-ai-level"
 
@@ -22,6 +22,36 @@ export async function GET(
 
   const tracks = await getTracksByReleaseId(id)
   return NextResponse.json({ release, tracks })
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const token = getCabinetToken(request)
+  const session = getCabinetSession(token)
+  if (!session) return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
+
+  const { id } = await params
+  const release = await getReleaseById(id)
+  if (!release || release.userId.toLowerCase() !== session.email.toLowerCase()) {
+    return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
+  }
+
+  if (release.status !== "draft") {
+    return NextResponse.json({ error: "Удалить можно только черновик" }, { status: 400 })
+  }
+
+  try {
+    const ok = await deleteRelease(id)
+    if (!ok) {
+      return NextResponse.json({ error: "Не удалось удалить релиз" }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("[releases/DELETE]", error)
+    return NextResponse.json({ error: "Не удалось удалить релиз" }, { status: 500 })
+  }
 }
 
 export async function PATCH(

@@ -14,7 +14,7 @@ import {
 
 export function CabinetDashboardPage() {
   const { user, loading: userLoading } = useCabinetSession()
-  const { releases, loading: releasesLoading } = useCabinetReleases()
+  const { releases, loading: releasesLoading, reload } = useCabinetReleases()
 
   if (userLoading) {
     return (
@@ -52,7 +52,7 @@ export function CabinetDashboardPage() {
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
-          <DashboardTasks releases={releases} />
+          <DashboardTasks releases={releases} onDeleted={() => void reload()} />
         )}
         {releasesLoading ? (
           <div className="flex min-h-[280px] items-center justify-center rounded-2xl bg-card/80">

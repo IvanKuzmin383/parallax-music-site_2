@@ -28,9 +28,9 @@ export interface NavGroup {
 
 /**
  * Меню кабинета:
- * (без заголовка) Главная · Релизы · Статистика · Новости
+ * (без заголовка) Главная · Релизы · Статистика
  * Услуги — Продвижение · Инструменты · Заказы
- * Кабинет — Финансы · Партнёрка · Настройки
+ * Кабинет — Финансы · Партнёрка · Новости · Настройки
  */
 export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
   {
@@ -40,7 +40,6 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
       { id: "home", label: "Главная", href: "/cabinet", icon: Home },
       { id: "releases", label: "Релизы", href: "/cabinet/music/releases", icon: Disc3 },
       { id: "stats", label: "Статистика", href: "/cabinet/music-stats", icon: BarChart3 },
-      { id: "news", label: "Новости", href: "/cabinet/news", icon: Newspaper },
     ],
   },
   {
@@ -58,6 +57,7 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
     items: [
       { id: "finance", label: "Финансы", href: "/cabinet/finance/balance", icon: Wallet },
       { id: "referrals", label: "Партнёрка", href: "/cabinet/referrals", icon: Users },
+      { id: "news", label: "Новости", href: "/cabinet/news", icon: Newspaper },
       { id: "settings", label: "Настройки", href: "/cabinet/settings", icon: Settings },
     ],
   },

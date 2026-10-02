@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
-import { SMARTLINK_PLATFORMS } from "@/lib/smartlink-platforms"
-import type { PlatformLinks } from "@/lib/smartlink-platforms"
+import { SMARTLINK_PLATFORMS, PLATFORM_ICON_SRC } from "@/lib/smartlink-platforms"
+import type { PlatformLinks, PlatformLinkKey } from "@/lib/smartlink-platforms"
 import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
 
 interface SmartlinkPageProps {
@@ -12,7 +12,11 @@ function getLinksList(links: PlatformLinks | undefined) {
   return SMARTLINK_PLATFORMS.filter((p) => {
     const url = links[p.key as keyof PlatformLinks]
     return typeof url === "string" && url.trim().length > 0
-  }).map((p) => ({ key: p.key, label: p.label, url: links[p.key as keyof PlatformLinks]! }))
+  }).map((p) => ({
+    key: p.key as PlatformLinkKey,
+    label: p.label,
+    url: links[p.key as keyof PlatformLinks]!,
+  }))
 }
 
 export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
@@ -46,9 +50,18 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-full h-10 rounded-md px-6 border border-input bg-background text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="inline-flex items-center justify-center gap-3 w-full h-12 rounded-md px-4 border border-input bg-background text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground transition-colors"
             >
-              {label}
+              <img
+                src={PLATFORM_ICON_SRC[key]}
+                alt=""
+                width={24}
+                height={24}
+                className="h-6 w-6 shrink-0 rounded-[22%] object-contain"
+                loading="lazy"
+                decoding="async"
+              />
+              <span>{label}</span>
             </a>
           ))}
         </div>

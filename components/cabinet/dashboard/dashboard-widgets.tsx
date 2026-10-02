@@ -27,8 +27,10 @@ import {
   MoreVertical,
   Music,
   Banknote,
+  Trash2,
   Wallet,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,6 +45,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import type { ReleaseView } from "@/lib/cabinet/types"
@@ -423,7 +434,162 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
   )
 }
 
-export function DashboardTasks({ releases }: { releases: ReleaseView[] }) {
+function isDraftRelease(release: ReleaseView): boolean {
+  return (
+    release.kind === "draft" ||
+    release.releaseStatus === "draft" ||
+    release.status === "Черновик"
+  )
+}
+
+function DashboardTaskRow({
+  release,
+  onDeleted,
+}: {
+  release: ReleaseView
+  onDeleted?: () => void
+}) {
+  const href = taskHref(release)
+  const action = taskActionLabel(release)
+  const primary = action === "Оплатить" || action === "Доработать" || action === "Продолжить"
+  const detailHref = releaseDetailHref(release)
+  const showOpenDetail = detailHref !== href
+  const canDelete = isDraftRelease(release)
+  const showMenu = showOpenDetail || canDelete
+  const [deleting, setDeleting] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const handleDelete = async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/cabinet/releases/${release.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        toast.error(data.error ?? "Не удалось удалить черновик")
+        return
+      }
+      toast.success("Черновик удалён")
+      setConfirmOpen(false)
+      onDeleted?.()
+    } catch {
+      toast.error("Не удалось удалить черновик")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <li className="flex flex-col gap-3 rounded-xl bg-muted/20 p-3 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Link href={href} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+          {release.coverUrl ? (
+            <Image
+              src={release.coverUrl}
+              alt=""
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="48px"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Music className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
+        </Link>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <Link href={href} className="font-medium truncate hover:underline">
+              {release.title || "Без названия"}
+            </Link>
+            <span className="text-xs text-muted-foreground">{kindShort(release)}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={release.status} kind="generic" withIcon className="text-[10px]" />
+          </div>
+          <p className="text-xs text-muted-foreground line-clamp-1">{releaseStatusHint(release)}</p>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1 self-end sm:self-center">
+        <Button asChild size="sm" variant={primary ? "default" : "secondary"}>
+          <Link href={href}>{action}</Link>
+        </Button>
+        {showMenu ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground"
+                disabled={deleting}
+              >
+                <MoreVertical className="h-4 w-4" />
+                <span className="sr-only">Меню</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {showOpenDetail ? (
+                <DropdownMenuItem asChild>
+                  <Link href={detailHref}>Открыть релиз</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {canDelete ? (
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setConfirmOpen(true)
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Удалить черновик
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+        {canDelete ? (
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Удалить черновик?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Релиз «{release.title || "Без названия"}» будет удалён полностью вместе с обложкой и
+                  аудиофайлами. Это действие нельзя отменить.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={() => void handleDelete()}
+                >
+                  {deleting ? <Spinner className="h-4 w-4 mr-1" /> : null}
+                  Удалить
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
+      </div>
+    </li>
+  )
+}
+
+export function DashboardTasks({
+  releases,
+  onDeleted,
+}: {
+  releases: ReleaseView[]
+  onDeleted?: () => void
+}) {
   const tasks = releases.filter(isDashboardTask).slice(0, 5)
 
   return (
@@ -442,74 +608,9 @@ export function DashboardTasks({ releases }: { releases: ReleaseView[] }) {
         <p className="mt-6 text-sm text-muted-foreground">Нет задач — всё в порядке</p>
       ) : (
         <ul className="mt-4 space-y-3">
-          {tasks.map((release) => {
-            const href = taskHref(release)
-            const action = taskActionLabel(release)
-            const primary = action === "Оплатить" || action === "Доработать" || action === "Продолжить"
-            return (
-              <li
-                key={release.id}
-                className="flex flex-col gap-3 rounded-xl bg-muted/20 p-3 sm:flex-row sm:items-center"
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Link
-                  href={href}
-                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted"
-                >
-                  {release.coverUrl ? (
-                    <Image
-                      src={release.coverUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      unoptimized
-                      sizes="48px"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Music className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  )}
-                </Link>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <Link href={href} className="font-medium truncate hover:underline">
-                      {release.title || "Без названия"}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">{kindShort(release)}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={release.status} kind="generic" withIcon className="text-[10px]" />
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-1">
-                    {releaseStatusHint(release)}
-                  </p>
-                </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 self-end sm:self-center">
-                  <Button asChild size="sm" variant={primary ? "default" : "secondary"}>
-                    <Link href={href}>{action}</Link>
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Меню</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={href}>{action}</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={releaseDetailHref(release)}>Открыть релиз</Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </li>
-            )
-          })}
+          {tasks.map((release) => (
+            <DashboardTaskRow key={release.id} release={release} onDeleted={onDeleted} />
+          ))}
         </ul>
       )}
     </section>

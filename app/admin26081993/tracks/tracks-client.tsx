@@ -68,6 +68,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { AdminModerationNoteTemplates } from "@/components/admin-moderation-note-templates"
+import { AdminReleaseEntityVersions } from "@/components/admin-release-entity-versions"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -3071,6 +3072,7 @@ export default function TracksPageClient() {
                             ) : null}
                           </div>
                         ) : null}
+                        <AdminReleaseEntityVersions trackId={selectedTrack.id} />
                       </div>
                     ) : null}
 

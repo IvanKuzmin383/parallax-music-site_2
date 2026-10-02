@@ -1,10 +1,23 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Music } from "lucide-react"
+import { Music, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import type { ReleaseView } from "@/lib/cabinet/types"
 import {
   formatReleaseKindMeta,
@@ -26,14 +39,54 @@ function usesWizardAction(release: ReleaseView): boolean {
   )
 }
 
-export function ReleaseListCard({ release }: { release: ReleaseView }) {
+function isDraftRelease(release: ReleaseView): boolean {
+  return (
+    release.kind === "draft" ||
+    release.releaseStatus === "draft" ||
+    release.status === "Черновик"
+  )
+}
+
+export function ReleaseListCard({
+  release,
+  onDeleted,
+}: {
+  release: ReleaseView
+  onDeleted?: () => void
+}) {
   const kindMeta = formatReleaseKindMeta(release)
   const wizard = usesWizardAction(release)
   const href = wizard ? releaseContinueHref(release) : releaseDetailHref(release)
   const actionLabel = wizard ? releaseContinueLabel(release) : "Открыть"
   const primary = actionLabel === "Исправить" || actionLabel === "Оплатить" || actionLabel === "Продолжить"
+  const canDelete = isDraftRelease(release)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const kindParts = kindMeta?.split(" · ") ?? []
+
+  const handleDelete = async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/cabinet/releases/${release.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        toast.error(data.error ?? "Не удалось удалить черновик")
+        return
+      }
+      toast.success("Черновик удалён")
+      setConfirmOpen(false)
+      onDeleted?.()
+    } catch {
+      toast.error("Не удалось удалить черновик")
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <article className="relative flex items-stretch gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-4">
@@ -57,7 +110,7 @@ export function ReleaseListCard({ release }: { release: ReleaseView }) {
         )}
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5 pb-10 sm:pb-0 sm:pr-28">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5 pb-10 sm:pb-0 sm:pr-40">
         <div className="space-y-1.5">
           <div>
             <Link
@@ -88,7 +141,44 @@ export function ReleaseListCard({ release }: { release: ReleaseView }) {
         </p>
       </div>
 
-      <div className="absolute bottom-3 right-3 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2">
+      <div className="absolute bottom-3 right-3 flex items-center gap-2 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2">
+        {canDelete ? (
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={deleting}
+                className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                {deleting ? <Spinner className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                <span className="ml-1.5 hidden sm:inline">Удалить</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Удалить черновик?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Релиз «{release.title || "Без названия"}» будет удалён полностью вместе с обложкой и
+                  аудиофайлами. Это действие нельзя отменить.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={() => void handleDelete()}
+                >
+                  {deleting ? <Spinner className="h-4 w-4 mr-1" /> : null}
+                  Удалить
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
         <Button size="sm" variant={primary ? "default" : "outline"} asChild>
           <Link href={href}>{actionLabel}</Link>
         </Button>

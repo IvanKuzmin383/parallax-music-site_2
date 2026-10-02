@@ -24,6 +24,18 @@ export interface PlatformLinks {
 
 export const PLATFORM_LINK_KEYS = SMARTLINK_PLATFORMS.map((p) => p.key) as PlatformLinkKey[]
 
+/** Официальные иконки площадок в public/platforms. */
+export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
+  spotify: "/platforms/spotify.svg",
+  appleMusic: "/platforms/apple-music.svg",
+  deezer: "/platforms/deezer.png",
+  yandex: "/platforms/yandex.svg",
+  youtubeMusic: "/platforms/youtube-music.svg",
+  vk: "/platforms/vk.png",
+  sberzvuk: "/platforms/sberzvuk.svg",
+  kion: "/platforms/kion.svg",
+}
+
 /** PATCH merge: обновляет только ключи из incoming; пустое значение — удалить ключ. */
 export function mergePartialPlatformLinks(
   existing: PlatformLinks | undefined,
