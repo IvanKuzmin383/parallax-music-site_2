@@ -349,8 +349,8 @@ export async function deleteRelease(id: string): Promise<boolean> {
   if (!release) return false
   if (release.status !== "draft") return false
 
-  const { getTracksByReleaseId, deleteTrack } = await import("./tracks")
-  const { getTracksByAlbumId, deleteAlbum } = await import("./albums")
+  const { getTracksByReleaseId, getTracksByAlbumId, deleteTrack } = await import("./tracks")
+  const { deleteAlbum } = await import("./albums")
 
   const tracks = await getTracksByReleaseId(id)
   for (const track of tracks) {
