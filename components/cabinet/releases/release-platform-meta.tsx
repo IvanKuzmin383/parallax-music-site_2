@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Check, Copy } from "lucide-react"
+import { Check, Copy, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -57,14 +57,22 @@ function CopyField({
   )
 }
 
+/** Официальные цветные ассеты (Яндекс / КИОН / Звук). */
 const PLATFORM_ICON_SRC: Partial<Record<PlatformLinkKey, string>> = {
   yandex: "/platforms/yandex.svg",
   kion: "/platforms/kion.svg",
+  sberzvuk: "/platforms/sberzvuk.svg",
 }
 
-/** Цветные официальные знаки площадок. */
-function PlatformGlyph({ platformKey }: { platformKey: PlatformLinkKey }) {
-  const box = "h-7 w-7"
+/** Фирменные знаки. Со ссылкой — цветные; без — grayscale. */
+function PlatformGlyph({
+  platformKey,
+  active,
+}: {
+  platformKey: PlatformLinkKey
+  active: boolean
+}) {
+  const box = cn("h-8 w-8 shrink-0 rounded-[22%]", !active && "grayscale opacity-45")
   const asset = PLATFORM_ICON_SRC[platformKey]
   if (asset) {
     return <img src={asset} alt="" className={cn(box, "object-contain")} draggable={false} />
@@ -128,20 +136,6 @@ function PlatformGlyph({ platformKey }: { platformKey: PlatformLinkKey }) {
           />
         </svg>
       )
-    case "sberzvuk":
-      return (
-        <svg viewBox="0 0 24 24" className={box} aria-hidden>
-          <rect width="24" height="24" rx="5.5" fill="#111" />
-          <path
-            fill="#21A19A"
-            d="M6.5 15.2c1.4-2.2 2.8-3.3 5.5-3.3 2.7 0 4.1 1.1 5.5 3.3-.7.5-1.4.8-2.2.8-1.2 0-2.1-.7-3.3-2-1.2 1.3-2.1 2-3.3 2-.8 0-1.5-.3-2.2-.8z"
-          />
-          <path
-            fill="#21A19A"
-            d="M12 5.5c3.6 0 5.8 1.7 7.5 4.4-.9.6-1.8 1-2.9 1-1.8 0-3.1-1.1-4.6-3.1C10.5 9.8 9.2 10.9 7.4 10.9c-1.1 0-2-.4-2.9-1C6.2 7.2 8.4 5.5 12 5.5z"
-          />
-        </svg>
-      )
     default:
       return null
   }
@@ -194,24 +188,56 @@ export function ReleasePlatformMeta({
             {territory?.trim() || "—"}
           </p>
         </div>
-        <CopyField label="Смартлинк" value={smartlinkUrl} emptyText="Ещё не создан" />
+        <div className="min-w-0 space-y-1">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Смартлинк</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {smartlinkUrl ? (
+              <>
+                <a
+                  href={smartlinkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 truncate text-sm font-medium hover:underline"
+                >
+                  {smartlinkUrl}
+                </a>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  asChild
+                >
+                  <a
+                    href={smartlinkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Открыть смартлинк"
+                    title="Открыть"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Ещё не создан</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-3">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Площадки</p>
-        <div className="flex flex-wrap gap-6 sm:gap-7">
+        <div className="flex flex-wrap gap-5 sm:gap-6">
           {SMARTLINK_PLATFORMS.map((platform) => {
             const url = platformLinks?.[platform.key]?.trim() || ""
             const active = url.length > 0
             const content = (
               <span
-                className={cn(
-                  "inline-flex h-11 w-11 items-center justify-center transition-opacity",
-                  active ? "opacity-100" : "opacity-40",
-                )}
+                className="inline-flex h-10 w-10 items-center justify-center"
                 title={active ? platform.label : `${platform.label} — ссылки пока нет`}
               >
-                <PlatformGlyph platformKey={platform.key} />
+                <PlatformGlyph platformKey={platform.key} active={active} />
               </span>
             )
             if (!active) {

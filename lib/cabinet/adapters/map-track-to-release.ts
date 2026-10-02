@@ -47,8 +47,8 @@ function platformsFromTrack(track: Track): string[] {
   if (links.vk) platforms.push("VK Музыка")
   if (links.appleMusic) platforms.push("Apple Music")
   if (links.youtubeMusic) platforms.push("YouTube Music")
-  if (links.sberzvuk) platforms.push("СберЗвук")
-  if (links.kion) platforms.push("КИОН")
+  if (links.sberzvuk) platforms.push("Звук")
+  if (links.kion) platforms.push("МТС КИОН")
   return platforms
 }
 

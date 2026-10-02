@@ -5,8 +5,8 @@ export const SMARTLINK_PLATFORMS = [
   { key: "yandex", label: "Яндекс.Музыка" },
   { key: "youtubeMusic", label: "YouTube Music" },
   { key: "vk", label: "VK Музыка" },
-  { key: "sberzvuk", label: "СберЗвук" },
-  { key: "kion", label: "КИОН Музыка" },
+  { key: "sberzvuk", label: "Звук" },
+  { key: "kion", label: "МТС КИОН" },
 ] as const
 
 export type PlatformLinkKey = (typeof SMARTLINK_PLATFORMS)[number]["key"]
