@@ -57,11 +57,16 @@ function CopyField({
   )
 }
 
-/** Официальные цветные ассеты (Яндекс / КИОН / Звук). */
-const PLATFORM_ICON_SRC: Partial<Record<PlatformLinkKey, string>> = {
+/** Официальные ассеты площадок из public/platforms. */
+const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
+  spotify: "/platforms/spotify.svg",
+  appleMusic: "/platforms/apple-music.svg",
+  deezer: "/platforms/deezer.png",
   yandex: "/platforms/yandex.svg",
-  kion: "/platforms/kion.svg",
+  youtubeMusic: "/platforms/youtube-music.svg",
+  vk: "/platforms/vk.png",
   sberzvuk: "/platforms/sberzvuk.svg",
+  kion: "/platforms/kion.svg",
 }
 
 /** Фирменные знаки. Со ссылкой — цветные; без — grayscale. */
@@ -72,73 +77,17 @@ function PlatformGlyph({
   platformKey: PlatformLinkKey
   active: boolean
 }) {
-  const box = cn("h-8 w-8 shrink-0 rounded-[22%]", !active && "grayscale opacity-45")
-  const asset = PLATFORM_ICON_SRC[platformKey]
-  if (asset) {
-    return <img src={asset} alt="" className={cn(box, "object-contain")} draggable={false} />
-  }
-
-  switch (platformKey) {
-    case "spotify":
-      return (
-        <svg viewBox="0 0 24 24" className={box} aria-hidden>
-          <circle cx="12" cy="12" r="12" fill="#1DB954" />
-          <path
-            fill="#000"
-            d="M16.98 10.54c-2.6-1.55-6.9-1.7-9.4-.94a.75.75 0 11-.42-1.44c2.86-.87 7.6-.7 10.62 1.1a.75.75 0 11-.8 1.28zm-.2 2.7a.62.62 0 01-.86.21c-2.17-1.33-5.48-1.72-8.05-.94a.62.62 0 11-.36-1.19c2.92-.89 6.6-.45 9.07 1.06a.62.62 0 01.2.86zm-1 2.58a.5.5 0 01-.69.16c-1.9-1.16-4.3-1.42-7.12-.78a.5.5 0 11-.23-.97c3.1-.7 5.8-.4 7.97.92a.5.5 0 01.17.67z"
-          />
-        </svg>
-      )
-    case "appleMusic":
-      return (
-        <svg viewBox="0 0 24 24" className={box} aria-hidden>
-          <defs>
-            <linearGradient id="amGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#FA233B" />
-              <stop offset="100%" stopColor="#FB5C74" />
-            </linearGradient>
-          </defs>
-          <rect width="24" height="24" rx="5.5" fill="url(#amGrad)" />
-          <path
-            fill="#fff"
-            d="M15.3 5.2c0-.3.2-.6.5-.6.1 0 .2 0 .3.1 1.6.4 2.8 1.9 2.8 3.6v6.1a2.55 2.55 0 11-1.5-2.3V9.1c0-1.3-1-2.4-2.2-2.5-.3 0-.5-.3-.5-.6v-.8zm-4.6 3.5c0-.3.2-.5.5-.5h.1c1.5.1 2.6 1.3 2.6 2.8v4.8a2.2 2.2 0 11-1.4-2V11c0-.9-.7-1.6-1.5-1.7h-.2c-.3 0-.5-.2-.5-.5v-.1zm1.5 8.7a1.05 1.05 0 100 2.1 1.05 1.05 0 000-2.1zm4.6-1.8a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"
-          />
-        </svg>
-      )
-    case "deezer":
-      return (
-        <svg viewBox="0 0 24 24" className={box} aria-hidden>
-          <rect width="24" height="24" rx="5.5" fill="#121212" />
-          <g transform="translate(2.8 5.6)">
-            <rect x="0" y="8" width="2.6" height="4.8" rx="0.4" fill="#FF0092" />
-            <rect x="3.8" y="5.2" width="2.6" height="7.6" rx="0.4" fill="#FF6A00" />
-            <rect x="7.6" y="2.4" width="2.6" height="10.4" rx="0.4" fill="#FEE800" />
-            <rect x="11.4" y="0" width="2.6" height="12.8" rx="0.4" fill="#00C7F2" />
-            <rect x="15.2" y="3.6" width="2.6" height="9.2" rx="0.4" fill="#A238FF" />
-          </g>
-        </svg>
-      )
-    case "youtubeMusic":
-      return (
-        <svg viewBox="0 0 24 24" className={box} aria-hidden>
-          <circle cx="12" cy="12" r="12" fill="#FF0000" />
-          <circle cx="12" cy="12" r="5.2" fill="none" stroke="#fff" strokeWidth="1.6" />
-          <path fill="#fff" d="M10.4 8.8v6.4l5.4-3.2-5.4-3.2z" />
-        </svg>
-      )
-    case "vk":
-      return (
-        <svg viewBox="0 0 24 24" className={box} aria-hidden>
-          <rect width="24" height="24" rx="5.5" fill="#0077FF" />
-          <path
-            fill="#fff"
-            d="M12.8 16.7h.9s.3 0 .4-.2c.1-.1.1-.4.1-.4s0-1.2.6-1.4c.5-.2 1.2.9 2 1.5.6.4 1 .3 1 .3l2.1-.1s1.1-.1.6-1c0 0-.1-.2-.5-.5-.4-.3-1-.9-1.1-1.1-.1-.2 0-.4.2-.6.3-.4.8-1.1 1-1.5.2-.4 0-.6 0-.6h-2.1s-.3 0-.4.1c-.1.1-.2.4-.2.4s-.4 1-.9 1.7c-.5.7-.7.5-.7.5-.1-.1-.1-.4-.1-.7V9.6c0-.4.1-.6-.3-.7-.3 0-1-.1-1.8.8-.5.5-.7 1.1-.7 1.1s0 .3-.1.5c-.1.2-.2.2-.2.2s0 0-.2-.1c-.5-.3-1-.9-1.4-1.6-.3-.5-.5-.8-.5-.8s-.1-.2-.3-.3c-.2-.1-.4-.1-.4-.1H5.6s-.4 0-.5.2c-.1.2 0 .5 0 .5s1.8 4.2 3.9 6.3c1.9 1.9 4 1.8 4 1.8h.9z"
-          />
-        </svg>
-      )
-    default:
-      return null
-  }
+  return (
+    <img
+      src={PLATFORM_ICON_SRC[platformKey]}
+      alt=""
+      className={cn(
+        "h-8 w-8 shrink-0 rounded-[22%] object-contain",
+        !active && "grayscale opacity-45",
+      )}
+      draggable={false}
+    />
+  )
 }
 
 type ReleasePlatformMetaProps = {
