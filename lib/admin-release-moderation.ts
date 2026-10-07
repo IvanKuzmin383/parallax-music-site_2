@@ -51,8 +51,10 @@ export async function applyReleaseModerationStatus(params: {
   const release = await getReleaseById(releaseId)
   if (!release) return { release: null, tracks: [] }
 
+  const prevStatus = release.status
   let updatedRelease: Release | null = release
   let changed = false
+  let noteChanged = false
   if (status !== undefined && isSharedModerationStatus(status)) {
     if (release.status !== status) changed = true
     updatedRelease = await updateRelease(releaseId, { status: status as ReleaseStatus })
@@ -81,7 +83,10 @@ export async function applyReleaseModerationStatus(params: {
           track.status
         )
       }
-      if ((prev || "") !== (nextNote ?? "")) changed = true
+      if ((prev || "") !== (nextNote ?? "")) {
+        changed = true
+        noteChanged = true
+      }
       patch.moderationNote = nextNote
     }
     if (Object.keys(patch).length === 0) {
@@ -102,6 +107,17 @@ export async function applyReleaseModerationStatus(params: {
       reason: "admin_status_change",
       actor: actor ?? "admin",
       note: noteParts.join("; ") || null,
+    })
+
+    const { tryNotifyReleaseModeration } = await import("@/lib/cabinet-notifications")
+    await tryNotifyReleaseModeration({
+      releaseUserKey: release.userId,
+      releaseId,
+      releaseTitle: updatedRelease?.title ?? release.title,
+      prevStatus,
+      nextStatus: status,
+      nextNote,
+      noteChanged,
     })
   }
 

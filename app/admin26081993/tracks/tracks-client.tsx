@@ -3052,16 +3052,23 @@ export default function TracksPageClient() {
                                       className="border-l-2 border-border/60 pl-3 text-sm"
                                     >
                                       <p className="text-xs text-muted-foreground">
-                                        {(() => {
-                                          try {
-                                            return format(new Date(entry.at), "d MMM yyyy, HH:mm", {
-                                              locale: ru,
-                                            })
-                                          } catch {
-                                            return entry.at
-                                          }
-                                        })()}
-                                        {entry.fromStatus ? ` · ${entry.fromStatus}` : null}
+                                        <span className="font-medium text-amber-700 dark:text-amber-400">
+                                          {(() => {
+                                            try {
+                                              return format(new Date(entry.at), "d MMM yyyy, HH:mm", {
+                                                locale: ru,
+                                              })
+                                            } catch {
+                                              return entry.at
+                                            }
+                                          })()}
+                                        </span>
+                                        {entry.fromStatus ? (
+                                          <span className="text-muted-foreground">
+                                            {" · "}
+                                            {entry.fromStatus}
+                                          </span>
+                                        ) : null}
                                       </p>
                                       <p className="whitespace-pre-wrap text-muted-foreground/90">
                                         {entry.note}

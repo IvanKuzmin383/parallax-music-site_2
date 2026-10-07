@@ -183,6 +183,9 @@ export async function transferRoyaltyToWallet(params: {
       }
     })
 
+    const { tryNotifyRoyaltyToWallet } = await import("@/lib/cabinet-notifications")
+    await tryNotifyRoyaltyToWallet({ userId: user.id, amount: result.amount })
+
     return { ok: true, ...result }
   } catch (error) {
     if (error instanceof Error) {

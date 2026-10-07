@@ -1,7 +1,8 @@
 "use client"
 
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { CabinetSidebar } from "./cabinet-sidebar"
+import { CabinetTopbar } from "./cabinet-topbar"
 import { CabinetAnnouncementsHost } from "@/components/cabinet-announcements-host"
 import { CabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 
@@ -14,10 +15,8 @@ export function CabinetAppShell({ children }: CabinetAppShellProps) {
     <SidebarProvider>
       <CabinetSidebar />
       <SidebarInset>
-        <div className="absolute left-3 top-3 z-20 md:hidden">
-          <SidebarTrigger />
-        </div>
-        <main className="flex-1 p-4 pt-14 md:p-6 md:pt-6 lg:p-8">{children}</main>
+        <CabinetTopbar />
+        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
       <CabinetAnnouncementsHost />
       <CabinetSupportChat />

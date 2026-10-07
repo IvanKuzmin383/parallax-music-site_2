@@ -1,12 +1,23 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  Children,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
+import { format } from "date-fns"
+import { ru } from "date-fns/locale"
 import { Info, Pause, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -32,117 +43,197 @@ function formatAudioClock(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`
 }
 
+function formatMetaDate(raw?: string | null): string | null {
+  if (!raw?.trim()) return null
+  try {
+    const d = new Date(raw.includes("T") ? raw : `${raw}T12:00:00`)
+    if (Number.isNaN(d.getTime())) return raw
+    return format(d, "d MMMM yyyy", { locale: ru })
+  } catch {
+    return raw
+  }
+}
+
+function MetaSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  const items = Children.toArray(children).filter(Boolean)
+  if (items.length === 0) return null
+  return (
+    <section className="rounded-xl border border-border/60 bg-muted/15 px-3.5 py-3">
+      <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h3>
+      <dl className="space-y-2.5">{items}</dl>
+    </section>
+  )
+}
+
 function MetaRow({
   label,
   value,
-  scrollable,
 }: {
   label: string
   value?: string | number | null | boolean
-  /** Длинный текст — фиксированная высота со скроллом, без растягивания. */
-  scrollable?: boolean
 }) {
   if (value === undefined || value === null || value === "") return null
   const display =
     typeof value === "boolean" ? (value ? "Да" : "Нет") : String(value)
   return (
-    <div className="grid grid-cols-[minmax(7rem,10rem)_1fr] gap-x-3 gap-y-1 text-sm py-1.5 border-b border-border/50 last:border-0">
+    <div className="grid grid-cols-1 gap-0.5 sm:grid-cols-[8.5rem_1fr] sm:gap-x-4 text-sm">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd
-        className={cn(
-          "min-w-0 break-words",
-          scrollable
-            ? "max-h-28 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/40 bg-muted/20 px-2.5 py-2"
-            : "whitespace-pre-wrap",
-        )}
-      >
+      <dd className="min-w-0 break-words font-medium text-foreground whitespace-pre-wrap">
         {display}
       </dd>
     </div>
   )
 }
 
-function TrackMetaList({ track }: { track: Track }) {
-  const ai = track.aiLabeling
+function MetaTextBlock({
+  label,
+  value,
+}: {
+  label: string
+  value?: string | null
+}) {
+  if (!value?.trim()) return null
   return (
-    <dl className="space-y-0">
-      <MetaRow label="Название" value={track.trackName} />
-      <MetaRow label="Версия" value={track.trackVersion || null} />
-      <MetaRow label="Артист" value={track.artistName} />
-      <MetaRow label="Лейбл" value={track.labelName} />
-      <MetaRow label="Жанр" value={track.genre} />
-      <MetaRow label="Настроение" value={track.mood || null} />
-      <MetaRow label="Описание" value={track.shortDescription || null} />
-      <MetaRow label="Инструментал" value={track.isInstrumental} />
-      {!track.isInstrumental ? (
-        <>
-          <MetaRow
-            label="Ненормативная лексика"
-            value={
-              track.hasExplicitLanguage === null
-                ? null
-                : track.hasExplicitLanguage
-                  ? "Да"
-                  : "Нет"
-            }
-          />
-          <MetaRow label="Язык текста" value={track.lyricsLanguage || null} />
-          <MetaRow label="Текст песни" value={track.lyricsText || null} scrollable />
-          <MetaRow label="Автор слов" value={track.lyricsAuthor || null} />
-          <MetaRow label="Права на текст" value={track.lyricsRights || null} />
-        </>
+    <div className="space-y-1.5 text-sm">
+      <p className="text-muted-foreground">{label}</p>
+      <div className="max-h-36 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 leading-relaxed text-foreground">
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function TrackMetaList({
+  track,
+  /** Не дублировать поля, уже показанные в карточке релиза. */
+  omitReleaseOverlap = false,
+}: {
+  track: Track
+  omitReleaseOverlap?: boolean
+}) {
+  const ai = track.aiLabeling
+  const explicit =
+    track.hasExplicitLanguage === null
+      ? null
+      : track.hasExplicitLanguage
+        ? "Да"
+        : "Нет"
+
+  const aiDetailRows =
+    ai?.mode === "partial" && ai.details
+      ? [
+          ...AI_LABELING_COMPOSITION_FIELDS.map((f) => (
+            <MetaRow
+              key={f.key}
+              label={f.label}
+              value={
+                ai.details?.[f.key]
+                  ? AI_LABELING_DETAIL_BINARY_LABELS[ai.details[f.key] as AiBinaryChoice]
+                  : null
+              }
+            />
+          )),
+          ...AI_LABELING_RECORDING_FIELDS.map((f) => (
+            <MetaRow
+              key={f.key}
+              label={f.label}
+              value={
+                ai.details?.[f.key]
+                  ? AI_LABELING_DETAIL_TERNARY_LABELS[ai.details[f.key] as AiTernaryChoice]
+                  : null
+              }
+            />
+          )),
+        ]
+      : []
+
+  return (
+    <div className="space-y-3">
+      <MetaSection title="О треке">
+        {!omitReleaseOverlap ? (
+          <>
+            <MetaRow label="Название" value={track.trackName} />
+            <MetaRow label="Артист" value={track.artistName} />
+            <MetaRow label="Лейбл" value={track.labelName} />
+            <MetaRow
+              label="Площадки"
+              value={streamingScopeShortLabel(track.streamingScope)}
+            />
+          </>
+        ) : null}
+        <MetaRow label="Версия" value={track.trackVersion || null} />
+        <MetaRow label="Жанр" value={track.genre} />
+        <MetaRow label="Настроение" value={track.mood || null} />
+        <MetaRow label="Инструментал" value={track.isInstrumental} />
+        {!track.isInstrumental ? (
+          <>
+            <MetaRow label="Ненормативная лексика" value={explicit} />
+            <MetaRow label="Язык текста" value={track.lyricsLanguage || null} />
+          </>
+        ) : null}
+        <MetaRow
+          label="Начало в TikTok"
+          value={
+            track.tiktokSoundStartSec != null
+              ? `${track.tiktokSoundStartSec} сек.`
+              : null
+          }
+        />
+      </MetaSection>
+
+      {!track.isInstrumental || track.shortDescription ? (
+        <MetaSection title="Текст и описание">
+          <MetaTextBlock label="Описание" value={track.shortDescription || null} />
+          {!track.isInstrumental ? (
+            <MetaTextBlock label="Текст песни" value={track.lyricsText || null} />
+          ) : null}
+        </MetaSection>
       ) : null}
-      <MetaRow label="Автор музыки" value={track.musicAuthor || null} />
-      <MetaRow label="Права на музыку" value={track.musicRights || null} />
-      <MetaRow label="ИИ-сервис (музыка)" value={track.musicAiService || null} />
-      <MetaRow label="Права на исполнение" value={track.performanceRights || null} />
-      <MetaRow label="Автор минуса / бэка" value={track.backingAuthor || null} />
-      <MetaRow
-        label="Начало в ТикТок"
-        value={
-          track.tiktokSoundStartSec != null ? `${track.tiktokSoundStartSec} сек.` : null
-        }
-      />
-      <MetaRow label="Стриминг-сервисы" value={streamingScopeShortLabel(track.streamingScope)} />
-      <MetaRow label="ISRC" value={track.isrc || null} />
-      <MetaRow label="UPC" value={track.upc || null} />
-      <MetaRow
-        label="Перенос с другого дистрибьютора"
-        value={track.transferFromOtherDistributor ? "Да" : null}
-      />
-      <MetaRow label="Предыдущий дистрибьютор" value={track.previousDistributor || null} />
-      <MetaRow
-        label="Оригинальная дата релиза"
-        value={track.originalReleaseDate || null}
-      />
-      <MetaRow label="AI-маркировка" value={aiLabelingModeLabel(ai?.mode)} />
-      {ai?.mode === "partial" && ai.details
-        ? [
-            ...AI_LABELING_COMPOSITION_FIELDS.map((f) => (
-              <MetaRow
-                key={f.key}
-                label={f.label}
-                value={
-                  ai.details?.[f.key]
-                    ? AI_LABELING_DETAIL_BINARY_LABELS[ai.details[f.key] as AiBinaryChoice]
-                    : null
-                }
-              />
-            )),
-            ...AI_LABELING_RECORDING_FIELDS.map((f) => (
-              <MetaRow
-                key={f.key}
-                label={f.label}
-                value={
-                  ai.details?.[f.key]
-                    ? AI_LABELING_DETAIL_TERNARY_LABELS[ai.details[f.key] as AiTernaryChoice]
-                    : null
-                }
-              />
-            )),
-          ]
-        : null}
-    </dl>
+
+      <MetaSection title="Авторы и права">
+        {!track.isInstrumental ? (
+          <>
+            <MetaRow label="Автор слов" value={track.lyricsAuthor || null} />
+            <MetaRow label="Права на текст" value={track.lyricsRights || null} />
+          </>
+        ) : null}
+        <MetaRow label="Автор музыки" value={track.musicAuthor || null} />
+        <MetaRow label="Права на музыку" value={track.musicRights || null} />
+        <MetaRow label="ИИ-сервис (музыка)" value={track.musicAiService || null} />
+        <MetaRow label="Права на исполнение" value={track.performanceRights || null} />
+        <MetaRow label="Автор минуса / бэка" value={track.backingAuthor || null} />
+      </MetaSection>
+
+      <MetaSection title="Коды и перенос">
+        {!omitReleaseOverlap ? <MetaRow label="UPC" value={track.upc || null} /> : null}
+        <MetaRow label="ISRC" value={track.isrc || null} />
+        <MetaRow
+          label="Перенос с другого дистрибьютора"
+          value={track.transferFromOtherDistributor ? "Да" : null}
+        />
+        <MetaRow label="Предыдущий дистрибьютор" value={track.previousDistributor || null} />
+        <MetaRow
+          label="Оригинальная дата релиза"
+          value={formatMetaDate(track.originalReleaseDate)}
+        />
+      </MetaSection>
+
+      <MetaSection title="AI-маркировка">
+        <MetaRow
+          label="Режим"
+          value={ai?.mode ? aiLabelingModeLabel(ai.mode) : null}
+        />
+        {aiDetailRows}
+      </MetaSection>
+    </div>
   )
 }
 
@@ -155,37 +246,21 @@ function ReleaseMetaList({
 }) {
   const first = tracks[0]
   const coverAi = release?.coverCreatedWithAi as CoverAiLevel | null | undefined
+
   return (
-    <dl className="space-y-0">
-      <MetaRow label="Название" value={release?.title ?? first?.trackName} />
-      <MetaRow label="Артист" value={release?.artistName ?? first?.artistName} />
-      <MetaRow
-        label="Тип"
-        value={
-          release?.kind === "album" || (tracks.length > 1 && Boolean(first?.albumId))
-            ? "Альбом"
-            : "Сингл"
-        }
-      />
-      <MetaRow label="Дата релиза" value={release?.releaseDate ?? first?.releaseDate} />
+    <MetaSection title="Релиз">
       <MetaRow label="Лейбл" value={release?.labelName ?? first?.labelName} />
       <MetaRow label="UPC / EAN" value={release?.upc ?? first?.upc} />
       <MetaRow
-        label="Обложка создана при помощи ИИ"
+        label="Обложка (ИИ)"
         value={coverAi ? COVER_AI_LEVEL_LABELS[coverAi] : null}
       />
-      <MetaRow
-        label="Заказана AI-обложка"
-        value={release?.requestAiCover ? "Да" : null}
-      />
+      <MetaRow label="Заказана AI-обложка" value={release?.requestAiCover ? "Да" : null} />
       {first ? (
-        <MetaRow
-          label="Стриминг-сервисы"
-          value={streamingScopeShortLabel(first.streamingScope)}
-        />
+        <MetaRow label="Площадки" value={streamingScopeShortLabel(first.streamingScope)} />
       ) : null}
       <MetaRow label="Треков" value={tracks.length} />
-    </dl>
+    </MetaSection>
   )
 }
 
@@ -390,11 +465,14 @@ export function ReleaseTrackListPlayer({
       </ol>
 
       <Dialog open={Boolean(infoTrack)} onOpenChange={(open) => !open && setInfoTrack(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {infoTrack?.trackName.trim() || "Информация о треке"}
             </DialogTitle>
+            {infoTrack?.artistName ? (
+              <DialogDescription>{infoTrack.artistName}</DialogDescription>
+            ) : null}
           </DialogHeader>
           {infoTrack ? <TrackMetaList track={infoTrack} /> : null}
         </DialogContent>
@@ -413,6 +491,10 @@ export function ReleaseInfoButton({
   const [open, setOpen] = useState(false)
   const isAlbum =
     release?.kind === "album" || tracks.length > 1 || Boolean(tracks[0]?.albumId)
+  const title = release?.title ?? tracks[0]?.trackName ?? "Информация о релизе"
+  const artist = release?.artistName ?? tracks[0]?.artistName
+  const kindLabel = isAlbum ? "Альбом" : "Сингл"
+  const dateLabel = formatMetaDate(release?.releaseDate ?? tracks[0]?.releaseDate)
 
   return (
     <>
@@ -421,17 +503,19 @@ export function ReleaseInfoButton({
         Информация о релизе
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Информация о релизе</DialogTitle>
+            <DialogTitle className="pr-6 leading-snug">{title}</DialogTitle>
+            <DialogDescription>
+              {[artist, kindLabel, dateLabel].filter(Boolean).join(" · ")}
+            </DialogDescription>
           </DialogHeader>
-          <ReleaseMetaList release={release} tracks={tracks} />
-          {!isAlbum && tracks[0] ? (
-            <div className="mt-4 pt-3 border-t border-border">
-              <p className="text-sm font-medium mb-2">Данные трека</p>
-              <TrackMetaList track={tracks[0]} />
-            </div>
-          ) : null}
+          <div className="space-y-3">
+            <ReleaseMetaList release={release} tracks={tracks} />
+            {!isAlbum && tracks[0] ? (
+              <TrackMetaList track={tracks[0]} omitReleaseOverlap />
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </>

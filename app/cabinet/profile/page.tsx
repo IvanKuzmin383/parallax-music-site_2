@@ -168,7 +168,7 @@ export default function CabinetProfilePage() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <Card className="border-primary/20 bg-primary/5 py-4 gap-3">
+          <Card id="cabinet-tariff" className="scroll-mt-20 border-primary/20 bg-primary/5 py-4 gap-3">
             <CardHeader className="pb-2 gap-1">
               <CardTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-primary" />

@@ -159,6 +159,16 @@ export async function updateWithdrawalRequestStatus(
     console.log("[withdrawal-requests] Updated withdrawal request status", { id, status })
   }
 
+  if (current.status !== status && (status === "completed" || status === "rejected")) {
+    const { tryNotifyWithdrawalStatus } = await import("@/lib/cabinet-notifications")
+    await tryNotifyWithdrawalStatus({
+      userId: current.userId,
+      withdrawalId: id,
+      amount: current.amount,
+      status,
+    })
+  }
+
   return getWithdrawalRequestById(id)
 }
 

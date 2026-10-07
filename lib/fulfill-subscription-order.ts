@@ -90,6 +90,13 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
       preferredArtistNames: [user.artistName, latestTrackArtist],
     })
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId, userId: user.id })
+    const { tryNotifyPaymentSuccess } = await import("@/lib/cabinet-notifications")
+    await tryNotifyPaymentSuccess({
+      userKey: user.id,
+      orderId,
+      orderType: "subscription",
+      amountRub: amount,
+    })
 
     if (hasAutopayBinding && newExpiresAt) {
       await setCabinetUserAutopay(user.id, {

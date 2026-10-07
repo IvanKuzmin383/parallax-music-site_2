@@ -51,6 +51,13 @@ export async function fulfillFixPackOrder(params: FulfillFixPackOrderParams): Pr
 
     await addFixPackCredits(user.id, tracksCount)
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId, userId: user.id })
+    const { tryNotifyPaymentSuccess } = await import("@/lib/cabinet-notifications")
+    await tryNotifyPaymentSuccess({
+      userKey: user.id,
+      orderId,
+      orderType: "fix_pack",
+      amountRub: amount,
+    })
   } else {
     await addPendingFixCredits({ email, tracksCount, orderId })
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })

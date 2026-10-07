@@ -50,6 +50,19 @@ function notifyStaff(
   })
 }
 
+async function notifyUserPaid(order: Order, amountRub: string | number) {
+  const { tryNotifyPaymentSuccess } = await import("@/lib/cabinet-notifications")
+  const userKey =
+    ("userId" in order && order.userId ? order.userId : null) ||
+    ("userEmail" in order && order.userEmail ? order.userEmail : null)
+  await tryNotifyPaymentSuccess({
+    userKey,
+    orderId: order.id,
+    orderType: order.orderType,
+    amountRub,
+  })
+}
+
 async function listAiMasteringFilenames(orderId: string): Promise<string[]> {
   try {
     const base = await getUploadsBasePath()
@@ -117,6 +130,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "tracks_topup",
       provider
     )
+    await notifyUserPaid(order, amount)
     return
   }
 
@@ -157,6 +171,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "ai_mastering",
       provider
     )
+    await notifyUserPaid(order, amount)
     return
   }
 
@@ -199,6 +214,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "vertical_video",
       provider
     )
+    await notifyUserPaid(order, amount)
     return
   }
 
@@ -234,6 +250,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "track_cover",
       provider
     )
+    await notifyUserPaid(order, amount)
     return
   }
 
@@ -289,6 +306,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       order.orderType,
       provider
     )
+    await notifyUserPaid(order, amount)
     return
   }
 
@@ -298,6 +316,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     if (order.draftId) {
       await markUploadDraftPaid(order.draftId, orderId)
     }
+    await notifyUserPaid(order, amount)
     return
   }
 
