@@ -61,7 +61,7 @@ export function CabinetSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="cabinet-sidebar-scroll gap-0">
+      <SidebarContent className="cabinet-sidebar-scroll gap-0 overflow-x-hidden">
         {CABINET_SIDEBAR_GROUPS.map((group, groupIndex) => (
           <SidebarGroup
             key={group.id}
@@ -80,7 +80,7 @@ export function CabinetSidebar() {
                       asChild
                       isActive={isActive(item.href, pathname)}
                       tooltip={item.label}
-                      className="h-10 gap-3 px-3 text-[15px] origin-left transition-transform duration-200 hover:scale-[1.04]"
+                      className="h-10 gap-3 px-3 text-[15px]"
                     >
                       <Link href={item.href}>
                         <item.icon />
@@ -100,7 +100,7 @@ export function CabinetSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Выйти"
-              className="h-10 gap-3 px-3 text-[15px] origin-left transition-transform duration-200 hover:scale-[1.04]"
+              className="h-10 gap-3 px-3 text-[15px]"
               onClick={() => void logout()}
             >
               <LogOut />

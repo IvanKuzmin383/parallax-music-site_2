@@ -27,7 +27,7 @@ export function ArtistProjectSwitcher({
   if (artists.length <= 1) return null
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div className={cn("flex flex-wrap items-center gap-2 pt-0.5", className)}>
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       <div className="flex flex-wrap gap-1.5">
         <button

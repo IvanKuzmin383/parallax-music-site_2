@@ -25,6 +25,7 @@ export type TransactionType =
   | "topup"
   | "service_payment"
   | "royalty_credit"
+  | "royalty_to_wallet"
   | "withdrawal"
   | "referral_bonus"
   | "refund"
@@ -95,6 +96,7 @@ export interface CabinetUserView {
   email: string
   displayName?: string
   streamingBalance: number
+  walletBalance: number
   subscriptionName?: string
   subscriptionExpiresAt?: string
 }

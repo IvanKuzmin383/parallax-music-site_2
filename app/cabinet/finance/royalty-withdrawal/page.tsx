@@ -123,13 +123,20 @@ export default function FinanceRoyaltyWithdrawalPage() {
             <p className="text-sm text-muted-foreground">Доступно к выводу</p>
             <p className="text-3xl font-bold">{balance.toLocaleString("ru-RU")} ₽</p>
           </div>
-          {balance >= 1000 ? (
-            <Button onClick={() => setDialogOpen(true)} disabled={hasPending}>
-              {hasPending ? "Заявка в обработке" : "Вывести"}
-            </Button>
-          ) : (
-            <p className="text-sm text-muted-foreground">Минимальная сумма вывода — 1 000 ₽</p>
-          )}
+          <div className="flex flex-col items-stretch sm:items-end gap-2">
+            {balance >= 1000 ? (
+              <Button onClick={() => setDialogOpen(true)} disabled={hasPending}>
+                {hasPending ? "Заявка в обработке" : "Вывести"}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">Минимальная сумма вывода — 1 000 ₽</p>
+            )}
+            {balance > 0 ? (
+              <Button variant="outline" asChild>
+                <Link href="/cabinet/finance/balance">Перевести на баланс</Link>
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 

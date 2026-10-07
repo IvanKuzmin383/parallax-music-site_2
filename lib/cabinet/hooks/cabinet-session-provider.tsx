@@ -9,6 +9,7 @@ interface CabinetUserResponse {
     email?: string
     displayName?: string
     streamingBalance?: number
+    walletBalance?: number
     subscriptionName?: string
     subscriptionExpiresAt?: string
   }
@@ -56,6 +57,7 @@ export function CabinetSessionProvider({ children }: { children: React.ReactNode
         email: u.email,
         displayName: u.displayName,
         streamingBalance: u.streamingBalance ?? 0,
+        walletBalance: u.walletBalance ?? 0,
         subscriptionName: u.subscriptionName,
         subscriptionExpiresAt: u.subscriptionExpiresAt,
       }

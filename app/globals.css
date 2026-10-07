@@ -318,12 +318,14 @@
 
 /* Cabinet sidebar — скролл в тёмной теме сайта, не дефолтный OS */
 .cabinet-sidebar-scroll {
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklch, var(--sidebar-border) 85%, var(--sidebar-foreground) 15%) transparent;
 }
 
 .cabinet-sidebar-scroll::-webkit-scrollbar {
   width: 5px;
+  height: 0;
 }
 
 .cabinet-sidebar-scroll::-webkit-scrollbar-track {

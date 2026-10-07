@@ -45,6 +45,8 @@ export interface CabinetUser {
   subscriptionTrackLimit?: number
   purchasedTracksBalance?: number
   streamingBalance?: number
+  /** Баланс кабинета (для оплаты услуг), отдельно от роялти. */
+  walletBalance?: number
   /** Legacy ЮKassa: payment_method_id для рекуррентов */
   yookassaPaymentMethodId?: string
   /** Т‑Банк: RebillId для рекуррентных списаний */
@@ -97,6 +99,7 @@ interface CabinetUserRow {
   subscription_track_limit: number | null
   purchased_tracks_balance: number | null
   streaming_balance: number | null
+  wallet_balance?: number | null
   yookassa_payment_method_id: string | null
   tbank_rebill_id: string | null
   autopay_enabled: boolean | null
@@ -161,6 +164,7 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     subscriptionTrackLimit: row.subscription_track_limit ?? undefined,
     purchasedTracksBalance: row.purchased_tracks_balance ?? undefined,
     streamingBalance: row.streaming_balance ?? undefined,
+    walletBalance: row.wallet_balance ?? undefined,
     yookassaPaymentMethodId: row.yookassa_payment_method_id ?? undefined,
     tbankRebillId: row.tbank_rebill_id ?? undefined,
     autopayEnabled: row.autopay_enabled === true ? true : row.autopay_enabled === false ? false : undefined,

@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         subscriptionTrackLimit: user.subscriptionTrackLimit,
         purchasedTracksBalance: user.purchasedTracksBalance ?? 0,
         streamingBalance: user.streamingBalance || 0,
+        walletBalance: user.walletBalance || 0,
         profileCompleteForUpload: cabinetProfileCompleteForUpload(user),
         artistSubscriptions,
       },

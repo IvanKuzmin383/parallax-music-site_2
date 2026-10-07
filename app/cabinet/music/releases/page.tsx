@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { ReleaseListCard } from "@/components/cabinet/releases/release-list-card"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
@@ -260,28 +259,34 @@ function MusicReleasesPageContent() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageHeader title="Мои релизы" className="mb-0 sm:items-center">
-        <div className="relative w-full sm:w-[16rem]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по названию или артисту"
-            className="pl-9 h-9"
-            aria-label="Поиск релизов"
-          />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-3">
+          <h1 className="text-2xl font-bold tracking-tight leading-tight md:text-3xl">
+            Мои релизы
+          </h1>
+          {!loading ? (
+            <ArtistProjectSwitcher
+              artists={artistCounts}
+              value={artistFilter}
+              onChange={setArtistInUrl}
+              allCount={releases.length}
+            />
+          ) : null}
         </div>
-        <UploadReleaseButton artist={uploadArtist} />
-      </PageHeader>
-
-      {!loading ? (
-        <ArtistProjectSwitcher
-          artists={artistCounts}
-          value={artistFilter}
-          onChange={setArtistInUrl}
-          allCount={releases.length}
-        />
-      ) : null}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="relative w-full sm:w-[16rem]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по названию или артисту"
+              className="pl-9 h-9"
+              aria-label="Поиск релизов"
+            />
+          </div>
+          <UploadReleaseButton artist={uploadArtist} />
+        </div>
+      </div>
 
       {!loading && artistScoped.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card/40 p-2 sm:p-2.5">
@@ -358,16 +363,7 @@ function MusicReleasesPageContent() {
         <div className="space-y-8">
           {groupedForAllArtists.map((group) => (
             <section key={group.artist} className="space-y-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-base font-semibold">{group.artist}</h2>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setArtistInUrl(group.artist)}
-                >
-                  Только этот проект
-                </button>
-              </div>
+              <h2 className="text-base font-semibold">{group.artist}</h2>
               <div className="grid gap-3 md:grid-cols-2">
                 {group.items.map((release) => (
                   <ReleaseListCard

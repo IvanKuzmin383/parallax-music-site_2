@@ -39,7 +39,8 @@ function CabinetDashboardPageContent() {
     )
   }
 
-  const balance = user?.streamingBalance ?? 0
+  const walletBalance = user?.walletBalance ?? 0
+  const royaltyBalance = user?.streamingBalance ?? 0
   const upcoming = pickUpcomingRelease(scopedReleases)
   const releasesHref =
     artistFilter === RELEASE_ARTIST_FILTER_ALL
@@ -57,8 +58,8 @@ function CabinetDashboardPageContent() {
 
       <DashboardMetricCards
         releasesCount={releasesLoading ? 0 : scopedReleases.length}
-        balance={balance}
-        royalty={balance}
+        balance={walletBalance}
+        royalty={royaltyBalance}
       />
 
       <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
