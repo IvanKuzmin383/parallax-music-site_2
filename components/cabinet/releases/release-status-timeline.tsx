@@ -68,7 +68,7 @@ export function ReleaseStatusTimeline({
       : status === "rejected"
         ? "Отклонён"
         : status === "postponed"
-          ? "Отложен"
+          ? "Отозван"
           : null
 
   const dates: (string | null)[] = [

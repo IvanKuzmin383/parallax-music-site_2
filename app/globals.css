@@ -404,6 +404,17 @@
   border-color: var(--border);
 }
 
+/* Чекбоксы в кабинете: рамка заметна на тёмном фоне */
+.cabinet-theme [data-slot="checkbox"] {
+  border-color: color-mix(in oklab, var(--foreground) 55%, transparent) !important;
+  background-color: transparent !important;
+}
+.cabinet-theme [data-slot="checkbox"][data-state="checked"] {
+  border-color: var(--primary) !important;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
 /* Красные сервисные чекбоксы (AI / аддоны) — !important против cabinet button.border */
 .cabinet-theme [data-slot="checkbox"].border-red-600 {
   border-color: #dc2626 !important;
@@ -413,6 +424,17 @@
   background-color: #dc2626 !important;
   border-color: #dc2626 !important;
   color: #fff !important;
+}
+
+/* Предупреждающие чекбоксы (короткий срок релиза и т.п.) */
+.cabinet-theme [data-slot="checkbox"].border-amber-400 {
+  border-color: #fbbf24 !important;
+  background-color: transparent !important;
+}
+.cabinet-theme [data-slot="checkbox"].border-amber-400[data-state="checked"] {
+  background-color: #f59e0b !important;
+  border-color: #f59e0b !important;
+  color: #000 !important;
 }
 
 /* Табы / переключатели: активный пункт цветом primary */

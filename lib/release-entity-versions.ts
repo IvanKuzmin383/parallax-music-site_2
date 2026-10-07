@@ -11,6 +11,7 @@ export type ReleaseEntityVersionReason =
   | "resubmit_after_revision"
   | "admin_status_change"
   | "admin_edit"
+  | "user_recall_to_draft"
   | "manual"
 
 export type ReleaseEntityVersion = {
@@ -99,6 +100,7 @@ export const RELEASE_ENTITY_VERSION_REASON_LABELS: Record<string, string> = {
   resubmit_after_revision: "Повторная отправка после доработки",
   admin_status_change: "Смена статуса (админ)",
   admin_edit: "Правка метаданных (админ)",
+  user_recall_to_draft: "Возврат на редактирование (пользователь)",
   manual: "Ручной снимок",
 }
 

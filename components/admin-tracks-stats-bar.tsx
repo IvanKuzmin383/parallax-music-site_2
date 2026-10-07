@@ -17,7 +17,7 @@ const STATUS_CARDS: { value: TrackStatus; label: string; shortLabel: string }[] 
   { value: "approved_by_platforms", label: "Отправлен на площадки", shortLabel: "Площадки" },
   { value: "released", label: "Выпущен", shortLabel: "Выпущен" },
   { value: "rejected", label: "Отклонено", shortLabel: "Отклонено" },
-  { value: "postponed", label: "Отложено", shortLabel: "Отложено" },
+  { value: "postponed", label: "Отозван", shortLabel: "Отозван" },
 ]
 
 function countLabel(count: number, unit: "tracks" | "drafts"): string {

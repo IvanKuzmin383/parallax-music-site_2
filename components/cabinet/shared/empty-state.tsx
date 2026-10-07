@@ -11,7 +11,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, icon: Icon = Inbox, action }: EmptyStateProps) {
   return (
-    <Empty className="border border-dashed border-border">
+    <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Icon className="h-6 w-6" />

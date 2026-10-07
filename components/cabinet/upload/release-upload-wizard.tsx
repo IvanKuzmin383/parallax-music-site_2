@@ -165,6 +165,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         r.status.includes("модерац") ||
         r.status === "Выпущен" ||
         r.status.includes("площадк") ||
+        r.status === "Отозван" ||
         r.status === "Отложен"
       if (!occupies) continue
       const ymd = toReleaseDateYyyyMmDd(r.releaseDate)
@@ -1514,11 +1515,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     <div className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
                       <p className="text-xs text-amber-100/90">
                         Площадки могут не успеть проверить и доставить релиз вовремя. Стандартный срок и
-                        питчинг — минимум за 14 календарных дней.
+                        питчинг - минимум за 14 календарных дней
                       </p>
                       <label className="flex items-start gap-2 text-sm">
                         <Checkbox
-                          className="mt-0.5 shrink-0"
+                          className="mt-0.5 shrink-0 border-amber-400 data-[state=checked]:border-amber-500 data-[state=checked]:bg-amber-500 data-[state=checked]:text-black dark:data-[state=checked]:border-amber-500 dark:data-[state=checked]:bg-amber-500"
                           checked={acceptShortReleaseDate}
                           onCheckedChange={(c) => setAcceptShortReleaseDate(c === true)}
                           disabled={formDisabled}

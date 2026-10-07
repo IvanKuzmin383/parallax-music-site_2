@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Music, Trash2 } from "lucide-react"
+import { Music, Trash2, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -47,6 +47,13 @@ function isDraftRelease(release: ReleaseView): boolean {
   )
 }
 
+function isOnModerationRelease(release: ReleaseView): boolean {
+  return (
+    release.releaseStatus === "on_moderation" ||
+    (release.status.includes("модерац") && !release.status.includes("доработ"))
+  )
+}
+
 export function ReleaseListCard({
   release,
   onDeleted,
@@ -60,8 +67,11 @@ export function ReleaseListCard({
   const actionLabel = wizard ? releaseContinueLabel(release) : "Открыть"
   const primary = actionLabel === "Исправить" || actionLabel === "Оплатить" || actionLabel === "Продолжить"
   const canDelete = isDraftRelease(release)
+  const canRecall = isOnModerationRelease(release)
   const [deleting, setDeleting] = useState(false)
+  const [recalling, setRecalling] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [recallConfirmOpen, setRecallConfirmOpen] = useState(false)
 
   const kindParts = kindMeta?.split(" · ") ?? []
 
@@ -88,6 +98,29 @@ export function ReleaseListCard({
     }
   }
 
+  const handleRecall = async () => {
+    if (recalling) return
+    setRecalling(true)
+    try {
+      const res = await fetch(`/api/cabinet/releases/${encodeURIComponent(release.id)}/recall`, {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        toast.error(data.error ?? "Не удалось вернуть на редактирование")
+        return
+      }
+      toast.success("Релиз возвращён на редактирование")
+      setRecallConfirmOpen(false)
+      onDeleted?.()
+    } catch {
+      toast.error("Не удалось вернуть на редактирование")
+    } finally {
+      setRecalling(false)
+    }
+  }
+
   return (
     <article className="relative flex items-stretch gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-4">
       <Link
@@ -110,7 +143,7 @@ export function ReleaseListCard({
         )}
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5 pb-10 sm:pb-0 sm:pr-40">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5 pb-10 sm:pb-0 sm:pr-52">
         <div className="space-y-1.5">
           <div>
             <Link
@@ -174,6 +207,37 @@ export function ReleaseListCard({
                 >
                   {deleting ? <Spinner className="h-4 w-4 mr-1" /> : null}
                   Удалить
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
+        {canRecall ? (
+          <AlertDialog open={recallConfirmOpen} onOpenChange={setRecallConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button type="button" size="sm" variant="outline" disabled={recalling}>
+                {recalling ? <Spinner className="h-4 w-4" /> : <Undo2 className="h-4 w-4" />}
+                <span className="ml-1.5 hidden sm:inline">На редактирование</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Вернуть на редактирование?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Релиз «{release.title || "Без названия"}» снимется с модерации. Вы сможете внести
+                  правки и отправить снова. Если модератор уже взял релиз в работу, вернуть его будет
+                  нельзя.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={recalling}>Отмена</AlertDialogCancel>
+                <Button
+                  type="button"
+                  disabled={recalling}
+                  onClick={() => void handleRecall()}
+                >
+                  {recalling ? <Spinner className="h-4 w-4 mr-1" /> : null}
+                  На редактирование
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>

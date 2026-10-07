@@ -1,8 +1,6 @@
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import {
-  assertFixPackCreditsAvailable,
-  deductFixPackCreditsOnUpload,
-} from "@/lib/fix-pack-credits"
+import { assertFixPackCreditsForTracks } from "@/lib/fix-pack-credits"
+import { deductAndMarkFixPackCreditsForTracks } from "@/lib/fix-pack-moderation-credits"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
 import {
   assertUploadDraftBundlePayment,
@@ -194,7 +192,7 @@ export async function submitReleaseToModeration(
   if (artistPolicyErr) return { ok: false, error: artistPolicyErr, status: 400 }
 
   if (!isResubmitAfterRevision) {
-    const creditsGate = assertFixPackCreditsAvailable(user, tracks.length)
+    const creditsGate = assertFixPackCreditsForTracks(user, tracks)
     if (!creditsGate.ok) return { ok: false, error: creditsGate.error, status: 403 }
   }
 
@@ -253,7 +251,7 @@ export async function submitReleaseToModeration(
 
   await logLicenseAcceptances(updatedTracks, release.userId, context)
   if (!isResubmitAfterRevision) {
-    await deductFixPackCreditsOnUpload(user, tracks.length)
+    await deductAndMarkFixPackCreditsForTracks(user, updatedTracks)
   }
 
   const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")

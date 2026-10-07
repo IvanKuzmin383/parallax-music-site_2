@@ -11,7 +11,7 @@ const TRACK_STATUS_LABELS: Record<string, string> = {
   approved_by_platforms: "Одобрен площадками",
   released: "Выпущен",
   rejected: "Отклонён",
-  postponed: "Отложен",
+  postponed: "Отозван",
 }
 
 const RELEASE_STATUS_LABELS: Record<string, string> = {
@@ -23,7 +23,7 @@ const RELEASE_STATUS_LABELS: Record<string, string> = {
   approved_by_platforms: "Одобрен площадками",
   released: "Выпущен",
   rejected: "Отклонён",
-  postponed: "Отложен",
+  postponed: "Отозван",
 }
 
 /** Чем меньше индекс — тем «важнее» показать этот статус на групповой карточке. */
@@ -220,8 +220,8 @@ export function releaseStatusHint(release: ReleaseView): string {
   if (raw === "rejected" || label.includes("Отклон")) {
     return "Релиз отклонён модерацией"
   }
-  if (raw === "postponed" || label === "Отложен") {
-    return "Релиз временно отложен"
+  if (raw === "postponed" || label === "Отозван" || label === "Отложен") {
+    return "Релиз отозван"
   }
   return "Статус релиза обновляется автоматически"
 }

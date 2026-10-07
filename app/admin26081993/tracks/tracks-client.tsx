@@ -111,7 +111,7 @@ const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "approved_by_platforms", label: "Отправлен на площадки" },
   { value: "released", label: "Выпущен" },
   { value: "rejected", label: "Отклонено" },
-  { value: "postponed", label: "Отложено" },
+  { value: "postponed", label: "Отозван" },
 ]
 
 type TrackListSortField = "releaseDate" | "createdAt"
@@ -3003,7 +3003,7 @@ export default function TracksPageClient() {
                       <div className="md:col-span-2 space-y-2">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <Label htmlFor="admin-mod-note">
-                            Комментарий модерации (при «Отклонено» / «Отложено» / «Требуется доработка»)
+                            Комментарий модерации (при «Отклонено» / «Отозван» / «Требуется доработка»)
                           </Label>
                           <AdminModerationNoteTemplates
                             onApply={(text) =>

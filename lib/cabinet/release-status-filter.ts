@@ -58,6 +58,7 @@ export function matchesReleaseFilter(release: ReleaseView, filter: ReleaseFilter
     case "rejected":
       return (
         label === "Отклонён" ||
+        label === "Отозван" ||
         label === "Отложен" ||
         raw === "rejected" ||
         raw === "postponed"

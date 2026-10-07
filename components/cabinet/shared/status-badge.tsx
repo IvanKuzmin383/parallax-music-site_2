@@ -123,7 +123,9 @@ export function resolveStatusTone(status: string): StatusTone {
   }
   if (
     raw === "postponed" ||
+    status === "Отозван" ||
     status === "Отложен" ||
+    status === "Отложено" ||
     raw === "cancelled" ||
     raw === "closed"
   ) {
