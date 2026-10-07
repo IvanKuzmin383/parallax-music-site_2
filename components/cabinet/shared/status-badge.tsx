@@ -80,13 +80,14 @@ export function resolveStatusTone(status: string): StatusTone {
   }
   if (
     raw === "approved_by_platforms" ||
+    status.includes("Отправлен на площадки") ||
     status.includes("Одобрен площадками")
   ) {
     return "teal"
   }
   if (
     raw === "sent_to_platforms" ||
-    status.includes("Отправлен на площадки") ||
+    status.includes("агрегатор") ||
     status.includes("На площадках")
   ) {
     return "violet"

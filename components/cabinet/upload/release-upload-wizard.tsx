@@ -347,6 +347,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }, [initialReleaseId, loadRelease])
 
   useEffect(() => {
+    if (initialReleaseId) return
+    const fromUrl = searchParams.get("artist")?.trim()
+    if (!fromUrl) return
+    setArtistName((prev) => (prev.trim() ? prev : fromUrl))
+  }, [initialReleaseId, searchParams])
+
+  useEffect(() => {
     const payment = searchParams.get("payment")
     if (payment === "return" && releaseId && step === 6) {
       void (async () => {
@@ -1964,26 +1971,24 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           {moderationNote ? (
             <ModerationNoteAside note={moderationNote} maxHeight={140} />
           ) : null}
-          <div className="flex flex-col overflow-hidden rounded-lg bg-muted/20 sm:flex-row sm:items-stretch">
-            <div className="relative mx-auto w-full max-w-xs shrink-0 self-stretch bg-muted sm:mx-0 sm:w-auto sm:max-w-none">
-              <div className="relative aspect-square w-full sm:h-full sm:w-auto">
-                {coverPreview ? (
-                  <Image
-                    src={coverPreview}
-                    alt="Обложка релиза"
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    sizes="(max-width: 640px) 20rem, 50vw"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
+          <div className="flex flex-col gap-4 overflow-hidden rounded-lg bg-muted/20 p-4 sm:flex-row sm:items-start">
+            <div className="relative mx-auto aspect-square w-40 max-w-full shrink-0 overflow-hidden rounded-md bg-muted sm:mx-0">
+              {coverPreview ? (
+                <Image
+                  src={coverPreview}
+                  alt="Обложка релиза"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="160px"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )}
             </div>
-            <div className="min-w-0 flex-1 space-y-3 p-4">
+            <div className="min-w-0 flex-1 space-y-3">
               {reviewChecks.map((c, idx) => (
                 <div key={`${c.label}-${idx}`} className="flex items-start gap-2 text-sm">
                   {c.ok ? (

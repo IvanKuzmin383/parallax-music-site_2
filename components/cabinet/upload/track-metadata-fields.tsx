@@ -104,7 +104,7 @@ export function TrackMetadataFields({
           onChange={(e) => onChange({ trackVersion: e.target.value })}
           disabled={disabled}
           maxLength={100}
-          placeholder="Radio Edit / Remix"
+          placeholder="Radio Edit / Remix — или оставьте пустым"
         />
       </div>
       <div>
@@ -145,7 +145,11 @@ export function TrackMetadataFields({
           disabled={disabled}
           maxLength={500}
           rows={2}
+          placeholder="Настроение, идея трека, о чём он…"
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          Например: настроение, идея, о чём трек
+        </p>
       </div>
       <div>
         <Label>

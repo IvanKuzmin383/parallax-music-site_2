@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Music, Search, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,11 +25,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
+  collectReleaseArtists,
+  matchesReleaseArtist,
   matchesReleaseFilter,
   matchesReleaseSearch,
+  RELEASE_ARTIST_FILTER_ALL,
   RELEASE_FILTERS,
   type ReleaseFilterKey,
 } from "@/lib/cabinet/release-status-filter"
+import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
+import type { ReleaseView } from "@/lib/cabinet/types"
+import { ArtistProjectSwitcher } from "@/components/cabinet/shared/artist-project-switcher"
+import { buildArtistCounts } from "@/lib/cabinet/hooks/use-artist-project-filter"
 import { cn } from "@/lib/utils"
 
 const STAT_LABELS: Record<ReleaseFilterKey, string> = {
@@ -66,7 +74,29 @@ const STAT_ACTIVE_BG: Record<ReleaseFilterKey, string> = {
 
 type SortKey = "newest" | "oldest" | "title"
 
-function UploadReleaseButton({ variant = "default" }: { variant?: "default" | "outline" }) {
+function sortReleases(list: ReleaseView[], sort: SortKey): ReleaseView[] {
+  const sorted = [...list]
+  sorted.sort((a, b) => {
+    if (sort === "title") {
+      return a.title.localeCompare(b.title, "ru")
+    }
+    const da = a.releaseDate ?? ""
+    const db = b.releaseDate ?? ""
+    if (da && db && da !== db) {
+      return sort === "newest" ? db.localeCompare(da) : da.localeCompare(db)
+    }
+    return sort === "newest" ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)
+  })
+  return sorted
+}
+
+function UploadReleaseButton({
+  variant = "default",
+  artist,
+}: {
+  variant?: "default" | "outline"
+  artist?: string
+}) {
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -87,6 +117,10 @@ function UploadReleaseButton({ variant = "default" }: { variant?: "default" | "o
 
   const disabled = profileComplete === false
   const loading = profileComplete === null
+  const uploadHref =
+    artist && artist !== RELEASE_ARTIST_FILTER_ALL
+      ? `/cabinet/upload?artist=${encodeURIComponent(artist)}`
+      : "/cabinet/upload"
 
   const buttonInner = (
     <>
@@ -122,45 +156,107 @@ function UploadReleaseButton({ variant = "default" }: { variant?: "default" | "o
 
   return (
     <Button asChild variant={variant}>
-      <Link href="/cabinet/upload">{buttonInner}</Link>
+      <Link href={uploadHref}>{buttonInner}</Link>
     </Button>
   )
 }
 
-export default function MusicReleasesPage() {
+function MusicReleasesPageContent() {
   const { releases, loading, reload } = useCabinetReleases()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [filter, setFilter] = useState<ReleaseFilterKey>("all")
   const [query, setQuery] = useState("")
   const [sort, setSort] = useState<SortKey>("newest")
+  const [artistFilter, setArtistFilter] = useState<string>(RELEASE_ARTIST_FILTER_ALL)
+
+  const artists = useMemo(() => collectReleaseArtists(releases), [releases])
+  const artistCounts = useMemo(() => buildArtistCounts(releases), [releases])
+  const showArtistSwitcher = artists.length > 1
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("artist")?.trim()
+    if (!fromUrl) {
+      setArtistFilter(RELEASE_ARTIST_FILTER_ALL)
+      return
+    }
+    const match = artists.find(
+      (a) => normalizeArtistForPolicy(a) === normalizeArtistForPolicy(fromUrl)
+    )
+    if (match) {
+      setArtistFilter(match)
+      return
+    }
+    if (artists.length === 0) {
+      setArtistFilter(fromUrl)
+      return
+    }
+    setArtistFilter(RELEASE_ARTIST_FILTER_ALL)
+  }, [searchParams, artists])
+
+  const setArtistInUrl = (value: string) => {
+    setArtistFilter(value)
+    const params = new URLSearchParams(searchParams.toString())
+    if (value === RELEASE_ARTIST_FILTER_ALL) {
+      params.delete("artist")
+    } else {
+      params.set("artist", value)
+    }
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
+
+  const artistScoped = useMemo(
+    () => releases.filter((r) => matchesReleaseArtist(r, artistFilter)),
+    [releases, artistFilter]
+  )
 
   const counts = useMemo(() => {
     const map = {} as Record<ReleaseFilterKey, number>
     for (const f of RELEASE_FILTERS) {
       map[f.key] =
-        f.key === "all" ? releases.length : releases.filter((r) => matchesReleaseFilter(r, f.key)).length
+        f.key === "all"
+          ? artistScoped.length
+          : artistScoped.filter((r) => matchesReleaseFilter(r, f.key)).length
     }
     return map
-  }, [releases])
+  }, [artistScoped])
 
   const filtered = useMemo(() => {
-    const list = releases.filter(
-      (r) => matchesReleaseFilter(r, filter) && matchesReleaseSearch(r, query),
+    const list = artistScoped.filter(
+      (r) => matchesReleaseFilter(r, filter) && matchesReleaseSearch(r, query)
     )
-    const sorted = [...list]
-    sorted.sort((a, b) => {
-      if (sort === "title") {
-        return a.title.localeCompare(b.title, "ru")
+    return sortReleases(list, sort)
+  }, [artistScoped, filter, query, sort])
+
+  const groupedForAllArtists = useMemo(() => {
+    if (!showArtistSwitcher || artistFilter !== RELEASE_ARTIST_FILTER_ALL) return null
+    const groups: { artist: string; items: ReleaseView[] }[] = []
+    const indexByNorm = new Map<string, number>()
+    for (const release of filtered) {
+      const name = release.artist?.trim() || "Без артиста"
+      const norm = normalizeArtistForPolicy(name) || "__empty__"
+      const existing = indexByNorm.get(norm)
+      if (existing === undefined) {
+        indexByNorm.set(norm, groups.length)
+        groups.push({ artist: name, items: [release] })
+      } else {
+        groups[existing]!.items.push(release)
       }
-      const da = a.releaseDate ?? ""
-      const db = b.releaseDate ?? ""
-      if (da && db && da !== db) {
-        return sort === "newest" ? db.localeCompare(da) : da.localeCompare(db)
-      }
-      // Черновики / без даты — по id как стабильный прокси «свежести»
-      return sort === "newest" ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)
-    })
-    return sorted
-  }, [releases, filter, query, sort])
+    }
+    groups.sort((a, b) => a.artist.localeCompare(b.artist, "ru"))
+    return groups
+  }, [filtered, showArtistSwitcher, artistFilter])
+
+  const resetFilters = () => {
+    setFilter("all")
+    setQuery("")
+    setArtistInUrl(RELEASE_ARTIST_FILTER_ALL)
+  }
+
+  const uploadArtist =
+    artistFilter !== RELEASE_ARTIST_FILTER_ALL ? artistFilter : undefined
 
   return (
     <div className="w-full max-w-none space-y-6">
@@ -175,10 +271,19 @@ export default function MusicReleasesPage() {
             aria-label="Поиск релизов"
           />
         </div>
-        <UploadReleaseButton />
+        <UploadReleaseButton artist={uploadArtist} />
       </PageHeader>
 
-      {!loading && releases.length > 0 ? (
+      {!loading ? (
+        <ArtistProjectSwitcher
+          artists={artistCounts}
+          value={artistFilter}
+          onChange={setArtistInUrl}
+          allCount={releases.length}
+        />
+      ) : null}
+
+      {!loading && artistScoped.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card/40 p-2 sm:p-2.5">
           {RELEASE_FILTERS.map((f) => {
             const active = filter === f.key
@@ -189,17 +294,14 @@ export default function MusicReleasesPage() {
                 onClick={() => setFilter(f.key)}
                 className={cn(
                   "rounded-lg px-3 py-2 text-left transition-colors",
-                  active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50",
+                  active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50"
                 )}
               >
                 <span className={cn("text-lg font-semibold tabular-nums", COUNT_TONE[f.key])}>
                   {counts[f.key]}
                 </span>{" "}
                 <span
-                  className={cn(
-                    "text-sm",
-                    active ? "text-foreground" : "text-muted-foreground",
-                  )}
+                  className={cn("text-sm", active ? "text-foreground" : "text-muted-foreground")}
                 >
                   {STAT_LABELS[f.key]}
                 </span>
@@ -228,25 +330,56 @@ export default function MusicReleasesPage() {
           title="Релизов пока нет"
           description="Загрузите первый релиз"
           icon={Music}
-          action={<UploadReleaseButton />}
+          action={<UploadReleaseButton artist={uploadArtist} />}
+        />
+      ) : artistScoped.length === 0 ? (
+        <EmptyState
+          title="У этого проекта пока нет релизов"
+          description={
+            artistFilter !== RELEASE_ARTIST_FILTER_ALL
+              ? `Загрузите релиз для «${artistFilter}»`
+              : "Загрузите первый релиз"
+          }
+          icon={Music}
+          action={<UploadReleaseButton artist={uploadArtist} />}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="Ничего не найдено"
-          description="Попробуйте другой статус или поисковый запрос"
+          description="Попробуйте другой статус, проект или поисковый запрос"
           icon={Search}
           action={
-            <Button
-              variant="outline"
-              onClick={() => {
-                setFilter("all")
-                setQuery("")
-              }}
-            >
+            <Button variant="outline" onClick={resetFilters}>
               Сбросить фильтры
             </Button>
           }
         />
+      ) : groupedForAllArtists ? (
+        <div className="space-y-8">
+          {groupedForAllArtists.map((group) => (
+            <section key={group.artist} className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="text-base font-semibold">{group.artist}</h2>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setArtistInUrl(group.artist)}
+                >
+                  Только этот проект
+                </button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {group.items.map((release) => (
+                  <ReleaseListCard
+                    key={release.id}
+                    release={release}
+                    onDeleted={() => void reload()}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((release) => (
@@ -255,5 +388,19 @@ export default function MusicReleasesPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function MusicReleasesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-16">
+          <Spinner className="h-8 w-8" />
+        </div>
+      }
+    >
+      <MusicReleasesPageContent />
+    </Suspense>
   )
 }

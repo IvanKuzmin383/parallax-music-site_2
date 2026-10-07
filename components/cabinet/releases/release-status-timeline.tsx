@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils"
 import type { ReleaseStatus } from "@/lib/releases"
 
 /** Ровно подписи статусов пайплайна релиза (как в кабинете). */
+/** Подписи как в админке (не путать ключ approved_by_platforms с текстом). */
 const STEPS = [
   { id: "on_moderation", label: "На модерации" },
-  { id: "sent_to_platforms", label: "Отправлен на площадки" },
-  { id: "approved_by_platforms", label: "Одобрен площадками" },
+  { id: "sent_to_platforms", label: "Отправлен агрегатору" },
+  { id: "approved_by_platforms", label: "Отправлен на площадки" },
   { id: "released", label: "Выпущен" },
 ] as const
 

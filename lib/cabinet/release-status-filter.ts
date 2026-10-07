@@ -1,4 +1,29 @@
+import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 import type { ReleaseView } from "./types"
+
+/** Ключ «все проекты» в переключателе артиста. */
+export const RELEASE_ARTIST_FILTER_ALL = "all"
+
+export function matchesReleaseArtist(
+  release: Pick<ReleaseView, "artist">,
+  artistFilter: string
+): boolean {
+  if (!artistFilter || artistFilter === RELEASE_ARTIST_FILTER_ALL) return true
+  return normalizeArtistForPolicy(release.artist) === normalizeArtistForPolicy(artistFilter)
+}
+
+/** Уникальные имена артистов из релизов (как в карточке, с исходным регистром). */
+export function collectReleaseArtists(releases: Pick<ReleaseView, "artist">[]): string[] {
+  const byNorm = new Map<string, string>()
+  for (const r of releases) {
+    const raw = r.artist?.trim()
+    if (!raw || raw === "—") continue
+    const norm = normalizeArtistForPolicy(raw)
+    if (!norm || byNorm.has(norm)) continue
+    byNorm.set(norm, raw)
+  }
+  return [...byNorm.values()].sort((a, b) => a.localeCompare(b, "ru"))
+}
 
 export type ReleaseFilterKey =
   | "all"
@@ -50,6 +75,7 @@ export function matchesReleaseFilter(release: ReleaseView, filter: ReleaseFilter
     case "on_platforms":
       return (
         label.includes("площадк") ||
+        label.includes("агрегатор") ||
         raw === "sent_to_platforms" ||
         raw === "approved_by_platforms"
       )

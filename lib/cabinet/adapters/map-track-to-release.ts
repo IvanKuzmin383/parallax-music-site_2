@@ -7,8 +7,8 @@ const TRACK_STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
   upload_pending: "Требуется доработка",
   on_moderation: "На модерации",
-  sent_to_platforms: "Отправлен на площадки",
-  approved_by_platforms: "Одобрен площадками",
+  sent_to_platforms: "Отправлен агрегатору",
+  approved_by_platforms: "Отправлен на площадки",
   released: "Выпущен",
   rejected: "Отклонён",
   postponed: "Отозван",
@@ -19,8 +19,8 @@ const RELEASE_STATUS_LABELS: Record<string, string> = {
   awaiting_payment: "Ожидает оплаты",
   upload_pending: "Требуется доработка",
   on_moderation: "На модерации",
-  sent_to_platforms: "Отправлен на площадки",
-  approved_by_platforms: "Одобрен площадками",
+  sent_to_platforms: "Отправлен агрегатору",
+  approved_by_platforms: "Отправлен на площадки",
   released: "Выпущен",
   rejected: "Отклонён",
   postponed: "Отозван",
@@ -207,12 +207,11 @@ export function releaseStatusHint(release: ReleaseView): string {
   if (raw === "on_moderation" || label.includes("модерац")) {
     return "Релиз на проверке у модераторов"
   }
-  if (
-    raw === "sent_to_platforms" ||
-    raw === "approved_by_platforms" ||
-    label.includes("площадк")
-  ) {
-    return "Релиз передан на площадки"
+  if (raw === "sent_to_platforms" || label.includes("агрегатор")) {
+    return "Релиз отправлен агрегатору"
+  }
+  if (raw === "approved_by_platforms" || label.includes("площадк")) {
+    return "Релиз отправлен на площадки"
   }
   if (raw === "released" || label === "Выпущен") {
     return "Релиз доступен на всех площадках"

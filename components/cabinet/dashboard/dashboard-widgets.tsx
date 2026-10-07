@@ -586,9 +586,11 @@ function DashboardTaskRow({
 export function DashboardTasks({
   releases,
   onDeleted,
+  allTasksHref = "/cabinet/music/releases",
 }: {
   releases: ReleaseView[]
   onDeleted?: () => void
+  allTasksHref?: string
 }) {
   const tasks = releases.filter(isDashboardTask).slice(0, 5)
 
@@ -597,7 +599,7 @@ export function DashboardTasks({
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Задачи</h2>
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-          <Link href="/cabinet/music/releases">
+          <Link href={allTasksHref}>
             Все задачи
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>

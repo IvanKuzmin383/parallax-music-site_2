@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
@@ -41,6 +41,12 @@ import {
 } from "@/lib/music-stats-period-presets"
 import { MUSIC_PLATFORM_LABELS } from "@/lib/music-platform"
 import type { Track } from "@/lib/tracks"
+import { ArtistProjectSwitcher } from "@/components/cabinet/shared/artist-project-switcher"
+import {
+  buildArtistCounts,
+  useArtistProjectFilter,
+} from "@/lib/cabinet/hooks/use-artist-project-filter"
+import { RELEASE_ARTIST_FILTER_ALL } from "@/lib/cabinet/release-status-filter"
 
 type ChartDailyPoint = { date: string; shortDate: string } & Record<MusicPlatformKey, number>
 
@@ -251,7 +257,7 @@ async function fetchMusicStatsBatch(options: {
   return (await response.json()) as CabinetMusicStatsBatchPayload
 }
 
-export default function CabinetMusicStatsPage() {
+function CabinetMusicStatsPageContent() {
   const router = useRouter()
 
   const [selectedPlatformKeys, setSelectedPlatformKeys] = useState<MusicPlatformKey[]>(PLATFORM_KEYS)
@@ -281,17 +287,44 @@ export default function CabinetMusicStatsPage() {
   const isAllPlatformsSelected = selectedPlatformKeys.length === PLATFORM_KEYS.length
   const platformKeysForChart = isAllPlatformsSelected ? PLATFORM_KEYS : selectedPlatformKeys
 
+  const artistCounts = useMemo(() => buildArtistCounts(tracksMeta), [tracksMeta])
+  const artistNames = useMemo(() => artistCounts.map((a) => a.name), [artistCounts])
+  const { artistFilter, setArtist, isAll: isAllArtists, filterByArtistName } =
+    useArtistProjectFilter(artistNames)
+
+  const tracksForArtist = useMemo(
+    () => filterByArtistName(tracksMeta),
+    [filterByArtistName, tracksMeta]
+  )
+
+  const artistScopedTrackIds = useMemo(
+    () => tracksForArtist.map((t) => t.id),
+    [tracksForArtist]
+  )
+
+  useEffect(() => {
+    if (isAllArtists) return
+    const allowed = new Set(artistScopedTrackIds)
+    setSelectedTrackIds((prev) => {
+      const next = prev.filter((id) => allowed.has(id))
+      return next.length === prev.length ? prev : next
+    })
+  }, [isAllArtists, artistScopedTrackIds])
+
   /** До 5 треков для сравнения: выбранные в фильтре или первые из каталога (не весь каталог). */
   const trackIdsForCompareChart = useMemo(() => {
     const source =
-      selectedTrackIds.length > 0 ? selectedTrackIds : tracksMeta.map((t) => t.id)
+      selectedTrackIds.length > 0 ? selectedTrackIds : artistScopedTrackIds
     return source.slice(0, CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS)
-  }, [selectedTrackIds, tracksMeta])
+  }, [selectedTrackIds, artistScopedTrackIds])
 
   const compareTracksTruncated = useMemo(() => {
     if (selectedTrackIds.length > CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS) return true
-    return selectedTrackIds.length === 0 && tracksMeta.length > CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS
-  }, [selectedTrackIds.length, tracksMeta.length])
+    return (
+      selectedTrackIds.length === 0 &&
+      artistScopedTrackIds.length > CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS
+    )
+  }, [selectedTrackIds.length, artistScopedTrackIds.length])
 
   const chartConfigDynamic = useMemo(() => {
     return Object.fromEntries(
@@ -545,7 +578,25 @@ export default function CabinetMusicStatsPage() {
       setError(null)
 
       try {
-        const chartTrackIds = selectedTrackIds.length > 0 ? selectedTrackIds : null
+        if (
+          artistFilter !== RELEASE_ARTIST_FILTER_ALL &&
+          selectedTrackIds.length === 0 &&
+          artistScopedTrackIds.length === 0
+        ) {
+          if (!cancelled) {
+            setStats(null)
+            setPerTrackPlatformResponses(null)
+            setError(null)
+          }
+          return
+        }
+
+        const chartTrackIds =
+          selectedTrackIds.length > 0
+            ? selectedTrackIds
+            : artistFilter !== RELEASE_ARTIST_FILTER_ALL
+              ? artistScopedTrackIds
+              : null
         const batch = await fetchMusicStatsBatch({
           platformKeys: platformKeysForChart,
           chartTrackIds,
@@ -582,7 +633,7 @@ export default function CabinetMusicStatsPage() {
     return () => {
       cancelled = true
     }
-  }, [platformKeysForChart, selectedTrackIds, router])
+  }, [platformKeysForChart, selectedTrackIds, artistFilter, artistScopedTrackIds, router])
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -620,15 +671,17 @@ export default function CabinetMusicStatsPage() {
   })()
 
   const tracksForFilter = useMemo(() => {
-    return [...tracksMeta].sort((a, b) => {
+    return [...tracksForArtist].sort((a, b) => {
       const byName = a.trackName.localeCompare(b.trackName, "ru")
       if (byName !== 0) return byName
       return a.artistName.localeCompare(b.artistName, "ru")
     })
-  }, [tracksMeta])
+  }, [tracksForArtist])
 
   const trackTriggerLabel = (() => {
-    if (selectedTrackIds.length === 0) return "Все треки"
+    if (selectedTrackIds.length === 0) {
+      return isAllArtists ? "Все треки" : `Все треки · ${artistFilter}`
+    }
     if (selectedTrackIds.length === 1) {
       const t = tracksMeta.find((x) => x.id === selectedTrackIds[0])
       return t ? `${t.trackName} • ${t.artistName}` : "1 трек"
@@ -678,66 +731,15 @@ export default function CabinetMusicStatsPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Статистика прослушиваний</h1>
-            <p className="text-sm text-muted-foreground max-w-3xl mt-2">
-              Почему количество стримов на площадках может отличаться от статистики, которая отражена в личном
-              кабинете?{" "}
-              <button
-                type="button"
-                onClick={() => setStreamsDiscrepancyInfoOpen(true)}
-                className="text-primary underline-offset-4 hover:underline font-medium text-foreground"
-              >
-                Подробнее
-              </button>
-            </p>
           </div>
         </div>
 
-        <Dialog open={streamsDiscrepancyInfoOpen} onOpenChange={setStreamsDiscrepancyInfoOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[min(90vh,800px)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-left pr-8 leading-snug">
-                Почему количество стримов на площадках может отличаться от статистики, которая отражена в личном
-                кабинете?
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 text-sm text-muted-foreground">
-              <p>
-                У каждой стриминговой площадки счетчик прослушиваний работает по-разному, согласно той логике,
-                которая задана непосредственно площадкой.
-              </p>
-              <p>
-                Например, учитывает все прослушивания без исключения. То есть, если пользователь несколько раз подряд
-                прослушал один и тот же трек, счетчик площадки в онлайн режиме фиксирует и отображает все эти
-                воспроизведения. Даже в том случае, если трек стоит на репите.
-              </p>
-              <p>
-                Но все подобные накрутки исключаются в ходе проверки, и дистрибьютору площадка направляет информацию
-                только об уникальных «чистых» прокатах в сутки.
-              </p>
-              <p>
-                В нашей статистике отражены только уникальные прослушивания. Она исключает:
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>повторные прослушивания;</li>
-                <li>искусственное увеличение прокатов;</li>
-                <li>неполные прослушивания трека.</li>
-              </ul>
-              <p>
-                Обращаем внимание, что данная статистика не является финансовым отчетом и не является основанием для
-                расчета вознаграждения.
-              </p>
-              <p>
-                Финансовый отчет отражает полученные роялти за прокаты, и формируется, исходя из следующих факторов:
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>количество уникальных прокатов;</li>
-                <li>ставка - стоимость проката на конкретной стриминговой платформе;</li>
-                <li>наличие/отсутствие подписки;</li>
-                <li>регион пользователя, который прослушал трек;</li>
-              </ul>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <ArtistProjectSwitcher
+          artists={artistCounts}
+          value={artistFilter}
+          onChange={setArtist}
+          allCount={tracksMeta.length}
+        />
 
         <Card>
           <CardContent>
@@ -1249,7 +1251,80 @@ export default function CabinetMusicStatsPage() {
 
           </>
         ) : null}
+
+        <p className="text-sm text-muted-foreground max-w-3xl pt-2">
+          Почему количество стримов на площадках может отличаться от статистики, которая отражена в личном
+          кабинете?{" "}
+          <button
+            type="button"
+            onClick={() => setStreamsDiscrepancyInfoOpen(true)}
+            className="text-primary underline-offset-4 hover:underline font-medium text-foreground"
+          >
+            Подробнее
+          </button>
+        </p>
+
+        <Dialog open={streamsDiscrepancyInfoOpen} onOpenChange={setStreamsDiscrepancyInfoOpen}>
+          <DialogContent className="sm:max-w-2xl max-h-[min(90vh,800px)] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-left pr-8 leading-snug">
+                Почему количество стримов на площадках может отличаться от статистики, которая отражена в личном
+                кабинете?
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <p>
+                У каждой стриминговой площадки счетчик прослушиваний работает по-разному, согласно той логике,
+                которая задана непосредственно площадкой.
+              </p>
+              <p>
+                Например, учитывает все прослушивания без исключения. То есть, если пользователь несколько раз подряд
+                прослушал один и тот же трек, счетчик площадки в онлайн режиме фиксирует и отображает все эти
+                воспроизведения. Даже в том случае, если трек стоит на репите.
+              </p>
+              <p>
+                Но все подобные накрутки исключаются в ходе проверки, и дистрибьютору площадка направляет информацию
+                только об уникальных «чистых» прокатах в сутки.
+              </p>
+              <p>
+                В нашей статистике отражены только уникальные прослушивания. Она исключает:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>повторные прослушивания;</li>
+                <li>искусственное увеличение прокатов;</li>
+                <li>неполные прослушивания трека.</li>
+              </ul>
+              <p>
+                Обращаем внимание, что данная статистика не является финансовым отчетом и не является основанием для
+                расчета вознаграждения.
+              </p>
+              <p>
+                Финансовый отчет отражает полученные роялти за прокаты, и формируется, исходя из следующих факторов:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>количество уникальных прокатов;</li>
+                <li>ставка - стоимость проката на конкретной стриминговой платформе;</li>
+                <li>наличие/отсутствие подписки;</li>
+                <li>регион пользователя, который прослушал трек;</li>
+              </ul>
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
+  )
+}
+
+export default function CabinetMusicStatsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[320px] flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Загрузка...</p>
+        </div>
+      }
+    >
+      <CabinetMusicStatsPageContent />
+    </Suspense>
   )
 }
 
