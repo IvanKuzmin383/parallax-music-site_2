@@ -143,6 +143,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [streamingScope, setStreamingScope] = useState<TrackStreamingScope>("all")
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [consentOffer, setConsentOffer] = useState(false)
+  /** Подтверждение совпадения текста песни — по trackId. */
+  const [lyricsMatchConfirmed, setLyricsMatchConfirmed] = useState<Record<string, boolean>>({})
 
   const [requestAiCover, setRequestAiCover] = useState(false)
   const [aiCoverComment, setAiCoverComment] = useState("")
@@ -994,7 +996,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const validateStep3 = (): string | null => {
     if (tracks.length === 0) return "Сначала загрузите треки на шаге «Файлы»"
     for (const track of tracks) {
-      const err = validateTrackMetadata(track, { requireAudio: false })
+      const err = validateTrackMetadata(track, {
+        requireAudio: false,
+        requireLyricsMatchConfirmed: true,
+        lyricsMatchConfirmed: lyricsMatchConfirmed[track.id] === true,
+      })
       if (err) return err
     }
     return null
@@ -1233,7 +1239,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     })
 
     for (const t of tracks) {
-      const metaErr = validateTrackMetadata(t, { requireAudio: false })
+      const metaErr = validateTrackMetadata(t, {
+        requireAudio: false,
+        requireLyricsMatchConfirmed: true,
+        lyricsMatchConfirmed: lyricsMatchConfirmed[t.id] === true,
+      })
       items.push({
         ok: !metaErr,
         label: `Метаданные: ${t.trackName}`,
@@ -1871,6 +1881,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                   onChange={(patch) => void updateTrackLocal(track.id, patch)}
                   showTransferFields
                   disabled={formDisabled}
+                  lyricsMatchConfirmed={lyricsMatchConfirmed[track.id] === true}
+                  onLyricsMatchConfirmedChange={(confirmed) =>
+                    setLyricsMatchConfirmed((prev) => ({
+                      ...prev,
+                      [track.id]: confirmed,
+                    }))
+                  }
                 />
               </AccordionContent>
             </AccordionItem>

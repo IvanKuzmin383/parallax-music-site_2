@@ -40,10 +40,10 @@ function usesWizardAction(release: ReleaseView): boolean {
 }
 
 function isDraftRelease(release: ReleaseView): boolean {
+  // Только реальный статус draft — не kind "draft" (туда попадают awaiting_payment и др.).
   return (
-    release.kind === "draft" ||
     release.releaseStatus === "draft" ||
-    release.status === "Черновик"
+    (!release.releaseStatus && release.status === "Черновик")
   )
 }
 

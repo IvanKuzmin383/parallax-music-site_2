@@ -40,6 +40,7 @@ export type TrackMetadataFieldKey =
   | "previousDistributor"
   | "originalReleaseDate"
   | "tiktokSoundStartSec"
+  | "lyricsMatchConfirmed"
 
 export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> = {
   trackName: "Название трека",
@@ -58,11 +59,18 @@ export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> 
   previousDistributor: "Предыдущий дистрибьютор",
   originalReleaseDate: "Оригинальная дата релиза",
   tiktokSoundStartSec: "Начало звука в ТикТок",
+  lyricsMatchConfirmed: "Подтверждение текста песни",
 }
 
 export type ValidateTrackMetadataOptions = {
   /** По умолчанию true — для финальной отправки. На шаге «Дополнительно» можно отключить. */
   requireAudio?: boolean
+  /**
+   * Требовать чекбокс подтверждения текста (кабинетный визард).
+   * Если true — нужен `lyricsMatchConfirmed: true` (не для инструментала).
+   */
+  requireLyricsMatchConfirmed?: boolean
+  lyricsMatchConfirmed?: boolean
 }
 
 /** Все незаполненные обязательные поля трека. */
@@ -104,6 +112,12 @@ export function getIncompleteTrackMetadataFields(
     }
     if (track.hasExplicitLanguage !== true && track.hasExplicitLanguage !== false) {
       missing.push("hasExplicitLanguage")
+    }
+    if (
+      options?.requireLyricsMatchConfirmed &&
+      options.lyricsMatchConfirmed !== true
+    ) {
+      missing.push("lyricsMatchConfirmed")
     }
   }
   if (

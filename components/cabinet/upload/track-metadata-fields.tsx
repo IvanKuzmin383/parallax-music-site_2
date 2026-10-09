@@ -78,6 +78,9 @@ type TrackMetadataFieldsProps = {
   onChange: (patch: TrackDraftPatch) => void
   disabled?: boolean
   showTransferFields?: boolean
+  /** Подтверждение совпадения слов с текстом (обязательно, если не инструментал). */
+  lyricsMatchConfirmed?: boolean
+  onLyricsMatchConfirmedChange?: (confirmed: boolean) => void
 }
 
 export function TrackMetadataFields({
@@ -85,6 +88,8 @@ export function TrackMetadataFields({
   onChange,
   disabled,
   showTransferFields,
+  lyricsMatchConfirmed = false,
+  onLyricsMatchConfirmedChange,
 }: TrackMetadataFieldsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -207,14 +212,15 @@ export function TrackMetadataFields({
         <Checkbox
           id={`instrumental-${track.id}`}
           checked={track.isInstrumental}
-          onCheckedChange={(c) =>
+          onCheckedChange={(c) => {
             onChange({
               isInstrumental: c === true,
               ...(c === true
                 ? { lyricsLanguage: "", hasExplicitLanguage: null }
                 : {}),
             })
-          }
+            if (c === true) onLyricsMatchConfirmedChange?.(false)
+          }}
           disabled={disabled}
         />
         <Label htmlFor={`instrumental-${track.id}`} className="font-normal cursor-pointer">
@@ -228,13 +234,31 @@ export function TrackMetadataFields({
             <p className="text-xs text-muted-foreground mb-1">{LYRICS_TEXT_UPLOAD_HINT}</p>
             <Textarea
               value={track.lyricsText}
-              onChange={(e) => onChange({ lyricsText: e.target.value })}
+              onChange={(e) => {
+                onChange({ lyricsText: e.target.value })
+                if (lyricsMatchConfirmed) onLyricsMatchConfirmedChange?.(false)
+              }}
               disabled={disabled}
               maxLength={5000}
               rows={8}
               className="field-sizing-fixed h-48 min-h-48 max-h-48 resize-none overflow-y-auto"
               placeholder="Введите текст песни"
             />
+            <div className="mt-3 flex items-start gap-2">
+              <Checkbox
+                id={`lyrics-match-${track.id}`}
+                className="mt-0.5"
+                checked={lyricsMatchConfirmed}
+                onCheckedChange={(c) => onLyricsMatchConfirmedChange?.(c === true)}
+                disabled={disabled}
+              />
+              <Label
+                htmlFor={`lyrics-match-${track.id}`}
+                className="font-normal cursor-pointer leading-snug"
+              >
+                Я подтверждаю, что слова песни полностью совпадают с указанным текстом *
+              </Label>
+            </div>
           </div>
           <div>
             <Label>Язык текста *</Label>
