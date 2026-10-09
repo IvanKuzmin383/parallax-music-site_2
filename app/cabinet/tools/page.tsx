@@ -11,6 +11,11 @@ const TOOL_SECTIONS = [
       { label: "Создание обложки", href: "/cabinet/design/covers", description: "AI-обложка для релиза" },
       { label: "Мастеринг", href: "/cabinet/design/mastering", description: "Обработка трека" },
       { label: "Вертикальные видео", href: "/cabinet/design/vertical-videos", description: "Видео для Reels / Shorts / TikTok" },
+      {
+        label: "Загрузить видеоклип",
+        href: "/cabinet/music/distribution?tab=videos",
+        description: "Каталог клипов и доставка на площадки",
+      },
     ],
   },
   {

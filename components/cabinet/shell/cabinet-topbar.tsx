@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CabinetGlobalSearch } from "@/components/cabinet/shell/cabinet-global-search"
+import { CabinetProjectFilter } from "@/components/cabinet/shell/cabinet-project-filter"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { cn } from "@/lib/utils"
 
@@ -138,7 +139,10 @@ export function CabinetTopbar() {
         <SidebarTrigger />
       </div>
 
-      <CabinetGlobalSearch className="min-w-0 flex-1 max-w-md md:max-w-lg" />
+      <div className="flex min-w-0 flex-1 items-center gap-2 max-w-2xl md:max-w-3xl">
+        <CabinetProjectFilter />
+        <CabinetGlobalSearch className="min-w-0 flex-1" />
+      </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <DropdownMenu onOpenChange={(open) => open && void loadInbox()}>

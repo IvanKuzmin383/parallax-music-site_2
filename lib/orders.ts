@@ -28,6 +28,8 @@ export type OrderType =
   | "yandex_videoshot_creation"
   | "yandex_videoavatar"
   | "spotify_videoshot"
+  | "business_music"
+  | "music_video"
   | "upload_addon_bundle"
 
 export type OrderStatus = "pending" | "paid" | "failed"
@@ -105,7 +107,14 @@ export interface OrderTrackCover extends OrderBase {
 }
 
 export interface OrderPromotionService extends OrderBase {
-  orderType: "ai_cover" | "yandex_videoshot" | "yandex_videoshot_creation" | "yandex_videoavatar" | "spotify_videoshot"
+  orderType:
+    | "ai_cover"
+    | "yandex_videoshot"
+    | "yandex_videoshot_creation"
+    | "yandex_videoavatar"
+    | "spotify_videoshot"
+    | "business_music"
+    | "music_video"
   userId: string
   tracksCount: number
   totalAmount: string
@@ -261,7 +270,9 @@ function rowToOrder(row: OrderRow): Order {
     row.order_type === "yandex_videoshot" ||
     row.order_type === "yandex_videoshot_creation" ||
     row.order_type === "yandex_videoavatar" ||
-    row.order_type === "spotify_videoshot"
+    row.order_type === "spotify_videoshot" ||
+    row.order_type === "business_music" ||
+    row.order_type === "music_video"
   ) {
     return {
       ...base,
@@ -456,7 +467,9 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     orderType === "yandex_videoshot" ||
     orderType === "yandex_videoshot_creation" ||
     orderType === "yandex_videoavatar" ||
-    orderType === "spotify_videoshot"
+    orderType === "spotify_videoshot" ||
+    orderType === "business_music" ||
+    orderType === "music_video"
   ) {
     const o = order as Omit<OrderPromotionService, "id" | "status" | "createdAt">
     await execute(

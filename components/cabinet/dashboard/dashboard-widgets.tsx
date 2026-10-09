@@ -139,7 +139,7 @@ export function DashboardMetricCards({
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Link
-        href="/cabinet/music/releases"
+        href="/cabinet/music/distribution"
         className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card"
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -586,7 +586,7 @@ function DashboardTaskRow({
 export function DashboardTasks({
   releases,
   onDeleted,
-  allTasksHref = "/cabinet/music/releases",
+  allTasksHref = "/cabinet/music/distribution",
 }: {
   releases: ReleaseView[]
   onDeleted?: () => void

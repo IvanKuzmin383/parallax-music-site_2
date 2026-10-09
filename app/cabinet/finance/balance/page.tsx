@@ -220,10 +220,7 @@ export default function FinanceBalancePage() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageHeader
-        title="Финансы"
-        description="Баланс кабинета, роялти и история операций"
-      />
+      <PageHeader title="Финансы" />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

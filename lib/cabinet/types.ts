@@ -90,6 +90,8 @@ export interface ReleaseView {
   tracks?: Array<{ id: string; name: string }>
   wizardStep?: number
   releaseStatus?: string
+  /** AI-анализ релиза (если заполнен в админке). */
+  aiAnalysisText?: string | null
 }
 
 export interface CabinetUserView {

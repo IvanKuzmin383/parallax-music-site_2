@@ -18,6 +18,8 @@ export const SERVICE_ORDER_TYPES: readonly OrderType[] = [
   "yandex_videoshot_creation",
   "yandex_videoavatar",
   "spotify_videoshot",
+  "business_music",
+  "music_video",
   "upload_addon_bundle",
 ] as const
 
@@ -115,6 +117,8 @@ export type UploadAddonDetailLine = {
   type: UploadAddonBundleItem["type"] | "ai_cover"
   trackTitle?: string
   comment?: string
+  /** Ссылка на файлообменник (видеошот и т.п.). */
+  fileUrl?: string
   videosCount?: number
   tracksCount?: number
   contactType?: string
@@ -241,6 +245,7 @@ function extractUploadAddonDetails(payload: UploadDraftPayload): UploadAddonDeta
       type: "yandex_videoshot",
       trackTitle: a.yandexVideoshot.trackTitle,
       comment: a.yandexVideoshot.comment,
+      fileUrl: a.yandexVideoshot.fileUrl,
     })
   }
   if (a.yandexVideoshotCreation?.enabled) {

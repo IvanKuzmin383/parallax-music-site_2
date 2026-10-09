@@ -66,6 +66,8 @@ export interface UploadDraftPayload {
       enabled: boolean
       trackTitle?: string
       comment?: string
+      /** Ссылка на файлообменник с готовым видеошотом (Яндекс Диск и т.п.). */
+      fileUrl?: string
     }
     yandexVideoshotCreation?: {
       enabled: boolean

@@ -75,6 +75,10 @@ function serviceTitle(orderType: string, t: CabinetMessages): string {
       return p.yandexVideoavatar.title
     case "spotify_videoshot":
       return p.spotifyVideoshot.title
+    case "business_music":
+      return "Музыка для бизнеса"
+    case "music_video":
+      return "Загрузка видеоклипа"
     case "upload_addon_bundle":
       return m.uploadAddonBundle
     default:
@@ -553,6 +557,21 @@ export default function AdminServiceFulfillmentsPage() {
                                   .filter(Boolean)
                                   .join(" · ")}
                               </p>
+                            ) : null}
+                            {line.fileUrl ? (
+                              <div>
+                                <p className="text-muted-foreground">
+                                  {locale === "en" ? "File link" : "Ссылка на файлообменник"}
+                                </p>
+                                <a
+                                  href={line.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="break-all text-primary underline-offset-2 hover:underline"
+                                >
+                                  {line.fileUrl}
+                                </a>
+                              </div>
                             ) : null}
                             {line.comment ? (
                               <div>

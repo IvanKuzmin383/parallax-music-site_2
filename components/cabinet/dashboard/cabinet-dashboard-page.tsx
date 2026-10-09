@@ -9,8 +9,6 @@ import {
   buildArtistCounts,
   useArtistProjectFilter,
 } from "@/lib/cabinet/hooks/use-artist-project-filter"
-import { ArtistProjectSwitcher } from "@/components/cabinet/shared/artist-project-switcher"
-import { RELEASE_ARTIST_FILTER_ALL } from "@/lib/cabinet/release-status-filter"
 import {
   DashboardMetricCards,
   DashboardNextRelease,
@@ -25,7 +23,7 @@ function CabinetDashboardPageContent() {
 
   const artistCounts = useMemo(() => buildArtistCounts(releases), [releases])
   const artistNames = useMemo(() => artistCounts.map((a) => a.name), [artistCounts])
-  const { artistFilter, setArtist, filterRelease } = useArtistProjectFilter(artistNames)
+  const { artistFilters, filterRelease } = useArtistProjectFilter(artistNames)
   const scopedReleases = useMemo(
     () => filterRelease(releases),
     [filterRelease, releases]
@@ -43,19 +41,14 @@ function CabinetDashboardPageContent() {
   const royaltyBalance = user?.streamingBalance ?? 0
   const upcoming = pickUpcomingRelease(scopedReleases)
   const releasesHref =
-    artistFilter === RELEASE_ARTIST_FILTER_ALL
-      ? "/cabinet/music/releases"
-      : `/cabinet/music/releases?artist=${encodeURIComponent(artistFilter)}`
+    artistFilters.length === 0
+      ? "/cabinet/music/distribution"
+      : `/cabinet/music/distribution?${artistFilters
+          .map((a) => `artist=${encodeURIComponent(a)}`)
+          .join("&")}`
 
   return (
     <div className="w-full max-w-none space-y-4 md:space-y-5">
-      <ArtistProjectSwitcher
-        artists={artistCounts}
-        value={artistFilter}
-        onChange={setArtist}
-        allCount={releases.length}
-      />
-
       <DashboardMetricCards
         releasesCount={releasesLoading ? 0 : scopedReleases.length}
         balance={walletBalance}

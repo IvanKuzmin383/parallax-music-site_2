@@ -3,13 +3,16 @@
 import Link from "next/link"
 import {
   BarChart3,
+  Building2,
+  ClipboardList,
   Database,
   FileText,
+  Film,
+  Headset,
   LineChart,
   Megaphone,
   MessageSquare,
   Music,
-  ClipboardList,
   Scale,
   Users,
   Wallet,
@@ -27,8 +30,11 @@ export type AdminSectionNavActive =
   | "withdrawals"
   | "service-fulfillments"
   | "reviews"
+  | "support"
   | "legal-acceptance"
   | "music-track-map"
+  | "publicka"
+  | "video-clips"
 
 interface AdminSectionNavProps {
   active: AdminSectionNavActive
@@ -84,6 +90,18 @@ export function AdminSectionNav({ active }: AdminSectionNavProps) {
             Маппинг треков stats
           </Link>
         </Button>
+        <Button variant={navVariant(active === "publicka")} size="sm" asChild>
+          <Link href="/admin26081993/publicka" prefetch={false}>
+            <Building2 className="mr-1 h-4 w-4" />
+            Публичка
+          </Link>
+        </Button>
+        <Button variant={navVariant(active === "video-clips")} size="sm" asChild>
+          <Link href="/admin26081993/video-clips" prefetch={false}>
+            <Film className="mr-1 h-4 w-4" />
+            Видеоклипы
+          </Link>
+        </Button>
         <Button variant={navVariant(active === "withdrawals")} size="sm" asChild>
           <Link href="/admin26081993/withdrawals" prefetch={false}>
             <Wallet className="mr-1 h-4 w-4" />
@@ -100,6 +118,12 @@ export function AdminSectionNav({ active }: AdminSectionNavProps) {
           <Link href="/admin26081993/reviews" prefetch={false}>
             <MessageSquare className="mr-1 h-4 w-4" />
             Отзывы
+          </Link>
+        </Button>
+        <Button variant={navVariant(active === "support")} size="sm" asChild>
+          <Link href="/admin26081993/support" prefetch={false}>
+            <Headset className="mr-1 h-4 w-4" />
+            Поддержка
           </Link>
         </Button>
         <Button variant={navVariant(active === "legal-acceptance")} size="sm" asChild>

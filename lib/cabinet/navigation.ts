@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 import {
   BarChart3,
+  Building2,
   ClipboardList,
   Disc3,
   Home,
@@ -28,7 +29,7 @@ export interface NavGroup {
 
 /**
  * Меню кабинета:
- * (без заголовка) Главная · Релизы · Статистика
+ * (без заголовка) Главная · Дистрибуция · Публичка · Статистика
  * Услуги - Продвижение · Инструменты · Заказы
  * Кабинет - Финансы · Партнёрка · Новости · Настройки
  */
@@ -38,7 +39,8 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
     label: null,
     items: [
       { id: "home", label: "Главная", href: "/cabinet", icon: Home },
-      { id: "releases", label: "Релизы", href: "/cabinet/music/releases", icon: Disc3 },
+      { id: "distribution", label: "Дистрибуция", href: "/cabinet/music/distribution", icon: Disc3 },
+      { id: "publicka", label: "Публичка", href: "/cabinet/publicka", icon: Building2 },
       { id: "stats", label: "Статистика", href: "/cabinet/music-stats", icon: BarChart3 },
     ],
   },
@@ -95,6 +97,21 @@ export function isCabinetAuthPath(pathname: string): boolean {
 
 export function isCabinetFinancePath(pathname: string): boolean {
   return pathname.startsWith("/cabinet/finance")
+}
+
+export function isCabinetDistributionPath(pathname: string): boolean {
+  return (
+    pathname === "/cabinet/music/distribution" ||
+    pathname.startsWith("/cabinet/music/distribution/") ||
+    pathname === "/cabinet/music/releases" ||
+    pathname.startsWith("/cabinet/music/releases/") ||
+    pathname === "/cabinet/music/videos" ||
+    pathname.startsWith("/cabinet/music/videos/")
+  )
+}
+
+export function isCabinetPublickaPath(pathname: string): boolean {
+  return pathname === "/cabinet/publicka" || pathname.startsWith("/cabinet/publicka/")
 }
 
 export function isCabinetPromotionPath(pathname: string): boolean {

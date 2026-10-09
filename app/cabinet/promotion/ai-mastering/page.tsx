@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useRef, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -18,6 +18,11 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useI18n } from "@/lib/i18n-context"
+import {
+  getCabinetServiceHubBackLabel,
+  getCabinetServiceHubHref,
+} from "@/lib/cabinet/service-back"
+import { CabinetAudioPlayer } from "@/components/cabinet/shared/cabinet-audio-player"
 import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
 import { MAX_CABINET_WAV_BYTES } from "@/lib/cabinet-wav-upload-limits"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
@@ -29,7 +34,10 @@ const MAX_WAV_BYTES = MAX_CABINET_WAV_BYTES
 function AiMasteringPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const backHref = getCabinetServiceHubHref(pathname)
   const { t } = useI18n()
+  const backLabel = getCabinetServiceHubBackLabel(backHref, t.cabinet.promotion.backToServices)
   const am = t.cabinet.promotion.aiMastering
 
   const [orderOpen, setOrderOpen] = useState(false)
@@ -217,68 +225,64 @@ function AiMasteringPageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/cabinet/promotion">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{am.title}</h1>
-            <p className="text-muted-foreground">{am.description}</p>
+    <div className="w-full min-w-0 max-w-none space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href={backHref}>
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">{am.title}</h1>
+          <p className="text-muted-foreground">{am.description}</p>
+        </div>
+      </div>
+
+      <Card className="w-full min-w-0 max-w-none">
+        <CardHeader>
+          <CardTitle className="text-xl">{am.serviceDescriptionTitle}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-muted-foreground">{am.serviceDescription}</p>
+          <div className="space-y-3">
+            <p className="font-medium">Пример AI мастеринга</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {masteringExampleAudios.map((audio) => (
+                <div
+                  key={audio.src}
+                  className="space-y-2 rounded-lg border border-border/80 bg-muted/40 p-3"
+                >
+                  <p className="text-sm font-medium">{audio.label}</p>
+                  <CabinetAudioPlayer
+                    src={audio.src}
+                    title={audio.title}
+                    onPlay={handleMasteringAudioPlay}
+                    audioRef={(node) => {
+                      masteringAudioRefs.current[audio.src] = node
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">{am.serviceDescriptionTitle}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-muted-foreground">{am.serviceDescription}</p>
-            <div className="space-y-3">
-              <p className="font-medium">Пример AI мастеринга</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {masteringExampleAudios.map((audio) => (
-                  <div key={audio.src} className="rounded-md border border-border bg-muted p-3 space-y-2">
-                    <p className="text-sm font-medium">{audio.label}</p>
-                    <audio
-                      controls
-                      preload="metadata"
-                      className="w-full"
-                      title={audio.title}
-                      ref={(node) => {
-                        masteringAudioRefs.current[audio.src] = node
-                      }}
-                      onPlay={() => handleMasteringAudioPlay(audio.src)}
-                    >
-                      <source src={audio.src} />
-                      Ваш браузер не поддерживает воспроизведение аудио.
-                    </audio>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div>
+            <h2 className="text-lg font-semibold mb-2">{am.priceTitle}</h2>
+            <p className="text-primary text-xl font-bold">{am.price}</p>
+          </div>
 
-            <div>
-              <h2 className="text-lg font-semibold mb-2">{am.priceTitle}</h2>
-              <p className="text-primary text-xl font-bold">{am.price}</p>
-            </div>
+          <div className="flex justify-start">
+            <Button type="button" onClick={() => setOrderOpen(true)}>
+              {am.orderButton}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div className="flex justify-start">
-              <Button type="button" onClick={() => setOrderOpen(true)}>
-                {am.orderButton}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/cabinet/promotion">{t.cabinet.promotion.backToServices}</Link>
-          </Button>
-        </div>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" asChild>
+          <Link href={backHref}>{backLabel}</Link>
+        </Button>
       </div>
 
       <Dialog open={orderOpen} onOpenChange={setOrderOpen}>

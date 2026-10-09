@@ -237,6 +237,7 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
         ? p.originalReleaseDate.slice(0, 10)
         : "",
     moderationNote: "",
+    aiAnalysisText: "",
     albumId: d.albumId ?? "__none__",
     platformLinks: {},
     smartlinkSlug: "",
@@ -354,6 +355,7 @@ type TrackDraft = {
   previousDistributor: string
   originalReleaseDate: string
   moderationNote: string
+  aiAnalysisText: string
   albumId: string
   platformLinks: PlatformLinks
   smartlinkSlug: string
@@ -406,6 +408,7 @@ function trackToDraft(t: Track): TrackDraft {
       return Number.isNaN(d.getTime()) ? "" : format(d, "yyyy-MM-dd")
     })(),
     moderationNote: t.moderationNote ?? "",
+    aiAnalysisText: t.aiAnalysisText ?? "",
     albumId: t.albumId ?? "__none__",
     platformLinks: { ...(t.platformLinks ?? {}) },
     smartlinkSlug: t.smartlinkSlug ?? "",
@@ -837,6 +840,20 @@ export default function TracksPageClient() {
     setTrackDraft(trackToDraft(track))
     setLyricsExpanded(false)
     setIsDialogOpen(true)
+    void (async () => {
+      try {
+        const res = await fetch(`/api/admin/tracks/${encodeURIComponent(track.id)}`, {
+          credentials: "include",
+        })
+        if (!res.ok) return
+        const data = (await res.json()) as { track?: Track }
+        if (!data.track) return
+        setSelectedTrack(data.track)
+        setTrackDraft(trackToDraft(data.track))
+      } catch {
+        /* ignore */
+      }
+    })()
   }
 
   const handleViewUploadDraft = (draft: UploadDraft) => {
@@ -1073,6 +1090,7 @@ export default function TracksPageClient() {
           ? trackDraft.originalReleaseDate.trim() || null
           : null,
         moderationNote: trackDraft.moderationNote.trim() || null,
+        aiAnalysisText: trackDraft.aiAnalysisText.trim() || null,
         albumId: trackDraft.albumId === "__none__" ? null : trackDraft.albumId,
         platformLinks: trackDraft.platformLinks,
         smartlinkSlug: trackDraft.smartlinkSlug.trim() || null,
@@ -3149,6 +3167,26 @@ export default function TracksPageClient() {
                           </div>
                         ) : null}
                         <AdminReleaseEntityVersions trackId={selectedTrack.id} />
+                        <div className="space-y-2 rounded-md border border-violet-500/30 bg-violet-500/5 p-3">
+                          <Label htmlFor="admin-ai-analysis">
+                            AI-анализ релиза
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Если заполнено - в кабинете артиста появится бейдж «AI-анализ» и
+                            уведомление. Для альбома текст один на весь релиз.
+                          </p>
+                          <Textarea
+                            id="admin-ai-analysis"
+                            className="min-h-[120px]"
+                            placeholder="Сильные стороны, аудитория, куда продвигать…"
+                            value={trackDraft.aiAnalysisText}
+                            onChange={(e) =>
+                              setTrackDraft((d) =>
+                                d ? { ...d, aiAnalysisText: e.target.value } : d
+                              )
+                            }
+                          />
+                        </div>
                       </div>
                     ) : null}
 

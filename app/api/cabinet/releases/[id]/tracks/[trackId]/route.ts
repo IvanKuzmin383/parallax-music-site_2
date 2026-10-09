@@ -51,6 +51,8 @@ export async function PATCH(
       shortDescription: typeof body.shortDescription === "string" ? body.shortDescription : undefined,
       lyricsText: typeof body.lyricsText === "string" ? body.lyricsText : undefined,
       lyricsLanguage: typeof body.lyricsLanguage === "string" ? body.lyricsLanguage : undefined,
+      lyricsMatchConfirmed:
+        typeof body.lyricsMatchConfirmed === "boolean" ? body.lyricsMatchConfirmed : undefined,
       lyricsAuthor: typeof body.lyricsAuthor === "string" ? body.lyricsAuthor : undefined,
       musicAuthor: typeof body.musicAuthor === "string" ? body.musicAuthor : undefined,
       musicRights: typeof body.musicRights === "string" ? body.musicRights : undefined,

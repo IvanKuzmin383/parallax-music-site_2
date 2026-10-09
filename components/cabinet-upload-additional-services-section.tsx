@@ -28,6 +28,7 @@ import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-crea
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { CabinetAudioPlayer } from "@/components/cabinet/shared/cabinet-audio-player"
 
 export type CabinetUploadAddonInfoKey =
   | "aiCover"
@@ -264,6 +265,8 @@ export type CabinetUploadAdditionalServicesSectionProps = {
   setAddonAiMasteringCount: (n: number) => void
   addonYandexVideoshot: boolean
   setAddonYandexVideoshot: (v: boolean) => void
+  addonYandexVideoshotFileUrl?: string
+  setAddonYandexVideoshotFileUrl?: (v: string) => void
   addonYandexVideoshotCreation: boolean
   setAddonYandexVideoshotCreation: (v: boolean) => void
   addonYandexVideoavatar: boolean
@@ -295,6 +298,8 @@ export function CabinetUploadAdditionalServicesSection({
   setAddonAiMasteringCount,
   addonYandexVideoshot,
   setAddonYandexVideoshot,
+  addonYandexVideoshotFileUrl = "",
+  setAddonYandexVideoshotFileUrl,
   addonYandexVideoshotCreation,
   setAddonYandexVideoshotCreation,
   addonYandexVideoavatar,
@@ -469,24 +474,46 @@ export function CabinetUploadAdditionalServicesSection({
                 </p>
               </div>
             ) : null}
-            <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
-              <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
-                <Checkbox
-                  className={ADDON_CHECKBOX_CLASS}
-                  checked={addonYandexVideoshot}
-                  onCheckedChange={(v) => setAddonYandexVideoshot(v === true)}
-                  disabled={formDisabled}
-                />
-                <span>Загрузить видеошот на Яндекс Музыка</span>
-              </label>
-              <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
-                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
-                  900 руб. / шт.
-                </span>
-                <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("yandexVideoshot")}>
-                  Подробнее
-                </Button>
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
+                  <Checkbox
+                    className={ADDON_CHECKBOX_CLASS}
+                    checked={addonYandexVideoshot}
+                    onCheckedChange={(v) => setAddonYandexVideoshot(v === true)}
+                    disabled={formDisabled}
+                  />
+                  <span>Загрузить видеошот на Яндекс Музыка</span>
+                </label>
+                <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
+                  <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
+                    900 руб. / шт.
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("yandexVideoshot")}>
+                    Подробнее
+                  </Button>
+                </div>
               </div>
+              {addonYandexVideoshot && setAddonYandexVideoshotFileUrl ? (
+                <div className="space-y-1" data-wizard-field="yandex-videoshot-file-url">
+                  <Label htmlFor="upload-yandex-videoshot-file-url">
+                    Ссылка на файлообменник *
+                  </Label>
+                  <Input
+                    id="upload-yandex-videoshot-file-url"
+                    type="url"
+                    inputMode="url"
+                    value={addonYandexVideoshotFileUrl}
+                    onChange={(e) => setAddonYandexVideoshotFileUrl(e.target.value)}
+                    placeholder="https://disk.yandex.ru/…"
+                    disabled={formDisabled}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Укажите ссылку, по которой можно скачать видеошот (Яндекс Диск, Google Drive и т.п.).
+                    Для альбома достаточно одной ссылки.
+                  </p>
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
@@ -695,21 +722,19 @@ export function CabinetUploadAdditionalServicesSection({
             {info.exampleAudios?.length ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {info.exampleAudios.map((audio) => (
-                  <div key={audio.src} className="rounded-md border border-border bg-muted p-3 space-y-2">
+                  <div
+                    key={audio.src}
+                    className="space-y-2 rounded-lg border border-border/80 bg-muted/40 p-3"
+                  >
                     <p className="text-sm font-medium">{audio.label}</p>
-                    <audio
-                      controls
-                      preload="metadata"
-                      className="w-full"
+                    <CabinetAudioPlayer
+                      src={audio.src}
                       title={audio.title}
-                      ref={(node) => {
+                      onPlay={handleMasteringAudioPlay}
+                      audioRef={(node) => {
                         masteringAudioRefs.current[audio.src] = node
                       }}
-                      onPlay={() => handleMasteringAudioPlay(audio.src)}
-                    >
-                      <source src={audio.src} />
-                      Ваш браузер не поддерживает воспроизведение аудио.
-                    </audio>
+                    />
                   </div>
                 ))}
               </div>

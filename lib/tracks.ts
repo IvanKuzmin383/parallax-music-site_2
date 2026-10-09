@@ -52,6 +52,11 @@ export interface Track {
   shortDescription: string
   lyricsText: string
   lyricsLanguage: string
+  /**
+   * Подтверждение в кабинете: слова совпадают с указанным текстом.
+   * Сбрасывается при изменении lyricsText.
+   */
+  lyricsMatchConfirmed: boolean
   musicAuthor: string
   lyricsAuthor: string
   musicRights: string
@@ -91,6 +96,8 @@ export interface Track {
   platformLinks?: PlatformLinks
   /** Списан ли Fix-слот при отправке на модерацию (новый тариф Fix). */
   fixPackCreditsCharged: boolean
+  /** AI-анализ (legacy-сингл без releases; иначе канон в releases.ai_analysis_text). */
+  aiAnalysisText?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -110,6 +117,7 @@ export interface TrackRow {
   short_description: string | null
   lyrics_text: string | null
   lyrics_language?: string | null
+  lyrics_match_confirmed?: boolean | null
   ai_labeling_json?: string | null
   music_author: string | null
   lyrics_author: string | null
@@ -138,6 +146,7 @@ export interface TrackRow {
   smartlink_slug: string | null
   platform_links: string | null
   fix_pack_credits_charged?: boolean | null
+  ai_analysis_text?: string | null
   created_at: string
   updated_at: string
 }
@@ -166,6 +175,7 @@ export function rowToTrack(row: TrackRow): Track {
     shortDescription: row.short_description ?? "",
     lyricsText: row.lyrics_text ?? "",
     lyricsLanguage: row.lyrics_language ?? "",
+    lyricsMatchConfirmed: row.lyrics_match_confirmed === true,
     aiLabeling: (() => {
       if (!row.ai_labeling_json?.trim()) return null
       try {
@@ -205,6 +215,7 @@ export function rowToTrack(row: TrackRow): Track {
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
     fixPackCreditsCharged: row.fix_pack_credits_charged === true,
+    aiAnalysisText: row.ai_analysis_text?.trim() ? row.ai_analysis_text : null,
     createdAt: normalizePgTimestamptz(row.created_at),
     updatedAt: normalizePgTimestamptz(row.updated_at),
   }
@@ -353,6 +364,7 @@ export type CreateTrackInput = Omit<
   | "streamingScope"
   | "hasExplicitLanguage"
   | "lyricsLanguage"
+  | "lyricsMatchConfirmed"
   | "aiLabeling"
   | "trackVersion"
 > & {
@@ -361,6 +373,7 @@ export type CreateTrackInput = Omit<
   streamingScope?: TrackStreamingScope
   hasExplicitLanguage?: boolean | null
   lyricsLanguage?: string
+  lyricsMatchConfirmed?: boolean
   aiLabeling?: TrackAiLabeling | null
   trackVersion?: string
 }
@@ -382,6 +395,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
     transferFromOtherDistributor: data.transferFromOtherDistributor ?? false,
     hasExplicitLanguage: data.hasExplicitLanguage ?? null,
     lyricsLanguage: data.lyricsLanguage ?? "",
+    lyricsMatchConfirmed: data.lyricsMatchConfirmed === true,
     aiLabeling: data.aiLabeling ?? null,
     trackVersion: data.trackVersion ?? "",
     streamingScope: data.streamingScope ?? "all",
@@ -393,8 +407,8 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
 
   await execute(
     `
-    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, track_version, artist_name, label_name, genre, mood, short_description, lyrics_text, lyrics_language, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, has_explicit_language, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, moderation_notes_json, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, original_release_date, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, ai_labeling_json, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tracks (id, user_id, album_id, release_id, track_order, track_name, track_version, artist_name, label_name, genre, mood, short_description, lyrics_text, lyrics_language, lyrics_match_confirmed, music_author, lyrics_author, music_rights, music_ai_service, lyrics_rights, performance_rights, is_instrumental, has_explicit_language, backing_author, tiktok_sound_start_sec, cover_path, audio_path, status, release_date, moderation_note, moderation_notes_json, catalog_number, upc, isrc, transfer_from_other_distributor, previous_distributor, original_release_date, streaming_scope, smartlink_slug, platform_links, needs_ai_cover, fix_pack_credits_charged, ai_labeling_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       track.id,
@@ -411,6 +425,7 @@ export async function createTrack(data: CreateTrackInput): Promise<Track> {
       track.shortDescription ?? null,
       track.lyricsText ?? null,
       track.lyricsLanguage ?? null,
+      track.lyricsMatchConfirmed,
       track.musicAuthor ?? null,
       track.lyricsAuthor ?? null,
       track.musicRights ?? null,
@@ -490,16 +505,27 @@ export async function updateTrack(
     smartlinkSlug = await generateUniqueSmartlinkSlug()
   }
 
+  const lyricsChanged =
+    partial.lyricsText !== undefined && partial.lyricsText !== current.lyricsText
+  const becameInstrumental =
+    partial.isInstrumental === true && current.isInstrumental !== true
+
   const updated: Track = {
     ...current,
     ...partial,
     smartlinkSlug,
+    lyricsMatchConfirmed:
+      becameInstrumental || (lyricsChanged && partial.lyricsMatchConfirmed === undefined)
+        ? false
+        : partial.lyricsMatchConfirmed !== undefined
+          ? partial.lyricsMatchConfirmed === true
+          : current.lyricsMatchConfirmed === true,
     updatedAt: new Date().toISOString(),
   }
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, moderation_notes_json = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, original_release_date = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, lyrics_match_confirmed = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, moderation_notes_json = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, original_release_date = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, ai_analysis_text = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -516,6 +542,7 @@ export async function updateTrack(
       updated.shortDescription ?? null,
       updated.lyricsText ?? null,
       updated.lyricsLanguage ?? null,
+      updated.lyricsMatchConfirmed,
       updated.musicAuthor ?? null,
       updated.lyricsAuthor ?? null,
       updated.musicRights ?? null,
@@ -544,6 +571,7 @@ export async function updateTrack(
       updated.needsAiCover,
       updated.fixPackCreditsCharged,
       updated.aiLabeling ? JSON.stringify(updated.aiLabeling) : null,
+      updated.aiAnalysisText?.trim() ? updated.aiAnalysisText.trim() : null,
       updated.updatedAt,
       id,
     ]

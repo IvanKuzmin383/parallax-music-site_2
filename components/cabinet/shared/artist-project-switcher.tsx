@@ -1,19 +1,35 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { RELEASE_ARTIST_FILTER_ALL } from "@/lib/cabinet/release-status-filter"
+import { ChevronsUpDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
+import { cn } from "@/lib/utils"
 
 type ArtistCount = { name: string; count: number }
 
 type Props = {
   artists: ArtistCount[]
-  value: string
-  onChange: (artist: string) => void
+  /** Выбранные проекты. Пустой массив = все. */
+  value: string[]
+  onChange: (artists: string[]) => void
   /** Счётчик для пункта «Все». */
   allCount: number
   className?: string
-  label?: string
+  /** Компактный вид для топбара. */
+  compact?: boolean
+}
+
+function isSelected(value: string[], name: string): boolean {
+  const norm = normalizeArtistForPolicy(name)
+  return value.some((v) => normalizeArtistForPolicy(v) === norm)
 }
 
 export function ArtistProjectSwitcher({
@@ -22,48 +38,85 @@ export function ArtistProjectSwitcher({
   onChange,
   allCount,
   className,
-  label = "Проект",
+  compact = false,
 }: Props) {
   if (artists.length <= 1) return null
 
+  const isAll = value.length === 0
+  const triggerLabel = isAll
+    ? `Все проекты`
+    : value.length === 1
+      ? value[0]
+      : `${value.length} проектов`
+
+  const triggerCount = isAll
+    ? allCount
+    : artists
+        .filter((a) => isSelected(value, a.name))
+        .reduce((sum, a) => sum + a.count, 0)
+
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 pt-0.5", className)}>
-      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      <div className="flex flex-wrap gap-1.5">
-        <button
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
           type="button"
-          onClick={() => onChange(RELEASE_ARTIST_FILTER_ALL)}
+          variant="outline"
           className={cn(
-            "rounded-lg px-3 py-1.5 text-sm transition-colors",
-            value === RELEASE_ARTIST_FILTER_ALL
-              ? "bg-primary/20 ring-1 ring-primary/50 text-foreground"
-              : "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            "h-9 min-w-0 justify-between gap-2 border-border/70 bg-muted/30 px-3 font-normal",
+            compact ? "max-w-[11rem] sm:max-w-[14rem]" : "max-w-full sm:max-w-xs",
+            className,
           )}
+          aria-label="Выбор проекта"
+        >
+          <span className="min-w-0 truncate text-sm">
+            <span className="text-muted-foreground">Проект · </span>
+            {triggerLabel}
+            <span className="ml-1.5 tabular-nums text-muted-foreground">{triggerCount}</span>
+          </span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-[min(18rem,calc(100vw-1.5rem))]">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          Можно выбрать один, несколько или все
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuCheckboxItem
+          checked={isAll}
+          onCheckedChange={() => onChange([])}
+          onSelect={(e) => e.preventDefault()}
         >
           Все
-          <span className="ml-1.5 tabular-nums text-muted-foreground">{allCount}</span>
-        </button>
+          <span className="ml-auto pl-3 tabular-nums text-muted-foreground">{allCount}</span>
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuSeparator />
         {artists.map(({ name, count }) => {
-          const active =
-            normalizeArtistForPolicy(value) === normalizeArtistForPolicy(name)
+          const checked = isSelected(value, name)
           return (
-            <button
+            <DropdownMenuCheckboxItem
               key={name}
-              type="button"
-              onClick={() => onChange(name)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                active
-                  ? "bg-primary/20 ring-1 ring-primary/50 text-foreground"
-                  : "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-              )}
+              checked={checked}
+              onSelect={(e) => e.preventDefault()}
+              onCheckedChange={(next) => {
+                if (next === true) {
+                  const nextValue = isAll ? [name] : checked ? value : [...value, name]
+                  onChange(
+                    nextValue.length >= artists.length ? [] : nextValue,
+                  )
+                  return
+                }
+                const nextValue = value.filter(
+                  (v) => normalizeArtistForPolicy(v) !== normalizeArtistForPolicy(name),
+                )
+                onChange(nextValue)
+              }}
             >
-              {name}
-              <span className="ml-1.5 tabular-nums text-muted-foreground">{count}</span>
-            </button>
+              <span className="min-w-0 flex-1 truncate">{name}</span>
+              <span className="ml-auto pl-3 tabular-nums text-muted-foreground">{count}</span>
+            </DropdownMenuCheckboxItem>
           )
         })}
-      </div>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

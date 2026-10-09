@@ -5,6 +5,7 @@ import { getCabinetUserByEmail, getCabinetUserById } from "@/lib/cabinet-users"
 export type CabinetNotificationType =
   | "release_status"
   | "release_moderation_note"
+  | "release_ai_analysis"
   | "withdrawal_status"
   | "payment_success"
   | "royalty_to_wallet"
@@ -59,6 +60,8 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   yandex_videoshot_creation: "Создание видеошота",
   yandex_videoavatar: "Видео-аватар",
   spotify_videoshot: "Spotify Video Shot",
+  business_music: "Музыка для бизнеса",
+  music_video: "Загрузка видеоклипа",
   upload_addon_bundle: "Дополнения к релизу",
 }
 
@@ -283,6 +286,27 @@ export async function tryNotifyReleaseModeration(params: {
       entityId: params.releaseId,
     })
   }
+}
+
+/** Уведомление: для релиза появился AI-анализ. */
+export async function tryNotifyReleaseAiAnalysis(params: {
+  userKey: string
+  releaseId: string
+  releaseTitle: string
+}): Promise<void> {
+  const userId = await resolveCabinetUserId(params.userKey)
+  if (!userId) return
+
+  const titleName = params.releaseTitle.trim() || "Релиз"
+  await tryCreateCabinetNotification({
+    userId,
+    type: "release_ai_analysis",
+    title: "Готов AI-анализ релиза",
+    body: `Для «${titleName}» доступен AI-анализ с рекомендациями.`,
+    href: `/cabinet/music/releases/${params.releaseId}?ai=1`,
+    entityType: "release",
+    entityId: params.releaseId,
+  })
 }
 
 export async function tryNotifyWithdrawalStatus(params: {

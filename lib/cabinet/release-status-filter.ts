@@ -6,8 +6,13 @@ export const RELEASE_ARTIST_FILTER_ALL = "all"
 
 export function matchesReleaseArtist(
   release: Pick<ReleaseView, "artist">,
-  artistFilter: string
+  artistFilter: string | string[],
 ): boolean {
+  if (Array.isArray(artistFilter)) {
+    if (artistFilter.length === 0) return true
+    const target = normalizeArtistForPolicy(release.artist)
+    return artistFilter.some((a) => normalizeArtistForPolicy(a) === target)
+  }
   if (!artistFilter || artistFilter === RELEASE_ARTIST_FILTER_ALL) return true
   return normalizeArtistForPolicy(release.artist) === normalizeArtistForPolicy(artistFilter)
 }

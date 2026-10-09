@@ -5,6 +5,7 @@ import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
+import { MUSIC_VIDEO_PRICE_RUB } from "@/lib/music-video-pricing"
 import type { OrderCategory } from "./types"
 
 export interface ServiceCatalogEntry {
@@ -19,8 +20,15 @@ export interface ServiceCatalogEntry {
   requirements: string[]
   faq: { q: string; a: string }[]
   hasBackend: boolean
+  /** Кнопка «Оплатить» без списания - заявка интереса (спрос). */
+  paymentStub?: boolean
   paymentEndpoint?: string
   orderType?: string
+  /** Подпись поля ссылки в форме заявки (по умолчанию - ссылка на трек). */
+  linkFieldLabel?: string
+  linkFieldPlaceholder?: string
+  linkFieldHint?: string
+  linkFieldRequired?: boolean
 }
 
 const DEFAULT_STEPS = [
@@ -94,24 +102,33 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     "/cabinet/promotion/tiktok",
     ["Подбор форматов", "Координация с блогерами", "Отчёт по охватам"]
   ),
-  mockService(
-    "radio",
-    "Радио",
-    "Размещение трека в радио-витрине Parallax Music.",
-    "от 2 000 ₽",
-    "promotion",
-    "/cabinet/promotion/radio",
-    ["Подготовка материалов", "Размещение в витрине", "Подтверждение"]
-  ),
-  mockService(
-    "business-music",
-    "Музыка для бизнеса",
-    "Продвижение в кафе, ресторанах.",
-    "от 1 500 ₽",
-    "promotion",
-    "/cabinet/promotion/business-music",
-    ["Проверка прав", "Добавление в каталог", "Уведомление о размещении"]
-  ),
+  {
+    ...mockService(
+      "radio",
+      "Радио",
+      "Размещение трека в радио-витрине Parallax Music.",
+      "5 000 ₽ / трек",
+      "promotion",
+      "/cabinet/promotion/radio",
+      ["Подготовка материалов", "Размещение в витрине", "Подтверждение"]
+    ),
+    paymentStub: true,
+    paymentEndpoint: "/api/cabinet/payments/radio/interest",
+  },
+  {
+    ...mockService(
+      "business-music",
+      "Музыка для бизнеса (Публичка)",
+      "Размещение в Публичке / БизнесЗвук: фоновая музыка, статистика и 0,01 ₽ за прослушивание.",
+      "5 000 ₽ / трек",
+      "promotion",
+      "/cabinet/promotion/business-music",
+      ["Проверка прав", "Добавление в каталог Публички", "Статистика и начисления в роялти"]
+    ),
+    hasBackend: true,
+    paymentEndpoint: "/api/cabinet/payments/business-music/create",
+    orderType: "business_music",
+  },
   {
     slug: "ai-covers",
     title: "AI Обложки",
@@ -144,6 +161,47 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     hasBackend: true,
     paymentEndpoint: "/api/cabinet/payments/vertical-video/create",
     orderType: "vertical_video",
+  },
+  {
+    slug: "music-video",
+    title: "Загрузить видеоклип",
+    shortDescription: "Доставка готового клипа на видеоплатформы площадок (Яндекс, VK и др.).",
+    priceLabel: `${MUSIC_VIDEO_PRICE_RUB.toLocaleString("ru-RU")} ₽ / клип`,
+    category: "design",
+    href: "/cabinet/design/music-video",
+    features: [
+      "Загрузка готового клипа по ссылке на файл",
+      "Размещение на поддерживаемых площадках",
+      "Клип появляется в Дистрибуция → Видеоклипы",
+    ],
+    steps: [
+      "Оформите заказ: укажите релиз и ссылку на файл клипа, оплатите услугу",
+      "Менеджер проверит материал и уточнит детали при необходимости",
+      "Мы загружаем клип на площадки в оговорённые сроки",
+      "Вы получаете подтверждение в личном кабинете или на почту",
+    ],
+    requirements: [
+      "Название релиза / трека",
+      "Ссылка на скачивание клипа (Яндекс Диск, Google Drive и т.п.)",
+      "Права на видео и аудио",
+    ],
+    faq: [
+      {
+        q: "Какой формат файла нужен?",
+        a: "Обычно MP4, Full HD или выше. Точные требования подскажут при оформлении.",
+      },
+      {
+        q: "На какие площадки загружаете?",
+        a: "Яндекс Музыка, VK Клипы и другие поддерживаемые видеоплатформы - уточним в заказе.",
+      },
+    ],
+    hasBackend: true,
+    paymentEndpoint: "/api/cabinet/payments/music-video/create",
+    orderType: "music_video",
+    linkFieldLabel: "Ссылка на файл клипа",
+    linkFieldPlaceholder: "https://disk.yandex.ru/...",
+    linkFieldHint: "Укажите ссылку, по которой можно скачать клип (Яндекс Диск, Google Drive и т.п.).",
+    linkFieldRequired: true,
   },
   {
     slug: "video-shots",

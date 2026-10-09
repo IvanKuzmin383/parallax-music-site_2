@@ -3,7 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Music, Trash2, Undo2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Megaphone, Music, Trash2, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -26,6 +27,12 @@ import {
   releaseStatusHint,
 } from "@/lib/cabinet/adapters/map-track-to-release"
 import { releaseDetailHref } from "@/lib/cabinet/release-presenters"
+import {
+  AiAnalysisBadge,
+  AiAnalysisDialog,
+  hasAiAnalysisText,
+} from "@/components/cabinet/releases/release-ai-analysis"
+import { cn } from "@/lib/utils"
 
 function usesWizardAction(release: ReleaseView): boolean {
   return (
@@ -54,6 +61,13 @@ function isOnModerationRelease(release: ReleaseView): boolean {
   )
 }
 
+function isReleasedRelease(release: ReleaseView): boolean {
+  return (
+    release.releaseStatus === "released" ||
+    release.status === "Выпущен"
+  )
+}
+
 export function ReleaseListCard({
   release,
   onDeleted,
@@ -68,10 +82,15 @@ export function ReleaseListCard({
   const primary = actionLabel === "Исправить" || actionLabel === "Оплатить" || actionLabel === "Продолжить"
   const canDelete = isDraftRelease(release)
   const canRecall = isOnModerationRelease(release)
+  const router = useRouter()
+  const canPromote = isReleasedRelease(release)
+  const aiAnalysis = release.aiAnalysisText?.trim() || ""
+  const showAiAnalysis = hasAiAnalysisText(aiAnalysis)
   const [deleting, setDeleting] = useState(false)
   const [recalling, setRecalling] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [recallConfirmOpen, setRecallConfirmOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const kindParts = kindMeta?.split(" · ") ?? []
 
@@ -106,14 +125,18 @@ export function ReleaseListCard({
         method: "POST",
         credentials: "include",
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        release?: { wizardStep?: number }
+      }
       if (!res.ok) {
         toast.error(data.error ?? "Не удалось вернуть на редактирование")
         return
       }
       toast.success("Релиз возвращён на редактирование")
       setRecallConfirmOpen(false)
-      onDeleted?.()
+      const step = data.release?.wizardStep ?? release.wizardStep ?? 1
+      router.push(`/cabinet/upload/${release.id}?step=${step}`)
     } catch {
       toast.error("Не удалось вернуть на редактирование")
     } finally {
@@ -143,7 +166,12 @@ export function ReleaseListCard({
         )}
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5 pb-10 sm:pb-0 sm:pr-52">
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5",
+          canPromote ? "pb-14 sm:pr-[22rem]" : "pb-10 sm:pr-52",
+        )}
+      >
         <div className="space-y-1.5">
           <div>
             <Link
@@ -167,14 +195,26 @@ export function ReleaseListCard({
               )}
             </p>
           ) : null}
-          <StatusBadge status={release.status} kind="generic" withIcon className="text-[11px]" />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StatusBadge status={release.status} kind="generic" withIcon className="text-[11px]" />
+            {showAiAnalysis ? <AiAnalysisBadge onClick={() => setAiOpen(true)} /> : null}
+          </div>
         </div>
         <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
           {releaseStatusHint(release)}
         </p>
       </div>
 
-      <div className="absolute bottom-3 right-3 flex items-center gap-2 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2">
+      {showAiAnalysis ? (
+        <AiAnalysisDialog
+          open={aiOpen}
+          onOpenChange={setAiOpen}
+          title={release.title || undefined}
+          text={aiAnalysis}
+        />
+      ) : null}
+
+      <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-2">
         {canDelete ? (
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger asChild>
@@ -242,6 +282,14 @@ export function ReleaseListCard({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        ) : null}
+        {canPromote ? (
+          <Button size="sm" variant="default" asChild>
+            <Link href="/cabinet/promotion">
+              <Megaphone className="h-4 w-4" />
+              <span className="ml-1.5">Заказать продвижение</span>
+            </Link>
+          </Button>
         ) : null}
         <Button size="sm" variant={primary ? "default" : "outline"} asChild>
           <Link href={href}>{actionLabel}</Link>

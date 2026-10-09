@@ -97,6 +97,13 @@ import {
 } from "@/lib/cabinet-wizard-field-focus"
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
+import {
+  ALBUM_SHARED_METADATA_FIELDS,
+  AlbumSharedAiLabelingFields,
+  AlbumSharedMetadataFields,
+  albumSharedFieldId,
+} from "./album-shared-fields"
+import type { TrackAiLabeling } from "@/lib/track-ai-labeling"
 import { ModerationNoteAside } from "@/components/cabinet/releases/release-detail-panels"
 import { shouldShowModerationNoteToArtist } from "@/lib/moderation-note-history"
 import {
@@ -149,8 +156,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [consentOffer, setConsentOffer] = useState(false)
   /** Подтверждение совпадения текста песни - по trackId. */
-  const [lyricsMatchConfirmed, setLyricsMatchConfirmed] = useState<Record<string, boolean>>({})
-
   const [requestAiCover, setRequestAiCover] = useState(false)
   const [aiCoverComment, setAiCoverComment] = useState("")
   const [aiCoverInfoOpen, setAiCoverInfoOpen] = useState(false)
@@ -190,6 +195,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [addonAiMastering, setAddonAiMastering] = useState(false)
   const [addonAiMasteringCount, setAddonAiMasteringCount] = useState(1)
   const [addonYandexVideoshot, setAddonYandexVideoshot] = useState(false)
+  const [addonYandexVideoshotFileUrl, setAddonYandexVideoshotFileUrl] = useState("")
   const [addonYandexVideoshotCreation, setAddonYandexVideoshotCreation] = useState(false)
   const [addonYandexVideoavatar, setAddonYandexVideoavatar] = useState(false)
   const [addonSpotifyVideoshot, setAddonSpotifyVideoshot] = useState(false)
@@ -321,6 +327,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setAddonAiMastering(Boolean(a?.aiMastering?.enabled))
     setAddonAiMasteringCount(Number(a?.aiMastering?.tracksCount ?? 1))
     setAddonYandexVideoshot(Boolean(a?.yandexVideoshot?.enabled))
+    setAddonYandexVideoshotFileUrl(a?.yandexVideoshot?.fileUrl ?? "")
     setAddonYandexVideoshotCreation(Boolean(a?.yandexVideoshotCreation?.enabled))
     setAddonYandexVideoavatar(Boolean(a?.yandexVideoavatar?.enabled))
     setAddonSpotifyVideoshot(Boolean(a?.spotifyVideoshot?.enabled))
@@ -431,7 +438,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       aiMastering: addonAiMastering
         ? { enabled: true, tracksCount: addonAiMasteringCount }
         : undefined,
-      yandexVideoshot: addonYandexVideoshot ? { enabled: true } : undefined,
+      yandexVideoshot: addonYandexVideoshot
+        ? {
+            enabled: true,
+            fileUrl: addonYandexVideoshotFileUrl.trim() || undefined,
+            trackTitle: title.trim() || undefined,
+          }
+        : undefined,
       yandexVideoshotCreation: addonYandexVideoshotCreation ? { enabled: true } : undefined,
       yandexVideoavatar: addonYandexVideoavatar ? { enabled: true } : undefined,
       spotifyVideoshot: addonSpotifyVideoshot ? { enabled: true } : undefined,
@@ -446,6 +459,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     shortDescription: track.shortDescription,
     lyricsText: track.lyricsText,
     lyricsLanguage: track.lyricsLanguage,
+    lyricsMatchConfirmed: track.lyricsMatchConfirmed === true,
     lyricsAuthor: track.lyricsAuthor,
     musicAuthor: track.musicAuthor,
     musicRights: track.musicRights,
@@ -782,6 +796,28 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }, 450)
   }
 
+  const applyPatchToAllTracks = (patch: TrackDraftPatch) => {
+    setTracks((prev) => {
+      const next = prev.map((t) => ({ ...t, ...patch }))
+      tracksRef.current = next
+      return next
+    })
+    if (!releaseId) return
+    for (const timer of Object.values(trackSaveTimersRef.current)) {
+      clearTimeout(timer)
+    }
+    trackSaveTimersRef.current = {}
+    void flushTrackMetadataSaves().then((ok) => {
+      if (!ok) toast.error("Не удалось сохранить общие поля альбома")
+    })
+  }
+
+  const applyAiLabelingToAllTracks = (aiLabeling: TrackAiLabeling) => {
+    applyPatchToAllTracks({ aiLabeling })
+  }
+
+  const showAlbumSharedFields = kind === "album" && tracks.length > 1
+
   const applyStreamingScope = (value: TrackStreamingScope) => {
     setStreamingScope(value)
     streamingScopeRef.current = value
@@ -1055,6 +1091,32 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     return null
   }
 
+  const resolveAlbumMetaFieldFocus = (trackId: string, field: string) => {
+    if (showAlbumSharedFields && ALBUM_SHARED_METADATA_FIELDS.has(field)) {
+      return { fieldId: albumSharedFieldId(field), trackId: undefined as string | undefined }
+    }
+    return { fieldId: wizardTrackFieldId(trackId, field), trackId }
+  }
+
+  const resolveAlbumAiFieldFocus = (track: Track) => {
+    const aiShared =
+      showAlbumSharedFields &&
+      tracks.every(
+        (t) =>
+          JSON.stringify(t.aiLabeling ?? null) === JSON.stringify(track.aiLabeling ?? null),
+      )
+    if (aiShared) {
+      return {
+        fieldId: wizardFieldId("album-shared-aiLabeling"),
+        trackId: undefined as string | undefined,
+      }
+    }
+    return {
+      fieldId: wizardTrackFieldId(track.id, "aiLabeling"),
+      trackId: track.id,
+    }
+  }
+
   const validateStep3 = (): StepIssue | null => {
     if (tracks.length === 0) {
       return {
@@ -1067,14 +1129,15 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       const issue = getFirstTrackMetadataIssue(track, {
         requireAudio: false,
         requireLyricsMatchConfirmed: true,
-        lyricsMatchConfirmed: lyricsMatchConfirmed[track.id] === true,
+        lyricsMatchConfirmed: track.lyricsMatchConfirmed === true,
       })
       if (issue) {
+        const focus = resolveAlbumMetaFieldFocus(track.id, issue.field)
         return {
           message: issue.message,
-          fieldId: wizardTrackFieldId(track.id, issue.field),
+          fieldId: focus.fieldId,
           step: 3,
-          trackId: track.id,
+          trackId: focus.trackId,
         }
       }
     }
@@ -1093,11 +1156,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       const err = validateTrackAiLabeling(track.aiLabeling)
       if (err) {
         const label = track.trackName.trim() || "Трек"
+        const focus = resolveAlbumAiFieldFocus(track)
         return {
           message: `${err} («${label}»)`,
-          fieldId: wizardTrackFieldId(track.id, "aiLabeling"),
+          fieldId: focus.fieldId,
           step: 4,
-          trackId: track.id,
+          trackId: focus.trackId,
         }
       }
     }
@@ -1117,6 +1181,16 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         message: "Укажите пожелания / комментарий для видео",
         fieldId: wizardFieldId("vertical-video-comment"),
         step: 5,
+      }
+    }
+    if (addonYandexVideoshot) {
+      const url = addonYandexVideoshotFileUrl.trim()
+      if (url.length < 8 || !/^https?:\/\//i.test(url)) {
+        return {
+          message: "Укажите ссылку на файлообменник с видеошотом (http/https)",
+          fieldId: wizardFieldId("yandex-videoshot-file-url"),
+          step: 5,
+        }
       }
     }
     return null
@@ -1414,8 +1488,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       const metaIssue = getFirstTrackMetadataIssue(t, {
         requireAudio: false,
         requireLyricsMatchConfirmed: true,
-        lyricsMatchConfirmed: lyricsMatchConfirmed[t.id] === true,
+        lyricsMatchConfirmed: t.lyricsMatchConfirmed === true,
       })
+      const metaFocus = metaIssue
+        ? resolveAlbumMetaFieldFocus(t.id, metaIssue.field)
+        : null
       items.push({
         ok: !metaIssue,
         label: `Метаданные: ${t.trackName}`,
@@ -1423,19 +1500,18 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           ? metaIssue.message
           : [t.genre, t.mood].filter(Boolean).join(" · ") || undefined,
         step: 3,
-        fieldId: metaIssue
-          ? wizardTrackFieldId(t.id, metaIssue.field)
-          : undefined,
-        trackId: t.id,
+        fieldId: metaFocus?.fieldId,
+        trackId: metaIssue ? metaFocus?.trackId : t.id,
       })
       const aiErr = validateTrackAiLabeling(t.aiLabeling)
+      const aiFocus = resolveAlbumAiFieldFocus(t)
       items.push({
         ok: !aiErr,
         label: `AI-маркировка: ${t.trackName}`,
         value: aiErr ? aiErr : aiLabelingModeLabel(t.aiLabeling?.mode),
         step: 4,
-        fieldId: wizardTrackFieldId(t.id, "aiLabeling"),
-        trackId: t.id,
+        fieldId: aiFocus.fieldId,
+        trackId: aiErr ? aiFocus.trackId : t.id,
       })
     }
 
@@ -1480,7 +1556,13 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       })
     }
     if (addonYandexVideoshot) {
-      items.push({ ok: true, label: "Услуга", value: "Яндекс видеошот", step: 5 })
+      const url = addonYandexVideoshotFileUrl.trim()
+      items.push({
+        ok: true,
+        label: "Услуга",
+        value: url ? `Яндекс видеошот · ${url}` : "Яндекс видеошот",
+        step: 5,
+      })
     }
     if (addonYandexVideoshotCreation) {
       items.push({
@@ -1517,7 +1599,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     upc,
     streamingScope,
     tracks,
-    lyricsMatchConfirmed,
     requestAiCover,
     aiCoverComment,
     coverCreatedWithAi,
@@ -1530,6 +1611,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     addonAiMastering,
     addonAiMasteringCount,
     addonYandexVideoshot,
+    addonYandexVideoshotFileUrl,
     addonYandexVideoshotCreation,
     addonYandexVideoavatar,
     addonSpotifyVideoshot,
@@ -2077,52 +2159,68 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       ) : null}
 
       {step === 3 ? (
-        <Accordion
-          type="multiple"
-          value={metaAccordionOpen}
-          onValueChange={setMetaAccordionOpen}
-          className="space-y-4"
-        >
-          {tracks.map((track, index) => (
-            <AccordionItem
-              key={track.id}
-              value={track.id}
-              className="overflow-hidden rounded-md border border-border px-4 last:border-b"
-            >
-              <AccordionTrigger className="py-4 hover:no-underline">
-                <span className="flex min-w-0 items-center gap-3 text-left">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
-                    {index + 1}
+        <div className="space-y-4">
+          {showAlbumSharedFields ? (
+            <AlbumSharedMetadataFields
+              tracks={tracks}
+              onApply={applyPatchToAllTracks}
+              disabled={formDisabled}
+            />
+          ) : null}
+          <Accordion
+            type="multiple"
+            value={metaAccordionOpen}
+            onValueChange={setMetaAccordionOpen}
+            className="space-y-4"
+          >
+            {tracks.map((track, index) => (
+              <AccordionItem
+                key={track.id}
+                value={track.id}
+                className="overflow-hidden rounded-md border border-border px-4 last:border-b"
+              >
+                <AccordionTrigger className="py-4 hover:no-underline">
+                  <span className="flex min-w-0 items-center gap-3 text-left">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 truncate font-semibold">
+                      {kind === "album"
+                        ? `Трек ${index + 1}: ${track.trackName.trim() || "без названия"}`
+                        : track.trackName.trim() || `Трек ${index + 1}`}
+                    </span>
                   </span>
-                  <span className="min-w-0 truncate font-semibold">
-                    {kind === "album"
-                      ? `Трек ${index + 1}: ${track.trackName.trim() || "без названия"}`
-                      : track.trackName.trim() || `Трек ${index + 1}`}
-                  </span>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="pb-4">
-                <TrackMetadataFields
-                  track={track}
-                  onChange={(patch) => void updateTrackLocal(track.id, patch)}
-                  showTransferFields
-                  disabled={formDisabled}
-                  lyricsMatchConfirmed={lyricsMatchConfirmed[track.id] === true}
-                  onLyricsMatchConfirmedChange={(confirmed) =>
-                    setLyricsMatchConfirmed((prev) => ({
-                      ...prev,
-                      [track.id]: confirmed,
-                    }))
-                  }
-                />
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <TrackMetadataFields
+                    track={track}
+                    onChange={(patch) => void updateTrackLocal(track.id, patch)}
+                    showTransferFields
+                    hideAlbumSharedFields={showAlbumSharedFields}
+                    disabled={formDisabled}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
       ) : null}
 
       {step === 4 ? (
         <div className="space-y-6">
+          {showAlbumSharedFields ? (
+            <AlbumSharedAiLabelingFields
+              tracks={tracks}
+              onApply={applyAiLabelingToAllTracks}
+              disabled={formDisabled}
+            />
+          ) : null}
+          {showAlbumSharedFields ? (
+            <p className="text-sm text-muted-foreground">
+              Общая маркировка задана выше. Ниже можно при необходимости переопределить её для
+              отдельного трека.
+            </p>
+          ) : null}
           <Accordion
             type="multiple"
             value={aiLabelingAccordionOpen}
@@ -2199,6 +2297,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           setAddonAiMasteringCount={setAddonAiMasteringCount}
           addonYandexVideoshot={addonYandexVideoshot}
           setAddonYandexVideoshot={setAddonYandexVideoshot}
+          addonYandexVideoshotFileUrl={addonYandexVideoshotFileUrl}
+          setAddonYandexVideoshotFileUrl={setAddonYandexVideoshotFileUrl}
           addonYandexVideoshotCreation={addonYandexVideoshotCreation}
           setAddonYandexVideoshotCreation={setAddonYandexVideoshotCreation}
           addonYandexVideoavatar={addonYandexVideoavatar}

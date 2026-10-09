@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { ArrowLeft, Music } from "lucide-react"
@@ -22,6 +23,12 @@ import {
   ReleaseInfoButton,
   ReleaseTrackListPlayer,
 } from "@/components/cabinet/releases/release-detail-panels"
+import {
+  AiAnalysisBadge,
+  AiAnalysisDialog,
+  AiAnalysisPanel,
+  hasAiAnalysisText,
+} from "@/components/cabinet/releases/release-ai-analysis"
 import { ReleaseStatusTimeline } from "@/components/cabinet/releases/release-status-timeline"
 import { ReleasePlatformMeta } from "@/components/cabinet/releases/release-platform-meta"
 import type { Release } from "@/lib/releases"
@@ -42,12 +49,15 @@ const ACCENT_BG: Record<string, string> = {
 
 export default function ReleaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const searchParams = useSearchParams()
+  const autoOpenAi = searchParams.get("ai") === "1"
   const { releases, loading: listLoading } = useCabinetReleases()
   const releaseView = releases.find((r) => r.id === id)
 
   const [entityRelease, setEntityRelease] = useState<Release | null>(null)
   const [tracks, setTracks] = useState<Track[]>([])
   const [detailLoading, setDetailLoading] = useState(true)
+  const [aiOpen, setAiOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -100,6 +110,22 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
     }
     return null
   }, [entityRelease?.status, tracks])
+
+  const aiAnalysisText = useMemo(() => {
+    const fromRelease = entityRelease?.aiAnalysisText?.trim()
+    if (fromRelease) return fromRelease
+    const fromView = releaseView?.aiAnalysisText?.trim()
+    if (fromView) return fromView
+    for (const t of tracks) {
+      const text = t.aiAnalysisText?.trim()
+      if (text) return text
+    }
+    return null
+  }, [entityRelease?.aiAnalysisText, releaseView?.aiAnalysisText, tracks])
+
+  useEffect(() => {
+    if (autoOpenAi && hasAiAnalysisText(aiAnalysisText)) setAiOpen(true)
+  }, [autoOpenAi, aiAnalysisText])
 
   const loading = listLoading || detailLoading
 
@@ -225,6 +251,9 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={statusLabel} kind="generic" />
+                {hasAiAnalysisText(aiAnalysisText) ? (
+                  <AiAnalysisBadge onClick={() => setAiOpen(true)} />
+                ) : null}
                 {kindMeta ? (
                   <span className="text-xs rounded-md border border-border px-2 py-0.5 text-muted-foreground">
                     {kindMeta}
@@ -242,6 +271,22 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
           </div>
           {moderationNote ? <ModerationNoteAside note={moderationNote} className="sm:max-w-sm" /> : null}
         </section>
+
+        {hasAiAnalysisText(aiAnalysisText) ? (
+          <>
+            <AiAnalysisPanel
+              text={aiAnalysisText!}
+              className="mt-2 sm:max-w-xl"
+              onRead={() => setAiOpen(true)}
+            />
+            <AiAnalysisDialog
+              open={aiOpen}
+              onOpenChange={setAiOpen}
+              title={title}
+              text={aiAnalysisText!}
+            />
+          </>
+        ) : null}
 
         <ReleaseStatusTimeline
           status={pipelineStatus}

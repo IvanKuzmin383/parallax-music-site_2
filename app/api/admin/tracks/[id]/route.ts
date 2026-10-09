@@ -60,6 +60,7 @@ const patchBodySchema = z.object({
     ])
     .optional(),
   moderationNote: z.string().max(1000).optional().nullable(),
+  aiAnalysisText: z.string().max(20000).optional().nullable(),
   catalogNumber: z.string().max(32).optional().nullable(),
   upc: z.string().max(32).optional().nullable(),
   isrc: z.string().max(32).optional().nullable(),
@@ -105,7 +106,10 @@ export async function GET(
     return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
   }
 
-  return NextResponse.json({ track })
+  const { resolveAiAnalysisTextForTrack } = await import("@/lib/release-ai-analysis")
+  const aiAnalysisText = await resolveAiAnalysisTextForTrack(track)
+
+  return NextResponse.json({ track: { ...track, aiAnalysisText } })
 }
 
 export async function PATCH(
@@ -335,6 +339,25 @@ export async function PATCH(
     updated = next
   }
 
+  let aiAnalysisText: string | null | undefined
+  let releaseFromAi: Awaited<
+    ReturnType<typeof import("@/lib/release-ai-analysis").saveAiAnalysisForTrack>
+  >["release"] = null
+  if (data.aiAnalysisText !== undefined) {
+    const { saveAiAnalysisForTrack } = await import("@/lib/release-ai-analysis")
+    const saved = await saveAiAnalysisForTrack({
+      track: updated,
+      text: data.aiAnalysisText,
+    })
+    aiAnalysisText = saved.aiAnalysisText
+    releaseFromAi = saved.release
+    updated = { ...updated, aiAnalysisText: saved.aiAnalysisText }
+  } else {
+    const { resolveAiAnalysisTextForTrack } = await import("@/lib/release-ai-analysis")
+    aiAnalysisText = await resolveAiAnalysisTextForTrack(updated)
+    updated = { ...updated, aiAnalysisText }
+  }
+
   if (syncReleaseModeration && releaseIdForModeration) {
     const prevStatus = current.status
     const prevNote = current.moderationNote?.trim() || null
@@ -366,20 +389,29 @@ export async function PATCH(
         note: `track ${id}`,
       })
     }
-    return NextResponse.json({ track: syncedTrack, release: synced.release })
+    return NextResponse.json({
+      track: { ...syncedTrack, aiAnalysisText },
+      release: releaseFromAi ?? synced.release,
+    })
   }
 
-  if (hadMetaEdit && releaseIdForModeration) {
+  if ((hadMetaEdit || data.aiAnalysisText !== undefined) && releaseIdForModeration) {
     const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")
     await tryCreateReleaseEntityVersion({
       releaseId: releaseIdForModeration,
       reason: "admin_edit",
       actor: "admin",
-      note: `track ${id}`,
+      note:
+        data.aiAnalysisText !== undefined
+          ? `track ${id}; ai_analysis`
+          : `track ${id}`,
     })
   }
 
-  return NextResponse.json({ track: updated })
+  return NextResponse.json({
+    track: updated,
+    ...(releaseFromAi ? { release: releaseFromAi } : {}),
+  })
 }
 
 export async function DELETE(

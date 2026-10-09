@@ -259,13 +259,44 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     order.orderType === "yandex_videoshot" ||
     order.orderType === "yandex_videoshot_creation" ||
     order.orderType === "yandex_videoavatar" ||
-    order.orderType === "spotify_videoshot"
+    order.orderType === "spotify_videoshot" ||
+    order.orderType === "business_music" ||
+    order.orderType === "music_video"
   ) {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
     await tryRecordServiceFulfillment(orderId, order.orderType)
 
     const user = await getCabinetUserById(order.userId)
     const accountEmail = user?.email ?? `userId=${order.userId}`
+    const trackTitle = metaOrDetails(metadata, order, "trackTitle")
+    const comment = metaOrDetails(metadata, order, "comment")
+
+    if (order.orderType === "business_music") {
+      try {
+        const { ensurePublickaPlacementFromOrder } = await import("@/lib/publicka")
+        await ensurePublickaPlacementFromOrder({
+          userId: order.userId,
+          orderId,
+          title: trackTitle || "Трек для Публички",
+        })
+      } catch (e) {
+        console.error("[fulfill-paid-order] publicka placement failed", { orderId, e })
+      }
+    }
+
+    if (order.orderType === "music_video") {
+      try {
+        const { ensureVideoClipFromOrder } = await import("@/lib/video-clips")
+        await ensureVideoClipFromOrder({
+          userId: order.userId,
+          orderId,
+          title: trackTitle || "Видеоклип",
+          fileUrl: comment || null,
+        })
+      } catch (e) {
+        console.error("[fulfill-paid-order] video clip create failed", { orderId, e })
+      }
+    }
 
     const config = {
       ai_cover: { title: "AI обложка для трека", hashtag: "#ai_cover" },
@@ -279,6 +310,8 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         hashtag: "#yandex_videoavatar",
       },
       spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
+      business_music: { title: "Музыка для бизнеса", hashtag: "#business_music" },
+      music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
     }[order.orderType]
 
     notifyStaff(

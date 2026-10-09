@@ -309,7 +309,9 @@ export async function POST(request: NextRequest) {
     order.orderType === "yandex_videoshot" ||
     order.orderType === "yandex_videoshot_creation" ||
     order.orderType === "yandex_videoavatar" ||
-    order.orderType === "spotify_videoshot"
+    order.orderType === "spotify_videoshot" ||
+    order.orderType === "business_music" ||
+    order.orderType === "music_video"
   ) {
     await updateOrderStatus(orderId, "paid", { paidAt })
     await tryRecordServiceFulfillment(orderId, order.orderType)
@@ -324,6 +326,32 @@ export async function POST(request: NextRequest) {
       const trackTitle = metadata.trackTitle || "-"
       const comment = metadata.comment || "-"
 
+      if (order.orderType === "business_music") {
+        try {
+          const { ensurePublickaPlacementFromOrder } = await import("@/lib/publicka")
+          await ensurePublickaPlacementFromOrder({
+            userId: order.userId,
+            orderId,
+            title: String(trackTitle !== "-" ? trackTitle : "Трек для Публички"),
+          })
+        } catch (e) {
+          console.error("[payments/webhook] publicka placement failed", { orderId, e })
+        }
+      }
+      if (order.orderType === "music_video") {
+        try {
+          const { ensureVideoClipFromOrder } = await import("@/lib/video-clips")
+          await ensureVideoClipFromOrder({
+            userId: order.userId,
+            orderId,
+            title: String(trackTitle !== "-" ? trackTitle : "Видеоклип"),
+            fileUrl: comment !== "-" ? String(comment) : null,
+          })
+        } catch (e) {
+          console.error("[payments/webhook] video clip create failed", { orderId, e })
+        }
+      }
+
       const config = {
         ai_cover: { title: "AI обложка для трека", hashtag: "#ai_cover" },
         yandex_videoshot: { title: "Загрузка видеошота в Яндекс Музыку", hashtag: "#yandex_videoshot" },
@@ -336,6 +364,8 @@ export async function POST(request: NextRequest) {
           hashtag: "#yandex_videoavatar",
         },
         spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
+        business_music: { title: "Музыка для бизнеса", hashtag: "#business_music" },
+        music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
       }[order.orderType]
 
       const messageLines = [

@@ -222,3 +222,73 @@ export async function getUserBalancesByEmail(email: string): Promise<{
     walletBalance: roundMoney(fresh.walletBalance ?? 0),
   }
 }
+
+export type CreditRoyaltyResult =
+  | { ok: true; amount: number; streamingBalance: number; transaction: BalanceTransaction }
+  | { ok: false; error: string }
+
+/** Начисление роялти на streaming_balance + запись в журнал. */
+export async function creditRoyalty(params: {
+  userId: string
+  amount: number
+  note?: string
+}): Promise<CreditRoyaltyResult> {
+  const amount = roundMoney(params.amount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Сумма должна быть больше 0" }
+  }
+
+  try {
+    const result = await withTransaction(async (client) => {
+      const rows = await clientQuery<{ streaming_balance: number | string | null }>(
+        client,
+        `SELECT streaming_balance FROM cabinet_users WHERE id = ? FOR UPDATE`,
+        [params.userId]
+      )
+      const row = rows[0]
+      if (!row) throw new Error("USER_NOT_FOUND")
+
+      const nextRoyalty = roundMoney((Number(row.streaming_balance) || 0) + amount)
+      const now = new Date().toISOString()
+      const txId = crypto.randomUUID()
+      const note = params.note?.trim() || "Начисление роялти"
+
+      await clientExecute(
+        client,
+        `UPDATE cabinet_users SET streaming_balance = ? WHERE id = ?`,
+        [nextRoyalty, params.userId]
+      )
+      await clientExecute(
+        client,
+        `
+        INSERT INTO cabinet_balance_transactions (
+          id, user_id, type, amount, royalty_delta, wallet_delta, note, created_at
+        ) VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+        `,
+        [txId, params.userId, "royalty_credit", amount, amount, note, now]
+      )
+
+      return {
+        amount,
+        streamingBalance: nextRoyalty,
+        transaction: {
+          id: txId,
+          userId: params.userId,
+          type: "royalty_credit" as const,
+          amount,
+          royaltyDelta: amount,
+          walletDelta: 0,
+          note,
+          createdAt: now,
+        },
+      }
+    })
+    return { ok: true, ...result }
+  } catch (error) {
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+      return { ok: false, error: "Пользователь не найден" }
+    }
+    console.error("[cabinet-balance] creditRoyalty failed:", error)
+    return { ok: false, error: "Не удалось начислить роялти" }
+  }
+}

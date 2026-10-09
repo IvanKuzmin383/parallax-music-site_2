@@ -57,6 +57,8 @@ export interface Release {
   acceptShortReleaseDate: boolean
   bundleOrderId?: string
   albumId?: string
+  /** AI-анализ релиза (заполняется в админке). */
+  aiAnalysisText?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -79,6 +81,7 @@ interface ReleaseRow {
   accept_short_release_date?: boolean | null
   bundle_order_id: string | null
   album_id: string | null
+  ai_analysis_text?: string | null
   created_at: string
   updated_at: string
 }
@@ -111,6 +114,7 @@ export function rowToRelease(row: ReleaseRow): Release {
     acceptShortReleaseDate: row.accept_short_release_date === true,
     bundleOrderId: row.bundle_order_id ?? undefined,
     albumId: row.album_id ?? undefined,
+    aiAnalysisText: row.ai_analysis_text?.trim() ? row.ai_analysis_text : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -268,6 +272,7 @@ export type UpdateReleaseInput = Partial<{
   acceptShortReleaseDate: boolean
   bundleOrderId: string | null
   albumId: string | null
+  aiAnalysisText: string | null
 }>
 
 export async function updateRelease(id: string, partial: UpdateReleaseInput): Promise<Release | null> {
@@ -296,6 +301,12 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
     upc: partial.upc === null ? undefined : (partial.upc ?? current.upc),
     bundleOrderId: partial.bundleOrderId === null ? undefined : (partial.bundleOrderId ?? current.bundleOrderId),
     albumId: partial.albumId === null ? undefined : (partial.albumId ?? current.albumId),
+    aiAnalysisText:
+      partial.aiAnalysisText !== undefined
+        ? partial.aiAnalysisText?.trim()
+          ? partial.aiAnalysisText.trim()
+          : null
+        : current.aiAnalysisText,
     addons: partial.addons ?? current.addons,
     updatedAt: new Date().toISOString(),
   }
@@ -305,7 +316,7 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
       kind = ?, title = ?, artist_name = ?, label_name = ?, cover_path = ?,
       release_date = ?, upc = ?, status = ?, wizard_step = ?, addons_json = ?,
       request_ai_cover = ?, cover_created_with_ai = ?, accept_short_release_date = ?,
-      bundle_order_id = ?, album_id = ?, updated_at = ?
+      bundle_order_id = ?, album_id = ?, ai_analysis_text = ?, updated_at = ?
     WHERE id = ?`,
     [
       updated.kind,
@@ -323,6 +334,7 @@ export async function updateRelease(id: string, partial: UpdateReleaseInput): Pr
       updated.acceptShortReleaseDate,
       updated.bundleOrderId ?? null,
       updated.albumId ?? null,
+      updated.aiAnalysisText ?? null,
       updated.updatedAt,
       id,
     ]

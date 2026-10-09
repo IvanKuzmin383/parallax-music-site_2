@@ -89,6 +89,8 @@ function mergePlatforms(tracks: Track[]): string[] {
 export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
   const format: "single" | "album" = track.albumId ? "album" : "single"
 
+  const aiAnalysisText = track.aiAnalysisText?.trim() || null
+
   if (track.status === "draft") {
     return {
       id: track.releaseId ?? track.id,
@@ -105,6 +107,7 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
       format,
       trackCount,
       tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
+      aiAnalysisText,
     }
   }
 
@@ -120,6 +123,7 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
     format: "single",
     trackCount: 1,
     tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
+    aiAnalysisText,
   }
 }
 
@@ -147,6 +151,7 @@ export function mapReleaseEntityToView(
     wizardStep: release.wizardStep,
     releaseStatus: release.status,
     platforms: mergePlatforms(tracks),
+    aiAnalysisText: release.aiAnalysisText?.trim() || null,
   }
 }
 
@@ -159,6 +164,9 @@ export function mapAlbumTracksToRelease(
   const ordered = sortTracks(tracks)
   const first = ordered[0]
   const summaries = trackSummaries(ordered)
+  const aiAnalysisText =
+    ordered.map((t) => t.aiAnalysisText?.trim()).find(Boolean) || null
+
   return {
     id: albumId,
     coverUrl: first?.coverPath ? `/api/cabinet/uploads/cover/${first.id}` : undefined,
@@ -171,6 +179,7 @@ export function mapAlbumTracksToRelease(
     format: "album",
     trackCount: summaries.length,
     tracks: summaries,
+    aiAnalysisText,
   }
 }
 

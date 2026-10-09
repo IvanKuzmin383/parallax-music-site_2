@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
+  CreditCard,
   Disc3,
   FileText,
   Search,
   Settings,
   Sparkles,
+  Wallet,
   type LucideIcon,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -25,12 +27,32 @@ type SearchHit = {
   id: string
   title: string
   subtitle?: string
+  /** Доп. слова для поиска (старые названия, синонимы). */
+  keywords?: string[]
   href: string
   group: "pages" | "releases" | "services"
   Icon: LucideIcon
 }
 
 const EXTRA_PAGES: SearchHit[] = [
+  {
+    id: "balance",
+    title: "Баланс",
+    subtitle: "Финансы кабинета",
+    keywords: ["баланс", "кошелёк", "кошелек", "деньги", "wallet"],
+    href: "/cabinet/finance/balance",
+    group: "pages",
+    Icon: Wallet,
+  },
+  {
+    id: "tariffs",
+    title: "Тарифы",
+    subtitle: "Подписка и оплата",
+    keywords: ["тариф", "тарифы", "подписка", "оплата", "план"],
+    href: "/cabinet/settings?tab=profile#cabinet-tariff",
+    group: "pages",
+    Icon: CreditCard,
+  },
   {
     id: "settings-security",
     title: "Безопасность",
@@ -50,8 +72,9 @@ const EXTRA_PAGES: SearchHit[] = [
   {
     id: "support",
     title: "Поддержка",
-    subtitle: "Обращения",
-    href: "/cabinet/support",
+    subtitle: "Чат с менеджером",
+    keywords: ["чат", "помощь", "вопрос", "тикет"],
+    href: "/cabinet?support=1",
     group: "pages",
     Icon: FileText,
   },
@@ -90,6 +113,12 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
         href: item.href,
         group: "pages" as const,
         Icon: item.icon,
+        keywords:
+          item.id === "finance"
+            ? ["баланс", "кошелёк", "кошелек", "деньги", "wallet"]
+            : item.id === "settings"
+              ? ["тариф", "тарифы", "подписка", "профиль", "оплата"]
+              : undefined,
       })),
       ...FINANCE_SUB_NAV.map((item) => ({
         id: `fin-${item.id}`,
@@ -98,6 +127,10 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
         href: item.href,
         group: "pages" as const,
         Icon: item.icon,
+        keywords:
+          item.id === "finance"
+            ? ["баланс", "кошелёк", "кошелек", "деньги", "wallet"]
+            : undefined,
       })),
       ...EXTRA_PAGES,
     ]
@@ -134,11 +167,14 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
     }
 
     const filter = (list: SearchHit[]) =>
-      list.filter(
-        (h) =>
-          matchesQuery(h.title, q) ||
-          (h.subtitle ? matchesQuery(h.subtitle, q) : false),
-      )
+      list.filter((h) => {
+        if (matchesQuery(h.title, q)) return true
+        if (h.subtitle && matchesQuery(h.subtitle, q)) return true
+        if (h.keywords?.some((kw) => matchesQuery(kw, q) || matchesQuery(q, kw))) {
+          return true
+        }
+        return false
+      })
 
     return [
       ...filter(catalog.pages).slice(0, 6),

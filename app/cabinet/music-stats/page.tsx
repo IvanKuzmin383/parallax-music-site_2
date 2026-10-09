@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import {
@@ -41,12 +41,15 @@ import {
 } from "@/lib/music-stats-period-presets"
 import { MUSIC_PLATFORM_LABELS } from "@/lib/music-platform"
 import type { Track } from "@/lib/tracks"
-import { ArtistProjectSwitcher } from "@/components/cabinet/shared/artist-project-switcher"
 import {
   buildArtistCounts,
   useArtistProjectFilter,
 } from "@/lib/cabinet/hooks/use-artist-project-filter"
-import { RELEASE_ARTIST_FILTER_ALL } from "@/lib/cabinet/release-status-filter"
+import {
+  resolveStatsTab,
+  StatsSectionTabs,
+} from "@/components/cabinet/stats/stats-section-tabs"
+import { PublickaStatsPanel } from "@/components/cabinet/publicka/publicka-stats-panel"
 
 type ChartDailyPoint = { date: string; shortDate: string } & Record<MusicPlatformKey, number>
 
@@ -259,6 +262,8 @@ async function fetchMusicStatsBatch(options: {
 
 function CabinetMusicStatsPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const statsTab = resolveStatsTab(searchParams.get("tab"))
 
   const [selectedPlatformKeys, setSelectedPlatformKeys] = useState<MusicPlatformKey[]>(PLATFORM_KEYS)
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("month")
@@ -289,7 +294,7 @@ function CabinetMusicStatsPageContent() {
 
   const artistCounts = useMemo(() => buildArtistCounts(tracksMeta), [tracksMeta])
   const artistNames = useMemo(() => artistCounts.map((a) => a.name), [artistCounts])
-  const { artistFilter, setArtist, isAll: isAllArtists, filterByArtistName } =
+  const { artistFilters, isAll: isAllArtists, filterByArtistName } =
     useArtistProjectFilter(artistNames)
 
   const tracksForArtist = useMemo(
@@ -579,7 +584,7 @@ function CabinetMusicStatsPageContent() {
 
       try {
         if (
-          artistFilter !== RELEASE_ARTIST_FILTER_ALL &&
+          !isAllArtists &&
           selectedTrackIds.length === 0 &&
           artistScopedTrackIds.length === 0
         ) {
@@ -594,7 +599,7 @@ function CabinetMusicStatsPageContent() {
         const chartTrackIds =
           selectedTrackIds.length > 0
             ? selectedTrackIds
-            : artistFilter !== RELEASE_ARTIST_FILTER_ALL
+            : !isAllArtists
               ? artistScopedTrackIds
               : null
         const batch = await fetchMusicStatsBatch({
@@ -633,7 +638,13 @@ function CabinetMusicStatsPageContent() {
     return () => {
       cancelled = true
     }
-  }, [platformKeysForChart, selectedTrackIds, artistFilter, artistScopedTrackIds, router])
+  }, [
+    platformKeysForChart,
+    selectedTrackIds,
+    isAllArtists,
+    artistScopedTrackIds,
+    router,
+  ])
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -680,7 +691,11 @@ function CabinetMusicStatsPageContent() {
 
   const trackTriggerLabel = (() => {
     if (selectedTrackIds.length === 0) {
-      return isAllArtists ? "Все треки" : `Все треки · ${artistFilter}`
+      return isAllArtists
+        ? "Все треки"
+        : artistFilters.length === 1
+          ? `Все треки · ${artistFilters[0]}`
+          : `Все треки · ${artistFilters.length} проектов`
     }
     if (selectedTrackIds.length === 1) {
       const t = tracksMeta.find((x) => x.id === selectedTrackIds[0])
@@ -726,20 +741,18 @@ function CabinetMusicStatsPageContent() {
   }
 
 
+  if (statsTab === "publicka") {
+    return <PublickaStatsPanel />
+  }
+
   return (
     <div className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Статистика прослушиваний</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <h1 className="text-2xl font-bold">Статистика</h1>
+            <StatsSectionTabs active="streaming" />
           </div>
         </div>
-
-        <ArtistProjectSwitcher
-          artists={artistCounts}
-          value={artistFilter}
-          onChange={setArtist}
-          allCount={tracksMeta.length}
-        />
 
         <Card>
           <CardContent>

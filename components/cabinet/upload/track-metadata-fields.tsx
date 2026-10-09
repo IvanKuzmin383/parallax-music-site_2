@@ -63,6 +63,7 @@ export type TrackDraftPatch = Partial<
     | "performanceRights"
     | "isInstrumental"
     | "hasExplicitLanguage"
+    | "lyricsMatchConfirmed"
     | "backingAuthor"
     | "isrc"
     | "transferFromOtherDistributor"
@@ -79,9 +80,8 @@ type TrackMetadataFieldsProps = {
   onChange: (patch: TrackDraftPatch) => void
   disabled?: boolean
   showTransferFields?: boolean
-  /** Подтверждение совпадения слов с текстом (обязательно, если не инструментал). */
-  lyricsMatchConfirmed?: boolean
-  onLyricsMatchConfirmedChange?: (confirmed: boolean) => void
+  /** Скрыть поля, вынесенные в блок «Общие поля альбома». */
+  hideAlbumSharedFields?: boolean
 }
 
 export function TrackMetadataFields({
@@ -89,10 +89,12 @@ export function TrackMetadataFields({
   onChange,
   disabled,
   showTransferFields,
-  lyricsMatchConfirmed = false,
-  onLyricsMatchConfirmedChange,
+  hideAlbumSharedFields = false,
 }: TrackMetadataFieldsProps) {
   const field = (key: string) => wizardTrackFieldId(track.id, key)
+  const lyricsMatchConfirmed = track.lyricsMatchConfirmed === true
+  const showShared = !hideAlbumSharedFields
+  const showTransfer = Boolean(showTransferFields) && showShared
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -115,36 +117,40 @@ export function TrackMetadataFields({
           placeholder="Radio Edit / Remix - или оставьте пустым"
         />
       </div>
-      <div data-wizard-field={field("genre")}>
-        <Label>Жанр *</Label>
-        <Select
-          value={track.genre || undefined}
-          onValueChange={(v) => onChange({ genre: v as Track["genre"] })}
-          disabled={disabled}
-        >
-          <SelectTrigger className="w-full"><SelectValue placeholder="Выберите жанр" /></SelectTrigger>
-          <SelectContent>
-            {GENRES.map((g) => (
-              <SelectItem key={g} value={g}>{g}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div data-wizard-field={field("mood")}>
-        <Label>Настроение *</Label>
-        <Select
-          value={track.mood || undefined}
-          onValueChange={(v) => onChange({ mood: v as Track["mood"] })}
-          disabled={disabled}
-        >
-          <SelectTrigger className="w-full"><SelectValue placeholder="Выберите настроение" /></SelectTrigger>
-          <SelectContent>
-            {TRACK_MOODS.map((m) => (
-              <SelectItem key={m} value={m}>{m}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {showShared ? (
+        <>
+          <div data-wizard-field={field("genre")}>
+            <Label>Жанр *</Label>
+            <Select
+              value={track.genre || undefined}
+              onValueChange={(v) => onChange({ genre: v as Track["genre"] })}
+              disabled={disabled}
+            >
+              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите жанр" /></SelectTrigger>
+              <SelectContent>
+                {GENRES.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div data-wizard-field={field("mood")}>
+            <Label>Настроение *</Label>
+            <Select
+              value={track.mood || undefined}
+              onValueChange={(v) => onChange({ mood: v as Track["mood"] })}
+              disabled={disabled}
+            >
+              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите настроение" /></SelectTrigger>
+              <SelectContent>
+                {TRACK_MOODS.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      ) : null}
       <div className="sm:col-span-2" data-wizard-field={field("shortDescription")}>
         <Label>Краткое описание *</Label>
         <Textarea
@@ -159,57 +165,61 @@ export function TrackMetadataFields({
           Например: настроение, идея, о чём трек
         </p>
       </div>
-      <div data-wizard-field={field("musicAuthor")}>
-        <Label>
-          Автор музыки *
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground"
-                aria-label="Подсказка: Автор музыки"
-              >
-                <CircleHelp className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-xs text-balance">
-              Указывается полное ФИО человека. ИИ не может быть автором, если вам помогала нейросеть,
-              автором всё равно указывается человек
-            </TooltipContent>
-          </Tooltip>
-        </Label>
-        <Input
-          value={track.musicAuthor}
-          onChange={(e) => onChange({ musicAuthor: e.target.value })}
-          disabled={disabled}
-          maxLength={100}
-        />
-      </div>
-      <div data-wizard-field={field("musicRights")}>
-        <Label>Права на музыку *</Label>
-        <Select
-          value={track.musicRights || undefined}
-          onValueChange={(v) => onChange({ musicRights: v })}
-          disabled={disabled}
-        >
-          <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
-          <SelectContent>
-            {MUSIC_RIGHTS_OPTIONS.map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      {musicRightsRequiresAiService(track.musicRights) ? (
-        <div className="sm:col-span-2" data-wizard-field={field("musicAiService")}>
-          <Label>ИИ-сервис (название или ссылка) *</Label>
-          <Input
-            value={track.musicAiService}
-            onChange={(e) => onChange({ musicAiService: e.target.value })}
-            disabled={disabled}
-            maxLength={500}
-          />
-        </div>
+      {showShared ? (
+        <>
+          <div data-wizard-field={field("musicAuthor")}>
+            <Label>
+              Автор музыки *
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground"
+                    aria-label="Подсказка: Автор музыки"
+                  >
+                    <CircleHelp className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-balance">
+                  Указывается полное ФИО человека. ИИ не может быть автором, если вам помогала нейросеть,
+                  автором всё равно указывается человек
+                </TooltipContent>
+              </Tooltip>
+            </Label>
+            <Input
+              value={track.musicAuthor}
+              onChange={(e) => onChange({ musicAuthor: e.target.value })}
+              disabled={disabled}
+              maxLength={100}
+            />
+          </div>
+          <div data-wizard-field={field("musicRights")}>
+            <Label>Права на музыку *</Label>
+            <Select
+              value={track.musicRights || undefined}
+              onValueChange={(v) => onChange({ musicRights: v })}
+              disabled={disabled}
+            >
+              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
+              <SelectContent>
+                {MUSIC_RIGHTS_OPTIONS.map((o) => (
+                  <SelectItem key={o} value={o}>{o}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {musicRightsRequiresAiService(track.musicRights) ? (
+            <div className="sm:col-span-2" data-wizard-field={field("musicAiService")}>
+              <Label>ИИ-сервис (название или ссылка) *</Label>
+              <Input
+                value={track.musicAiService}
+                onChange={(e) => onChange({ musicAiService: e.target.value })}
+                disabled={disabled}
+                maxLength={500}
+              />
+            </div>
+          ) : null}
+        </>
       ) : null}
       <div className="sm:col-span-2 flex items-center gap-2">
         <Checkbox
@@ -219,10 +229,13 @@ export function TrackMetadataFields({
             onChange({
               isInstrumental: c === true,
               ...(c === true
-                ? { lyricsLanguage: "", hasExplicitLanguage: null }
+                ? {
+                    lyricsLanguage: "",
+                    hasExplicitLanguage: null,
+                    lyricsMatchConfirmed: false,
+                  }
                 : {}),
             })
-            if (c === true) onLyricsMatchConfirmedChange?.(false)
           }}
           disabled={disabled}
         />
@@ -238,13 +251,15 @@ export function TrackMetadataFields({
             <Textarea
               value={track.lyricsText}
               onChange={(e) => {
-                onChange({ lyricsText: e.target.value })
-                if (lyricsMatchConfirmed) onLyricsMatchConfirmedChange?.(false)
+                onChange({
+                  lyricsText: e.target.value,
+                  ...(lyricsMatchConfirmed ? { lyricsMatchConfirmed: false } : {}),
+                })
               }}
               disabled={disabled}
               maxLength={5000}
               rows={8}
-              className="field-sizing-fixed h-48 min-h-48 max-h-48 resize-none overflow-y-auto"
+              className="cabinet-scroll field-sizing-fixed h-48 min-h-48 max-h-48 resize-none overflow-y-auto"
               placeholder="Введите текст песни"
             />
             <div
@@ -255,7 +270,7 @@ export function TrackMetadataFields({
                 id={`lyrics-match-${track.id}`}
                 className="mt-0.5"
                 checked={lyricsMatchConfirmed}
-                onCheckedChange={(c) => onLyricsMatchConfirmedChange?.(c === true)}
+                onCheckedChange={(c) => onChange({ lyricsMatchConfirmed: c === true })}
                 disabled={disabled}
               />
               <Label
@@ -266,47 +281,51 @@ export function TrackMetadataFields({
               </Label>
             </div>
           </div>
-          <div data-wizard-field={field("lyricsLanguage")}>
-            <Label>Язык текста *</Label>
-            <Select
-              value={track.lyricsLanguage || undefined}
-              onValueChange={(v) => onChange({ lyricsLanguage: v })}
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Выберите" />
-              </SelectTrigger>
-              <SelectContent>
-                {TRACK_LYRICS_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {lang}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div data-wizard-field={field("hasExplicitLanguage")}>
-            <Label>Ненормативная лексика *</Label>
-            <Select
-              value={
-                track.hasExplicitLanguage === true
-                  ? "yes"
-                  : track.hasExplicitLanguage === false
-                    ? "no"
-                    : undefined
-              }
-              onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Выберите" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yes">Да</SelectItem>
-                <SelectItem value="no">Нет</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {showShared ? (
+            <>
+              <div data-wizard-field={field("lyricsLanguage")}>
+                <Label>Язык текста *</Label>
+                <Select
+                  value={track.lyricsLanguage || undefined}
+                  onValueChange={(v) => onChange({ lyricsLanguage: v })}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRACK_LYRICS_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {lang}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div data-wizard-field={field("hasExplicitLanguage")}>
+                <Label>Ненормативная лексика *</Label>
+                <Select
+                  value={
+                    track.hasExplicitLanguage === true
+                      ? "yes"
+                      : track.hasExplicitLanguage === false
+                        ? "no"
+                        : undefined
+                  }
+                  onValueChange={(v) => onChange({ hasExplicitLanguage: v === "yes" })}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Да</SelectItem>
+                    <SelectItem value="no">Нет</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : null}
           <div>
             <Label>Автор текста</Label>
             <Input
@@ -316,36 +335,40 @@ export function TrackMetadataFields({
               maxLength={100}
             />
           </div>
-          <div data-wizard-field={field("lyricsRights")}>
-            <Label>Права на текст *</Label>
-            <Select
-              value={track.lyricsRights || undefined}
-              onValueChange={(v) => onChange({ lyricsRights: v })}
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
-              <SelectContent>
-                {LYRICS_RIGHTS_OPTIONS.map((o) => (
-                  <SelectItem key={o} value={o}>{o}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="sm:col-span-2" data-wizard-field={field("performanceRights")}>
-            <Label>Права на исполнение *</Label>
-            <Select
-              value={track.performanceRights || undefined}
-              onValueChange={(v) => onChange({ performanceRights: v })}
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
-              <SelectContent>
-                {PERFORMANCE_RIGHTS_OPTIONS.map((o) => (
-                  <SelectItem key={o} value={o}>{o}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {showShared ? (
+            <>
+              <div data-wizard-field={field("lyricsRights")}>
+                <Label>Права на текст *</Label>
+                <Select
+                  value={track.lyricsRights || undefined}
+                  onValueChange={(v) => onChange({ lyricsRights: v })}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
+                  <SelectContent>
+                    {LYRICS_RIGHTS_OPTIONS.map((o) => (
+                      <SelectItem key={o} value={o}>{o}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2" data-wizard-field={field("performanceRights")}>
+                <Label>Права на исполнение *</Label>
+                <Select
+                  value={track.performanceRights || undefined}
+                  onValueChange={(v) => onChange({ performanceRights: v })}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Выберите" /></SelectTrigger>
+                  <SelectContent>
+                    {PERFORMANCE_RIGHTS_OPTIONS.map((o) => (
+                      <SelectItem key={o} value={o}>{o}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : null}
         </>
       ) : null}
       <div data-wizard-field={field("tiktokSoundStartSec")}>
@@ -371,21 +394,23 @@ export function TrackMetadataFields({
           Укажите с какой секунды должен начинаться звук в ТикТок
         </p>
       </div>
-      {showTransferFields ? (
+      {showTransferFields || hideAlbumSharedFields ? (
+        <div>
+          <Label>ISRC</Label>
+          <Input
+            value={track.isrc ?? ""}
+            onChange={(e) => onChange({ isrc: e.target.value })}
+            disabled={disabled}
+            maxLength={32}
+            placeholder="Необязательно"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Если у трека уже есть ISRC - укажите его. Если нет, мы присвоим код автоматически
+          </p>
+        </div>
+      ) : null}
+      {showTransfer ? (
         <>
-          <div>
-            <Label>ISRC</Label>
-            <Input
-              value={track.isrc ?? ""}
-              onChange={(e) => onChange({ isrc: e.target.value })}
-              disabled={disabled}
-              maxLength={32}
-              placeholder="Необязательно"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Если у трека уже есть ISRC - укажите его. Если нет, мы присвоим код автоматически
-            </p>
-          </div>
           <div className="sm:col-span-2 flex items-start gap-2">
             <Checkbox
               id={`transfer-${track.id}`}

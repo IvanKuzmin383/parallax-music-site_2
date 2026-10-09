@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useRef, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -19,13 +19,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useI18n } from "@/lib/i18n-context"
+import {
+  getCabinetServiceHubBackLabel,
+  getCabinetServiceHubHref,
+} from "@/lib/cabinet/service-back"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import { toast } from "sonner"
 
 function YandexVideoshotCreationPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const backHref = getCabinetServiceHubHref(pathname)
   const { t } = useI18n()
+  const backLabel = getCabinetServiceHubBackLabel(backHref, t.cabinet.promotion.backToServices)
   const service = t.cabinet.promotion.yandexVideoshotCreation
   const formText = t.cabinet.promotion.trackCover
   const [orderOpen, setOrderOpen] = useState(false)
@@ -141,11 +148,10 @@ function YandexVideoshotCreationPageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-none space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/cabinet/promotion">
+            <Link href={backHref}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -155,8 +161,8 @@ function YandexVideoshotCreationPageInner() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
+        <Card className="w-full min-w-0 max-w-none">
+        <CardHeader>
             <CardTitle className="text-xl">{service.serviceDescriptionTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -204,11 +210,9 @@ function YandexVideoshotCreationPageInner() {
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" asChild>
-            <Link href="/cabinet/promotion">{t.cabinet.promotion.backToServices}</Link>
+            <Link href={backHref}>{backLabel}</Link>
           </Button>
         </div>
-      </div>
-
       <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
         <DialogContent className="w-[95vw] sm:max-w-[84rem] max-h-[95vh] overflow-y-auto">
           <DialogHeader>

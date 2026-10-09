@@ -22,10 +22,7 @@ export default function CabinetSettingsPage() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageHeader
-        title="Настройки"
-        description="Профиль для договора и безопасность аккаунта"
-      />
+      <PageHeader title="Настройки" />
 
       <Tabs
         value={tab}

@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/sidebar"
 import {
   CABINET_SIDEBAR_GROUPS,
+  isCabinetDistributionPath,
   isCabinetFinancePath,
   isCabinetPromotionPath,
+  isCabinetPublickaPath,
   isCabinetToolsPath,
 } from "@/lib/cabinet/navigation"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
@@ -29,6 +31,8 @@ import { cn } from "@/lib/utils"
 function isActive(href: string, pathname: string): boolean {
   if (href === "/cabinet") return pathname === "/cabinet"
   if (href === "/cabinet/finance/balance") return isCabinetFinancePath(pathname)
+  if (href === "/cabinet/music/distribution") return isCabinetDistributionPath(pathname)
+  if (href === "/cabinet/publicka") return isCabinetPublickaPath(pathname)
   if (href === "/cabinet/promotion") return isCabinetPromotionPath(pathname)
   if (href === "/cabinet/tools") return isCabinetToolsPath(pathname)
   if (href === "/cabinet/music-stats") {

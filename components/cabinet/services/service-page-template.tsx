@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useRef, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
@@ -9,12 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { ComingSoonButton } from "@/components/cabinet/shared/coming-soon-button"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
+import { getCabinetServiceHubHref } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import Link from "next/link"
-import { CheckCircle2 } from "lucide-react"
+import { ArrowLeft, CheckCircle2 } from "lucide-react"
 
 interface ServicePageTemplateProps {
   service: ServiceCatalogEntry
@@ -22,7 +22,9 @@ interface ServicePageTemplateProps {
 
 function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const backHref = getCabinetServiceHubHref(pathname)
   const paymentHandledRef = useRef(false)
   const [projectName, setProjectName] = useState("")
   const [trackLink, setTrackLink] = useState("")
@@ -61,22 +63,37 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   }
 
   const handleCardPay = async () => {
-    if (!service.hasBackend || !service.paymentEndpoint) {
+    const isStub = Boolean(service.paymentStub && service.paymentEndpoint)
+    const isLivePay = Boolean(service.hasBackend && service.paymentEndpoint && !service.paymentStub)
+
+    if (!isStub && !isLivePay) {
       handleMockOrder()
       return
     }
-    if (!comment.trim() || comment.trim().length < 2) {
+    if (!projectName.trim()) {
+      toast.error("Укажите название релиза или проекта")
+      return
+    }
+    if (service.linkFieldRequired && !trackLink.trim()) {
+      toast.error(`Укажите: ${service.linkFieldLabel || "ссылку"}`)
+      return
+    }
+    if (isLivePay && (!comment.trim() || comment.trim().length < 2)) {
       toast.error("Заполните комментарий к заказу")
       return
     }
+
     setSubmitting(true)
     try {
-      const res = await fetch(service.paymentEndpoint, {
+      const link = trackLink.trim()
+      const res = await fetch(service.paymentEndpoint!, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          trackTitle: projectName.trim() || "Без названия",
+          trackTitle: projectName.trim(),
+          trackLink: link || undefined,
+          fileUrl: link || undefined,
           comment: comment.trim(),
           contactType: "telegram",
           contactValue: "@artist",
@@ -84,30 +101,113 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || "Не удалось создать оплату")
+        toast.error(data.error || (isStub ? "Не удалось отправить заявку" : "Не удалось создать оплату"))
         return
       }
-      if (typeof data.paymentUrl === "string" && data.paymentUrl) {
-        window.location.href = data.paymentUrl
+      if (isStub || data.stub === true) {
+        toast.success(
+          typeof data.message === "string" && data.message
+            ? data.message
+            : "Услуга скоро появится. Деньги не списаны - мы свяжемся с вами."
+        )
+        setProjectName("")
+        setTrackLink("")
+        setComment("")
+        return
+      }
+      const payUrl =
+        (typeof data.paymentUrl === "string" && data.paymentUrl) ||
+        (typeof data.confirmationUrl === "string" && data.confirmationUrl) ||
+        ""
+      if (payUrl) {
+        window.location.href = payUrl
         return
       }
       toast.error("Не удалось создать оплату")
     } catch {
-      toast.error("Ошибка при создании оплаты")
+      toast.error(isStub ? "Ошибка при отправке заявки" : "Ошибка при создании оплаты")
     } finally {
       setSubmitting(false)
     }
   }
 
+  const orderForm = (
+    <Card id="order-form" className="w-full min-w-0 border-primary/20">
+      <CardHeader>
+        <CardTitle>Заявка на услугу</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="project">Название релиза / проекта</Label>
+          <Input id="project" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Мой сингл" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="link">
+            {service.linkFieldLabel || "Ссылка на трек"}
+            {service.linkFieldRequired ? " *" : ""}
+          </Label>
+          <Input
+            id="link"
+            value={trackLink}
+            onChange={(e) => setTrackLink(e.target.value)}
+            placeholder={service.linkFieldPlaceholder || "https://..."}
+          />
+          {service.linkFieldHint ? (
+            <p className="text-xs text-muted-foreground">{service.linkFieldHint}</p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="comment">Комментарий</Label>
+          <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Пожелания к заказу" rows={4} />
+        </div>
+        <div className="rounded-md border border-border p-4 space-y-3">
+          <p className="font-semibold">Итого: {service.priceLabel}</p>
+          {service.paymentStub ? (
+            <p className="text-sm text-muted-foreground">
+              Оплата пока не списывается - заявка нужна, чтобы оценить спрос. Мы свяжемся с вами.
+            </p>
+          ) : null}
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full">
+              {submitting
+                ? service.paymentStub
+                  ? "Отправка..."
+                  : "Создание..."
+                : service.paymentStub
+                  ? "Оплатить"
+                  : "Оплатить картой"}
+            </Button>
+            {!service.paymentStub ? (
+              <ComingSoonButton tooltip="Оплата с баланса будет доступна позже" className="w-full">
+                Оплатить с баланса
+              </ComingSoonButton>
+            ) : null}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
-    <div className="max-w-4xl space-y-8">
-      <PageHeader title={service.title} description={service.shortDescription}>
-        <Button type="button" variant="outline" onClick={() => openCabinetSupportChat()}>
+    <div className="w-full min-w-0 space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+          <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" asChild>
+            <Link href={backHref} aria-label="Назад">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="min-w-0 space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{service.title}</h1>
+            <p className="text-muted-foreground text-sm md:text-base max-w-2xl">{service.shortDescription}</p>
+          </div>
+        </div>
+        <Button type="button" variant="outline" className="shrink-0 self-start" onClick={() => openCabinetSupportChat()}>
           Задать вопрос
         </Button>
-      </PageHeader>
+      </div>
 
-      <Card className="border-primary/20">
+      <Card className="w-full min-w-0 border-primary/20">
         <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-3xl font-bold text-primary">{service.priceLabel}</p>
@@ -124,81 +224,58 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         </CardContent>
       </Card>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Что входит</h2>
-        <ul className="space-y-2">
-          {service.features.map((f) => (
-            <li key={f} className="flex items-start gap-2 text-sm">
-              <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              {f}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:items-start xl:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)]">
+        <div className="min-w-0 space-y-8">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Что входит</h2>
+            <ul className="space-y-2">
+              {service.features.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Как это работает</h2>
-        <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground">
-          {service.steps.map((step, i) => (
-            <li key={step} className="text-foreground">
-              <span className="text-muted-foreground mr-2">{i + 1}.</span>
-              {step}
-            </li>
-          ))}
-        </ol>
-      </section>
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Как это работает</h2>
+            <ol className="space-y-2 text-sm text-muted-foreground">
+              {service.steps.map((step, i) => (
+                <li key={step} className="flex gap-2 text-foreground">
+                  <span className="text-muted-foreground shrink-0">{i + 1}.</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Что нужно от артиста</h2>
-        <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
-          {service.requirements.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
-      </section>
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Что нужно от артиста</h2>
+            <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
+              {service.requirements.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+          </section>
 
-      {service.faq.length > 0 ? (
-        <section id="faq" className="space-y-3">
-          <h2 className="text-lg font-semibold">FAQ</h2>
-          <Accordion type="single" collapsible className="w-full">
-            {service.faq.map((item, i) => (
-              <AccordionItem key={item.q} value={`faq-${i}`}>
-                <AccordionTrigger>{item.q}</AccordionTrigger>
-                <AccordionContent>{item.a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
-      ) : null}
+          {service.faq.length > 0 ? (
+            <section id="faq" className="space-y-3">
+              <h2 className="text-lg font-semibold">FAQ</h2>
+              <Accordion type="single" collapsible className="w-full">
+                {service.faq.map((item, i) => (
+                  <AccordionItem key={item.q} value={`faq-${i}`}>
+                    <AccordionTrigger>{item.q}</AccordionTrigger>
+                    <AccordionContent>{item.a}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </section>
+          ) : null}
+        </div>
 
-      <Card id="order-form">
-        <CardHeader>
-          <CardTitle>Форма заказа</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="project">Название релиза / проекта</Label>
-            <Input id="project" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Мой сингл" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="link">Ссылка на трек</Label>
-            <Input id="link" value={trackLink} onChange={(e) => setTrackLink(e.target.value)} placeholder="https://..." />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="comment">Комментарий</Label>
-            <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Пожелания к заказу" rows={4} />
-          </div>
-          <div className="rounded-md border border-border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="font-semibold">Итого: {service.priceLabel}</p>
-            <div className="flex flex-wrap gap-2">
-              <ComingSoonButton tooltip="Оплата с баланса будет доступна позже">Оплатить с баланса</ComingSoonButton>
-              <Button onClick={() => void handleCardPay()} disabled={submitting}>
-                {submitting ? "Создание..." : "Оплатить картой"}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <aside className="min-w-0 lg:sticky lg:top-4">{orderForm}</aside>
+      </div>
     </div>
   )
 }
