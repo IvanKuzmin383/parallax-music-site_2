@@ -200,10 +200,10 @@ export default function AdminCabinetAnnouncementsPage() {
 
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="container mx-auto px-4 space-y-8">
+      <div className="mx-auto w-full max-w-none px-4 space-y-8">
         <AdminSectionNav active="cabinet-announcements" />
 
-        <div className="mx-auto max-w-3xl space-y-8">
+        <div className="space-y-8">
         <div className="flex items-start gap-3">
           <Megaphone className="h-8 w-8 text-muted-foreground shrink-0 mt-1" />
           <div>

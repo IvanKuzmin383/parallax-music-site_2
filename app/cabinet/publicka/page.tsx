@@ -66,9 +66,9 @@ export default function CabinetPublickaPage() {
     <div className="w-full max-w-none space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Публичка</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Музыка для бизнеса</h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Фоновая музыка в сервисе БизнесЗвук. Ставка{" "}
+            Воспроизведение в общественных местах. Ваши треки попадут в плейлисты ресторанов, кафе, торговых центров и других общественных заведений России и стран СНГ.Ставка{" "}
             {PUBLICKA_RATE_RUB.toLocaleString("ru-RU", { minimumFractionDigits: 2 })} ₽ за
             прослушивание. Начисления попадают в роялти (Финансы).
           </p>
@@ -120,7 +120,7 @@ export default function CabinetPublickaPage() {
 
           {placements.length === 0 ? (
             <EmptyState
-              title="Треков в Публичке пока нет"
+              title="Треков в «Музыка для бизнеса» пока нет"
               description="После размещения менеджером трек появится здесь. Можно оформить заявку через Продвижение."
               icon={Building2}
               action={

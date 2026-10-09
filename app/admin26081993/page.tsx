@@ -279,7 +279,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="container mx-auto px-4 space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6">
         <AdminSectionNav active="articles" />
 
         <div className="flex justify-between items-center flex-wrap gap-4">

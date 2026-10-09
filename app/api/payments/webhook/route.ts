@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
           await ensurePublickaPlacementFromOrder({
             userId: order.userId,
             orderId,
-            title: String(trackTitle !== "-" ? trackTitle : "Трек для Публички"),
+            title: String(trackTitle !== "-" ? trackTitle : "Трек для музыки для бизнеса"),
           })
         } catch (e) {
           console.error("[payments/webhook] publicka placement failed", { orderId, e })

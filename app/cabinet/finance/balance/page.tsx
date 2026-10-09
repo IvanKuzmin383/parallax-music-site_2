@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Receipt } from "lucide-react"
@@ -20,10 +20,14 @@ import {
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
-import { ComingSoonButton } from "@/components/cabinet/shared/coming-soon-button"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { Spinner } from "@/components/ui/spinner"
+import {
+  WALLET_TOPUP_MAX_RUB,
+  WALLET_TOPUP_MIN_RUB,
+  WALLET_TOPUP_PRESETS_RUB,
+} from "@/lib/wallet-topup-pricing"
 import { cn } from "@/lib/utils"
 
 type Tx = {
@@ -52,6 +56,11 @@ export default function FinanceBalancePage() {
   const [transferOpen, setTransferOpen] = useState(false)
   const [amountStr, setAmountStr] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  const [topupOpen, setTopupOpen] = useState(false)
+  const [topupAmountStr, setTopupAmountStr] = useState("1000")
+  const [topupSubmitting, setTopupSubmitting] = useState(false)
+  const paymentHandledRef = useRef(false)
 
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [withdrawalType, setWithdrawalType] = useState<"sbp" | "card">("sbp")
@@ -107,14 +116,105 @@ export default function FinanceBalancePage() {
     try {
       const params = new URLSearchParams(window.location.search)
       if (params.get("withdraw") === "1") setWithdrawOpen(true)
+      if (params.get("topup") === "1") setTopupOpen(true)
     } catch {
       // ignore
     }
   }, [])
 
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const paymentState = params.get("payment")
+      const orderId = params.get("orderId")
+      if (!paymentState || paymentHandledRef.current) return
+      paymentHandledRef.current = true
+
+      if (paymentState === "fail") {
+        toast.error("Оплата не завершена")
+        window.history.replaceState({}, "", "/cabinet/finance/balance")
+        return
+      }
+
+      if (paymentState === "return" && orderId) {
+        void (async () => {
+          try {
+            const res = await fetch(
+              `/api/cabinet/payments/order-status?orderId=${encodeURIComponent(orderId)}`,
+              { credentials: "include" }
+            )
+            const data = (await res.json().catch(() => ({}))) as { status?: string }
+            if (data.status === "paid") {
+              toast.success("Баланс пополнен")
+              await refresh({ silent: true })
+              void loadTransactions()
+            } else if (data.status === "failed") {
+              toast.error("Оплата не завершена")
+            } else {
+              toast.message("Платёж обрабатывается - баланс обновится через несколько секунд")
+              window.setTimeout(() => {
+                void refresh({ silent: true })
+                void loadTransactions()
+              }, 4000)
+            }
+          } catch {
+            toast.error("Не удалось проверить статус оплаты")
+          } finally {
+            window.history.replaceState({}, "", "/cabinet/finance/balance")
+          }
+        })()
+      }
+    } catch {
+      // ignore
+    }
+  }, [refresh, loadTransactions])
+
   const openTransfer = () => {
     setAmountStr(royaltyBalance > 0 ? String(royaltyBalance) : "")
     setTransferOpen(true)
+  }
+
+  const openTopup = () => {
+    setTopupAmountStr("1000")
+    setTopupOpen(true)
+  }
+
+  const handleTopup = async () => {
+    const amount = Number(topupAmountStr.replace(",", ".").replace(/\s/g, ""))
+    if (!Number.isFinite(amount) || amount < WALLET_TOPUP_MIN_RUB || amount > WALLET_TOPUP_MAX_RUB) {
+      toast.error(
+        `Укажите сумму от ${WALLET_TOPUP_MIN_RUB.toLocaleString("ru-RU")} до ${WALLET_TOPUP_MAX_RUB.toLocaleString("ru-RU")} ₽`
+      )
+      return
+    }
+    setTopupSubmitting(true)
+    try {
+      const res = await fetch("/api/cabinet/payments/wallet-topup/create", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        confirmationUrl?: string
+        paymentUrl?: string
+      }
+      if (!res.ok) {
+        toast.error(data.error ?? "Не удалось создать платёж")
+        return
+      }
+      const url = data.confirmationUrl || data.paymentUrl
+      if (!url) {
+        toast.error("Не получена ссылка на оплату")
+        return
+      }
+      window.location.href = url
+    } catch {
+      toast.error("Не удалось создать платёж")
+    } finally {
+      setTopupSubmitting(false)
+    }
   }
 
   const openWithdraw = () => {
@@ -237,7 +337,9 @@ export default function FinanceBalancePage() {
               Можно использовать для оплаты услуг лейбла.
             </p>
             <div className="flex flex-wrap gap-2">
-              <ComingSoonButton>Пополнить</ComingSoonButton>
+              <Button type="button" onClick={openTopup}>
+                Пополнить
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -379,6 +481,59 @@ export default function FinanceBalancePage() {
           </div>
         )}
       </section>
+
+      <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Пополнение баланса</DialogTitle>
+            <DialogDescription>
+              Оплата картой через Т-Банк. Минимум{" "}
+              {WALLET_TOPUP_MIN_RUB.toLocaleString("ru-RU")} ₽, максимум{" "}
+              {WALLET_TOPUP_MAX_RUB.toLocaleString("ru-RU")} ₽. Средства сразу появятся на
+              балансе кабинета после оплаты.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {WALLET_TOPUP_PRESETS_RUB.map((preset) => (
+                <Button
+                  key={preset}
+                  type="button"
+                  size="sm"
+                  variant={topupAmountStr === String(preset) ? "default" : "outline"}
+                  onClick={() => setTopupAmountStr(String(preset))}
+                >
+                  {preset.toLocaleString("ru-RU")} ₽
+                </Button>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="topup-amount">Сумма, ₽</Label>
+              <Input
+                id="topup-amount"
+                inputMode="decimal"
+                value={topupAmountStr}
+                onChange={(e) => setTopupAmountStr(e.target.value)}
+                placeholder="1000"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={topupSubmitting}
+              onClick={() => setTopupOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button type="button" disabled={topupSubmitting} onClick={() => void handleTopup()}>
+              {topupSubmitting ? <Spinner className="mr-1 h-4 w-4" /> : null}
+              Перейти к оплате
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent className="sm:max-w-md">

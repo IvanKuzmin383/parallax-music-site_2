@@ -710,7 +710,7 @@ export async function importPublickaRows(args: {
     const credited = await creditRoyalty({
       userId: row.user_id,
       amount,
-      note: `Публичка: ${row.title} (+${delta} прослушиваний)`,
+      note: `Музыка для бизнеса: ${row.title} (+${delta} прослушиваний)`,
     })
     if (credited.ok) {
       earningsCreditedRub += amount

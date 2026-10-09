@@ -167,7 +167,7 @@ export default function AdminLegalAcceptancePage() {
 
   return (
     <div className="min-h-screen bg-background p-4 pt-4">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6">
         <AdminSectionNav active="legal-acceptance" />
         <Card>
           <CardHeader>

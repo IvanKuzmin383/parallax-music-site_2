@@ -224,7 +224,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         </CardContent>
       </Card>
 
-      <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:items-start xl:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)]">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
         <div className="min-w-0 space-y-8">
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Что входит</h2>

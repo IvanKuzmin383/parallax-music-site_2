@@ -30,6 +30,7 @@ export type OrderType =
   | "spotify_videoshot"
   | "business_music"
   | "music_video"
+  | "wallet_topup"
   | "upload_addon_bundle"
 
 export type OrderStatus = "pending" | "paid" | "failed"
@@ -70,6 +71,12 @@ export interface OrderTracksTopup extends OrderBase {
   orderType: "tracks_topup"
   userId: string
   tracksCount: number
+  totalAmount: string
+}
+
+export interface OrderWalletTopup extends OrderBase {
+  orderType: "wallet_topup"
+  userId: string
   totalAmount: string
 }
 
@@ -149,6 +156,7 @@ export type Order =
   | OrderSubscription
   | OrderFixPack
   | OrderTracksTopup
+  | OrderWalletTopup
   | OrderAiMastering
   | OrderVerticalVideo
   | OrderTrackCover
@@ -159,6 +167,7 @@ export type CreateOrderInput =
   | Omit<OrderSubscription, "id" | "status" | "createdAt">
   | Omit<OrderFixPack, "id" | "status" | "createdAt">
   | Omit<OrderTracksTopup, "id" | "status" | "createdAt">
+  | Omit<OrderWalletTopup, "id" | "status" | "createdAt">
   | Omit<OrderAiMastering, "id" | "status" | "createdAt">
   | Omit<OrderVerticalVideo, "id" | "status" | "createdAt">
   | Omit<OrderTrackCover, "id" | "status" | "createdAt">
@@ -226,6 +235,14 @@ function rowToOrder(row: OrderRow): Order {
       orderType: "tracks_topup",
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
+      totalAmount: row.total_amount,
+    }
+  }
+  if (row.order_type === "wallet_topup") {
+    return {
+      ...base,
+      orderType: "wallet_topup",
+      userId: row.user_id ?? "",
       totalAmount: row.total_amount,
     }
   }
@@ -406,6 +423,31 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         totalAmount,
         o.userId,
         o.tracksCount,
+      ]
+    )
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
+  }
+  if (orderType === "wallet_topup") {
+    const o = order as Omit<OrderWalletTopup, "id" | "status" | "createdAt">
+    await execute(
+      `
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      [
+        id,
+        "wallet_topup",
+        null,
+        createdAt,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        null,
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)

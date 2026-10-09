@@ -134,6 +134,45 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     return
   }
 
+  if (order.orderType === "wallet_topup") {
+    const { creditWalletTopup } = await import("@/lib/cabinet-balance")
+    const creditAmount = Number(order.totalAmount)
+    const credited = await creditWalletTopup({
+      userId: order.userId,
+      amount: creditAmount,
+      orderId,
+    })
+    if (!credited.ok) {
+      console.error("[fulfill-paid-order] wallet_topup credit failed", {
+        orderId,
+        userId: order.userId,
+        error: credited.error,
+      })
+      throw new Error(`wallet_topup credit failed: ${credited.error}`)
+    }
+    await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
+
+    const user = await getCabinetUserById(order.userId)
+    const email = user?.email ?? `userId=${order.userId}`
+    notifyStaff(
+      [
+        "<b>Пополнение баланса кабинета</b>",
+        "",
+        `<b>Пользователь:</b> ${escapeHtml(email)}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,
+        "",
+        "#wallet_topup #оплата #кабинет",
+      ].join("\n"),
+      `[Parallax] Пополнение баланса: ${email}`,
+      "wallet_topup",
+      provider
+    )
+    await notifyUserPaid(order, amount)
+    return
+  }
+
   if (order.orderType === "ai_mastering") {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
     await tryRecordServiceFulfillment(orderId, order.orderType)
@@ -277,7 +316,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         await ensurePublickaPlacementFromOrder({
           userId: order.userId,
           orderId,
-          title: trackTitle || "Трек для Публички",
+          title: trackTitle || "Трек для музыки для бизнеса",
         })
       } catch (e) {
         console.error("[fulfill-paid-order] publicka placement failed", { orderId, e })

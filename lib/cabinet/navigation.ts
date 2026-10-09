@@ -29,7 +29,7 @@ export interface NavGroup {
 
 /**
  * Меню кабинета:
- * (без заголовка) Главная · Дистрибуция · Публичка · Статистика
+ * (без заголовка) Главная · Дистрибуция · Музыка для бизнеса · Статистика
  * Услуги - Продвижение · Инструменты · Заказы
  * Кабинет - Финансы · Партнёрка · Новости · Настройки
  */
@@ -40,7 +40,7 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
     items: [
       { id: "home", label: "Главная", href: "/cabinet", icon: Home },
       { id: "distribution", label: "Дистрибуция", href: "/cabinet/music/distribution", icon: Disc3 },
-      { id: "publicka", label: "Публичка", href: "/cabinet/publicka", icon: Building2 },
+      { id: "publicka", label: "Музыка для бизнеса", href: "/cabinet/publicka", icon: Building2 },
       { id: "stats", label: "Статистика", href: "/cabinet/music-stats", icon: BarChart3 },
     ],
   },

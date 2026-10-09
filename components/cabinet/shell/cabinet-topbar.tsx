@@ -17,8 +17,19 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CabinetGlobalSearch } from "@/components/cabinet/shell/cabinet-global-search"
 import { CabinetProjectFilter } from "@/components/cabinet/shell/cabinet-project-filter"
+import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { cn } from "@/lib/utils"
+
+function isSupportChatHref(href: string | null | undefined): boolean {
+  if (!href) return false
+  try {
+    const url = new URL(href, "http://local")
+    return url.searchParams.get("support") === "1"
+  } catch {
+    return href.includes("support=1")
+  }
+}
 
 type CabinetNotificationItem = {
   id: string
@@ -192,40 +203,52 @@ export function CabinetTopbar() {
                 <ul className="min-w-0 space-y-0.5 px-1.5 pb-2">
                   {items.map((item) => {
                     const unread = !item.readAt
+                    const opensSupport = isSupportChatHref(item.href)
                     const rowClass = cn(
-                      "block min-w-0 rounded-md px-2 py-2 transition-colors hover:bg-accent/60",
-                      unread && "bg-muted/35",
+                      "block min-w-0 rounded-md px-2 py-2 transition-colors hover:bg-muted/70",
+                      unread && "bg-muted/45",
                     )
                     const body = (
                       <div className="min-w-0 space-y-0.5">
                         <p
                           className={cn(
-                            "break-words text-sm leading-snug",
-                            unread ? "font-semibold" : "font-medium text-foreground/90",
+                            "break-words text-sm leading-snug text-foreground",
+                            unread ? "font-semibold" : "font-medium",
                           )}
                         >
                           {item.title}
                         </p>
                         {item.body ? (
-                          <p className="line-clamp-2 break-words text-xs text-muted-foreground">
+                          <p className="line-clamp-2 break-words text-xs text-foreground/70">
                             {item.body}
                           </p>
                         ) : null}
-                        <p className="text-[11px] text-muted-foreground/75">
+                        <p className="text-[11px] text-foreground/55">
                           {relativeTime(item.createdAt)}
                         </p>
                       </div>
                     )
 
+                    const onActivate = () => {
+                      if (unread) void markEventsRead([item.id])
+                      if (opensSupport) openCabinetSupportChat()
+                    }
+
                     return (
                       <li key={item.id} className="min-w-0">
-                        {item.href ? (
+                        {opensSupport ? (
+                          <button
+                            type="button"
+                            className={cn(rowClass, "w-full text-left")}
+                            onClick={onActivate}
+                          >
+                            {body}
+                          </button>
+                        ) : item.href ? (
                           <Link
                             href={item.href}
                             className={rowClass}
-                            onClick={() => {
-                              if (unread) void markEventsRead([item.id])
-                            }}
+                            onClick={onActivate}
                           >
                             {body}
                           </Link>
@@ -233,9 +256,7 @@ export function CabinetTopbar() {
                           <button
                             type="button"
                             className={cn(rowClass, "w-full text-left")}
-                            onClick={() => {
-                              if (unread) void markEventsRead([item.id])
-                            }}
+                            onClick={onActivate}
                           >
                             {body}
                           </button>

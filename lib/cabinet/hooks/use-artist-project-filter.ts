@@ -8,6 +8,8 @@ import {
   matchesReleaseArtist,
 } from "@/lib/cabinet/release-status-filter"
 
+const ARTIST_FILTER_STORAGE_KEY = "cabinet.artistFilters.v1"
+
 type Named = { artist?: string; artistName?: string }
 
 function displayArtist(item: Named): string {
@@ -76,31 +78,95 @@ function writeArtistsToParams(
   }
 }
 
+function artistsKey(artists: string[]): string {
+  return artists
+    .map((a) => normalizeArtistForPolicy(a))
+    .filter(Boolean)
+    .sort()
+    .join("\0")
+}
+
+function readStoredArtistFilters(): string[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = sessionStorage.getItem(ARTIST_FILTER_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+  } catch {
+    return []
+  }
+}
+
+function writeStoredArtistFilters(artists: string[]): void {
+  if (typeof window === "undefined") return
+  try {
+    if (artists.length === 0) {
+      sessionStorage.removeItem(ARTIST_FILTER_STORAGE_KEY)
+    } else {
+      sessionStorage.setItem(ARTIST_FILTER_STORAGE_KEY, JSON.stringify(artists))
+    }
+  } catch {
+    // quota / private mode
+  }
+}
+
 /**
- * Переключатель проекта через ?artist= в URL (один или несколько).
+ * Переключатель проекта через ?artist= в URL + sessionStorage,
+ * чтобы выбор не сбрасывался при переходах по меню кабинета.
  * Пустой список = все проекты.
  */
 export function useArtistProjectFilter(availableArtists: string[]) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [artistFilters, setArtistFilters] = useState<string[]>([])
+  const [artistFilters, setArtistFilters] = useState<string[]>(() =>
+    typeof window === "undefined" ? [] : readStoredArtistFilters(),
+  )
 
   useEffect(() => {
-    const fromUrl = searchParams.getAll("artist")
-    setArtistFilters(resolveFromUrl(fromUrl, availableArtists))
-  }, [searchParams, availableArtists])
+    const fromUrlRaw = searchParams.getAll("artist")
+    const fromUrl = resolveFromUrl(fromUrlRaw, availableArtists)
+
+    if (fromUrlRaw.length > 0) {
+      setArtistFilters(fromUrl)
+      writeStoredArtistFilters(fromUrl)
+      return
+    }
+
+    // URL без artist - восстанавливаем из sessionStorage (переход по меню).
+    const stored = resolveFromUrl(readStoredArtistFilters(), availableArtists)
+    setArtistFilters(stored)
+
+    if (stored.length === 0) return
+
+    // Подтягиваем выбор обратно в URL текущей страницы.
+    const params = new URLSearchParams(searchParams.toString())
+    writeArtistsToParams(params, stored)
+    const qs = params.toString()
+    if (qs !== searchParams.toString()) {
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    }
+  }, [searchParams, availableArtists, pathname, router])
 
   const setArtists = useCallback(
     (values: string[]) => {
-      const next = resolveFromUrl(values, availableArtists.length ? availableArtists : values)
+      const next = resolveFromUrl(
+        values,
+        availableArtists.length ? availableArtists : values,
+      )
       setArtistFilters(next)
+      writeStoredArtistFilters(next)
       const params = new URLSearchParams(searchParams.toString())
       writeArtistsToParams(params, next)
       const qs = params.toString()
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+      const nextUrl = qs ? `${pathname}?${qs}` : pathname
+      if (qs !== searchParams.toString() || artistsKey(next) !== artistsKey(artistFilters)) {
+        router.replace(nextUrl, { scroll: false })
+      }
     },
-    [availableArtists, pathname, router, searchParams],
+    [availableArtists, pathname, router, searchParams, artistFilters],
   )
 
   /** Совместимость: один артист или «все». */

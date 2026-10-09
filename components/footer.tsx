@@ -34,35 +34,35 @@ export function Footer() {
   return (
     <footer className="bg-background border-t border-border py-12">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="mb-8 grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div>
-            <div className="text-2xl font-bold tracking-tighter mb-4">
+            <div className="mb-4 text-2xl font-bold tracking-tighter">
               <span className="text-foreground">PARALLAX</span>
-              <span className="text-primary ml-1">MUSIC</span>
+              <span className="ml-1 text-primary">MUSIC</span>
             </div>
             <p className="text-sm text-muted-foreground">{t.footer.tagline}</p>
           </div>
 
           <div>
-            <h3 className="text-sm uppercase tracking-wider font-bold mb-4">{t.footer.services}</h3>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{t.footer.services}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="/#advantages" className="hover:text-primary transition-colors">
+                <a href="/#advantages" className="transition-colors hover:text-primary">
                   {t.services.labelServices.title}
                 </a>
               </li>
               <li>
-                <a href="/#pricing" className="hover:text-primary transition-colors">
+                <a href="/#pricing" className="transition-colors hover:text-primary">
                   {t.header.pricing}
                 </a>
               </li>
               <li>
-                <a href="/promotion" className="hover:text-primary transition-colors">
+                <a href="/promotion" className="transition-colors hover:text-primary">
                   {t.services.radioPromotion.title}
                 </a>
               </li>
               <li>
-                <a href="/#contact" className="hover:text-primary transition-colors">
+                <a href="/#contact" className="transition-colors hover:text-primary">
                   {t.header.contact}
                 </a>
               </li>
@@ -70,34 +70,69 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm uppercase tracking-wider font-bold mb-4">{t.footer.company}</h3>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{t.footer.company}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="/#about" className="hover:text-primary transition-colors">
+                <a href="/#about" className="transition-colors hover:text-primary">
                   {t.footer.aboutUs}
                 </a>
               </li>
               <li>
-                <a href="/#contact" className="hover:text-primary transition-colors">
+                <a href="/#contact" className="transition-colors hover:text-primary">
                   {t.footer.careers}
                 </a>
               </li>
               <li>
-                <a href="/#follow-us" className="hover:text-primary transition-colors">
+                <a href="/#follow-us" className="transition-colors hover:text-primary">
                   {t.header.contact}
                 </a>
               </li>
             </ul>
           </div>
 
+          <div>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{t.footer.documents}</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <Link href="/privacy" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.footer.privacyPolicy}
+                </Link>
+              </li>
+              <li>
+                <Link href="/cookies" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.footer.cookiePolicy}
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.footer.termsOfService}
+                </Link>
+              </li>
+              <li>
+                <Link href="/offer" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.footer.publicOffer}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/personal-data-consent"
+                  prefetch={false}
+                  className="transition-colors hover:text-primary"
+                >
+                  {t.footer.personalDataConsent}
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           <div id="follow-us">
-            <h3 className="text-sm uppercase tracking-wider font-bold mb-4">{t.footer.followUs}</h3>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{t.footer.followUs}</h3>
             <div className="flex gap-4">
               <a
                 href="https://t.me/parallaxmusic_rt"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="text-muted-foreground transition-colors hover:text-primary"
                 aria-label="Telegram"
               >
                 <TelegramIcon size={20} />
@@ -106,7 +141,7 @@ export function Footer() {
                 href="https://vk.com/parallaxmusic_releaseteam"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="text-muted-foreground transition-colors hover:text-primary"
                 aria-label="VK"
               >
                 <VkIcon size={20} />
@@ -115,30 +150,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center md:items-start gap-4">
-          <div className="flex flex-col items-center md:items-start gap-2">
-            <p className="text-sm text-muted-foreground text-center md:text-left leading-none">{t.footer.copyright}</p>
-            <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <Image src="/rkn-logo.png" alt="Логотип Роскомнадзора" width={20} height={20} />
-              <span>Реестр Роскомнадзора</span>
-            </div>
-          </div>
-          <div className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 text-sm text-muted-foreground leading-none">
-            <Link href="/privacy" prefetch={false} className="hover:text-primary transition-colors">
-              {t.footer.privacyPolicy}
-            </Link>
-            <Link href="/cookies" prefetch={false} className="hover:text-primary transition-colors">
-              Политика cookie
-            </Link>
-            <Link href="/terms" prefetch={false} className="hover:text-primary transition-colors">
-              {t.footer.termsOfService}
-            </Link>
-            <Link href="/offer" prefetch={false} className="hover:text-primary transition-colors">
-              {t.footer.publicOffer}
-            </Link>
-            <Link href="/personal-data-consent" prefetch={false} className="hover:text-primary transition-colors">
-              {t.footer.personalDataConsent}
-            </Link>
+        <div className="flex flex-col items-center gap-2 border-t border-border pt-8 md:items-start">
+          <p className="text-center text-sm leading-none text-muted-foreground md:text-left">
+            {t.footer.copyright}
+          </p>
+          <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <Image src="/rkn-logo.png" alt="Логотип Роскомнадзора" width={20} height={20} />
+            <span>Реестр Роскомнадзора</span>
           </div>
         </div>
       </div>

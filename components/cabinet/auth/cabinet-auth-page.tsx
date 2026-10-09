@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { Lock } from "lucide-react"
+import { Lock, ShieldCheck } from "lucide-react"
 import { Turnstile } from "@marsidev/react-turnstile"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -35,8 +36,9 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [totpCode, setTotpCode] = useState("")
-  const [requires2fa, setRequires2fa] = useState(false)
+  const [twoFaOpen, setTwoFaOpen] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
+  const totpInputRef = useRef<HTMLInputElement>(null)
   const [registerEmail, setRegisterEmail] = useState("")
   const [registerPassword, setRegisterPassword] = useState("")
   const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState("")
@@ -65,16 +67,22 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
     }
   }, [searchParams])
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const closeTwoFa = () => {
+    setTwoFaOpen(false)
+    setTotpCode("")
+  }
+
+  const submitLogin = async (opts?: { totpCode?: string }) => {
     if (!email || !password) {
       toast.error("Введите email и пароль")
       return
     }
-    if (requires2fa && !totpCode.trim()) {
+    const code = opts?.totpCode?.trim()
+    if (opts && !code) {
       toast.error("Введите код 2FA")
       return
     }
+
     setLoginLoading(true)
     try {
       const response = await fetch("/api/cabinet/auth", {
@@ -83,25 +91,29 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
         body: JSON.stringify({
           email,
           password,
-          ...(requires2fa || totpCode.trim() ? { totpCode: totpCode.trim() } : {}),
+          ...(code ? { totpCode: code } : {}),
         }),
         credentials: "include",
       })
       const data = await response.json().catch(
-        () => ({} as { error?: string; requires2fa?: boolean })
+        () => ({} as { error?: string; requires2fa?: boolean }),
       )
       if (response.ok) {
         toast.success("Вход выполнен успешно")
-        setRequires2fa(false)
-        setTotpCode("")
+        closeTwoFa()
         onAuthenticated()
       } else if (response.status === 401 && data.requires2fa) {
-        setRequires2fa(true)
-        toast.message(data.error || "Введите код из приложения-аутентификатора")
+        setTotpCode("")
+        setTwoFaOpen(true)
+        window.setTimeout(() => totpInputRef.current?.focus(), 50)
       } else if (response.status === 429) {
         toast.error(data.error || "Слишком много попыток. Попробуйте позже.")
       } else if (response.status === 403) {
         toast.error(data.error || CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE)
+      } else if (twoFaOpen) {
+        toast.error(data.error || "Неверный код 2FA")
+        setTotpCode("")
+        window.setTimeout(() => totpInputRef.current?.focus(), 50)
       } else {
         toast.error(data.error || "Неверный email или пароль")
       }
@@ -110,6 +122,16 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
     } finally {
       setLoginLoading(false)
     }
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await submitLogin()
+  }
+
+  const handleTwoFaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await submitLogin({ totpCode })
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -193,22 +215,30 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
-                <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setRequires2fa(false); setTotpCode("") }} disabled={loginLoading} autoComplete="email" />
-                <Input type="password" placeholder="Пароль" value={password} onChange={(e) => { setPassword(e.target.value); setRequires2fa(false); setTotpCode("") }} disabled={loginLoading} autoComplete="current-password" />
-                {requires2fa ? (
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Код 2FA"
-                    value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value)}
-                    disabled={loginLoading}
-                    autoComplete="one-time-code"
-                    maxLength={8}
-                  />
-                ) : null}
-                <Button type="submit" className="w-full" disabled={loginLoading}>
-                  {loginLoading ? "Вход..." : requires2fa ? "Подтвердить" : "Войти"}
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (twoFaOpen) closeTwoFa()
+                  }}
+                  disabled={loginLoading}
+                  autoComplete="email"
+                />
+                <Input
+                  type="password"
+                  placeholder="Пароль"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    if (twoFaOpen) closeTwoFa()
+                  }}
+                  disabled={loginLoading}
+                  autoComplete="current-password"
+                />
+                <Button type="submit" className="w-full" disabled={loginLoading || twoFaOpen}>
+                  {loginLoading && !twoFaOpen ? "Вход..." : "Войти"}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground">
                   <Link href="/cabinet/forgot-password" className="underline hover:text-foreground">
@@ -259,6 +289,57 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={twoFaOpen}
+        onOpenChange={(open) => {
+          if (!open && !loginLoading) closeTwoFa()
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              Подтверждение входа
+            </DialogTitle>
+            <DialogDescription>
+              Введите код из приложения-аутентификатора (Google Authenticator, Яндекс Ключ и т.п.).
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleTwoFaSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-totp">Код 2FA</Label>
+              <Input
+                ref={totpInputRef}
+                id="login-totp"
+                type="text"
+                inputMode="numeric"
+                placeholder="6 цифр"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\s+/g, ""))}
+                disabled={loginLoading}
+                autoComplete="one-time-code"
+                maxLength={8}
+                autoFocus
+              />
+            </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button type="submit" className="w-full" disabled={loginLoading || !totpCode.trim()}>
+                {loginLoading ? "Проверка..." : "Подтвердить"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={loginLoading}
+                onClick={closeTwoFa}
+              >
+                Назад
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={subscriptionRequiredDialogOpen} onOpenChange={setSubscriptionRequiredDialogOpen}>
         <DialogContent className="sm:max-w-[440px]">

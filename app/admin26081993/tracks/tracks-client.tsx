@@ -424,7 +424,6 @@ export default function TracksPageClient() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [lyricsExpanded, setLyricsExpanded] = useState(false)
   const [moderationHistoryExpanded, setModerationHistoryExpanded] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -762,7 +761,7 @@ export default function TracksPageClient() {
     : tracksTotal > 0
 
   useEffect(() => {
-    if (!isDialogOpen || !selectedTrack) {
+    if (!selectedTrack) {
       setTrackEditBundleAddons([])
       setTrackEditBundleAddonsFetched(false)
       return
@@ -791,7 +790,7 @@ export default function TracksPageClient() {
     return () => {
       cancelled = true
     }
-  }, [isDialogOpen, selectedTrack?.id])
+  }, [selectedTrack?.id])
 
   const loadTracks = async () => {
     await refreshTracks()
@@ -834,12 +833,19 @@ export default function TracksPageClient() {
     }
   }
 
+  const closeTrackEditor = () => {
+    setSelectedTrack(null)
+    setSelectedUploadDraft(null)
+    setTrackDraft(null)
+    setLyricsExpanded(false)
+    setModerationHistoryExpanded(false)
+  }
+
   const handleViewDetails = (track: Track) => {
     setSelectedUploadDraft(null)
     setSelectedTrack(track)
     setTrackDraft(trackToDraft(track))
     setLyricsExpanded(false)
-    setIsDialogOpen(true)
     void (async () => {
       try {
         const res = await fetch(`/api/admin/tracks/${encodeURIComponent(track.id)}`, {
@@ -862,7 +868,6 @@ export default function TracksPageClient() {
     setUploadDraftRowStatus(draft.status)
     setTrackDraft(uploadDraftToTrackDraft(draft))
     setLyricsExpanded(false)
-    setIsDialogOpen(true)
   }
 
   const handleUploadDraftStatusChange = async (draftId: string, status: UploadDraftStatus) => {
@@ -918,9 +923,7 @@ export default function TracksPageClient() {
       )
       if (response.ok) {
         toast.success("Трек создан и отправлен на модерацию")
-        setIsDialogOpen(false)
-        setSelectedUploadDraft(null)
-        setTrackDraft(null)
+        closeTrackEditor()
         loadTracks()
       } else {
         const err = await response.json().catch(() => ({}))
@@ -1684,8 +1687,7 @@ export default function TracksPageClient() {
         setDeleteUploadDraftDialogOpen(false)
         setUploadDraftToDelete(null)
         if (selectedUploadDraft?.id === uploadDraftToDelete.id) {
-          setIsDialogOpen(false)
-          setSelectedUploadDraft(null)
+          closeTrackEditor()
         }
         loadTracks()
       } else {
@@ -1803,7 +1805,12 @@ export default function TracksPageClient() {
                                 key={track.id}
                                 role="button"
                                 tabIndex={0}
-                                className="border rounded-md p-3 flex flex-col gap-2 cursor-pointer transition-colors hover:bg-muted/40 hover:border-border"
+                                className={cn(
+                                  "flex cursor-pointer flex-col gap-2 rounded-md border p-3 transition-colors",
+                                  selectedTrack?.id === track.id
+                                    ? "border-primary/50 bg-primary/10"
+                                    : "hover:border-border hover:bg-muted/40",
+                                )}
                                 onClick={() => handleViewDetails(track)}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
@@ -2030,7 +2037,7 @@ export default function TracksPageClient() {
 
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="mx-auto w-full max-w-[min(100vw-2rem,1680px)] px-4 space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6">
         <AdminSectionNav active="tracks" />
 
         <h1 className="text-2xl font-bold">Модерация треков</h1>
@@ -2068,6 +2075,8 @@ export default function TracksPageClient() {
           </div>
         ) : null}
 
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,46%)]">
+        <div className="min-w-0 space-y-6">
         {tracksTotalInDb === 0 && tracksStats.uploadDraftsCount === 0 ? (
           <div className="border rounded-lg p-12 text-center text-muted-foreground">
             Треков и активных черновиков загрузки пока нет
@@ -2525,7 +2534,11 @@ export default function TracksPageClient() {
                         {simpleListTracksVisible.map((track) => (
                           <TableRow
                             key={track.id}
-                            className="cursor-pointer hover:bg-muted/50"
+                            className={
+                              selectedTrack?.id === track.id
+                                ? "cursor-pointer bg-primary/10 hover:bg-primary/15"
+                                : "cursor-pointer hover:bg-muted/50"
+                            }
                             onClick={() => handleViewDetails(track)}
                           >
                             <TableCell className="max-w-[280px] whitespace-normal align-top">
@@ -2699,28 +2712,47 @@ export default function TracksPageClient() {
             )}
           </>
         )}
+        </div>
 
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            setIsDialogOpen(open)
-            if (!open) {
-              setSelectedUploadDraft(null)
-              setLyricsExpanded(false)
-            }
-          }}
-        >
-          <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedUploadDraft ? "Редактирование черновика загрузки" : "Редактирование трека"}
-              </DialogTitle>
+        <aside className="sticky top-16 flex max-h-[calc(100vh-5rem)] min-h-[24rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-base font-semibold leading-tight">
+                {selectedUploadDraft ? "Черновик загрузки" : "Карточка трека"}
+              </p>
               {selectedUploadDraft ? (
-                <DialogDescription className="font-mono text-xs">
+                <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                   id: {selectedUploadDraft.id} · {selectedUploadDraft.kind}
-                </DialogDescription>
-              ) : null}
-            </DialogHeader>
+                </p>
+              ) : selectedTrack ? (
+                <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                  id: {selectedTrack.id}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Выберите трек в списке слева
+                </p>
+              )}
+            </div>
+            {selectedTrack || selectedUploadDraft ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={closeTrackEditor}
+              >
+                Закрыть
+              </Button>
+            ) : null}
+          </div>
+          <div className="cabinet-sidebar-scroll min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-4">
+            {!(selectedTrack || selectedUploadDraft) || !trackDraft ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                Клик по строке трека открывает карточку здесь, без модалки.
+              </p>
+            ) : (
+              <>
             {selectedTrack &&
             (selectedTrack.needsAiCover ||
               (trackEditBundleAddonsFetched && trackEditBundleAddons.length > 0)) ? (
@@ -3871,8 +3903,11 @@ export default function TracksPageClient() {
                 </div>
               </div>
             )}
-          </DialogContent>
-        </Dialog>
+              </>
+            )}
+          </div>
+        </aside>
+        </div>
 
         <Dialog
           open={albumModOpen}

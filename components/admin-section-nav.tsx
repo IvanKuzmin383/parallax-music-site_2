@@ -93,7 +93,7 @@ export function AdminSectionNav({ active }: AdminSectionNavProps) {
         <Button variant={navVariant(active === "publicka")} size="sm" asChild>
           <Link href="/admin26081993/publicka" prefetch={false}>
             <Building2 className="mr-1 h-4 w-4" />
-            Публичка
+            Музыка для бизнеса
           </Link>
         </Button>
         <Button variant={navVariant(active === "video-clips")} size="sm" asChild>

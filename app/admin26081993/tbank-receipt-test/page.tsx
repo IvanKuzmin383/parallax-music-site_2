@@ -160,7 +160,7 @@ function TbankReceiptTestPageInner() {
 
   return (
     <div className="min-h-screen bg-background pt-4 pb-12">
-      <div className="container mx-auto px-4 max-w-3xl space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6">
         <AdminSectionNav active="service-fulfillments" />
 
         <div>

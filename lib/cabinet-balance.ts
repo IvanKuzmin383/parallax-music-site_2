@@ -223,6 +223,133 @@ export async function getUserBalancesByEmail(email: string): Promise<{
   }
 }
 
+export type CreditWalletTopupResult =
+  | { ok: true; amount: number; walletBalance: number; transaction: BalanceTransaction }
+  | { ok: false; error: string }
+
+/** Пополнение wallet_balance после успешной оплаты + запись в журнал. */
+export async function creditWalletTopup(params: {
+  userId: string
+  amount: number
+  note?: string
+  /** Идемпотентность: не создавать вторую запись для того же заказа. */
+  orderId?: string
+}): Promise<CreditWalletTopupResult> {
+  const amount = roundMoney(params.amount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Сумма должна быть больше 0" }
+  }
+
+  const note =
+    params.note?.trim() ||
+    (params.orderId
+      ? `Пополнение баланса (заказ ${params.orderId})`
+      : "Пополнение баланса")
+
+  try {
+    const result = await withTransaction(async (client) => {
+      if (params.orderId) {
+        const existing = await clientQuery<{ id: string }>(
+          client,
+          `
+          SELECT id FROM cabinet_balance_transactions
+          WHERE user_id = ? AND type = 'topup' AND note LIKE ?
+          LIMIT 1
+          `,
+          [params.userId, `%${params.orderId}%`]
+        )
+        if (existing[0]) {
+          const balRows = await clientQuery<{ wallet_balance: number | string | null }>(
+            client,
+            `SELECT wallet_balance FROM cabinet_users WHERE id = ?`,
+            [params.userId]
+          )
+          return {
+            amount,
+            walletBalance: roundMoney(Number(balRows[0]?.wallet_balance) || 0),
+            transaction: null as BalanceTransaction | null,
+            alreadyCredited: true as const,
+          }
+        }
+      }
+
+      const rows = await clientQuery<{ wallet_balance: number | string | null }>(
+        client,
+        `SELECT wallet_balance FROM cabinet_users WHERE id = ? FOR UPDATE`,
+        [params.userId]
+      )
+      const row = rows[0]
+      if (!row) throw new Error("USER_NOT_FOUND")
+
+      const nextWallet = roundMoney((Number(row.wallet_balance) || 0) + amount)
+      const now = new Date().toISOString()
+      const txId = crypto.randomUUID()
+
+      await clientExecute(
+        client,
+        `UPDATE cabinet_users SET wallet_balance = ? WHERE id = ?`,
+        [nextWallet, params.userId]
+      )
+      await clientExecute(
+        client,
+        `
+        INSERT INTO cabinet_balance_transactions (
+          id, user_id, type, amount, royalty_delta, wallet_delta, note, created_at
+        ) VALUES (?, ?, 'topup', ?, 0, ?, ?, ?)
+        `,
+        [txId, params.userId, amount, amount, note, now]
+      )
+
+      return {
+        amount,
+        walletBalance: nextWallet,
+        transaction: {
+          id: txId,
+          userId: params.userId,
+          type: "topup" as const,
+          amount,
+          royaltyDelta: 0,
+          walletDelta: amount,
+          note,
+          createdAt: now,
+        },
+        alreadyCredited: false as const,
+      }
+    })
+
+    if (result.alreadyCredited || !result.transaction) {
+      return {
+        ok: true,
+        amount: result.amount,
+        walletBalance: result.walletBalance,
+        transaction: {
+          id: "existing",
+          userId: params.userId,
+          type: "topup",
+          amount: result.amount,
+          royaltyDelta: 0,
+          walletDelta: amount,
+          note,
+          createdAt: new Date().toISOString(),
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      amount: result.amount,
+      walletBalance: result.walletBalance,
+      transaction: result.transaction,
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+      return { ok: false, error: "Пользователь не найден" }
+    }
+    console.error("[cabinet-balance] creditWalletTopup failed:", error)
+    return { ok: false, error: "Не удалось пополнить баланс" }
+  }
+}
+
 export type CreditRoyaltyResult =
   | { ok: true; amount: number; streamingBalance: number; transaction: BalanceTransaction }
   | { ok: false; error: string }

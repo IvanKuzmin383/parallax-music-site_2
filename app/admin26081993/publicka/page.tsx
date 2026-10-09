@@ -144,7 +144,7 @@ export default function AdminPublickaPage() {
     <div className="space-y-4 p-4">
       <AdminSectionNav active="publicka" />
       <div>
-        <h1 className="text-2xl font-bold">Публичка (БизнесЗвук)</h1>
+        <h1 className="text-2xl font-bold">Музыка для бизнеса</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Размещения клиентов, импорт Excel/CSV и начисление {PUBLICKA_RATE_RUB} ₽ за
           прослушивание в роялти.

@@ -52,7 +52,7 @@ export const RELEASE_WORKFLOW_ACTIONS: ReleaseWorkflowAction[] = [
   },
   {
     id: "business",
-    label: "Публичка",
+    label: "Музыка для бизнеса",
     description: "Фоновая музыка БизнесЗвук",
     href: "/cabinet/publicka",
     icon: Building2,

@@ -87,6 +87,7 @@ export function SecuritySettings() {
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 md:items-start">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -99,7 +100,7 @@ export function SecuritySettings() {
         </CardHeader>
         <CardContent>
           <form
-            className="grid max-w-md gap-3"
+            className="grid gap-3"
             onSubmit={async (e) => {
               e.preventDefault()
               if (newPassword.length < 10) {
@@ -193,7 +194,7 @@ export function SecuritySettings() {
             <div className="space-y-3">
               <p className="text-sm text-green-600 dark:text-green-400">2FA включена</p>
               <form
-                className="grid max-w-md gap-3"
+                className="grid gap-3"
                 onSubmit={async (e) => {
                   e.preventDefault()
                   setDisableBusy(true)
@@ -284,7 +285,7 @@ export function SecuritySettings() {
               Настроить 2FA
             </Button>
           ) : (
-            <div className="space-y-3 max-w-md">
+            <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Отсканируйте QR в приложении-аутентификаторе или введите ключ вручную.
               </p>
@@ -363,6 +364,7 @@ export function SecuritySettings() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <Card>
         <CardHeader>

@@ -82,7 +82,7 @@ export function PublickaStatsPanel() {
           <StatsSectionTabs active="publicka" />
         </div>
         <Button variant="outline" asChild>
-          <Link href="/cabinet/publicka">Мои треки в Публичке</Link>
+          <Link href="/cabinet/publicka">Мои треки</Link>
         </Button>
       </div>
 
@@ -97,12 +97,12 @@ export function PublickaStatsPanel() {
       ) : !stats || stats.placementsCount === 0 ? (
         <Card>
           <CardContent className="py-10 space-y-3 text-center">
-            <p className="font-medium">Пока нет треков в Публичке</p>
+            <p className="font-medium">Пока нет треков в «Музыка для бизнеса»</p>
             <p className="text-sm text-muted-foreground">
               Разместите музыку в фоновой трансляции БизнесЗвук - статистика и заработок появятся здесь.
             </p>
             <Button asChild>
-              <Link href="/cabinet/publicka">Перейти в Публичку</Link>
+              <Link href="/cabinet/publicka">Перейти к трекам</Link>
             </Button>
           </CardContent>
         </Card>

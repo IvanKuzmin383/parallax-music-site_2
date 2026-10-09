@@ -941,7 +941,7 @@ function AdminCabinetUsersPageInner() {
 
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="container mx-auto px-4 space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6">
         <AdminSectionNav active="cabinet-users" />
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

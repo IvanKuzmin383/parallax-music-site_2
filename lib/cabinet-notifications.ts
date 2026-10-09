@@ -62,6 +62,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   spotify_videoshot: "Spotify Video Shot",
   business_music: "Музыка для бизнеса",
   music_video: "Загрузка видеоклипа",
+  wallet_topup: "Пополнение баланса",
   upload_addon_bundle: "Дополнения к релизу",
 }
 
@@ -352,14 +353,22 @@ export async function tryNotifyPaymentSuccess(params: {
       ? `${String(params.amountRub)} ₽`
       : null
 
+  const isWalletTopup = params.orderType === "wallet_topup"
+
   await tryCreateCabinetNotification({
     userId,
     type: "payment_success",
-    title: `Оплата прошла: ${typeLabel}`,
-    body: amount ? `Сумма ${amount}. Заказ доступен в разделе «Заказы».` : "Заказ доступен в разделе «Заказы».",
-    href: `/cabinet/orders/${params.orderId}`,
-    entityType: "order",
-    entityId: params.orderId,
+    title: isWalletTopup ? "Баланс пополнен" : `Оплата прошла: ${typeLabel}`,
+    body: isWalletTopup
+      ? amount
+        ? `На баланс зачислено ${amount}.`
+        : "Средства зачислены на баланс кабинета."
+      : amount
+        ? `Сумма ${amount}. Заказ доступен в разделе «Заказы».`
+        : "Заказ доступен в разделе «Заказы».",
+    href: isWalletTopup ? "/cabinet/finance/balance" : `/cabinet/orders/${params.orderId}`,
+    entityType: isWalletTopup ? "balance" : "order",
+    entityId: isWalletTopup ? userId : params.orderId,
   })
 }
 

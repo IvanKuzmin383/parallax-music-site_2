@@ -21,6 +21,7 @@ import {
 import { SERVICES_CATALOG } from "@/lib/cabinet/services-catalog"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { releaseDetailHref } from "@/lib/cabinet/release-presenters"
+import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { cn } from "@/lib/utils"
 
 type SearchHit = {
@@ -208,6 +209,15 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
   const go = (href: string) => {
     setOpen(false)
     setQuery("")
+    try {
+      const url = new URL(href, "http://local")
+      if (url.searchParams.get("support") === "1") {
+        openCabinetSupportChat()
+        return
+      }
+    } catch {
+      // fall through
+    }
     router.push(href)
   }
 

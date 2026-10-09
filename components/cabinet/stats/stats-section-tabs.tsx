@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const TABS = [
   { id: "streaming", label: "Стриминги", href: "/cabinet/music-stats?tab=streaming" },
-  { id: "publicka", label: "Публичка", href: "/cabinet/music-stats?tab=publicka" },
+  { id: "publicka", label: "Музыка для бизнеса", href: "/cabinet/music-stats?tab=publicka" },
 ] as const
 
 export type StatsTabId = (typeof TABS)[number]["id"]

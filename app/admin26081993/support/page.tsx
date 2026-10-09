@@ -260,7 +260,7 @@ export default function AdminSupportPage() {
 
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="container mx-auto space-y-4 px-4 pb-8">
+      <div className="mx-auto w-full max-w-none space-y-4 px-4 pb-8">
         <AdminSectionNav active="support" />
 
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -310,14 +310,14 @@ export default function AdminSupportPage() {
                         <button
                           type="button"
                           className={cn(
-                            "w-full px-3 py-3 text-left transition-colors hover:bg-accent/50",
-                            active && "bg-accent",
-                            t.unreadForAdmin > 0 && !active && "bg-muted/40",
+                            "w-full border-l-2 border-transparent px-3 py-3 text-left transition-colors hover:bg-muted/60",
+                            active && "border-l-primary bg-muted",
+                            t.unreadForAdmin > 0 && !active && "bg-muted/30",
                           )}
                           onClick={() => setSelectedId(t.id)}
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="truncate text-sm font-semibold">
+                            <p className="truncate text-sm font-semibold text-foreground">
                               {t.userDisplayName}
                             </p>
                             {t.unreadForAdmin > 0 ? (
@@ -326,13 +326,13 @@ export default function AdminSupportPage() {
                               </span>
                             ) : null}
                           </div>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="truncate text-xs text-foreground/70">
                             {t.userEmail}
                           </p>
-                          <p className="mt-1 line-clamp-2 text-xs text-foreground/80">
+                          <p className="mt-1 line-clamp-2 text-xs text-foreground/85">
                             {t.lastMessagePreview || "-"}
                           </p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
+                          <p className="mt-1 text-[11px] text-foreground/60">
                             {relative(t.lastMessageAt)}
                             {t.status === "closed" ? " · закрыт" : ""}
                           </p>
