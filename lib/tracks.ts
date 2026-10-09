@@ -59,7 +59,7 @@ export interface Track {
   lyricsRights: string
   performanceRights: string
   isInstrumental: boolean
-  /** Ненормативная лексика: null — не выбрано (обязательно Да/Нет). */
+  /** Ненормативная лексика: null - не выбрано (обязательно Да/Нет). */
   hasExplicitLanguage: boolean | null
   backingAuthor: string
   /** С какой секунды начинать звук в TikTok (0 = с начала). */

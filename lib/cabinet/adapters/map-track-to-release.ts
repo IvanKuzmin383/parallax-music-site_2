@@ -26,7 +26,7 @@ const RELEASE_STATUS_LABELS: Record<string, string> = {
   postponed: "Отозван",
 }
 
-/** Чем меньше индекс — тем «важнее» показать этот статус на групповой карточке. */
+/** Чем меньше индекс - тем «важнее» показать этот статус на групповой карточке. */
 const TRACK_STATUS_PRIORITY: Record<string, number> = {
   rejected: 0,
   postponed: 1,
@@ -137,7 +137,7 @@ export function mapReleaseEntityToView(
     id: release.id,
     coverUrl: release.coverPath ? `/api/cabinet/releases/${release.id}/cover` : undefined,
     title: release.title || (release.kind === "album" ? "Альбом (черновик)" : "Релиз (черновик)"),
-    artist: release.artistName || "—",
+    artist: release.artistName || "-",
     status: RELEASE_STATUS_LABELS[release.status] ?? release.status,
     releaseDate: release.releaseDate,
     kind: isDraftLike ? "draft" : release.kind === "album" ? "album" : "track",
@@ -163,7 +163,7 @@ export function mapAlbumTracksToRelease(
     id: albumId,
     coverUrl: first?.coverPath ? `/api/cabinet/uploads/cover/${first.id}` : undefined,
     title: album?.title?.trim() || first?.trackName?.trim() || "Альбом",
-    artist: album?.artistName?.trim() || first?.artistName || "—",
+    artist: album?.artistName?.trim() || first?.artistName || "-",
     status: pickGroupStatus(ordered),
     releaseDate: album?.releaseDate ?? first?.releaseDate,
     platforms: mergePlatforms(ordered),

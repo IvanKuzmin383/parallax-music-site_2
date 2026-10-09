@@ -143,7 +143,7 @@ export function ReleaseStatusTimeline({
                   {dates[index]}
                 </p>
               ) : (
-                <p className="mt-0.5 text-[11px] sm:text-xs text-transparent select-none">—</p>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-transparent select-none">-</p>
               )}
             </li>
           )

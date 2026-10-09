@@ -7,7 +7,7 @@ import fs from "fs"
 import path from "path"
 import { getPool, closePool } from "../lib/database"
 
-/** Минимальный парсер .env — без зависимости dotenv (как у Next на сервере). */
+/** Минимальный парсер .env - без зависимости dotenv (как у Next на сервере). */
 function loadEnvFile(filePath: string): void {
   if (!fs.existsSync(filePath)) return
   const text = fs.readFileSync(filePath, "utf8")

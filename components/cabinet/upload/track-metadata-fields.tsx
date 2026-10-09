@@ -21,6 +21,7 @@ import {
   musicRightsRequiresAiService,
 } from "@/lib/track-constants"
 import type { Track } from "@/lib/tracks"
+import { wizardTrackFieldId } from "@/lib/cabinet-wizard-field-focus"
 
 const MUSIC_RIGHTS_OPTIONS = [
   "Музыка написана мной. Есть проект",
@@ -91,9 +92,11 @@ export function TrackMetadataFields({
   lyricsMatchConfirmed = false,
   onLyricsMatchConfirmedChange,
 }: TrackMetadataFieldsProps) {
+  const field = (key: string) => wizardTrackFieldId(track.id, key)
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div>
+      <div data-wizard-field={field("trackName")}>
         <Label>Название трека *</Label>
         <Input
           value={track.trackName}
@@ -109,10 +112,10 @@ export function TrackMetadataFields({
           onChange={(e) => onChange({ trackVersion: e.target.value })}
           disabled={disabled}
           maxLength={100}
-          placeholder="Radio Edit / Remix — или оставьте пустым"
+          placeholder="Radio Edit / Remix - или оставьте пустым"
         />
       </div>
-      <div>
+      <div data-wizard-field={field("genre")}>
         <Label>Жанр *</Label>
         <Select
           value={track.genre || undefined}
@@ -127,7 +130,7 @@ export function TrackMetadataFields({
           </SelectContent>
         </Select>
       </div>
-      <div>
+      <div data-wizard-field={field("mood")}>
         <Label>Настроение *</Label>
         <Select
           value={track.mood || undefined}
@@ -142,7 +145,7 @@ export function TrackMetadataFields({
           </SelectContent>
         </Select>
       </div>
-      <div className="sm:col-span-2">
+      <div className="sm:col-span-2" data-wizard-field={field("shortDescription")}>
         <Label>Краткое описание *</Label>
         <Textarea
           value={track.shortDescription}
@@ -156,7 +159,7 @@ export function TrackMetadataFields({
           Например: настроение, идея, о чём трек
         </p>
       </div>
-      <div>
+      <div data-wizard-field={field("musicAuthor")}>
         <Label>
           Автор музыки *
           <Tooltip>
@@ -182,7 +185,7 @@ export function TrackMetadataFields({
           maxLength={100}
         />
       </div>
-      <div>
+      <div data-wizard-field={field("musicRights")}>
         <Label>Права на музыку *</Label>
         <Select
           value={track.musicRights || undefined}
@@ -198,7 +201,7 @@ export function TrackMetadataFields({
         </Select>
       </div>
       {musicRightsRequiresAiService(track.musicRights) ? (
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2" data-wizard-field={field("musicAiService")}>
           <Label>ИИ-сервис (название или ссылка) *</Label>
           <Input
             value={track.musicAiService}
@@ -244,7 +247,10 @@ export function TrackMetadataFields({
               className="field-sizing-fixed h-48 min-h-48 max-h-48 resize-none overflow-y-auto"
               placeholder="Введите текст песни"
             />
-            <div className="mt-3 flex items-start gap-2">
+            <div
+              className="mt-3 flex items-start gap-2 rounded-md p-1 -mx-1"
+              data-wizard-field={field("lyricsMatchConfirmed")}
+            >
               <Checkbox
                 id={`lyrics-match-${track.id}`}
                 className="mt-0.5"
@@ -260,7 +266,7 @@ export function TrackMetadataFields({
               </Label>
             </div>
           </div>
-          <div>
+          <div data-wizard-field={field("lyricsLanguage")}>
             <Label>Язык текста *</Label>
             <Select
               value={track.lyricsLanguage || undefined}
@@ -279,7 +285,7 @@ export function TrackMetadataFields({
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div data-wizard-field={field("hasExplicitLanguage")}>
             <Label>Ненормативная лексика *</Label>
             <Select
               value={
@@ -310,7 +316,7 @@ export function TrackMetadataFields({
               maxLength={100}
             />
           </div>
-          <div>
+          <div data-wizard-field={field("lyricsRights")}>
             <Label>Права на текст *</Label>
             <Select
               value={track.lyricsRights || undefined}
@@ -325,7 +331,7 @@ export function TrackMetadataFields({
               </SelectContent>
             </Select>
           </div>
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2" data-wizard-field={field("performanceRights")}>
             <Label>Права на исполнение *</Label>
             <Select
               value={track.performanceRights || undefined}
@@ -342,7 +348,7 @@ export function TrackMetadataFields({
           </div>
         </>
       ) : null}
-      <div>
+      <div data-wizard-field={field("tiktokSoundStartSec")}>
         <Label htmlFor={`tiktok-start-${track.id}`}>Начало звука в ТикТок *</Label>
         <Input
           id={`tiktok-start-${track.id}`}
@@ -406,7 +412,7 @@ export function TrackMetadataFields({
           </div>
           {track.transferFromOtherDistributor ? (
             <>
-              <div className="sm:col-span-2 max-w-md">
+              <div className="sm:col-span-2 max-w-md" data-wizard-field={field("previousDistributor")}>
                 <Label>Предыдущий дистрибьютор *</Label>
                 <Input
                   value={track.previousDistributor ?? ""}
@@ -419,7 +425,10 @@ export function TrackMetadataFields({
                   Укажите, откуда переносится релиз
                 </p>
               </div>
-              <div className="sm:col-span-2 max-w-md">
+              <div
+                className="sm:col-span-2 max-w-md"
+                data-wizard-field={field("originalReleaseDate")}
+              >
                 <Label htmlFor={`original-release-date-${track.id}`}>
                   Оригинальная дата релиза *
                 </Label>

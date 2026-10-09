@@ -4,5 +4,5 @@
  */
 export const SUBSCRIPTION_REMINDER_DAYS_BEFORE_CHARGE = 3
 
-/** Час отправки напоминаний по Москве (0–23), только для cron раз в сутки */
+/** Час отправки напоминаний по Москве (0-23), только для cron раз в сутки */
 export const SUBSCRIPTION_REMINDER_HOUR_MOSCOW = 10

@@ -27,7 +27,7 @@ export function PromotionAnalyticsMockup({ type }: { type: MockupType }) {
           <div className="rounded-[1.5rem] bg-zinc-900 p-4 space-y-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="font-semibold text-foreground">VK Реклама</span>
-              <span>12 – 18 мая</span>
+              <span>12 - 18 мая</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -78,7 +78,7 @@ export function PromotionAnalyticsMockup({ type }: { type: MockupType }) {
           <div className="rounded-lg bg-zinc-900 p-4 space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-foreground">Яндекс Директ</span>
-              <span className="text-muted-foreground">12 – 18 мая</span>
+              <span className="text-muted-foreground">12 - 18 мая</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[

@@ -125,7 +125,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
   if (releaseView?.kind === "draft") {
     return (
       <div className="max-w-lg mx-auto text-center space-y-4 py-16">
-        <p className="text-muted-foreground">Это черновик — продолжите загрузку в мастере</p>
+        <p className="text-muted-foreground">Это черновик - продолжите загрузку в мастере</p>
         <Button asChild>
           <Link href={releaseContinueHref(releaseView)}>{releaseContinueLabel(releaseView)}</Link>
         </Button>
@@ -134,7 +134,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const title = releaseView?.title ?? entityRelease?.title ?? tracks[0]?.trackName ?? "Релиз"
-  const artist = releaseView?.artist ?? entityRelease?.artistName ?? tracks[0]?.artistName ?? "—"
+  const artist = releaseView?.artist ?? entityRelease?.artistName ?? tracks[0]?.artistName ?? "-"
   const statusLabel = releaseView?.status ?? "На модерации"
   const releaseDate = releaseView?.releaseDate ?? entityRelease?.releaseDate ?? tracks[0]?.releaseDate
   const relativeDate = formatReleaseRelativeDate(releaseDate)
@@ -277,7 +277,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         <div>
           <h2 className="text-xl font-semibold">Что можно сделать?</h2>
           <p className="text-sm text-muted-foreground">
-            Следующие шаги для релиза «{title}» — продвижение, оформление и инструменты
+            Следующие шаги для релиза «{title}» - продвижение, оформление и инструменты
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

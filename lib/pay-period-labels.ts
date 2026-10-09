@@ -1,4 +1,4 @@
-/** Склонение для 1 / 2–4 / 5+ (и 11–14 → форма «много») */
+/** Склонение для 1 / 2-4 / 5+ (и 11-14 → форма «много») */
 function ruPlural(n: number, one: string, few: string, many: string): string {
   const nAbs = Math.abs(n) % 100
   const n1 = nAbs % 10

@@ -281,7 +281,7 @@ export default function AdminMusicTrackMapPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen pt-4 flex items-center justify-center">
         <p>Загрузка...</p>
       </div>
     )
@@ -293,7 +293,7 @@ export default function AdminMusicTrackMapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-background pt-4">
       <div className="container mx-auto px-4 space-y-6">
         <AdminSectionNav active="music-track-map" />
 

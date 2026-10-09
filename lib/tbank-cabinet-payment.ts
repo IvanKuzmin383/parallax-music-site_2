@@ -85,7 +85,7 @@ export async function createCabinetTbankPayment(
     receipt,
   })
 
-  // DEMO / касса: Init с Receipt часто отвечает «Неверные параметры» — повторяем без чека.
+  // DEMO / касса: Init с Receipt часто отвечает «Неверные параметры» - повторяем без чека.
   if (!pay.ok && receipt) {
     console.warn(`[${params.logPrefix}] T-Bank Init with Receipt failed, retry without Receipt:`, pay.body)
     pay = await initTbankPayment(baseInit)

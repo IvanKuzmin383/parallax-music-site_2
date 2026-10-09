@@ -63,11 +63,11 @@ export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> 
 }
 
 export type ValidateTrackMetadataOptions = {
-  /** По умолчанию true — для финальной отправки. На шаге «Дополнительно» можно отключить. */
+  /** По умолчанию true - для финальной отправки. На шаге «Дополнительно» можно отключить. */
   requireAudio?: boolean
   /**
    * Требовать чекбокс подтверждения текста (кабинетный визард).
-   * Если true — нужен `lyricsMatchConfirmed: true` (не для инструментала).
+   * Если true - нужен `lyricsMatchConfirmed: true` (не для инструментала).
    */
   requireLyricsMatchConfirmed?: boolean
   lyricsMatchConfirmed?: boolean
@@ -144,14 +144,30 @@ export function getIncompleteTrackMetadataFields(
   return missing
 }
 
+export type TrackMetadataIssue = {
+  field: TrackMetadataFieldKey
+  message: string
+}
+
+export function getFirstTrackMetadataIssue(
+  track: Track,
+  options?: ValidateTrackMetadataOptions
+): TrackMetadataIssue | null {
+  const missing = getIncompleteTrackMetadataFields(track, options)
+  if (missing.length === 0) return null
+  const field = missing[0]
+  const label = track.trackName.trim() || "Трек"
+  const fieldLabel = TRACK_METADATA_FIELD_LABELS[field]
+  return {
+    field,
+    message: `Заполните «${fieldLabel}» для «${label}»`,
+  }
+}
+
 /** Проверка обязательных метаданных трека (шаг «Дополнительно» / submit). */
 export function validateTrackMetadata(
   track: Track,
   options?: ValidateTrackMetadataOptions
 ): string | null {
-  const missing = getIncompleteTrackMetadataFields(track, options)
-  if (missing.length === 0) return null
-  const label = track.trackName.trim() || "Трек"
-  const fieldLabel = TRACK_METADATA_FIELD_LABELS[missing[0]]
-  return `Заполните «${fieldLabel}» для «${label}»`
+  return getFirstTrackMetadataIssue(track, options)?.message ?? null
 }

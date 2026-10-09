@@ -98,7 +98,7 @@ function normalizeSpotifyUrl(url: string): string | undefined {
   return undefined
 }
 
-/** Bandlink отдаёт open.zvuk.com/xxx?af_web_dp=https://zvuk.com/release/ID — берём нормальный release URL. */
+/** Bandlink отдаёт open.zvuk.com/xxx?af_web_dp=https://zvuk.com/release/ID - берём нормальный release URL. */
 export function normalizeSberzvukUrl(url: string): string | undefined {
   const trimmed = url.trim()
   if (!trimmed) return undefined
@@ -129,7 +129,7 @@ export function normalizeSberzvukUrl(url: string): string | undefined {
     return `https://zvuk.com/release/${idInQuery[1]}`
   }
 
-  // уже нормальный или короткий без id — как есть без query
+  // уже нормальный или короткий без id - как есть без query
   if (/zvuk\.com/i.test(trimmed)) {
     return trimmed.split("?")[0]
   }
@@ -231,9 +231,9 @@ function bandlinkErrorMessage(status: number, json: unknown): string {
     status === 403 &&
     (raw.includes("403") || raw.includes("smart-captcha") || raw.includes("temporarily blocked"))
   ) {
-    return "403 — обновите BANDLINK_COOKIES в .env (cookie _yasc с band.link)"
+    return "403 - обновите BANDLINK_COOKIES в .env (cookie _yasc с band.link)"
   }
-  if (status === 401) return "401 — неверный BANDLINK_TOKEN"
+  if (status === 401) return "401 - неверный BANDLINK_TOKEN"
   return `HTTP ${status}`
 }
 

@@ -77,7 +77,7 @@ function rowToNotification(row: NotificationRow): CabinetNotification {
   }
 }
 
-/** Релизы часто хранят email в user_id; заявки на вывод — UUID. */
+/** Релизы часто хранят email в user_id; заявки на вывод - UUID. */
 export async function resolveCabinetUserId(
   userKey: string | null | undefined
 ): Promise<string | null> {
@@ -250,7 +250,7 @@ export async function tryNotifyReleaseModeration(params: {
     if (params.nextStatus === "approved_by_platforms") title = "Релиз отправлен на площадки"
     if (params.nextStatus === "on_moderation") title = "Релиз на модерации"
 
-    const bodyParts = [`«${titleName}» — статус: ${label}.`]
+    const bodyParts = [`«${titleName}» - статус: ${label}.`]
     if (
       params.nextNote &&
       (params.nextStatus === "upload_pending" ||
@@ -307,7 +307,7 @@ export async function tryNotifyWithdrawalStatus(params: {
     type: "withdrawal_status",
     title,
     body,
-    href: "/cabinet/finance/royalty-withdrawal",
+    href: "/cabinet/finance/balance?withdraw=1",
     entityType: "withdrawal",
     entityId: params.withdrawalId,
   })

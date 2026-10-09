@@ -204,7 +204,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const token = createCabinetSession(user.email)
+    const token = createCabinetSession(user.email, {
+      userAgent: request.headers.get("user-agent"),
+      ip: clientIp,
+    })
 
     const userOut = (await getCabinetUserByEmail(email, { includeDisabled: true })) ?? user
 

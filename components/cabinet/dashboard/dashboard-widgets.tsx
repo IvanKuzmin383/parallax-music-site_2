@@ -177,7 +177,7 @@ export function DashboardMetricCards({
       </Link>
 
       <Link
-        href="/cabinet/finance/royalty-withdrawal"
+        href="/cabinet/finance/balance?withdraw=1"
         className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card sm:col-span-2 lg:col-span-1"
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -435,7 +435,7 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
 }
 
 function isDraftRelease(release: ReleaseView): boolean {
-  // Только реальный статус draft — не kind "draft" (туда попадают awaiting_payment и др.).
+  // Только реальный статус draft - не kind "draft" (туда попадают awaiting_payment и др.).
   return (
     release.releaseStatus === "draft" ||
     (!release.releaseStatus && release.status === "Черновик")
@@ -607,7 +607,7 @@ export function DashboardTasks({
       </div>
 
       {tasks.length === 0 ? (
-        <p className="mt-6 text-sm text-muted-foreground">Нет задач — всё в порядке</p>
+        <p className="mt-6 text-sm text-muted-foreground">Нет задач - всё в порядке</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {tasks.map((release) => (

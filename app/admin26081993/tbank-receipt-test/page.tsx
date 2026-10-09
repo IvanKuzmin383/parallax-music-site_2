@@ -40,7 +40,7 @@ async function sleep(ms: number) {
 
 export default function TbankReceiptTestPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background p-4 pt-20">Загрузка…</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background p-4 pt-4">Загрузка…</div>}>
       <TbankReceiptTestPageInner />
     </Suspense>
   )
@@ -159,12 +159,12 @@ function TbankReceiptTestPageInner() {
   const card = status?.testCard
 
   return (
-    <div className="min-h-screen bg-background pt-20 pb-12">
+    <div className="min-h-screen bg-background pt-4 pb-12">
       <div className="container mx-auto px-4 max-w-3xl space-y-6">
         <AdminSectionNav active="service-fulfillments" />
 
         <div>
-          <h1 className="text-2xl font-bold">T-Bank: тест чеков №7–8</h1>
+          <h1 className="text-2xl font-bold">T-Bank: тест чеков №7-8</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Init с объектом Receipt и полный Cancel для проверки в ЛК Т-Бизнес.
           </p>

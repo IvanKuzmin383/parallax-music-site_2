@@ -216,7 +216,7 @@ export async function PATCH(
     updatePayload.tiktokSoundStartSec = data.tiktokSoundStartSec
   }
   if (data.isInstrumental !== undefined) updatePayload.isInstrumental = data.isInstrumental
-  // Статус/комментарий модерации для релизных треков — через sync на весь релиз ниже.
+  // Статус/комментарий модерации для релизных треков - через sync на весь релиз ниже.
   const releaseIdForModeration = await resolveReleaseIdForTrack(current)
   const syncReleaseModeration =
     Boolean(releaseIdForModeration) &&
@@ -355,7 +355,7 @@ export async function PATCH(
     })
     const syncedTrack = synced.tracks.find((t) => t.id === id) ?? updated
 
-    // Снимок статуса уже включает meta; отдельный admin_edit — только если
+    // Снимок статуса уже включает meta; отдельный admin_edit - только если
     // статус/комментарий не менялись, а метаданные трека правили.
     if (hadMetaEdit && !statusChanged && !noteChanged) {
       const { tryCreateReleaseEntityVersion } = await import("@/lib/release-entity-versions")

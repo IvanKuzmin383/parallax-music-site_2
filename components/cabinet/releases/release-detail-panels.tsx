@@ -269,7 +269,7 @@ export function ReleaseTrackListPlayer({
   tracks,
   isAlbum,
 }: {
-  /** Если есть сущность релиза — используем её audio URL. */
+  /** Если есть сущность релиза - используем её audio URL. */
   releaseId?: string | null
   tracks: Track[]
   isAlbum: boolean
@@ -528,7 +528,7 @@ export function ModerationNoteAside({
   className,
 }: {
   note: string
-  /** Не выше блока обложки; длинный текст — скролл и «Показать полностью» в модалке. */
+  /** Не выше блока обложки; длинный текст - скролл и «Показать полностью» в модалке. */
   maxHeight?: number | null
   className?: string
 }) {

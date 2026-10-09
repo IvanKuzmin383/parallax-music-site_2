@@ -1,4 +1,4 @@
-/** Детали заказа услуги (трек, пожелания) — JSON в orders.service_details_json */
+/** Детали заказа услуги (трек, пожелания) - JSON в orders.service_details_json */
 export type OrderServiceDetails = {
   trackTitle?: string
   comment?: string

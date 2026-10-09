@@ -115,7 +115,7 @@ export default function AdminWithdrawalsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen pt-4 flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full space-y-4">
           <div className="text-center space-y-2">
             <p className="text-muted-foreground">Необходима авторизация</p>
@@ -130,14 +130,14 @@ export default function AdminWithdrawalsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen pt-4 flex items-center justify-center">
         <p>Загрузка...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-background pt-4">
       <div className="container mx-auto px-4 space-y-6">
         <AdminSectionNav active="withdrawals" />
 

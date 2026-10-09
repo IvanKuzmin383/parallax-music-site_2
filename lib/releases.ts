@@ -51,7 +51,7 @@ export interface Release {
   wizardStep: number
   addons: ReleaseAddonsPayload
   requestAiCover: boolean
-  /** Обложка создана при помощи ИИ: null — не выбрано. */
+  /** Обложка создана при помощи ИИ: null - не выбрано. */
   coverCreatedWithAi: CoverAiLevel | null
   /** Согласие на дату релиза ранее 14 календарных дней. */
   acceptShortReleaseDate: boolean

@@ -32,7 +32,7 @@ export const AI_LABELING_MODE_OPTIONS: {
   },
   {
     value: "partial",
-    label: "Частично — ИИ + человек",
+    label: "Частично - ИИ + человек",
     description: "По подробным этапам вклад ИИ есть, но не превышает половину.",
   },
   {

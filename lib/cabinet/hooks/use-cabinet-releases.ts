@@ -77,7 +77,7 @@ export function useCabinetReleases() {
         albumViews.push(mapAlbumTracksToRelease(albumId, visible, albumsById.get(albumId)))
       }
 
-      /** Синглы-треки без release/album — legacy. */
+      /** Синглы-треки без release/album - legacy. */
       const singleViews: ReleaseView[] = []
       for (const track of allTracks) {
         if (track.status === "draft") continue

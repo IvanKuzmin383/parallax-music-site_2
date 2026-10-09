@@ -100,7 +100,7 @@ export function getReleaseDateTierPriceRub(date: Date, from = new Date()): numbe
   return RELEASE_DATE_TIER_PRICE_RUB[tier]
 }
 
-/** Парсинг `yyyy-MM-dd` в локальную дату (полдень) — без сдвига суток из UTC. */
+/** Парсинг `yyyy-MM-dd` в локальную дату (полдень) - без сдвига суток из UTC. */
 export function parseReleaseDateInput(isoDate: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim())
   if (!m) return null
@@ -121,7 +121,7 @@ export function getReleaseDateTierPriceRubFromIso(
   return getReleaseDateTierPriceRub(date, from)
 }
 
-/** Дата раньше стандарта (менее 14 календарных дней) — нужен флаг принятия риска. */
+/** Дата раньше стандарта (менее 14 календарных дней) - нужен флаг принятия риска. */
 export function isShortReleaseDate(date: Date, from = new Date()): boolean {
   if (!isReleaseDateSelectable(date, from)) return false
   return getReleaseCalendarDaysAhead(date, from) < RELEASE_DATE_STANDARD_FROM_CALENDAR_DAYS

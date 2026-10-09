@@ -1,11 +1,11 @@
 ---
-description: Production is on Yandex Cloud (not AdminVPS/Amvera) — SSH, paths, deploy
+description: Production is on Yandex Cloud (not AdminVPS/Amvera) - SSH, paths, deploy
 alwaysApply: true
 ---
 
 # Production hosting
 
-**Прод = Yandex Cloud Compute VM.** Не AdminVPS, не Amvera. Документ `docs/migration-amvera-to-adminvps.md` — исторический; при вопросах про прод/деплой/логи не ссылайся на AdminVPS как на текущий хостинг.
+**Прод = Yandex Cloud Compute VM.** Не AdminVPS, не Amvera. Документ `docs/migration-amvera-to-adminvps.md` - исторический; при вопросах про прод/деплой/логи не ссылайся на AdminVPS как на текущий хостинг.
 
 ## Доступ
 
@@ -16,7 +16,7 @@ ssh -i C:\Users\Admin\.ssh\id_ed25519 ubuntu@111.88.251.195
 - User: `ubuntu`
 - App path: `/var/www/parallaxmusic`
 - Process manager: `pm2`, имя процесса: `parallaxmusic`
-- Data: `/data` (БД, uploads) — не в Git
+- Data: `/data` (БД, uploads) - не в Git
 
 ## Обновление прода
 

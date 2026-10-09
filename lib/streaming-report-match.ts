@@ -150,10 +150,10 @@ export async function matchStreamingReport(params: {
         fromName,
       )
     }
-    // filename artist unknown — try content below
-    warnings.push("Артист из имени файла не найден — ищем по содержимому файла")
+    // filename artist unknown - try content below
+    warnings.push("Артист из имени файла не найден - ищем по содержимому файла")
   } else if (looksLikeMojibake(artistFromFileName)) {
-    warnings.push("Имя артиста в имени файла повреждено (кодировка) — ищем по содержимому")
+    warnings.push("Имя артиста в имени файла повреждено (кодировка) - ищем по содержимому")
   }
 
   if (contentArtists.length === 0) {
@@ -186,7 +186,7 @@ export async function matchStreamingReport(params: {
       displayFallback,
       [
         ...warnings,
-        `Несколько пользователей для артиста «${ambiguous[0].artist}» — выберите вручную`,
+        `Несколько пользователей для артиста «${ambiguous[0].artist}» - выберите вручную`,
       ],
       ids,
     )
@@ -204,7 +204,7 @@ export async function matchStreamingReport(params: {
   if (uniqueUsers.length > 1) {
     return manualResult(
       displayFallback,
-      [...warnings, "В файле артисты разных пользователей — выберите вручную"],
+      [...warnings, "В файле артисты разных пользователей - выберите вручную"],
       uniqueUsers,
     )
   }
@@ -215,7 +215,7 @@ export async function matchStreamingReport(params: {
     }
     return manualResult(
       displayFallback,
-      [...warnings, "Не все артисты файла сопоставлены — выберите пользователя вручную"],
+      [...warnings, "Не все артисты файла сопоставлены - выберите пользователя вручную"],
       uniqueUsers,
     )
   }
@@ -223,7 +223,7 @@ export async function matchStreamingReport(params: {
   return exactResult(primaryContent || displayFallback, uniqueUsers[0], warnings)
 }
 
-/** @deprecated Prefer matchStreamingReport — kept for callers that only have a filename. */
+/** @deprecated Prefer matchStreamingReport - kept for callers that only have a filename. */
 export async function matchStreamingReportFileName(
   fileName: string,
 ): Promise<StreamingReportMatchResult> {

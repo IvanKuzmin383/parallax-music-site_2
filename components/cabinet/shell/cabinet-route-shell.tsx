@@ -13,8 +13,8 @@ interface CabinetRouteShellProps {
 
 /**
  * Оборачивает authenticated-страницы кабинета в AppShell.
- * Auth-пути и гостевой /cabinet — без sidebar.
- * Остальные пути без сессии — редирект на /cabinet (логин).
+ * Auth-пути и гостевой /cabinet - без sidebar.
+ * Остальные пути без сессии - редирект на /cabinet (логин).
  */
 export function CabinetRouteShell({ children }: CabinetRouteShellProps) {
   const pathname = usePathname() ?? ""

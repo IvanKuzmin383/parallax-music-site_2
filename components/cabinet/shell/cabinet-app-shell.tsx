@@ -16,7 +16,7 @@ export function CabinetAppShell({ children }: CabinetAppShellProps) {
       <CabinetSidebar />
       <SidebarInset>
         <CabinetTopbar />
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 px-3 py-4 sm:px-4 md:px-5 md:py-5">{children}</main>
       </SidebarInset>
       <CabinetAnnouncementsHost />
       <CabinetSupportChat />

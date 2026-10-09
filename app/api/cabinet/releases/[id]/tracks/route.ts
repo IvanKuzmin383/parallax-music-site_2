@@ -70,7 +70,7 @@ export async function POST(
         releaseId,
         trackOrder: existingTracks.length,
         trackName,
-        artistName: release.artistName || "—",
+        artistName: release.artistName || "-",
         labelName: release.labelName,
         genre: GENRES[0],
         mood: "",

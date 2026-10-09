@@ -4,7 +4,7 @@ import type { TbankReceiptPayload } from "./tbank-receipt"
 
 const TBANK_API_BASE = (process.env.TBANK_API_URL || "https://securepay.tinkoff.ru/v2").replace(/\/$/, "")
 
-/** Node fetch/undici на проде с CA Минцифры ломается (timeout :81); https.request — ок. */
+/** Node fetch/undici на проде с CA Минцифры ломается (timeout :81); https.request - ок. */
 function postJsonHttps(
   url: string,
   body: string

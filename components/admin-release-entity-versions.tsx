@@ -36,7 +36,7 @@ type VersionPreview = {
 }
 
 type Props = {
-  /** Предпочтительный способ — через трек (резолвит releaseId на сервере). */
+  /** Предпочтительный способ - через трек (резолвит releaseId на сервере). */
   trackId: string | null | undefined
 }
 
@@ -53,7 +53,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 function statusLabel(raw: string | null | undefined): string {
-  if (!raw) return "—"
+  if (!raw) return "-"
   return STATUS_LABELS[raw] ?? raw
 }
 
@@ -263,7 +263,7 @@ export function AdminReleaseEntityVersions({ trackId }: Props) {
                     <span className="text-xs text-muted-foreground">
                       Редактор:{" "}
                       <span className="font-medium text-foreground/90">
-                        {v.actor?.trim() || "—"}
+                        {v.actor?.trim() || "-"}
                       </span>
                     </span>
                   </div>

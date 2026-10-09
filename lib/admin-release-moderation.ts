@@ -38,7 +38,7 @@ export async function resolveReleaseIdForTrack(track: Track): Promise<string | n
 }
 
 /**
- * Источник истины — статус релиза. Зеркалит на все треки релиза.
+ * Источник истины - статус релиза. Зеркалит на все треки релиза.
  */
 export async function applyReleaseModerationStatus(params: {
   releaseId: string

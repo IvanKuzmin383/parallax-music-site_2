@@ -9,10 +9,13 @@ import {
   CABINET_SESSION_COOKIE,
 } from "@/lib/cabinet-auth"
 import { CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE } from "@/lib/cabinet-account-messages"
+import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { verifyTotpCode } from "@/lib/cabinet-totp"
 
 const loginSchema = z.object({
   email: z.string().email("Неверный формат email"),
   password: z.string().min(1, "Пароль обязателен"),
+  totpCode: z.string().optional(),
   captchaToken: z.string().optional(),
 })
 
@@ -67,7 +70,24 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const token = createCabinetSession(parsed.data.email)
+  const user = await getCabinetUserByEmail(parsed.data.email)
+  if (user?.totpEnabled && user.totpSecret) {
+    const code = parsed.data.totpCode?.trim()
+    if (!code) {
+      return NextResponse.json(
+        { requires2fa: true, error: "Введите код из приложения-аутентификатора" },
+        { status: 401 }
+      )
+    }
+    if (!verifyTotpCode(user.totpSecret, code)) {
+      return NextResponse.json({ error: "Неверный код 2FA" }, { status: 401 })
+    }
+  }
+
+  const token = createCabinetSession(parsed.data.email, {
+    userAgent: request.headers.get("user-agent"),
+    ip,
+  })
   const response = NextResponse.json({ success: true }, { status: 200 })
   response.cookies.set(CABINET_SESSION_COOKIE, token, sessionCookieOptions(86400)) // 24h
   return response

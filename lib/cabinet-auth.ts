@@ -7,9 +7,23 @@ const CABINET_SESSION_TTL_MS = 24 * 60 * 60 * 1000 // 24 часа
 export const CABINET_SESSION_COOKIE = "cabinet_session"
 const MAX_SESSIONS = 20_000
 
-type CabinetSession = {
+export type CabinetSessionInfo = {
+  id: string
   email: string
   createdAt: number
+  lastSeenAt: number
+  userAgent: string | null
+  ip: string | null
+  current: boolean
+}
+
+type CabinetSession = {
+  id: string
+  email: string
+  createdAt: number
+  lastSeenAt: number
+  userAgent: string | null
+  ip: string | null
 }
 
 const sessions = new Map<string, CabinetSession>()
@@ -47,10 +61,21 @@ export async function getCabinetUserAuthStatus(
   }
 }
 
-export function createCabinetSession(email: string): string {
+export function createCabinetSession(
+  email: string,
+  meta?: { userAgent?: string | null; ip?: string | null }
+): string {
   cleanupAuthMaps()
   const token = crypto.randomBytes(32).toString("hex")
-  sessions.set(token, { email, createdAt: Date.now() })
+  const now = Date.now()
+  sessions.set(token, {
+    id: crypto.randomUUID(),
+    email,
+    createdAt: now,
+    lastSeenAt: now,
+    userAgent: meta?.userAgent?.slice(0, 300) || null,
+    ip: meta?.ip?.slice(0, 80) || null,
+  })
   if (sessions.size > MAX_SESSIONS) {
     cleanupSessions(Date.now(), true)
   }
@@ -66,12 +91,69 @@ export function getCabinetSession(token: string | null): { email: string } | nul
     sessions.delete(token)
     return null
   }
+  session.lastSeenAt = Date.now()
   return { email: session.email }
 }
 
 export function destroyCabinetSession(token: string | null): void {
   if (!token) return
   sessions.delete(token)
+}
+
+export function listCabinetSessionsForEmail(
+  email: string,
+  currentToken: string | null
+): CabinetSessionInfo[] {
+  cleanupAuthMaps()
+  const normalized = email.trim().toLowerCase()
+  const now = Date.now()
+  const out: CabinetSessionInfo[] = []
+  for (const [token, session] of sessions) {
+    if (session.email.trim().toLowerCase() !== normalized) continue
+    if (now - session.createdAt > CABINET_SESSION_TTL_MS) {
+      sessions.delete(token)
+      continue
+    }
+    out.push({
+      id: session.id,
+      email: session.email,
+      createdAt: session.createdAt,
+      lastSeenAt: session.lastSeenAt,
+      userAgent: session.userAgent,
+      ip: session.ip,
+      current: Boolean(currentToken && token === currentToken),
+    })
+  }
+  return out.sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+}
+
+/** Завершить все сессии email, кроме текущей (если передана). */
+export function destroyCabinetSessionsForEmail(
+  email: string,
+  exceptToken?: string | null
+): number {
+  cleanupAuthMaps()
+  const normalized = email.trim().toLowerCase()
+  let removed = 0
+  for (const [token, session] of sessions) {
+    if (session.email.trim().toLowerCase() !== normalized) continue
+    if (exceptToken && token === exceptToken) continue
+    sessions.delete(token)
+    removed++
+  }
+  return removed
+}
+
+export function destroyCabinetSessionById(email: string, sessionId: string): boolean {
+  cleanupAuthMaps()
+  const normalized = email.trim().toLowerCase()
+  for (const [token, session] of sessions) {
+    if (session.email.trim().toLowerCase() !== normalized) continue
+    if (session.id !== sessionId) continue
+    sessions.delete(token)
+    return true
+  }
+  return false
 }
 
 export function getCabinetToken(request: NextRequest): string | null {
@@ -132,4 +214,3 @@ function cleanupAuthMaps(): void {
   cleanupSessions(now)
   cleanupRateLimits(now)
 }
-

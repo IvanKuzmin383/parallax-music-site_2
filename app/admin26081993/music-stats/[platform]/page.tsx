@@ -1,302 +1,268 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { format } from "date-fns"
-import { ru } from "date-fns/locale"
-import { AdminSectionNav } from "@/components/admin-section-nav"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import type { DailyStat, MusicPlatformKey, TopTrack } from "@/lib/music-stats-shared"
+import { AdminSectionNav } from "@/components/admin-section-nav"
+import { Download, Search } from "lucide-react"
 
-interface MusicStatsResponse {
-  source: string | null
-  platformKey: MusicPlatformKey
-  platformLabel: string
-  exportedAt: string | null
-  totalRows: number
-  totalTracksInFile: number
-  totalPlays: number
-  daysCount: number
-  dailyStats: DailyStat[]
-  topTracks: TopTrack[]
-  error?: string
+const PAGE_SIZE = 15
+
+type LegalEvent = {
+  id: string
+  userEmail: string
+  documentVersionId: string
+  revisionLabel: string
+  contentSha256: string
+  eventType: string
+  resourceType: string
+  resourceId: string
+  occurredAt: string
+  clientIp: string | null
+  userAgent: string | null
+  metadataJson: string | null
+  trackName: string | null
 }
 
-const chartConfig = {
-  totalPlays: {
-    label: "Прослушивания",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
-
-export default function MusicPlatformStatsPage() {
-  const router = useRouter()
-  const params = useParams<{ platform: string }>()
-  const platformParam = params?.platform
-  const [platformKey, setPlatformKey] = useState<MusicPlatformKey | null>(null)
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+export default function AdminLegalAcceptancePage() {
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<MusicStatsResponse | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [emailFilter, setEmailFilter] = useState("")
+  const [appliedEmailFilter, setAppliedEmailFilter] = useState<string | null>(null)
+  const [events, setEvents] = useState<LegalEvent[]>([])
+  const [total, setTotal] = useState(0)
+  const [listLoading, setListLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [importing, setImporting] = useState(false)
-
-  useEffect(() => {
-    if (!platformParam) return
-    setPlatformKey(platformParam as MusicPlatformKey)
-  }, [platformParam])
-
-  useEffect(() => {
-    if (!platformKey) return
-
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetch(`/api/admin/music-stats?platform=${encodeURIComponent(platformKey)}`, {
-          credentials: "include",
-        })
-
-        if (response.status === 401) {
-          setIsAuthenticated(false)
-          router.replace("/admin26081993")
-          return
-        }
-
-        if (!response.ok) {
-          const data = (await response.json().catch(() => null)) as { error?: string } | null
-          setError(data?.error || "Не удалось загрузить статистику")
-          setIsAuthenticated(true)
-          return
-        }
-
-        const data = (await response.json()) as MusicStatsResponse
-        setStats(data)
-        setIsAuthenticated(true)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Неизвестная ошибка загрузки"
-        setError(message)
-        setIsAuthenticated(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void load()
-  }, [platformKey, router])
-
-  const chartData = useMemo(() => {
-    if (!stats?.dailyStats) return []
-    return stats.dailyStats.map((item) => ({
-      ...item,
-      shortDate: format(new Date(item.date), "dd.MM", { locale: ru }),
-    }))
-  }, [stats])
-
-  const handleImport = async () => {
-    if (!platformKey) return
-    if (!selectedFile) {
-      setError("Выберите JSON-файл со статистикой.")
-      return
-    }
-
-    setImporting(true)
-    setError(null)
-    try {
-      const formData = new FormData()
-      formData.append("file", selectedFile)
-
-      const response = await fetch(`/api/admin/music-stats?platform=${encodeURIComponent(platformKey)}`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
+  const fetchPage = useCallback(
+    async (opts: { offset: number; append: boolean; email?: string | null }) => {
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(opts.offset),
       })
+      const email = opts.email?.trim()
+      if (email) params.set("email", email)
 
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null
-        throw new Error(data?.error || "Не удалось импортировать файл")
+      const res = await fetch(`/api/admin/legal-acceptance?${params}`, {
+        credentials: "include",
+      })
+      if (res.status === 401) {
+        setIsAuthenticated(false)
+        toast.error("Нет доступа")
+        return null
       }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error((err as { error?: string }).error || "Ошибка загрузки")
+        return null
+      }
+      const data = await res.json()
+      setIsAuthenticated(true)
+      const batch = (data.events || []) as LegalEvent[]
+      setEvents((prev) => (opts.append ? [...prev, ...batch] : batch))
+      setTotal(typeof data.total === "number" ? data.total : batch.length)
+      setHasMore(Boolean(data.hasMore))
+      return data
+    },
+    []
+  )
 
-      const data = (await response.json()) as MusicStatsResponse
-      setStats(data)
-      setSelectedFile(null)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Неизвестная ошибка импорта"
-      setError(message)
+  const loadFirstPage = useCallback(
+    async (email?: string | null) => {
+      setListLoading(true)
+      try {
+        await fetchPage({ offset: 0, append: false, email })
+      } catch {
+        toast.error("Ошибка сети")
+      } finally {
+        setListLoading(false)
+      }
+    },
+    [fetchPage]
+  )
+
+  useEffect(() => {
+    fetch("/api/admin/cabinet-users", { credentials: "include" })
+      .then((res) => {
+        if (res.status === 401) setIsAuthenticated(false)
+        else {
+          setIsAuthenticated(true)
+          return loadFirstPage(null)
+        }
+      })
+      .catch(() => setIsAuthenticated(false))
+      .finally(() => setLoading(false))
+  }, [loadFirstPage])
+
+  const applyEmailFilter = () => {
+    const trimmed = emailFilter.trim()
+    setAppliedEmailFilter(trimmed || null)
+    void loadFirstPage(trimmed || null)
+  }
+
+  const clearEmailFilter = () => {
+    setEmailFilter("")
+    setAppliedEmailFilter(null)
+    void loadFirstPage(null)
+  }
+
+  const loadMore = async () => {
+    setListLoading(true)
+    try {
+      await fetchPage({
+        offset: events.length,
+        append: true,
+        email: appliedEmailFilter,
+      })
+    } catch {
+      toast.error("Ошибка сети")
     } finally {
-      setImporting(false)
+      setListLoading(false)
     }
   }
 
-  if (!platformKey) {
-    return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
-        <p>Платформа не выбрана</p>
-      </div>
-    )
+  const downloadCsv = async () => {
+    try {
+      const params = new URLSearchParams({ format: "csv" })
+      if (appliedEmailFilter) params.set("email", appliedEmailFilter)
+      const res = await fetch(`/api/admin/legal-acceptance?${params}`, {
+        credentials: "include",
+      })
+      if (!res.ok) {
+        toast.error("Не удалось скачать CSV")
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = appliedEmailFilter
+        ? `legal-acceptance-${appliedEmailFilter.replace(/@/g, "_at_")}.csv`
+        : "legal-acceptance-all.csv"
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error("Ошибка скачивания")
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
-        <p>Загрузка статистики...</p>
+      <div className="min-h-screen bg-background p-6 pt-4">
+        <p className="text-muted-foreground">Загрузка…</p>
       </div>
     )
   }
 
-  if (!isAuthenticated) return null
-
-  const platformLabel = stats?.platformLabel ?? platformKey
+  if (!isAuthenticated && !loading) {
+    return (
+      <div className="min-h-screen bg-background p-6 pt-4">
+        <p className="text-destructive">Требуется вход в админку.</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
-      <div className="container mx-auto px-4 space-y-6">
-        <AdminSectionNav active="music-stats" />
-
-        <div>
-          <h1 className="text-2xl font-bold">Статистика прослушиваний: {platformLabel}</h1>
-          <p className="text-sm text-muted-foreground">
-            График суммарных прослушиваний по дням на основе JSON-экспорта. Данные сохраняются в БД.
-          </p>
-        </div>
-
+    <div className="min-h-screen bg-background p-4 pt-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <AdminSectionNav active="legal-acceptance" />
         <Card>
           <CardHeader>
-            <CardTitle>Импорт JSON в БД</CardTitle>
+            <CardTitle>Акцепты оферты / лицензии по трекам</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Журнал: какая редакция публичной оферты привязана к загрузке трека (включая backfill для старых
+              релизов). Показано {events.length} из {total}.
+            </p>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3 flex-wrap">
-              <input
-                type="file"
-                accept="application/json,.json"
-                className="block text-sm text-muted-foreground
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-medium
-                  file:bg-muted file:text-foreground
-                  hover:file:bg-muted/70"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-              />
-              <Button onClick={() => void handleImport()} disabled={importing}>
-                {importing ? "Импорт..." : "Импортировать"}
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="space-y-2 flex-1 min-w-[200px]">
+                <Label htmlFor="legal-email">Фильтр по email (необязательно)</Label>
+                <Input
+                  id="legal-email"
+                  type="email"
+                  placeholder="user@example.com"
+                  value={emailFilter}
+                  onChange={(e) => setEmailFilter(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && applyEmailFilter()}
+                />
+              </div>
+              <Button type="button" disabled={listLoading} onClick={applyEmailFilter}>
+                <Search className="h-4 w-4 mr-2" />
+                {listLoading ? "Загрузка…" : "Фильтр"}
+              </Button>
+              {appliedEmailFilter ? (
+                <Button type="button" variant="ghost" disabled={listLoading} onClick={clearEmailFilter}>
+                  Сбросить фильтр
+                </Button>
+              ) : null}
+              <Button type="button" variant="outline" onClick={downloadCsv}>
+                <Download className="h-4 w-4 mr-2" />
+                Скачать CSV
               </Button>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">После импорта график будет обновлён.</p>
-          </CardContent>
-        </Card>
 
-        {error ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Ошибка</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-destructive">{error}</p>
-            </CardContent>
-          </Card>
-        ) : null}
+            {appliedEmailFilter ? (
+              <p className="text-sm text-muted-foreground">
+                Фильтр: <span className="font-medium text-foreground">{appliedEmailFilter}</span>
+              </p>
+            ) : null}
 
-        {stats ? (
-          <>
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Всего прослушиваний</CardTitle>
-                </CardHeader>
-                <CardContent className="text-2xl font-bold">{stats.totalPlays.toLocaleString("ru-RU")}</CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Дней в статистике</CardTitle>
-                </CardHeader>
-                <CardContent className="text-2xl font-bold">{stats.daysCount}</CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Треков в файле</CardTitle>
-                </CardHeader>
-                <CardContent className="text-2xl font-bold">{stats.totalTracksInFile}</CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Дата экспорта</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm font-medium">
-                  {stats.exportedAt
-                    ? format(new Date(stats.exportedAt), "dd.MM.yyyy HH:mm", { locale: ru })
-                    : "Не указана"}
-                </CardContent>
-              </Card>
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50 text-left">
+                    <th className="p-2 font-medium">Время (UTC)</th>
+                    <th className="p-2 font-medium">Email</th>
+                    <th className="p-2 font-medium">Трек</th>
+                    <th className="p-2 font-medium">ID трека</th>
+                    <th className="p-2 font-medium">Редакция оферты</th>
+                    <th className="p-2 font-medium">SHA-256</th>
+                    <th className="p-2 font-medium">IP</th>
+                    <th className="p-2 font-medium">Метаданные</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.length === 0 && !listLoading && (
+                    <tr>
+                      <td colSpan={8} className="p-4 text-muted-foreground text-center">
+                        Нет записей
+                      </td>
+                    </tr>
+                  )}
+                  {events.map((ev) => (
+                    <tr key={ev.id} className="border-b border-border/60">
+                      <td className="p-2 whitespace-nowrap align-top">{ev.occurredAt}</td>
+                      <td className="p-2 align-top max-w-[160px] break-all">{ev.userEmail}</td>
+                      <td className="p-2 align-top max-w-[180px]">{ev.trackName ?? "-"}</td>
+                      <td className="p-2 align-top font-mono text-xs break-all">{ev.resourceId}</td>
+                      <td className="p-2 align-top">{ev.revisionLabel}</td>
+                      <td className="p-2 align-top font-mono text-xs break-all max-w-[120px]">
+                        {ev.contentSha256.slice(0, 16)}…
+                      </td>
+                      <td className="p-2 align-top whitespace-nowrap">{ev.clientIp ?? "-"}</td>
+                      <td className="p-2 align-top text-xs text-muted-foreground max-w-[200px] break-words">
+                        {ev.metadataJson ?? "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Динамика прослушиваний по дням</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[360px] w-full">
-                  <AreaChart data={chartData} margin={{ left: 8, right: 8 }}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="shortDate" tickLine={false} axisLine={false} tickMargin={8} minTickGap={18} />
-                    <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                    <ChartTooltip
-                      cursor={false}
-                      content={
-                        <ChartTooltipContent
-                          labelFormatter={(_, payload) => {
-                            const dateValue = payload?.[0]?.payload?.date
-                            if (!dateValue) return ""
-                            return format(new Date(String(dateValue)), "dd MMMM yyyy", { locale: ru })
-                          }}
-                          formatter={(value) => [Number(value).toLocaleString("ru-RU"), "Прослушивания"]}
-                        />
-                      }
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="totalPlays"
-                      stroke="var(--color-totalPlays)"
-                      fill="var(--color-totalPlays)"
-                      fillOpacity={0.2}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Топ-10 треков по прослушиваниям</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {stats.topTracks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Нет данных по трекам</p>
-                ) : (
-                  stats.topTracks.map((track, idx) => (
-                    <div
-                      key={`${track.author}-${track.title}`}
-                      className="flex items-center justify-between border rounded-md px-3 py-2"
-                    >
-                      <p className="text-sm">
-                        <span className="text-muted-foreground mr-2">{idx + 1}.</span>
-                        {track.author} - {track.title}
-                      </p>
-                      <p className="text-sm font-semibold">{track.plays.toLocaleString("ru-RU")}</p>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </>
-        ) : null}
+            {hasMore ? (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <Button type="button" variant="outline" disabled={listLoading} onClick={() => void loadMore()}>
+                  {listLoading ? "Загрузка…" : `Еще (+${PAGE_SIZE})`}
+                </Button>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
 }
-

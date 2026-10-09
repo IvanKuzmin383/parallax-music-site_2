@@ -23,7 +23,7 @@ export function countCalendarDaysAhead(date: Date, from = new Date()): number {
 
 /**
  * Число рабочих дней строго после `from` до `date` включительно
- * (день загрузки = 0; следующий пн–пт = 1).
+ * (день загрузки = 0; следующий пн-пт = 1).
  */
 export function countWorkingDaysAhead(date: Date, from = new Date()): number {
   const start = startOfLocalDay(from)
@@ -127,7 +127,7 @@ export function isReleaseDateOccupyingStatus(status: string | null | undefined):
 }
 
 export const RELEASE_DATE_OCCUPIED_MESSAGE =
-  "Эта дата уже занята другим вашим релизом (на модерации или дальше). В один день можно отправить только один релиз — укажите другую дату."
+  "Эта дата уже занята другим вашим релизом (на модерации или дальше). В один день можно отправить только один релиз - укажите другую дату."
 
 /** Нормализация даты к YYYY-MM-DD. */
 export function toReleaseDateYyyyMmDd(value: string | Date | null | undefined): string | null {

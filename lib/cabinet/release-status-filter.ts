@@ -17,7 +17,7 @@ export function collectReleaseArtists(releases: Pick<ReleaseView, "artist">[]): 
   const byNorm = new Map<string, string>()
   for (const r of releases) {
     const raw = r.artist?.trim()
-    if (!raw || raw === "—") continue
+    if (!raw || raw === "-") continue
     const norm = normalizeArtistForPolicy(raw)
     if (!norm || byNorm.has(norm)) continue
     byNorm.set(norm, raw)

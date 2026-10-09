@@ -110,7 +110,7 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
   yandexVideoshot: {
     title: "Загрузить видеошот на Яндекс Музыка",
     description:
-      "Видеошот для Яндекс Музыки - это зацикленное вертикальное видео (5–15 секунд, MP4, H.264, 404x720 пикселей), повышающее вовлеченность слушателей. Требуется высокое качество, центрирование объектов и отсутствие движения губ в кадре (липсинга), так как звук не совпадает при цикле. Видеошоты увеличивают лайки и шеринги треков на 25–26%.",
+      "Видеошот для Яндекс Музыки - это зацикленное вертикальное видео (5-15 секунд, MP4, H.264, 404x720 пикселей), повышающее вовлеченность слушателей. Требуется высокое качество, центрирование объектов и отсутствие движения губ в кадре (липсинга), так как звук не совпадает при цикле. Видеошоты увеличивают лайки и шеринги треков на 25-26%.",
     examples: [],
     examplesUsageTitle: "В качестве видеошота можно использовать:",
     examplesUsageItems: [
@@ -142,10 +142,10 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
       "моушн-дизайн и абстрактную графику.",
     ],
     yandexCreationMiddleText:
-      "Видеошот для Яндекс Музыки - это зацикленное вертикальное видео (5–15 секунд, MP4, H.264, 404x720 пикселей), повышающее вовлеченность слушателей.",
+      "Видеошот для Яндекс Музыки - это зацикленное вертикальное видео (5-15 секунд, MP4, H.264, 404x720 пикселей), повышающее вовлеченность слушателей.",
     yandexCreationRequirementsText:
       "Требуется высокое качество, центрирование объектов и отсутствие движения губ в кадре (липсинга), так как звук не совпадает при цикле.",
-    yandexCreationImpactText: "Видеошоты увеличивают лайки и шеринги треков на 25–26%.",
+    yandexCreationImpactText: "Видеошоты увеличивают лайки и шеринги треков на 25-26%.",
     yandexCreationUsageTitle: "В качестве видеошота можно использовать:",
     yandexCreationUsageItems: [
       "видео, снятое специально для сервиса Яндекс Музыка;",
@@ -175,7 +175,7 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
     ],
     yandexAvatarPlacementText:
       "Не рекомендуется располагать лицо в нижней трети видео, так как там будут имя исполнителя и кнопки управления треком.",
-    yandexAvatarDurationText: "Ограничений по длительности видеообложки нет, но рекомендуется 5–7 секунд.",
+    yandexAvatarDurationText: "Ограничений по длительности видеообложки нет, но рекомендуется 5-7 секунд.",
     yandexAvatarForbiddenTitle: "Нельзя размещать:",
     yandexAvatarForbiddenItems: [
       "оскорбительные и запрещенные материалы;",
@@ -200,7 +200,7 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
     spotifyMiddleText:
       "Видеошот для Spotify - это зацикленное вертикальное видео (от 3 до 8 секунд, MP4, H.264, 404x720 пикселей), повышающее вовлеченность слушателей. Требуется высокое качество, центрирование объектов и отсутствие движения губ в кадре (липсинга), так как звук не совпадает при цикле.",
     spotifyUsageTitle:
-      "Видеошоты увеличивают лайки и шеринги треков на 25–26%. В качестве видеошота можно использовать:",
+      "Видеошоты увеличивают лайки и шеринги треков на 25-26%. В качестве видеошота можно использовать:",
     spotifyUsageItems: ["кадры из клипа;", "бэкстейдж;", "моушн-дизайн."],
     spotifyFooterText:
       "Видеошоты могут быть добавлены как к уже выпущенным трекам, так и к предстоящим релизам.",
@@ -273,7 +273,7 @@ export type CabinetUploadAdditionalServicesSectionProps = {
   /** Подсказка под итогом: «трек» или «альбом» */
   afterPaymentSubject: "трек" | "альбом"
   sectionClassName?: string
-  /** plain — без рамки и заголовка, всегда развёрнуто (wizard) */
+  /** plain - без рамки и заголовка, всегда развёрнуто (wizard) */
   layout?: "card" | "plain"
 }
 
@@ -368,7 +368,7 @@ export function CabinetUploadAdditionalServicesSection({
           <>
             {renderAiCoverRow(openAddonInfo)}
             {requestAiCover && setAiCoverComment ? (
-              <div className="space-y-1">
+              <div className="space-y-1" data-wizard-field="ai-cover-comment">
                 <Label htmlFor="upload-ai-cover-comment">Пожелания / комментарии *</Label>
                 <Textarea
                   id="upload-ai-cover-comment"
@@ -418,7 +418,7 @@ export function CabinetUploadAdditionalServicesSection({
                   </p>
                 </div>
                 {setAddonVerticalVideoComment ? (
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-wizard-field="vertical-video-comment">
                     <Label htmlFor="upload-vertical-video-comment">Пожелания / комментарии *</Label>
                     <Textarea
                       id="upload-vertical-video-comment"

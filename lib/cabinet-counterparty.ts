@@ -275,8 +275,15 @@ export function cabinetProfileCompleteForUpload(user: CabinetUser | null | undef
   )
 }
 
-export function sanitizeCabinetUserForClient(user: CabinetUser): Omit<CabinetUser, "passwordHash"> {
-  const { passwordHash: _ignored, ...rest } = user
+export function sanitizeCabinetUserForClient(
+  user: CabinetUser
+): Omit<CabinetUser, "passwordHash" | "totpSecret" | "totpPendingSecret"> {
+  const {
+    passwordHash: _pw,
+    totpSecret: _secret,
+    totpPendingSecret: _pending,
+    ...rest
+  } = user
   return rest
 }
 

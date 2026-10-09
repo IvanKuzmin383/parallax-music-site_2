@@ -89,7 +89,12 @@ import {
   StreamingServicesField,
   streamingScopeShortLabel,
 } from "@/components/streaming-services-field"
-import { validateTrackMetadata } from "@/lib/track-meta-validation"
+import { getFirstTrackMetadataIssue } from "@/lib/track-meta-validation"
+import {
+  revealWizardFieldWhenReady,
+  wizardFieldId,
+  wizardTrackFieldId,
+} from "@/lib/cabinet-wizard-field-focus"
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
 import { ModerationNoteAside } from "@/components/cabinet/releases/release-detail-panels"
@@ -143,7 +148,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [streamingScope, setStreamingScope] = useState<TrackStreamingScope>("all")
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
   const [consentOffer, setConsentOffer] = useState(false)
-  /** Подтверждение совпадения текста песни — по trackId. */
+  /** Подтверждение совпадения текста песни - по trackId. */
   const [lyricsMatchConfirmed, setLyricsMatchConfirmed] = useState<Record<string, boolean>>({})
 
   const [requestAiCover, setRequestAiCover] = useState(false)
@@ -497,7 +502,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     let id = releaseId
     if (!id) {
       if (!requestAiCover) {
-        if (!silent) toast.error("Сначала загрузите обложку — черновик создастся автоматически")
+        if (!silent) toast.error("Сначала загрузите обложку - черновик создастся автоматически")
         return false
       }
       setSaving(true)
@@ -957,76 +962,193 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     }
   }, [])
 
-  const validateStep1 = (): string | null => {
-    if (!title.trim()) return "Укажите название релиза"
-    if (!artistName.trim()) return "Укажите имя артиста / название группы"
-    if (!releaseDate) return "Укажите дату релиза"
+  type StepIssue = {
+    message: string
+    fieldId?: string
+    step: number
+    trackId?: string
+  }
+
+  const validateStep1 = (): StepIssue | null => {
+    if (!title.trim()) {
+      return {
+        message: "Укажите название релиза",
+        fieldId: wizardFieldId("release-title"),
+        step: 1,
+      }
+    }
+    if (!artistName.trim()) {
+      return {
+        message: "Укажите имя артиста / название группы",
+        fieldId: wizardFieldId("release-artist"),
+        step: 1,
+      }
+    }
+    if (!releaseDate) {
+      return {
+        message: "Укажите дату релиза",
+        fieldId: wizardFieldId("release-date"),
+        step: 1,
+      }
+    }
     if (isReleaseDateWeekend(releaseDate)) {
-      return "Дата публикации не может приходиться на выходной"
+      return {
+        message: "Дата публикации не может приходиться на выходной",
+        fieldId: wizardFieldId("release-date"),
+        step: 1,
+      }
     }
     if (!isReleaseDateSelectable(releaseDate)) {
-      return "Дата публикации не может быть в прошлом"
+      return {
+        message: "Дата публикации не может быть в прошлом",
+        fieldId: wizardFieldId("release-date"),
+        step: 1,
+      }
     }
     if (occupiedReleaseDates.has(format(releaseDate, "yyyy-MM-dd"))) {
-      return RELEASE_DATE_OCCUPIED_MESSAGE
+      return {
+        message: RELEASE_DATE_OCCUPIED_MESSAGE,
+        fieldId: wizardFieldId("release-date"),
+        step: 1,
+      }
     }
     if (!release?.coverPath && !coverPreview && !requestAiCover) {
-      return "Загрузите обложку или закажите AI-обложку"
+      return {
+        message: "Загрузите обложку или закажите AI-обложку",
+        fieldId: wizardFieldId("release-cover"),
+        step: 1,
+      }
     }
     if (!coverCreatedWithAi) {
-      return "Укажите, создана ли обложка при помощи ИИ"
+      return {
+        message: "Укажите, создана ли обложка при помощи ИИ",
+        fieldId: wizardFieldId("cover-created-with-ai"),
+        step: 1,
+      }
     }
     if (requestAiCover && aiCoverComment.trim().length < 2) {
-      return "Укажите пожелания / комментарий для AI обложки"
+      return {
+        message: "Укажите пожелания / комментарий для AI обложки",
+        fieldId: wizardFieldId("ai-cover-comment"),
+        step: 1,
+      }
     }
     if (isShortReleaseDate(releaseDate) && !acceptShortReleaseDate) {
-      return "Подтвердите согласие на короткий срок релиза"
-    }
-    return null
-  }
-
-  const validateStep2 = (): string | null => {
-    const min = kind === "album" ? 2 : 1
-    if (tracks.length < min) {
-      return kind === "album" ? "Загрузите минимум 2 трека" : "Загрузите аудиофайл"
-    }
-    return null
-  }
-
-  const validateStep3 = (): string | null => {
-    if (tracks.length === 0) return "Сначала загрузите треки на шаге «Файлы»"
-    for (const track of tracks) {
-      const err = validateTrackMetadata(track, {
-        requireAudio: false,
-        requireLyricsMatchConfirmed: true,
-        lyricsMatchConfirmed: lyricsMatchConfirmed[track.id] === true,
-      })
-      if (err) return err
-    }
-    return null
-  }
-
-  const validateStep4 = (): string | null => {
-    if (tracks.length === 0) return "Сначала загрузите треки на шаге «Файлы»"
-    for (const track of tracks) {
-      const err = validateTrackAiLabeling(track.aiLabeling)
-      if (err) {
-        const label = track.trackName.trim() || "Трек"
-        return `${err} («${label}»)`
+      return {
+        message: "Подтвердите согласие на короткий срок релиза",
+        fieldId: wizardFieldId("accept-short-date"),
+        step: 1,
       }
     }
     return null
   }
 
-  const validateStep5 = (): string | null => {
-    if (requestAiCover && aiCoverComment.trim().length < 2) {
-      return "Укажите пожелания / комментарий для AI обложки"
-    }
-    if (addonVerticalVideo && addonVerticalVideoComment.trim().length < 2) {
-      return "Укажите пожелания / комментарий для видео"
+  const validateStep2 = (): StepIssue | null => {
+    const min = kind === "album" ? 2 : 1
+    if (tracks.length < min) {
+      return {
+        message: kind === "album" ? "Загрузите минимум 2 трека" : "Загрузите аудиофайл",
+        fieldId: wizardFieldId("release-tracks"),
+        step: 2,
+      }
     }
     return null
   }
+
+  const validateStep3 = (): StepIssue | null => {
+    if (tracks.length === 0) {
+      return {
+        message: "Сначала загрузите треки на шаге «Файлы»",
+        fieldId: wizardFieldId("release-tracks"),
+        step: 2,
+      }
+    }
+    for (const track of tracks) {
+      const issue = getFirstTrackMetadataIssue(track, {
+        requireAudio: false,
+        requireLyricsMatchConfirmed: true,
+        lyricsMatchConfirmed: lyricsMatchConfirmed[track.id] === true,
+      })
+      if (issue) {
+        return {
+          message: issue.message,
+          fieldId: wizardTrackFieldId(track.id, issue.field),
+          step: 3,
+          trackId: track.id,
+        }
+      }
+    }
+    return null
+  }
+
+  const validateStep4 = (): StepIssue | null => {
+    if (tracks.length === 0) {
+      return {
+        message: "Сначала загрузите треки на шаге «Файлы»",
+        fieldId: wizardFieldId("release-tracks"),
+        step: 2,
+      }
+    }
+    for (const track of tracks) {
+      const err = validateTrackAiLabeling(track.aiLabeling)
+      if (err) {
+        const label = track.trackName.trim() || "Трек"
+        return {
+          message: `${err} («${label}»)`,
+          fieldId: wizardTrackFieldId(track.id, "aiLabeling"),
+          step: 4,
+          trackId: track.id,
+        }
+      }
+    }
+    return null
+  }
+
+  const validateStep5 = (): StepIssue | null => {
+    if (requestAiCover && aiCoverComment.trim().length < 2) {
+      return {
+        message: "Укажите пожелания / комментарий для AI обложки",
+        fieldId: wizardFieldId("ai-cover-comment"),
+        step: 5,
+      }
+    }
+    if (addonVerticalVideo && addonVerticalVideoComment.trim().length < 2) {
+      return {
+        message: "Укажите пожелания / комментарий для видео",
+        fieldId: wizardFieldId("vertical-video-comment"),
+        step: 5,
+      }
+    }
+    return null
+  }
+
+  const focusStepIssue = useCallback(
+    (issue: StepIssue, options?: { toast?: boolean }) => {
+      if (options?.toast !== false) toast.error(issue.message)
+
+      if (issue.trackId && issue.step === 3) {
+        setMetaAccordionOpen((prev) =>
+          prev.includes(issue.trackId!) ? prev : [...prev, issue.trackId!],
+        )
+      }
+      if (issue.trackId && issue.step === 4) {
+        setAiLabelingAccordionOpen((prev) =>
+          prev.includes(issue.trackId!) ? prev : [...prev, issue.trackId!],
+        )
+      }
+
+      if (issue.step !== step) {
+        goToStep(issue.step)
+      }
+
+      if (issue.fieldId) {
+        revealWizardFieldWhenReady(issue.fieldId)
+      }
+    },
+    // goToStep is stable enough via closure; step needed for comparison
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [step],
+  )
 
   const handleNext = async () => {
     if (isUploadingAudio) {
@@ -1036,12 +1158,16 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (step === 1) {
       const err = validateStep1()
       if (err) {
-        toast.error(err)
+        focusStepIssue(err)
         return
       }
       if (!releaseId) {
         if (!requestAiCover) {
-          toast.error("Загрузите обложку для создания черновика")
+          focusStepIssue({
+            message: "Загрузите обложку для создания черновика",
+            fieldId: wizardFieldId("release-cover"),
+            step: 1,
+          })
           return
         }
         setSaving(true)
@@ -1058,7 +1184,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (step === 2) {
       const err = validateStep2()
       if (err) {
-        toast.error(err)
+        focusStepIssue(err)
         return
       }
       await saveDraft(true)
@@ -1066,7 +1192,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (step === 3) {
       const err = validateStep3()
       if (err) {
-        toast.error(err)
+        focusStepIssue(err)
         return
       }
       await saveDraft(true)
@@ -1074,7 +1200,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (step === 4) {
       const err = validateStep4()
       if (err) {
-        toast.error(err)
+        focusStepIssue(err)
         return
       }
       await saveDraft(true)
@@ -1082,7 +1208,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (step === 5) {
       const err = validateStep5()
       if (err) {
-        toast.error(err)
+        focusStepIssue(err)
         return
       }
       await saveDraft(true)
@@ -1092,22 +1218,44 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
   const handleSubmit = async () => {
     if (!consentOffer) {
-      toast.error("Подтвердите согласие с публичной офертой")
+      focusStepIssue({
+        message: "Подтвердите согласие с публичной офертой",
+        fieldId: wizardFieldId("consent-offer"),
+        step: 6,
+      })
       return
     }
     if (releaseDate && occupiedReleaseDates.has(format(releaseDate, "yyyy-MM-dd"))) {
-      toast.error(RELEASE_DATE_OCCUPIED_MESSAGE)
-      goToStep(1)
+      focusStepIssue({
+        message: RELEASE_DATE_OCCUPIED_MESSAGE,
+        fieldId: wizardFieldId("release-date"),
+        step: 1,
+      })
+      return
+    }
+    const basicsErr = validateStep1()
+    if (basicsErr) {
+      focusStepIssue(basicsErr)
+      return
+    }
+    const filesErr = validateStep2()
+    if (filesErr) {
+      focusStepIssue(filesErr)
+      return
+    }
+    const metaErr = validateStep3()
+    if (metaErr) {
+      focusStepIssue(metaErr)
       return
     }
     const aiErr = validateStep4()
     if (aiErr) {
-      toast.error(aiErr)
+      focusStepIssue(aiErr)
       return
     }
     const servicesErr = validateStep5()
     if (servicesErr) {
-      toast.error(servicesErr)
+      focusStepIssue(servicesErr)
       return
     }
     if (!releaseId) return
@@ -1168,30 +1316,45 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }, [tracks])
 
   const reviewChecks = useMemo(() => {
-    const items: { ok: boolean; label: string; value?: string }[] = [
+    type ReviewCheck = {
+      ok: boolean
+      label: string
+      value?: string
+      step: number
+      fieldId?: string
+      trackId?: string
+    }
+    const items: ReviewCheck[] = [
       {
         ok: Boolean(artistName.trim()),
         label: "Артист",
         value: artistName.trim() || undefined,
+        step: 1,
+        fieldId: wizardFieldId("release-artist"),
       },
       {
         ok: Boolean(title.trim()),
         label: "Название релиза",
         value: title.trim() || undefined,
+        step: 1,
+        fieldId: wizardFieldId("release-title"),
       },
       {
         ok: Boolean(releaseDate) && !releaseDateOccupied,
         label: "Дата релиза",
         value: releaseDateOccupied
-          ? "Дата занята — выберите другую"
+          ? "Дата занята - выберите другую"
           : releaseDate
             ? format(releaseDate, "dd.MM.yyyy", { locale: ru })
             : undefined,
+        step: 1,
+        fieldId: wizardFieldId("release-date"),
       },
       {
         ok: kind === "single" || kind === "album",
         label: "Тип",
         value: kind === "single" ? "Сингл" : "Альбом",
+        step: 1,
       },
       {
         ok: Boolean(release?.coverPath || coverPreview || requestAiCover),
@@ -1202,11 +1365,15 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             : requestAiCover
               ? "Заказана AI-обложка"
               : undefined,
+        step: 1,
+        fieldId: wizardFieldId("release-cover"),
       },
       {
         ok: Boolean(coverCreatedWithAi),
         label: "Обложка создана при помощи ИИ",
         value: coverCreatedWithAi ? COVER_AI_LEVEL_LABELS[coverCreatedWithAi] : undefined,
+        step: 1,
+        fieldId: wizardFieldId("cover-created-with-ai"),
       },
     ]
 
@@ -1215,17 +1382,20 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         ok: acceptShortReleaseDate,
         label: "Короткий срок релиза",
         value: acceptShortReleaseDate ? "Риск принят" : undefined,
+        step: 1,
+        fieldId: wizardFieldId("accept-short-date"),
       })
     }
 
     if (upc.trim()) {
-      items.push({ ok: true, label: "UPC / EAN", value: upc.trim() })
+      items.push({ ok: true, label: "UPC / EAN", value: upc.trim(), step: 1 })
     }
 
     items.push({
       ok: true,
       label: "Стриминг-сервисы",
       value: streamingScopeShortLabel(streamingScope),
+      step: 1,
     })
 
     const minTracks = kind === "album" ? 2 : 1
@@ -1236,44 +1406,69 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         tracks.length > 0
           ? tracks.map((t, i) => `${i + 1}. ${t.trackName}`).join("; ")
           : undefined,
+      step: 2,
+      fieldId: wizardFieldId("release-tracks"),
     })
 
     for (const t of tracks) {
-      const metaErr = validateTrackMetadata(t, {
+      const metaIssue = getFirstTrackMetadataIssue(t, {
         requireAudio: false,
         requireLyricsMatchConfirmed: true,
         lyricsMatchConfirmed: lyricsMatchConfirmed[t.id] === true,
       })
       items.push({
-        ok: !metaErr,
+        ok: !metaIssue,
         label: `Метаданные: ${t.trackName}`,
-        value: metaErr
-          ? metaErr
+        value: metaIssue
+          ? metaIssue.message
           : [t.genre, t.mood].filter(Boolean).join(" · ") || undefined,
+        step: 3,
+        fieldId: metaIssue
+          ? wizardTrackFieldId(t.id, metaIssue.field)
+          : undefined,
+        trackId: t.id,
       })
       const aiErr = validateTrackAiLabeling(t.aiLabeling)
       items.push({
         ok: !aiErr,
         label: `AI-маркировка: ${t.trackName}`,
         value: aiErr ? aiErr : aiLabelingModeLabel(t.aiLabeling?.mode),
+        step: 4,
+        fieldId: wizardTrackFieldId(t.id, "aiLabeling"),
+        trackId: t.id,
       })
     }
 
     if (requestAiCover) {
-      items.push({ ok: true, label: "Услуга", value: "AI обложка для трека" })
+      items.push({
+        ok: aiCoverComment.trim().length >= 2,
+        label: "Услуга",
+        value:
+          aiCoverComment.trim().length >= 2
+            ? "AI обложка для трека"
+            : "Укажите пожелания / комментарий для AI обложки",
+        step: 5,
+        fieldId: wizardFieldId("ai-cover-comment"),
+      })
     }
     if (selectedReleaseTier && RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier] > 0) {
       items.push({
         ok: true,
         label: "Услуга",
         value: `${RELEASE_DATE_TIER_LABEL[selectedReleaseTier]}: ${RELEASE_DATE_TIER_PRICE_RUB[selectedReleaseTier]}₽`,
+        step: 5,
       })
     }
     if (addonVerticalVideo) {
       items.push({
-        ok: true,
+        ok: addonVerticalVideoComment.trim().length >= 2,
         label: "Услуга",
-        value: `Видео для трека × ${addonVerticalVideoCount}`,
+        value:
+          addonVerticalVideoComment.trim().length >= 2
+            ? `Видео для трека × ${addonVerticalVideoCount}`
+            : "Укажите пожелания / комментарий для видео",
+        step: 5,
+        fieldId: wizardFieldId("vertical-video-comment"),
       })
     }
     if (addonAiMastering) {
@@ -1281,19 +1476,32 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         ok: true,
         label: "Услуга",
         value: `AI мастеринг × ${addonAiMasteringCount}`,
+        step: 5,
       })
     }
-    if (addonYandexVideoshot) items.push({ ok: true, label: "Услуга", value: "Яндекс видеошот" })
-    if (addonYandexVideoshotCreation) {
-      items.push({ ok: true, label: "Услуга", value: "Создание видеошота Яндекс" })
+    if (addonYandexVideoshot) {
+      items.push({ ok: true, label: "Услуга", value: "Яндекс видеошот", step: 5 })
     }
-    if (addonYandexVideoavatar) items.push({ ok: true, label: "Услуга", value: "Яндекс видеоаватар" })
-    if (addonSpotifyVideoshot) items.push({ ok: true, label: "Услуга", value: "Spotify видеошот" })
+    if (addonYandexVideoshotCreation) {
+      items.push({
+        ok: true,
+        label: "Услуга",
+        value: "Создание видеошота Яндекс",
+        step: 5,
+      })
+    }
+    if (addonYandexVideoavatar) {
+      items.push({ ok: true, label: "Услуга", value: "Яндекс видеоаватар", step: 5 })
+    }
+    if (addonSpotifyVideoshot) {
+      items.push({ ok: true, label: "Услуга", value: "Spotify видеошот", step: 5 })
+    }
     if (paymentTotal > 0) {
       items.push({
         ok: true,
         label: "К оплате",
         value: `${paymentTotal.toLocaleString("ru-RU")} ₽`,
+        step: 5,
       })
     }
 
@@ -1309,13 +1517,16 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     upc,
     streamingScope,
     tracks,
+    lyricsMatchConfirmed,
     requestAiCover,
+    aiCoverComment,
     coverCreatedWithAi,
     showShortDateRisk,
     acceptShortReleaseDate,
     selectedReleaseTier,
     addonVerticalVideo,
     addonVerticalVideoCount,
+    addonVerticalVideoComment,
     addonAiMastering,
     addonAiMasteringCount,
     addonYandexVideoshot,
@@ -1324,6 +1535,14 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     addonSpotifyVideoshot,
     paymentTotal,
   ])
+
+  const issueSteps = useMemo(() => {
+    const steps = new Set<number>()
+    for (const c of reviewChecks) {
+      if (!c.ok) steps.add(c.step)
+    }
+    return steps
+  }, [reviewChecks])
 
   if (loading) {
     return (
@@ -1352,6 +1571,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       <ReleaseUploadStepper
         currentStep={step}
         maxReachedStep={maxStep}
+        issueSteps={issueSteps}
         onStepClick={(target) => {
           if (target !== step && target <= maxStep) goToStep(target)
         }}
@@ -1379,17 +1599,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start">
             <div className="space-y-4 min-w-0">
               <div className="grid gap-4 md:grid-cols-2 md:items-start">
-                <div>
+                <div data-wizard-field={wizardFieldId("release-title")}>
                   <Label>Название релиза *</Label>
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} disabled={formDisabled} />
                 </div>
-                <div>
+                <div data-wizard-field={wizardFieldId("release-artist")}>
                   <Label>Имя артиста / название группы *</Label>
                   <Input value={artistName} onChange={(e) => setArtistName(e.target.value)} maxLength={100} disabled={formDisabled} />
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 md:items-start">
-                <div>
+                <div data-wizard-field={wizardFieldId("release-date")}>
                   <Label>Дата релиза *</Label>
                   <Popover
                     open={datePopoverOpen}
@@ -1529,7 +1749,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     </p>
                   ) : null}
                   {showShortDateRisk ? (
-                    <div className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+                    <div
+                      className="mt-2 space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3"
+                      data-wizard-field={wizardFieldId("accept-short-date")}
+                    >
                       <p className="text-xs text-amber-100/90">
                         Площадки могут не успеть проверить и доставить релиз вовремя. Стандартный срок и
                         питчинг - минимум за 14 календарных дней
@@ -1586,7 +1809,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 </div>
               </div>
               {requestAiCover ? (
-                <div className="space-y-1">
+                <div className="space-y-1" data-wizard-field={wizardFieldId("ai-cover-comment")}>
                   <Label htmlFor="ai-cover-comment-step1">Пожелания / комментарии *</Label>
                   <Textarea
                     id="ai-cover-comment-step1"
@@ -1602,12 +1825,15 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               ) : null}
               {requestAiCover && !coverPreview ? (
                 <p className="text-xs text-muted-foreground">
-                  Обложку можно не загружать — услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
+                  Обложку можно не загружать - услуга будет добавлена на шаге «Услуги» и оплачена при отправке.
                 </p>
               ) : null}
             </div>
 
-            <div className="space-y-3 lg:justify-self-end w-full max-w-[20rem]">
+            <div
+              className="space-y-3 lg:justify-self-end w-full max-w-[20rem]"
+              data-wizard-field={wizardFieldId("release-cover")}
+            >
               <Label>{requestAiCover ? "Обложка" : "Обложка *"}</Label>
               <div
                 className="aspect-square w-full rounded-md border border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 cursor-pointer"
@@ -1647,7 +1873,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               <p className="text-sm text-amber-200">
                 JPEG или PNG, строго {COVER_REQUIRED_PX}×{COVER_REQUIRED_PX} px, до 20 MB.
               </p>
-              <div>
+              <div data-wizard-field={wizardFieldId("cover-created-with-ai")}>
                 <Label>Обложка создана при помощи ИИ *</Label>
                 <Select
                   value={coverCreatedWithAi ?? undefined}
@@ -1683,7 +1909,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       ) : null}
 
       {step === 2 ? (
-        <div className="space-y-4">
+        <div className="space-y-4" data-wizard-field={wizardFieldId("release-tracks")}>
           <p className="text-sm text-muted-foreground">
             Формат файла: *.wav · Частота дискретизации: 44 100 Гц · Стерео · до 80 MB
             {kind === "album" ? " · можно выбрать или перетащить несколько файлов" : ""}
@@ -1709,7 +1935,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             )}
             <p className="text-sm">
               {isUploadingAudio
-                ? "Идёт загрузка — не закрывайте страницу"
+                ? "Идёт загрузка - не закрывайте страницу"
                 : "Перетащите WAV сюда или нажмите для выбора"}
             </p>
           </div>
@@ -1923,6 +2149,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                 </AccordionTrigger>
                 <AccordionContent className="pb-4">
                   <TrackAiLabelingFields
+                    trackId={track.id}
                     value={track.aiLabeling}
                     disabled={formDisabled}
                     onChange={(next) => void updateTrackLocal(track.id, { aiLabeling: next })}
@@ -2006,24 +2233,57 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               )}
             </div>
             <div className="min-w-0 flex-1 space-y-3">
-              {reviewChecks.map((c, idx) => (
-                <div key={`${c.label}-${idx}`} className="flex items-start gap-2 text-sm">
-                  {c.ok ? (
-                    <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                  )}
-                  <div className="min-w-0">
-                    <span className="text-muted-foreground">{c.label}: </span>
-                    <span className={cn(!c.ok && "text-amber-200")}>
-                      {c.value ?? (c.ok ? "OK" : "Не заполнено")}
-                    </span>
+              {reviewChecks.map((c, idx) => {
+                const canJump = !c.ok && (Boolean(c.fieldId) || c.step !== step)
+                const row = (
+                  <>
+                    {c.ok ? (
+                      <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    )}
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground">{c.label}: </span>
+                      <span className={cn(!c.ok && "text-amber-200")}>
+                        {c.value ?? (c.ok ? "OK" : "Не заполнено")}
+                      </span>
+                    </div>
+                  </>
+                )
+                if (canJump) {
+                  return (
+                    <button
+                      key={`${c.label}-${idx}`}
+                      type="button"
+                      className="flex w-full items-start gap-2 rounded-md text-left text-sm transition-colors hover:bg-muted/40 -mx-1 px-1 py-0.5"
+                      onClick={() =>
+                        focusStepIssue(
+                          {
+                            message: c.value ?? `Заполните «${c.label}»`,
+                            fieldId: c.fieldId,
+                            step: c.step,
+                            trackId: c.trackId,
+                          },
+                          { toast: false },
+                        )
+                      }
+                    >
+                      {row}
+                    </button>
+                  )
+                }
+                return (
+                  <div key={`${c.label}-${idx}`} className="flex items-start gap-2 text-sm">
+                    {row}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
-          <div className="flex flex-row items-start gap-3 rounded-md p-4">
+          <div
+            className="flex flex-row items-start gap-3 rounded-md p-4"
+            data-wizard-field={wizardFieldId("consent-offer")}
+          >
             <Checkbox
               id="consent-offer"
               checked={consentOffer}

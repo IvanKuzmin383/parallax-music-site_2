@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { CabinetGlobalSearch } from "@/components/cabinet/shell/cabinet-global-search"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { cn } from "@/lib/utils"
 
@@ -132,12 +133,14 @@ export function CabinetTopbar() {
   const hasNews = news.length > 0
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 md:px-6 lg:px-8">
-      <div className="flex flex-1 items-center md:hidden">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 sm:px-4 md:px-5">
+      <div className="flex shrink-0 items-center md:hidden">
         <SidebarTrigger />
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <CabinetGlobalSearch className="min-w-0 flex-1 max-w-md md:max-w-lg" />
+
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <DropdownMenu onOpenChange={(open) => open && void loadInbox()}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -159,132 +162,132 @@ export function CabinetTopbar() {
               ) : null}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <div className="max-h-[22rem] overflow-y-auto">
-              {/* События */}
-              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-                <DropdownMenuLabel className="p-0">События</DropdownMenuLabel>
+          <DropdownMenuContent
+            align="end"
+            className="w-[min(20rem,calc(100vw-1.25rem))] overflow-hidden p-0"
+          >
+            <div className="cabinet-sidebar-scroll max-h-[min(22rem,70vh)] min-w-0 overflow-y-auto overscroll-contain">
+              <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  События
+                </p>
                 {unreadEvents > 0 ? (
                   <button
                     type="button"
-                    className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                    className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground"
                     onClick={() => void markEventsRead(undefined, true)}
                   >
                     Прочитать все
                   </button>
                 ) : null}
               </div>
+
               {!hasEvents ? (
-                <p className="px-2 pb-2 text-sm text-muted-foreground">
-                  Нет новых событий
-                </p>
+                <p className="px-3 pb-3 text-sm text-muted-foreground">Нет новых событий</p>
               ) : (
-                items.map((item) => {
-                  const unread = !item.readAt
-                  const content = (
-                    <div className="flex w-full flex-col gap-0.5 py-0.5">
-                      <span
-                        className={cn(
-                          "text-sm leading-snug",
-                          unread ? "font-semibold text-foreground" : "text-foreground/90",
-                        )}
-                      >
-                        {item.title}
-                      </span>
-                      {item.body ? (
-                        <span className="line-clamp-2 text-xs text-muted-foreground">
-                          {item.body}
-                        </span>
-                      ) : null}
-                      <span className="text-[11px] text-muted-foreground/80">
-                        {relativeTime(item.createdAt)}
-                      </span>
-                    </div>
-                  )
-
-                  if (item.href) {
-                    return (
-                      <DropdownMenuItem
-                        key={item.id}
-                        asChild
-                        className={cn(unread && "bg-muted/40")}
-                      >
-                        <Link
-                          href={item.href}
-                          className="cursor-pointer items-start"
-                          onClick={() => {
-                            if (unread) void markEventsRead([item.id])
-                          }}
-                        >
-                          {content}
-                        </Link>
-                      </DropdownMenuItem>
+                <ul className="min-w-0 space-y-0.5 px-1.5 pb-2">
+                  {items.map((item) => {
+                    const unread = !item.readAt
+                    const rowClass = cn(
+                      "block min-w-0 rounded-md px-2 py-2 transition-colors hover:bg-accent/60",
+                      unread && "bg-muted/35",
                     )
-                  }
+                    const body = (
+                      <div className="min-w-0 space-y-0.5">
+                        <p
+                          className={cn(
+                            "break-words text-sm leading-snug",
+                            unread ? "font-semibold" : "font-medium text-foreground/90",
+                          )}
+                        >
+                          {item.title}
+                        </p>
+                        {item.body ? (
+                          <p className="line-clamp-2 break-words text-xs text-muted-foreground">
+                            {item.body}
+                          </p>
+                        ) : null}
+                        <p className="text-[11px] text-muted-foreground/75">
+                          {relativeTime(item.createdAt)}
+                        </p>
+                      </div>
+                    )
 
-                  return (
-                    <DropdownMenuItem
-                      key={item.id}
-                      className={cn("cursor-pointer items-start", unread && "bg-muted/40")}
-                      onSelect={() => {
-                        if (unread) void markEventsRead([item.id])
-                      }}
-                    >
-                      {content}
-                    </DropdownMenuItem>
-                  )
-                })
+                    return (
+                      <li key={item.id} className="min-w-0">
+                        {item.href ? (
+                          <Link
+                            href={item.href}
+                            className={rowClass}
+                            onClick={() => {
+                              if (unread) void markEventsRead([item.id])
+                            }}
+                          >
+                            {body}
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            className={cn(rowClass, "w-full text-left")}
+                            onClick={() => {
+                              if (unread) void markEventsRead([item.id])
+                            }}
+                          >
+                            {body}
+                          </button>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
               )}
 
-              <DropdownMenuSeparator />
+              <div className="mx-3 border-t border-border/60" />
 
-              {/* Новости */}
-              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-                <DropdownMenuLabel className="p-0">Новости</DropdownMenuLabel>
+              <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Новости
+                </p>
                 {hasNews ? (
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
                     {news.length}
                   </span>
                 ) : null}
               </div>
+
               {!hasNews ? (
-                <p className="px-2 pb-2 text-sm text-muted-foreground">
+                <p className="px-3 pb-3 text-sm text-muted-foreground">
                   Нет непрочитанных новостей
                 </p>
               ) : (
-                news.slice(0, 5).map((item) => (
-                  <DropdownMenuItem
-                    key={item.id}
-                    asChild
-                    className="bg-muted/40"
-                  >
-                    <Link
-                      href="/cabinet/news"
-                      className="cursor-pointer items-start"
-                      onClick={() => void dismissNews(item.id)}
-                    >
-                      <div className="flex w-full flex-col gap-0.5 py-0.5">
-                        <span className="text-sm font-semibold leading-snug text-foreground">
+                <ul className="min-w-0 space-y-0.5 px-1.5 pb-2">
+                  {news.slice(0, 5).map((item) => (
+                    <li key={item.id} className="min-w-0">
+                      <Link
+                        href="/cabinet/news"
+                        className="block min-w-0 rounded-md bg-muted/35 px-2 py-2 transition-colors hover:bg-accent/60"
+                        onClick={() => void dismissNews(item.id)}
+                      >
+                        <p className="break-words text-sm font-semibold leading-snug">
                           {item.title}
-                        </span>
+                        </p>
                         {item.createdAt ? (
-                          <span className="text-[11px] text-muted-foreground/80">
+                          <p className="mt-0.5 text-[11px] text-muted-foreground/75">
                             {relativeTime(item.createdAt)}
-                          </span>
+                          </p>
                         ) : null}
-                      </div>
-                    </Link>
-                  </DropdownMenuItem>
-                ))
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/cabinet/news" className="cursor-pointer">
-                Все новости
-              </Link>
-            </DropdownMenuItem>
+            <div className="border-t border-border/60 p-1">
+              <DropdownMenuItem asChild className="cursor-pointer justify-center">
+                <Link href="/cabinet/news">Все новости</Link>
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -312,13 +315,13 @@ export function CabinetTopbar() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/cabinet/profile#cabinet-tariff" className="cursor-pointer gap-2">
+              <Link href="/cabinet/settings?tab=profile#cabinet-tariff" className="cursor-pointer gap-2">
                 <CreditCard className="h-4 w-4" />
                 Тарифы и оплата
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/cabinet/profile" className="cursor-pointer gap-2">
+              <Link href="/cabinet/settings?tab=profile" className="cursor-pointer gap-2">
                 <User className="h-4 w-4" />
                 Профиль
               </Link>

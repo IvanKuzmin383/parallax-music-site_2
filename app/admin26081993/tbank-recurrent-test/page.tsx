@@ -113,12 +113,12 @@ export default function TbankRecurrentTestPage() {
   const state = status?.state
 
   return (
-    <div className="min-h-screen bg-background pt-20 pb-12">
+    <div className="min-h-screen bg-background pt-4 pb-12">
       <div className="container mx-auto px-4 max-w-3xl space-y-6">
         <AdminSectionNav active="service-fulfillments" />
 
         <div>
-          <h1 className="text-2xl font-bold">T-Bank: тест автоплатежей №5–6</h1>
+          <h1 className="text-2xl font-bold">T-Bank: тест автоплатежей №5-6</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Служебная страница для прохождения проверок в ЛК Т-Бизнес. Не для клиентов.
           </p>

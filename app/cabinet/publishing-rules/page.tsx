@@ -83,7 +83,7 @@ export default function PublishingRulesPage() {
               <section>
                 <h2 className="text-lg font-semibold mb-2">5. Дата релиза</h2>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  <li>желаемая дата выхода (не ранее чем через 7–10 дней после передачи всех материалов).</li>
+                  <li>желаемая дата выхода (не ранее чем через 7-10 дней после передачи всех материалов).</li>
                 </ul>
               </section>
             </div>

@@ -48,7 +48,7 @@ export function OrdersPageContent() {
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>
       ) : orders.length === 0 ? (
-        <EmptyState title="Заказов нет" description="Оформите услугу в каталоге — заказ появится здесь" icon={ClipboardList} />
+        <EmptyState title="Заказов нет" description="Оформите услугу в каталоге - заказ появится здесь" icon={ClipboardList} />
       ) : (
         <>
           <div className="hidden md:block">

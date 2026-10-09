@@ -57,11 +57,11 @@ async function getLatestMusicImportMeta(platformKey: MusicPlatformKey): Promise<
 }
 
 const TITLE_NORM_SQL =
-  "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(t.title), ' ', ''), '-', ''), '–', ''), '-', '')"
+  "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(t.title), ' ', ''), '-', ''), '-', ''), '-', '')"
 
 /** Нормализация названия для сравнения (пробелы и дефисы убраны). */
 function titleNormSql(columnRef: string): string {
-  return `REPLACE(REPLACE(REPLACE(REPLACE(LOWER(${columnRef}), ' ', ''), '-', ''), '–', ''), '-', '')`
+  return `REPLACE(REPLACE(REPLACE(REPLACE(LOWER(${columnRef}), ' ', ''), '-', ''), '-', ''), '-', '')`
 }
 
 /**
@@ -77,15 +77,15 @@ function artistNormSql(columnRef: string): string {
     ',', ' '),
     ' ', ''),
     '-', ''),
-    '–', '')`
+    '-', '')`
 }
 
-/** ISRC из DMB track_key `ISRC:…|EAN:…|CAT:…` и из tracks.isrc — только A-Z0-9. */
+/** ISRC из DMB track_key `ISRC:…|EAN:…|CAT:…` и из tracks.isrc - только A-Z0-9. */
 function isrcNormSql(columnRef: string): string {
   return `NULLIF(UPPER(REGEXP_REPLACE(COALESCE(${columnRef}, ''), '[^A-Za-z0-9]', '', 'g')), '')`
 }
 
-/** UPC/EAN — только цифры. */
+/** UPC/EAN - только цифры. */
 function upcNormSql(columnRef: string): string {
   return `NULLIF(REGEXP_REPLACE(COALESCE(${columnRef}, ''), '[^0-9]', '', 'g'), '')`
 }
@@ -93,7 +93,7 @@ function upcNormSql(columnRef: string): string {
 function normalizeTrackTitleForMatch(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[\s\-–-]+/g, "")
+    .replace(/[\s\---]+/g, "")
     .trim()
 }
 
@@ -285,7 +285,7 @@ async function rebuildCabinetMusicTrackMapForPlatformWithClient(
 
   // Гибрид: 1) ISRC (DMB), 2) UPC/EAN (DMB),
   // 3) title + norm(artist) ИЛИ title + алиас артиста пользователя (смена имени).
-  // DISTINCT ON берёт лучший match_prio; при равном — меньший cabinet_track_id.
+  // DISTINCT ON берёт лучший match_prio; при равном - меньший cabinet_track_id.
   await clientExecute(
     client,
     `

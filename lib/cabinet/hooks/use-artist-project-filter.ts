@@ -19,7 +19,7 @@ export function buildArtistCounts(items: Named[]): { name: string; count: number
   const byNorm = new Map<string, { name: string; count: number }>()
   for (const item of items) {
     const raw = displayArtist(item)
-    if (!raw || raw === "—") continue
+    if (!raw || raw === "-") continue
     const norm = normalizeArtistForPolicy(raw)
     if (!norm) continue
     const prev = byNorm.get(norm)

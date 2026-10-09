@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Test / staging hosting
 
-**Тестовый контур ≠ прод.** Прод — Yandex Cloud `ubuntu@111.88.251.195` (см. `production-yandex-cloud.mdc`).
+**Тестовый контур ≠ прод.** Прод - Yandex Cloud `ubuntu@111.88.251.195` (см. `production-yandex-cloud.mdc`).
 
 ## Доступ
 

@@ -44,7 +44,7 @@ export function validateCabinetCoverImage(
  * Проверка обложки по пути к файлу без чтения всего файла в память (ступенчато, по префиксу).
  *
  * JPEG: `image-size` на обрезанном префиксе иногда отдаёт ложные размеры
- * (SOF далеко в файле) — не останавливаемся на первом разборе, пока префикс
+ * (SOF далеко в файле) - не останавливаемся на первом разборе, пока префикс
  * не совпадёт с полным файлом или размеры не стабилизируются на большем куске.
  */
 export async function validateCabinetCoverImageFromFilePath(
@@ -82,7 +82,7 @@ export async function validateCabinetCoverImageFromFilePath(
       dimensions.width === parsed.width &&
       dimensions.height === parsed.height
     dimensions = parsed
-    // PNG: IHDR в начале. JPEG: ложные размеры с короткого префикса — ждём
+    // PNG: IHDR в начале. JPEG: ложные размеры с короткого префикса - ждём
     // совпадения на большем куске или полного файла.
     if (!isJpeg || sameAsBefore || cap >= fileSizeBytes) {
       dimensionsReliable = true

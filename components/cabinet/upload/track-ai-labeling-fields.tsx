@@ -15,12 +15,14 @@ import {
   type TrackAiLabeling,
   type TrackAiLabelingDetails,
 } from "@/lib/track-ai-labeling"
+import { wizardTrackFieldId } from "@/lib/cabinet-wizard-field-focus"
 
 type TrackAiLabelingFieldsProps = {
   value: TrackAiLabeling | null | undefined
   onChange: (next: TrackAiLabeling) => void
   disabled?: boolean
   trackTitle?: string
+  trackId?: string
 }
 
 function ChoicePill({
@@ -108,6 +110,7 @@ export function TrackAiLabelingFields({
   onChange,
   disabled,
   trackTitle,
+  trackId,
 }: TrackAiLabelingFieldsProps) {
   const mode = value?.mode
   const details = value?.details ?? emptyAiLabelingDetails()
@@ -131,7 +134,10 @@ export function TrackAiLabelingFields({
   }
 
   return (
-    <div className="space-y-5">
+    <div
+      className="space-y-5"
+      data-wizard-field={trackId ? wizardTrackFieldId(trackId, "aiLabeling") : undefined}
+    >
       {trackTitle ? <p className="text-sm font-medium">{trackTitle}</p> : null}
 
       <div className="grid gap-2" role="radiogroup" aria-label="AI-маркировка">

@@ -40,7 +40,7 @@ function usesWizardAction(release: ReleaseView): boolean {
 }
 
 function isDraftRelease(release: ReleaseView): boolean {
-  // Только реальный статус draft — не kind "draft" (туда попадают awaiting_payment и др.).
+  // Только реальный статус draft - не kind "draft" (туда попадают awaiting_payment и др.).
   return (
     release.releaseStatus === "draft" ||
     (!release.releaseStatus && release.status === "Черновик")
@@ -152,7 +152,7 @@ export function ReleaseListCard({
             >
               {release.title || "Без названия"}
             </Link>
-            <p className="text-sm text-muted-foreground truncate">{release.artist || "—"}</p>
+            <p className="text-sm text-muted-foreground truncate">{release.artist || "-"}</p>
           </div>
           {kindMeta ? (
             <p className="text-xs text-muted-foreground">

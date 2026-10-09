@@ -70,7 +70,7 @@ NEXT_PUBLIC_YANDEX_METRIKA_ID=...
 MUSIC_STATS_IMPORT_TOKEN=...
 
 # Автосбор ссылок смартлинка по UPC (админка → «Подтянуть по UPC»)
-# Bandlink — основной источник (Яндекс, VK, Звук, МТС и др.)
+# Bandlink - основной источник (Яндекс, VK, Звук, МТС и др.)
 BANDLINK_TOKEN=...
 BANDLINK_ARTIST_ID=642528
 # Cookie целиком из DevTools (обязателен _yasc; обновлять при 403)
@@ -228,7 +228,7 @@ pnpm install
 pnpm build
 ```
 
-Сборка может занять 5–15 минут.
+Сборка может занять 5-15 минут.
 
 Тестовый запуск:
 
@@ -320,7 +320,7 @@ proxy_cache_path /var/cache/nginx/next_image
 mkdir -p /var/cache/nginx/next_image && chown www-data:www-data /var/cache/nginx/next_image
 ```
 
-`client_max_body_size 150M` и `client_body_timeout 300s` — загрузки WAV до **120 MB** с телефона (медленный 4G).
+`client_max_body_size 150M` и `client_body_timeout 300s` - загрузки WAV до **120 MB** с телефона (медленный 4G).
 
 Активация:
 
@@ -340,7 +340,7 @@ certbot --nginx -d parallaxmusic.ru -d www.parallaxmusic.ru
 
 ## Этап 7. DNS (переключение продакшена)
 
-За день до миграции можно снизить **TTL** до 300–600 секунд у регистратора домена.
+За день до миграции можно снизить **TTL** до 300-600 секунд у регистратора домена.
 
 | Запись | Значение |
 |--------|----------|
@@ -421,7 +421,7 @@ curl "https://parallaxmusic.ru/api/cron/upload-drafts-cleanup?secret=CRON_SECRET
 
 ## Этап 11. Отключить Amvera
 
-Только когда **2–3 дня** всё стабильно на VPS:
+Только когда **2-3 дня** всё стабильно на VPS:
 
 1. Финальный бэкап `/data` с Amvera
 2. Остановить / удалить проект на Amvera
@@ -475,4 +475,4 @@ listen [::]:443 ssl http2;
 1. Поднять всё на VPS, проверить по **IP** (`http://IP:3000`) или через `hosts` на ПК
 2. Синхронизировать `/data` с Amvera **в последний раз**
 3. Переключить DNS
-4. Через 1–2 часа проверить критичное, затем отключить Amvera
+4. Через 1-2 часа проверить критичное, затем отключить Amvera

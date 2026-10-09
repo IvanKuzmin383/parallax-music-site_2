@@ -5,7 +5,7 @@ export default function AdminTracksPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen pt-20 flex items-center justify-center">
+        <div className="min-h-screen pt-4 flex items-center justify-center">
           <p>Загрузка...</p>
         </div>
       }

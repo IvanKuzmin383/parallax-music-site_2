@@ -233,7 +233,7 @@ export async function createReleaseEntityVersion(params: {
   reason: ReleaseEntityVersionReason | string
   actor?: string | null
   note?: string | null
-  /** Если уже собран — не перечитывать БД. */
+  /** Если уже собран - не перечитывать БД. */
   snapshot?: ReleaseEntitySnapshot
 }): Promise<ReleaseEntityVersion | null> {
   const snapshot = params.snapshot ?? (await buildReleaseEntitySnapshot(params.releaseId))

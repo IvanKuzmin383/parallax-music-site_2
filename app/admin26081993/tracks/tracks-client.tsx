@@ -295,7 +295,7 @@ function ruTracksCountLabel(n: number): string {
   return `${n} треков`
 }
 
-/** Первая буква имени артиста для алфавитного индекса (А–Я / A–Z / 0–9 / #). */
+/** Первая буква имени артиста для алфавитного индекса (А-Я / A-Z / 0-9 / #). */
 function getArtistIndexLetter(artistName: string): string {
   const trimmed = artistName.trim()
   if (!trimmed || trimmed === "Без имени артиста") return "#"
@@ -438,6 +438,7 @@ export default function TracksPageClient() {
   const [groupedLetter, setGroupedLetter] = useState<string | null>(null)
   const [selectedGroupedArtist, setSelectedGroupedArtist] = useState<string | null>(null)
   const [artistSearchQuery, setArtistSearchQuery] = useState("")
+  const [simpleListSearchQuery, setSimpleListSearchQuery] = useState("")
   const [tracksTab, setTracksTab] = useState<"grouped" | "simple">("grouped")
   const [artistsIndex, setArtistsIndex] = useState<AdminArtistIndexItem[]>([])
   const [artistsIndexLoading, setArtistsIndexLoading] = useState(false)
@@ -556,8 +557,29 @@ export default function TracksPageClient() {
     }, {})
   }, [albums])
 
+  const simpleListSearchNorm = simpleListSearchQuery.trim().toLowerCase()
+
   const simpleListTracks = useMemo(() => {
-    const list = [...statusFilteredTracks]
+    let list = [...statusFilteredTracks]
+    if (simpleListSearchNorm) {
+      list = list.filter((track) => {
+        const albumTitle = track.albumId
+          ? trackAlbumTitleById[track.albumId] ?? ""
+          : ""
+        const haystack = [
+          track.artistName,
+          track.trackName,
+          track.userId,
+          track.isrc,
+          track.upc,
+          albumTitle,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+        return haystack.includes(simpleListSearchNorm)
+      })
+    }
     const getTrackDate = (track: Track) => {
       if (trackListSortField === "createdAt") return new Date(track.createdAt).getTime()
       const publicationDate = track.releaseDate || track.createdAt
@@ -569,7 +591,13 @@ export default function TracksPageClient() {
       return trackListSortDirection === "asc" ? aDate - bDate : bDate - aDate
     })
     return list
-  }, [statusFilteredTracks, trackListSortField, trackListSortDirection])
+  }, [
+    statusFilteredTracks,
+    trackListSortField,
+    trackListSortDirection,
+    simpleListSearchNorm,
+    trackAlbumTitleById,
+  ])
 
   const simpleListTracksVisible = useMemo(
     () => simpleListTracks.slice(0, simpleListVisibleCount),
@@ -660,8 +688,13 @@ export default function TracksPageClient() {
     setGroupedLetter(null)
     setSelectedGroupedArtist(null)
     setArtistSearchQuery("")
+    setSimpleListSearchQuery("")
     setGroupedArtistTracks(null)
   }, [adminTracksQuery])
+
+  useEffect(() => {
+    setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
+  }, [simpleListSearchNorm])
 
   useEffect(() => {
     let cancelled = false
@@ -1417,7 +1450,7 @@ export default function TracksPageClient() {
     const text = track.lyricsText?.trim() ?? ""
     if (!text) {
       toast.error(
-        track.isInstrumental ? "Инструментал — текста нет" : "Текст песни не заполнен"
+        track.isInstrumental ? "Инструментал - текста нет" : "Текст песни не заполнен"
       )
       return
     }
@@ -1657,7 +1690,7 @@ export default function TracksPageClient() {
             ? "Загрузка треков…"
             : selectedArtistTracks
               ? ruTracksCountLabel(selectedArtistTracks.length)
-              : "—"}
+              : "-"}
         </p>
 
                       {groupedArtistTracksLoading ? (
@@ -1750,7 +1783,16 @@ export default function TracksPageClient() {
                               ? orderedAlbumTracks.map((track, index) => (
                               <div
                                 key={track.id}
-                                className="border rounded-md p-3 flex flex-col gap-2"
+                                role="button"
+                                tabIndex={0}
+                                className="border rounded-md p-3 flex flex-col gap-2 cursor-pointer transition-colors hover:bg-muted/40 hover:border-border"
+                                onClick={() => handleViewDetails(track)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault()
+                                    handleViewDetails(track)
+                                  }
+                                }}
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -1782,24 +1824,24 @@ export default function TracksPageClient() {
                                         <p className="break-all">Пользователь: {track.userId}</p>
                                         <p>Лейбл: {getReleaseLabelName(track.labelName)}</p>
                                         <p>Жанр: {track.genre}</p>
-                                        <p>Настроение: {track.mood?.trim() || "—"}</p>
+                                        <p>Настроение: {track.mood?.trim() || "-"}</p>
                                         <p>
                                           Автор слов:{" "}
                                           {track.isInstrumental
                                             ? "Инструментал"
-                                            : track.lyricsAuthor?.trim() || "—"}
+                                            : track.lyricsAuthor?.trim() || "-"}
                                         </p>
-                                        <p>Автор музыки: {track.musicAuthor?.trim() || "—"}</p>
-                                        <p>Права на музыку: {track.musicRights?.trim() || "—"}</p>
+                                        <p>Автор музыки: {track.musicAuthor?.trim() || "-"}</p>
+                                        <p>Права на музыку: {track.musicRights?.trim() || "-"}</p>
                                         <p>
                                           Права на текст:{" "}
                                           {track.isInstrumental
                                             ? "Инструментал"
-                                            : track.lyricsRights?.trim() || "—"}
+                                            : track.lyricsRights?.trim() || "-"}
                                         </p>
                                         <p>
                                           Права на исполнение:{" "}
-                                          {track.performanceRights?.trim() || "—"}
+                                          {track.performanceRights?.trim() || "-"}
                                         </p>
                                         {track.catalogNumber ? <p>Артикул: {track.catalogNumber}</p> : null}
                                         {track.isrc ? <p>ISRC: {track.isrc}</p> : null}
@@ -1817,30 +1859,33 @@ export default function TracksPageClient() {
                                       </div>
                                     </div>
                                   </div>
-                                  <Select
-                                    value={track.status}
-                                    onValueChange={(v) =>
-                                      handleStatusChange(track.id, v as TrackStatus)
-                                    }
-                                    disabled={updatingId === track.id}
-                                  >
-                                    <SelectTrigger className="w-[170px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {STATUS_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                          {opt.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                                    <Select
+                                      value={track.status}
+                                      onValueChange={(v) =>
+                                        handleStatusChange(track.id, v as TrackStatus)
+                                      }
+                                      disabled={updatingId === track.id}
+                                    >
+                                      <SelectTrigger className="w-[170px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {STATUS_OPTIONS.map((opt) => (
+                                          <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                 </div>
                                 <audio
                                   controls
                                   preload="none"
                                   className="admin-audio-compact"
                                   src={`/api/admin/uploads/audio/${track.id}`}
+                                  onClick={(e) => e.stopPropagation()}
                                   onPlay={(e) => {
                                     const current = e.currentTarget
                                     document.querySelectorAll("audio").forEach((el) => {
@@ -1848,7 +1893,11 @@ export default function TracksPageClient() {
                                     })
                                   }}
                                 />
-                                <div className="flex gap-2 flex-wrap">
+                                <div
+                                  className="flex gap-2 flex-wrap"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                >
                                   <Button
                                     variant="outline"
                                     size="icon"
@@ -1950,7 +1999,7 @@ export default function TracksPageClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen pt-4 flex items-center justify-center">
         <p>Загрузка...</p>
       </div>
     )
@@ -1962,7 +2011,7 @@ export default function TracksPageClient() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-background pt-4">
       <div className="mx-auto w-full max-w-[min(100vw-2rem,1680px)] px-4 space-y-6">
         <AdminSectionNav active="tracks" />
 
@@ -2156,7 +2205,17 @@ export default function TracksPageClient() {
                         className="pl-9 h-9"
                       />
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="relative min-w-[200px] flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                      <Input
+                        value={simpleListSearchQuery}
+                        onChange={(e) => setSimpleListSearchQuery(e.target.value)}
+                        placeholder="Поиск: артист, трек, альбом, ISRC, UPC…"
+                        className="pl-9 h-9"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap shrink-0">
                   <span className="text-sm text-muted-foreground">Дата публикации:</span>
@@ -2446,7 +2505,11 @@ export default function TracksPageClient() {
                       </TableHeader>
                       <TableBody>
                         {simpleListTracksVisible.map((track) => (
-                          <TableRow key={track.id}>
+                          <TableRow
+                            key={track.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleViewDetails(track)}
+                          >
                             <TableCell className="max-w-[280px] whitespace-normal align-top">
                               <div className="space-y-0.5">
                                 <p className="font-medium leading-snug">
@@ -2484,7 +2547,10 @@ export default function TracksPageClient() {
                             <TableCell className="align-top">{track.catalogNumber?.trim() ? track.catalogNumber : "-"}</TableCell>
                             <TableCell className="align-top">{track.isrc?.trim() ? track.isrc : "-"}</TableCell>
                             <TableCell className="align-top">{track.upc?.trim() ? track.upc : "-"}</TableCell>
-                            <TableCell className="align-top">
+                            <TableCell
+                              className="align-top"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Select
                                 value={track.status}
                                 onValueChange={(v) =>
@@ -2504,7 +2570,10 @@ export default function TracksPageClient() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell className="align-top">
+                            <TableCell
+                              className="align-top"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <div className="flex items-center justify-end gap-1.5 flex-nowrap">
                                 <Button
                                   variant="outline"
@@ -3586,8 +3655,8 @@ export default function TracksPageClient() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Apple / Deezer / Яндекс / МТС — без ключей. Spotify — нужен SPOTIFY_CLIENT_ID/SECRET в
-                    .env. YouTube Music — опционально YOUTUBE_API_KEY. VK и Звук — вручную. Не
+                    Apple / Deezer / Яндекс / МТС - без ключей. Spotify - нужен SPOTIFY_CLIENT_ID/SECRET в
+                    .env. YouTube Music - опционально YOUTUBE_API_KEY. VK и Звук - вручную. Не
                     забудьте сохранить трек.
                   </p>
                   <div className="grid gap-2">

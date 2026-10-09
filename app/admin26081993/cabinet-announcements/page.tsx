@@ -187,7 +187,7 @@ export default function AdminCabinetAnnouncementsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen pt-4 flex items-center justify-center">
         <p>Загрузка...</p>
       </div>
     )
@@ -199,7 +199,7 @@ export default function AdminCabinetAnnouncementsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-background pt-4">
       <div className="container mx-auto px-4 space-y-8">
         <AdminSectionNav active="cabinet-announcements" />
 

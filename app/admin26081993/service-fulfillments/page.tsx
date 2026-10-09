@@ -158,7 +158,7 @@ export default function AdminServiceFulfillmentsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen pt-4 flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full space-y-4 text-center">
           <p className="text-muted-foreground">{locale === "en" ? "Authentication required" : "Необходима авторизация"}</p>
           <Button onClick={() => router.push("/admin26081993")}>
@@ -171,14 +171,14 @@ export default function AdminServiceFulfillmentsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen pt-4 flex items-center justify-center">
         <p>{locale === "en" ? "Loading…" : "Загрузка…"}</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-background pt-4">
       <div className="container mx-auto px-4 space-y-6">
         <AdminSectionNav active="service-fulfillments" />
 

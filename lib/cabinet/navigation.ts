@@ -21,7 +21,7 @@ export interface NavItem {
 
 export interface NavGroup {
   id: string
-  /** null — группа без заголовка */
+  /** null - группа без заголовка */
   label: string | null
   items: NavItem[]
 }
@@ -29,8 +29,8 @@ export interface NavGroup {
 /**
  * Меню кабинета:
  * (без заголовка) Главная · Релизы · Статистика
- * Услуги — Продвижение · Инструменты · Заказы
- * Кабинет — Финансы · Партнёрка · Новости · Настройки
+ * Услуги - Продвижение · Инструменты · Заказы
+ * Кабинет - Финансы · Партнёрка · Новости · Настройки
  */
 export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
   {
@@ -67,9 +67,19 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
 export const CABINET_SIDEBAR_NAV: NavItem[] = CABINET_SIDEBAR_GROUPS.flatMap((g) => g.items)
 
 export const FINANCE_SUB_NAV: NavItem[] = [
-  { id: "balance", label: "Баланс", href: "/cabinet/finance/balance", icon: Wallet },
-  { id: "transactions", label: "История операций", href: "/cabinet/finance/transactions", icon: ClipboardList },
-  { id: "royalty-withdrawal", label: "Вывод роялти", href: "/cabinet/finance/royalty-withdrawal", icon: Wallet },
+  { id: "finance", label: "Финансы", href: "/cabinet/finance/balance", icon: Wallet },
+  {
+    id: "transactions",
+    label: "История операций",
+    href: "/cabinet/finance/balance#history",
+    icon: ClipboardList,
+  },
+  {
+    id: "royalty-withdrawal",
+    label: "Вывод роялти",
+    href: "/cabinet/finance/balance?withdraw=1",
+    icon: Wallet,
+  },
 ]
 
 /** Пути без sidebar (auth / recovery). */

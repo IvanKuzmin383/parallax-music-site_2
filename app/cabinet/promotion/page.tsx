@@ -32,7 +32,7 @@ export default function PromotionPage() {
         description="Реклама, плейлисты, радио и другие услуги для роста прослушиваний"
       >
         <Button variant="outline" size="sm" asChild>
-          <Link href="/cabinet/my-services">Мои заказы услуг</Link>
+          <Link href="/cabinet/orders">Заказы</Link>
         </Button>
       </PageHeader>
 

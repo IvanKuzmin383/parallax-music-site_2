@@ -10,7 +10,7 @@ import { SMARTLINK_PLATFORMS, PLATFORM_ICON_SRC, type PlatformLinks, type Platfo
 function CopyField({
   label,
   value,
-  emptyText = "—",
+  emptyText = "-",
 }: {
   label: string
   value: string | null | undefined
@@ -57,7 +57,7 @@ function CopyField({
   )
 }
 
-/** Фирменные знаки. Со ссылкой — цветные; без — grayscale. */
+/** Фирменные знаки. Со ссылкой - цветные; без - grayscale. */
 function PlatformGlyph({
   platformKey,
   active,
@@ -116,13 +116,13 @@ export function ReleasePlatformMeta({
         <div className="min-w-0 space-y-1">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Жанр</p>
           <p className={cn("text-sm", genre?.trim() ? "font-medium" : "text-muted-foreground")}>
-            {genre?.trim() || "—"}
+            {genre?.trim() || "-"}
           </p>
         </div>
         <div className="min-w-0 space-y-1">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Территория</p>
           <p className={cn("text-sm", territory?.trim() ? "font-medium" : "text-muted-foreground")}>
-            {territory?.trim() || "—"}
+            {territory?.trim() || "-"}
           </p>
         </div>
         <div className="min-w-0 space-y-1">
@@ -172,7 +172,7 @@ export function ReleasePlatformMeta({
             const content = (
               <span
                 className="inline-flex h-10 w-10 items-center justify-center"
-                title={active ? platform.label : `${platform.label} — ссылки пока нет`}
+                title={active ? platform.label : `${platform.label} - ссылки пока нет`}
               >
                 <PlatformGlyph platformKey={platform.key} active={active} />
               </span>

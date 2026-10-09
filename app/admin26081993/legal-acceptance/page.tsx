@@ -151,7 +151,7 @@ export default function AdminLegalAcceptancePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-6 pt-20">
+      <div className="min-h-screen bg-background p-6 pt-4">
         <p className="text-muted-foreground">Загрузка…</p>
       </div>
     )
@@ -159,14 +159,14 @@ export default function AdminLegalAcceptancePage() {
 
   if (!isAuthenticated && !loading) {
     return (
-      <div className="min-h-screen bg-background p-6 pt-20">
+      <div className="min-h-screen bg-background p-6 pt-4">
         <p className="text-destructive">Требуется вход в админку.</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 pt-20">
+    <div className="min-h-screen bg-background p-4 pt-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <AdminSectionNav active="legal-acceptance" />
         <Card>

@@ -14,7 +14,7 @@ export function isCabinetSubscriptionExpiredForNavigation(user: {
 
 /**
  * Маршруты, доступные при истёкшей подписке.
- * Закрыта только загрузка трека/альбома; статистика, финансы, профиль, услуги — открыты.
+ * Закрыта только загрузка трека/альбома; статистика, финансы, профиль, услуги - открыты.
  */
 export function isCabinetPathAllowedWhenSubscriptionExpired(pathname: string): boolean {
   if (pathname === "/cabinet/upload" || pathname.startsWith("/cabinet/upload/")) {

@@ -18,7 +18,7 @@ type ChatMessage = {
 const WELCOME: ChatMessage = {
   id: "welcome",
   author: "support",
-  text: "Здравствуйте! Напишите ваш вопрос — мы ответим в этом чате.",
+  text: "Здравствуйте! Напишите ваш вопрос - мы ответим в этом чате.",
   at: Date.now(),
 }
 

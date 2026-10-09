@@ -36,7 +36,7 @@ export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   kion: "/platforms/kion.svg",
 }
 
-/** PATCH merge: обновляет только ключи из incoming; пустое значение — удалить ключ. */
+/** PATCH merge: обновляет только ключи из incoming; пустое значение - удалить ключ. */
 export function mergePartialPlatformLinks(
   existing: PlatformLinks | undefined,
   incoming: Partial<PlatformLinks>

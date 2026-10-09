@@ -136,7 +136,7 @@ async function fetchJson<T>(
   }
 }
 
-/** Stable Apple Music album URL by numeric id (no Cyrillic slug — better for Odesli). */
+/** Stable Apple Music album URL by numeric id (no Cyrillic slug - better for Odesli). */
 function appleMusicAlbumUrl(collectionId: number | string, country = "ru"): string {
   return `https://music.apple.com/${country}/album/${collectionId}`
 }
@@ -221,7 +221,7 @@ async function searchYandexAlbum(
     const results = data.result?.albums?.results ?? []
     if (!results.length) return undefined
 
-    // Single unambiguous result — take it (same idea as YouTube fallback)
+    // Single unambiguous result - take it (same idea as YouTube fallback)
     if (results.length === 1 && results[0]?.id != null) {
       return String(results[0].id)
     }
@@ -648,7 +648,7 @@ export async function resolvePlatformLinksByUpc(rawUpc: string): Promise<Resolve
     }
   }
 
-  // Spotify: Odesli often skips it — use Web API (Client Credentials)
+  // Spotify: Odesli often skips it - use Web API (Client Credentials)
   if (!links.spotify) {
     const spotify = await searchSpotifyAlbum(upc, meta?.title, meta?.artistName)
     if (spotify && "missingCreds" in spotify) {

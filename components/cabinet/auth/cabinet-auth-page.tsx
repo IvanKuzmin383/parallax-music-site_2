@@ -34,6 +34,8 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [totpCode, setTotpCode] = useState("")
+  const [requires2fa, setRequires2fa] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerEmail, setRegisterEmail] = useState("")
   const [registerPassword, setRegisterPassword] = useState("")
@@ -69,18 +71,33 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
       toast.error("Введите email и пароль")
       return
     }
+    if (requires2fa && !totpCode.trim()) {
+      toast.error("Введите код 2FA")
+      return
+    }
     setLoginLoading(true)
     try {
       const response = await fetch("/api/cabinet/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          ...(requires2fa || totpCode.trim() ? { totpCode: totpCode.trim() } : {}),
+        }),
         credentials: "include",
       })
-      const data = await response.json().catch(() => ({} as { error?: string }))
+      const data = await response.json().catch(
+        () => ({} as { error?: string; requires2fa?: boolean })
+      )
       if (response.ok) {
         toast.success("Вход выполнен успешно")
+        setRequires2fa(false)
+        setTotpCode("")
         onAuthenticated()
+      } else if (response.status === 401 && data.requires2fa) {
+        setRequires2fa(true)
+        toast.message(data.error || "Введите код из приложения-аутентификатора")
       } else if (response.status === 429) {
         toast.error(data.error || "Слишком много попыток. Попробуйте позже.")
       } else if (response.status === 403) {
@@ -154,7 +171,7 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
           <CardDescription>
             {authTab === "register" ? (
               <>
-                Регистрация доступна после оплаты тарифа —{" "}
+                Регистрация доступна после оплаты тарифа -{" "}
                 <Link
                   href="https://parallaxmusic.ru/#pricing"
                   className="text-primary underline underline-offset-2"
@@ -176,10 +193,22 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
-                <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loginLoading} autoComplete="email" />
-                <Input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loginLoading} autoComplete="current-password" />
+                <Input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setRequires2fa(false); setTotpCode("") }} disabled={loginLoading} autoComplete="email" />
+                <Input type="password" placeholder="Пароль" value={password} onChange={(e) => { setPassword(e.target.value); setRequires2fa(false); setTotpCode("") }} disabled={loginLoading} autoComplete="current-password" />
+                {requires2fa ? (
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Код 2FA"
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value)}
+                    disabled={loginLoading}
+                    autoComplete="one-time-code"
+                    maxLength={8}
+                  />
+                ) : null}
                 <Button type="submit" className="w-full" disabled={loginLoading}>
-                  {loginLoading ? "Вход..." : "Войти"}
+                  {loginLoading ? "Вход..." : requires2fa ? "Подтвердить" : "Войти"}
                 </Button>
                 <p className="text-center text-sm text-muted-foreground">
                   <Link href="/cabinet/forgot-password" className="underline hover:text-foreground">

@@ -57,6 +57,12 @@ export interface CabinetUser {
   autopayPeriodsCount?: number
   autopayNextChargeAt?: string
   autopayLastReminderSentAt?: string
+  /** TOTP включён и подтверждён. */
+  totpEnabled?: boolean
+  /** Секрет подтверждённой 2FA (не отдавать на клиент). */
+  totpSecret?: string | null
+  /** Секрет в процессе настройки. */
+  totpPendingSecret?: string | null
 }
 
 interface CabinetUserRow {
@@ -108,6 +114,9 @@ interface CabinetUserRow {
   autopay_periods_count: number | null
   autopay_next_charge_at: string | null
   autopay_last_reminder_sent_at: string | null
+  totp_enabled?: boolean | null
+  totp_secret?: string | null
+  totp_pending_secret?: string | null
 }
 
 interface CabinetUserDeletionRow {
@@ -174,7 +183,42 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     autopayPeriodsCount: row.autopay_periods_count ?? undefined,
     autopayNextChargeAt: row.autopay_next_charge_at ?? undefined,
     autopayLastReminderSentAt: row.autopay_last_reminder_sent_at ?? undefined,
+    totpEnabled: row.totp_enabled === true,
+    totpSecret: row.totp_secret ?? null,
+    totpPendingSecret: row.totp_pending_secret ?? null,
   }
+}
+
+export async function setCabinetUserTotpPending(
+  userId: string,
+  pendingSecret: string | null
+): Promise<void> {
+  await execute(`UPDATE cabinet_users SET totp_pending_secret = ? WHERE id = ?`, [
+    pendingSecret,
+    userId,
+  ])
+}
+
+export async function enableCabinetUserTotp(userId: string, secret: string): Promise<void> {
+  await execute(
+    `
+    UPDATE cabinet_users
+    SET totp_secret = ?, totp_pending_secret = NULL, totp_enabled = TRUE
+    WHERE id = ?
+    `,
+    [secret, userId]
+  )
+}
+
+export async function disableCabinetUserTotp(userId: string): Promise<void> {
+  await execute(
+    `
+    UPDATE cabinet_users
+    SET totp_secret = NULL, totp_pending_secret = NULL, totp_enabled = FALSE
+    WHERE id = ?
+    `,
+    [userId]
+  )
 }
 
 export async function getAllCabinetUsers(): Promise<CabinetUser[]> {
