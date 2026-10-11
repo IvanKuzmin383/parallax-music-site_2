@@ -65,3 +65,6 @@ data/app.db
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Локальные заметки / идеи (не в репозитории)
+docs/ideas-addon-services.md
