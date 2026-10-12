@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -40,7 +39,6 @@ function AiMasteringPageInner() {
   const backLabel = getCabinetServiceHubBackLabel(backHref, t.cabinet.promotion.backToServices)
   const am = t.cabinet.promotion.aiMastering
 
-  const [orderOpen, setOrderOpen] = useState(false)
   const [tracksCount, setTracksCount] = useState(1)
   const [audioFiles, setAudioFiles] = useState<(File | null)[]>([])
   const [audioSlotErrors, setAudioSlotErrors] = useState<(string | null)[]>([])
@@ -87,12 +85,6 @@ function AiMasteringPageInner() {
       }
     })()
   }, [searchParams, router])
-
-  useEffect(() => {
-    if (!orderOpen) {
-      setError(null)
-    }
-  }, [orderOpen])
 
   const validCount =
     Number.isInteger(tracksCount) && tracksCount >= TRACKS_MIN && tracksCount <= MAX_AI_MASTERING_TRACKS
@@ -238,12 +230,12 @@ function AiMasteringPageInner() {
         </div>
       </div>
 
-      <Card className="w-full min-w-0 max-w-none">
-        <CardHeader>
-          <CardTitle className="text-xl">{am.serviceDescriptionTitle}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <p className="text-muted-foreground">{am.serviceDescription}</p>
+      <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] lg:items-start lg:gap-8">
+        <div className="min-w-0 space-y-6 bg-transparent">
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold leading-none">{am.serviceDescriptionTitle}</h2>
+            <p className="text-muted-foreground">{am.serviceDescription}</p>
+          </div>
           <div className="space-y-3">
             <p className="font-medium">Пример AI мастеринга</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -265,33 +257,19 @@ function AiMasteringPageInner() {
               ))}
             </div>
           </div>
-
           <div>
-            <h2 className="text-lg font-semibold mb-2">{am.priceTitle}</h2>
-            <p className="text-primary text-xl font-bold">{am.price}</p>
+            <h2 className="mb-2 text-lg font-semibold">{am.priceTitle}</h2>
+            <p className="text-xl font-bold text-primary">{am.price}</p>
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-4 bg-transparent lg:sticky lg:top-4">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold leading-none">{am.orderDialogTitle}</h3>
+            <p className="text-xs text-muted-foreground">{am.orderDialogDescription}</p>
           </div>
 
-          <div className="flex justify-start">
-            <Button type="button" onClick={() => setOrderOpen(true)}>
-              {am.orderButton}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" asChild>
-          <Link href={backHref}>{backLabel}</Link>
-        </Button>
-      </div>
-
-      <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-[84rem] max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{am.orderDialogTitle}</DialogTitle>
-            <DialogDescription>{am.orderDialogDescription}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             <div className="space-y-2">
               <Label htmlFor="ai-mastering-tracks">{am.tracksCountLabel}</Label>
               <Input
@@ -303,13 +281,13 @@ function AiMasteringPageInner() {
                 onChange={(e) => setTracksCount(Number(e.target.value) || 0)}
                 disabled={loading}
               />
-              <p className="text-sm text-muted-foreground">{am.tracksCountHint}</p>
+              <p className="text-xs text-muted-foreground">{am.tracksCountHint}</p>
             </div>
 
             <div className="space-y-3">
               <div>
                 <p className="text-sm font-medium leading-none">{am.tracksPickLabel}</p>
-                <p className="text-sm text-muted-foreground mt-1.5">{am.tracksPickHint}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground">{am.tracksPickHint}</p>
               </div>
               {Array.from({ length: tracksCount }, (_, i) => (
                 <div key={i} className="space-y-2">
@@ -363,14 +341,15 @@ function AiMasteringPageInner() {
                 onChange={(e) => setContactTelegram(e.target.value)}
                 disabled={loading}
               />
-              <p className="text-sm text-muted-foreground">{am.contactHint}</p>
+              <p className="text-xs text-muted-foreground">{am.contactHint}</p>
             </div>
 
-            <p className="text-sm font-medium">
-              {am.totalLabel}: {AI_MASTERING_PRICE_RUB} {am.currencySuffix} × {tracksCount} = {total} {am.currencySuffix}
+            <p className="text-sm font-semibold">
+              {am.totalLabel}: {AI_MASTERING_PRICE_RUB} {am.currencySuffix} × {tracksCount} = {total}{" "}
+              {am.currencySuffix}
             </p>
 
-            <div className="flex flex-row items-start gap-3 rounded-md border border-border p-4">
+            <div className="flex flex-row items-start gap-3 rounded-md border border-border p-3">
               <Checkbox
                 id="ai-mastering-consent-offer-license"
                 checked={consentOfferLicense}
@@ -379,7 +358,7 @@ function AiMasteringPageInner() {
               />
               <label
                 htmlFor="ai-mastering-consent-offer-license"
-                className="text-sm font-normal leading-snug cursor-pointer space-y-1"
+                className="cursor-pointer space-y-1 text-sm font-normal leading-snug"
               >
                 {t.pay.consentOfferLicenseIntro}{" "}
                 <Link href="/offer" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
@@ -389,28 +368,24 @@ function AiMasteringPageInner() {
               </label>
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOrderOpen(false)} disabled={loading}>
-                {am.cancel}
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  !validCount ||
-                  !slotsOk ||
-                  loading ||
-                  !consentOfferLicense ||
-                  !hasContact
-                }
-              >
-                {loading ? am.payLoading : am.pay}
-              </Button>
-            </DialogFooter>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!validCount || !slotsOk || loading || !consentOfferLicense || !hasContact}
+            >
+              {loading ? am.payLoading : am.pay}
+            </Button>
           </form>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" asChild>
+          <Link href={backHref}>{backLabel}</Link>
+        </Button>
+      </div>
 
       <Dialog
         open={paymentSuccessOpen}
@@ -426,7 +401,7 @@ function AiMasteringPageInner() {
         >
           <DialogHeader className="text-center sm:text-center">
             <DialogTitle>{am.paymentSuccessTitle}</DialogTitle>
-            <DialogDescription className="text-base text-foreground pt-2">
+            <DialogDescription className="pt-2 text-base text-foreground">
               {am.paymentSuccessToast}
             </DialogDescription>
           </DialogHeader>

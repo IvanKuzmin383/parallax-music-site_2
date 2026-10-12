@@ -244,7 +244,7 @@ function CabinetSupportChatInner() {
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">Поддержка</p>
               <p className="text-[11px] text-muted-foreground">
-                Обычно отвечаем в рабочие часы
+                пн-пт с 09:00 - 19:00
               </p>
             </div>
             <Button

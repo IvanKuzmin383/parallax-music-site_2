@@ -13,6 +13,12 @@ export const VIDEO_CLIP_STATUS_LABELS: Record<VideoClipStatus, string> = {
   rejected: "Отклонён",
 }
 
+export type VideoClipPlatformLinks = {
+  appleMusic: string | null
+  yandex: string | null
+  vk: string | null
+}
+
 export type VideoClipView = {
   id: string
   title: string
@@ -22,7 +28,10 @@ export type VideoClipView = {
   orderId: string | null
   fileUrl: string | null
   coverUrl: string | null
+  comment: string | null
+  previewTimecodeSec: number | null
   platforms: string[]
+  platformLinks: VideoClipPlatformLinks
   releaseDate: string | null
   createdAt: string
   updatedAt: string

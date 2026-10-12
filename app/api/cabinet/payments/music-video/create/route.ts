@@ -47,6 +47,15 @@ export async function POST(request: NextRequest) {
   const trackLink = typeof raw.trackLink === "string" ? raw.trackLink.trim() : ""
   const fileUrl = typeof raw.fileUrl === "string" ? raw.fileUrl.trim() : trackLink
   const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
+  const releaseDateRaw =
+    typeof raw.releaseDate === "string" ? raw.releaseDate.trim() : ""
+  const previewRaw = raw.previewTimecodeSec
+  const previewTimecodeSec =
+    typeof previewRaw === "number"
+      ? previewRaw
+      : typeof previewRaw === "string" && previewRaw.trim()
+        ? Number(previewRaw.trim())
+        : NaN
   const contactType = typeof raw.contactType === "string" ? raw.contactType.trim().toLowerCase() : ""
   const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
 
@@ -61,6 +70,18 @@ export async function POST(request: NextRequest) {
   }
   if (comment.length < 2) {
     return NextResponse.json({ error: "Поле «Комментарий» обязательно" }, { status: 400 })
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDateRaw)) {
+    return NextResponse.json(
+      { error: "Укажите дату публикации в формате ГГГГ-ММ-ДД" },
+      { status: 400 }
+    )
+  }
+  if (!Number.isFinite(previewTimecodeSec) || previewTimecodeSec < 0) {
+    return NextResponse.json(
+      { error: "Укажите таймкод превью в секундах (0 или больше)" },
+      { status: 400 }
+    )
   }
   if (!CONTACT_TYPE_VALUES.has(contactType)) {
     return NextResponse.json({ error: "Выберите корректный контакт для связи" }, { status: 400 })
@@ -88,7 +109,10 @@ export async function POST(request: NextRequest) {
     contactTelegram: isTelegramContact ? contactValue : undefined,
     serviceDetails: {
       trackTitle,
-      comment: [comment, `Файл клипа: ${fileUrl}`].filter(Boolean).join("\n"),
+      comment,
+      fileUrl,
+      releaseDate: releaseDateRaw,
+      previewTimecodeSec: Math.trunc(previewTimecodeSec),
       contactType,
       contactValue,
     },

@@ -5,7 +5,7 @@ import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import { ORDER_TIMELINE_STEPS } from "@/lib/cabinet/order-status-map"
@@ -41,7 +41,9 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/cabinet/orders"><ArrowLeft className="h-4 w-4 mr-2" />К заказам</Link>
+          <Link href="/cabinet/orders">
+            <ArrowLeft className="mr-2 h-4 w-4" />К заказам
+          </Link>
         </Button>
         <p className="text-muted-foreground">Заказ не найден</p>
       </div>
@@ -49,71 +51,84 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-3">
       <Button variant="ghost" size="sm" asChild>
-        <Link href="/cabinet/orders"><ArrowLeft className="h-4 w-4 mr-2" />К заказам</Link>
+        <Link href="/cabinet/orders">
+          <ArrowLeft className="mr-2 h-4 w-4" />К заказам
+        </Link>
       </Button>
 
-      <PageHeader title={order.serviceName}>
+      <PageHeader title={order.serviceName} className="mb-3 sm:mb-4">
         <StatusBadge status={order.status} />
       </PageHeader>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Стоимость</p>
-            <p className="text-xl font-bold">{order.amount.toLocaleString("ru-RU")} ₽</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-0.5 px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">Стоимость</p>
+            <p className="text-lg font-bold leading-none tabular-nums">
+              {order.amount.toLocaleString("ru-RU")} ₽
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Дата создания</p>
-            <p className="font-medium">{format(new Date(order.createdAt), "d MMMM yyyy", { locale: ru })}</p>
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-0.5 px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">Дата создания</p>
+            <p className="text-sm font-medium leading-snug">
+              {format(new Date(order.createdAt), "d MMMM yyyy", { locale: ru })}
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">ID заказа</p>
-            <p className="font-mono text-xs break-all">{order.id}</p>
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-0.5 px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">ID заказа</p>
+            <p className="break-all font-mono text-xs leading-snug">{order.id}</p>
           </CardContent>
         </Card>
       </div>
 
       {order.description ? (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Описание</CardTitle></CardHeader>
-          <CardContent><p className="text-sm text-muted-foreground">{order.description}</p></CardContent>
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-1.5 px-3 py-2.5">
+            <p className="text-sm font-medium">Описание</p>
+            <p className="text-sm text-muted-foreground">{order.description}</p>
+          </CardContent>
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Таймлайн статусов</CardTitle></CardHeader>
-        <CardContent>
-          <ol className="space-y-4">
+      <Card className="gap-0 py-0">
+        <CardContent className="space-y-2 px-3 py-2.5">
+          <p className="text-sm font-medium">Таймлайн статусов</p>
+          <ol className="space-y-1.5">
             {ORDER_TIMELINE_STEPS.map((step, index) => (
-              <li key={step.key} className="flex gap-3">
+              <li key={step.key} className="flex items-center gap-2.5">
                 <div
                   className={cn(
-                    "h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs shrink-0",
-                    index <= activeStep ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground"
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium",
+                    index <= activeStep
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted-foreground"
                   )}
                 >
                   {index + 1}
                 </div>
-                <div className="pt-1">
-                  <p className={cn("text-sm font-medium", index <= activeStep ? "text-foreground" : "text-muted-foreground")}>
-                    {step.label}
-                  </p>
-                </div>
+                <p
+                  className={cn(
+                    "text-sm leading-none",
+                    index <= activeStep ? "font-medium text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {step.label}
+                </p>
               </li>
             ))}
           </ol>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Комментарии</CardTitle></CardHeader>
-        <CardContent>
+      <Card className="gap-0 py-0">
+        <CardContent className="space-y-1.5 px-3 py-2.5">
+          <p className="text-sm font-medium">Комментарии</p>
           <p className="text-sm text-muted-foreground">
             Переписка по заказу будет отображаться здесь.
           </p>

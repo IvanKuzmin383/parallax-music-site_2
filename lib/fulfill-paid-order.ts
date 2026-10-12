@@ -326,11 +326,21 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     if (order.orderType === "music_video") {
       try {
         const { ensureVideoClipFromOrder } = await import("@/lib/video-clips")
+        const details = orderServiceDetails(order)
+        const fileUrl =
+          details?.fileUrl?.trim() ||
+          (comment.startsWith("http") ? comment : null)
         await ensureVideoClipFromOrder({
           userId: order.userId,
           orderId,
           title: trackTitle || "Видеоклип",
-          fileUrl: comment || null,
+          fileUrl,
+          comment: details?.comment?.trim() || comment || null,
+          releaseDate: details?.releaseDate?.trim() || null,
+          previewTimecodeSec:
+            typeof details?.previewTimecodeSec === "number"
+              ? details.previewTimecodeSec
+              : null,
         })
       } catch (e) {
         console.error("[fulfill-paid-order] video clip create failed", { orderId, e })

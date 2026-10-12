@@ -26,7 +26,6 @@ import {
 import {
   AiAnalysisBadge,
   AiAnalysisDialog,
-  AiAnalysisPanel,
   hasAiAnalysisText,
 } from "@/components/cabinet/releases/release-ai-analysis"
 import { ReleaseStatusTimeline } from "@/components/cabinet/releases/release-status-timeline"
@@ -273,19 +272,12 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         </section>
 
         {hasAiAnalysisText(aiAnalysisText) ? (
-          <>
-            <AiAnalysisPanel
-              text={aiAnalysisText!}
-              className="mt-2 sm:max-w-xl"
-              onRead={() => setAiOpen(true)}
-            />
-            <AiAnalysisDialog
-              open={aiOpen}
-              onOpenChange={setAiOpen}
-              title={title}
-              text={aiAnalysisText!}
-            />
-          </>
+          <AiAnalysisDialog
+            open={aiOpen}
+            onOpenChange={setAiOpen}
+            title={title}
+            text={aiAnalysisText!}
+          />
         ) : null}
 
         <ReleaseStatusTimeline

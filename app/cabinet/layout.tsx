@@ -3,6 +3,7 @@ import { CabinetSubscriptionExpiredGuard } from "@/components/cabinet-subscripti
 import { CabinetSessionProvider } from "@/lib/cabinet/hooks/cabinet-session-provider"
 import { CabinetRouteShell } from "@/components/cabinet/shell/cabinet-route-shell"
 import { CabinetThemeRoot } from "@/components/cabinet/shell/cabinet-theme-root"
+import { CABINET_THEME_BOOTSTRAP_SCRIPT } from "@/lib/cabinet/cabinet-theme"
 
 export const dynamic = "force-dynamic"
 
@@ -18,10 +19,14 @@ export default function CabinetLayout({
   return (
     <CabinetSubscriptionExpiredGuard>
       <CabinetSessionProvider>
-        <CabinetThemeRoot />
-        <div className="cabinet-theme min-h-screen bg-background text-foreground">
-          <CabinetRouteShell>{children}</CabinetRouteShell>
-        </div>
+        <script
+          dangerouslySetInnerHTML={{ __html: CABINET_THEME_BOOTSTRAP_SCRIPT }}
+        />
+        <CabinetThemeRoot>
+          <div className="cabinet-theme min-h-screen bg-background text-foreground">
+            <CabinetRouteShell>{children}</CabinetRouteShell>
+          </div>
+        </CabinetThemeRoot>
       </CabinetSessionProvider>
     </CabinetSubscriptionExpiredGuard>
   )

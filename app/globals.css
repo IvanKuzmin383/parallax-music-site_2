@@ -204,6 +204,22 @@
     animation: cabinet-dot-pulse 2.6s ease-in-out infinite;
   }
 
+  @keyframes ai-analysis-badge-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35);
+    }
+    50% {
+      opacity: 0.72;
+      box-shadow: 0 0 0 6px rgba(139, 92, 246, 0);
+    }
+  }
+
+  .animate-ai-analysis-badge-pulse {
+    animation: ai-analysis-badge-pulse 3.2s ease-in-out infinite;
+  }
+
   .animate-ripple {
     animation: ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -400,41 +416,79 @@
   animation: wizard-field-highlight-pulse 2.2s ease-out 1;
 }
 
-/* Кабинет «Parallax Studio»: свой ink + коралловый акцент (не клон мятных SaaS) */
-.cabinet-theme {
+/* Кабинет «Parallax Studio»: фирменный красный (как на сайте) + светлая/тёмная тема */
+.cabinet-theme,
+.cabinet-theme[data-cabinet-theme="dark"] {
   --background: #09090b;
   --foreground: #f2efe9;
   --card: #121116;
   --card-foreground: #f2efe9;
   --popover: #16141a;
   --popover-foreground: #f2efe9;
-  /* Ember coral - теплее и мягче кислотного красного */
-  --primary: oklch(0.68 0.15 38);
-  --primary-foreground: #140c0a;
+  /* Тот же primary, что у бренда: oklch(0.55 0.22 25) */
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.98 0 0);
   --secondary: #1b191f;
   --secondary-foreground: #f2efe9;
   --muted: #1b191f;
   --muted-foreground: #9a958c;
-  --accent: oklch(0.68 0.15 38);
-  --accent-foreground: #140c0a;
+  --accent: oklch(0.55 0.22 25);
+  --accent-foreground: oklch(0.98 0 0);
   --border: color-mix(in oklab, #f2efe9 10%, transparent);
   --input: #17151b;
-  --ring: oklch(0.68 0.15 38);
+  --ring: oklch(0.55 0.22 25);
   --sidebar: #0c0b0e;
   --sidebar-foreground: #f2efe9;
-  --sidebar-primary: oklch(0.68 0.15 38);
-  --sidebar-primary-foreground: #140c0a;
-  --sidebar-accent: color-mix(in oklab, oklch(0.68 0.15 38) 14%, #141218);
+  --sidebar-primary: oklch(0.55 0.22 25);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: color-mix(in oklab, oklch(0.55 0.22 25) 14%, #141218);
   --sidebar-accent-foreground: #f2efe9;
   --sidebar-border: color-mix(in oklab, #f2efe9 8%, transparent);
-  --sidebar-ring: oklch(0.68 0.15 38);
+  --sidebar-ring: oklch(0.55 0.22 25);
   --radius: 0.75rem;
-  --cabinet-glow: color-mix(in oklab, oklch(0.68 0.15 38) 28%, transparent);
+  --cabinet-glow: color-mix(in oklab, oklch(0.55 0.22 25) 22%, transparent);
+  --cabinet-hint: #5a5c63;
+  --cabinet-field-focus: #1a1b21;
+  --cabinet-card-edge: color-mix(in oklab, #f2efe9 9%, transparent);
+  --cabinet-active-fg: #fff;
   color: var(--foreground);
   background-color: var(--background);
 }
 
-/* Атмосфера основной области */
+.cabinet-theme[data-cabinet-theme="light"] {
+  --background: #f3f4f6;
+  --foreground: #17151a;
+  --card: #ffffff;
+  --card-foreground: #17151a;
+  --popover: #ffffff;
+  --popover-foreground: #17151a;
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: #ebecef;
+  --secondary-foreground: #17151a;
+  --muted: #ebecef;
+  --muted-foreground: #5f5a55;
+  --accent: oklch(0.55 0.22 25);
+  --accent-foreground: oklch(0.98 0 0);
+  --border: color-mix(in oklab, #17151a 12%, transparent);
+  --input: #ffffff;
+  --ring: oklch(0.55 0.22 25);
+  --sidebar: #fafafb;
+  --sidebar-foreground: #17151a;
+  --sidebar-primary: oklch(0.55 0.22 25);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: color-mix(in oklab, oklch(0.55 0.22 25) 12%, #fff);
+  --sidebar-accent-foreground: #17151a;
+  --sidebar-border: color-mix(in oklab, #17151a 10%, transparent);
+  --sidebar-ring: oklch(0.55 0.22 25);
+  --cabinet-glow: color-mix(in oklab, oklch(0.55 0.22 25) 16%, transparent);
+  --cabinet-hint: #6b6762;
+  --cabinet-field-focus: #f0f1f3;
+  --cabinet-card-edge: color-mix(in oklab, #17151a 10%, transparent);
+  --cabinet-active-fg: #17151a;
+}
+
+/* Атмосфера основной области - мягкий красный, без коралла */
 .cabinet-theme .cabinet-shell-main {
   position: relative;
   isolation: isolate;
@@ -448,14 +502,21 @@
   z-index: -1;
   background:
     radial-gradient(900px 420px at 12% -8%, var(--cabinet-glow), transparent 62%),
-    radial-gradient(720px 380px at 96% 4%, color-mix(in oklab, #c4a574 9%, transparent), transparent 58%),
-    radial-gradient(800px 500px at 50% 110%, color-mix(in oklab, oklch(0.68 0.15 38) 8%, transparent), transparent 60%);
+    radial-gradient(720px 380px at 96% 4%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 58%),
+    radial-gradient(800px 500px at 50% 110%, color-mix(in oklab, var(--primary) 7%, transparent), transparent 60%);
+}
+
+.cabinet-theme[data-cabinet-theme="light"] .cabinet-shell-main::before {
+  background:
+    radial-gradient(900px 420px at 10% -10%, var(--cabinet-glow), transparent 60%),
+    radial-gradient(700px 360px at 100% 0%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 55%);
+  opacity: 0.9;
 }
 
 /* Активный пункт сайдбара: полоска + мягкая заливка */
 .cabinet-theme [data-sidebar="menu-button"][data-active="true"] {
   background: color-mix(in oklab, var(--primary) 16%, transparent) !important;
-  color: #fff !important;
+  color: var(--cabinet-active-fg) !important;
   font-weight: 600;
   box-shadow: inset 3px 0 0 0 var(--primary);
 }
@@ -468,8 +529,15 @@
   background:
     linear-gradient(180deg, color-mix(in oklab, #fff 3.5%, transparent), transparent 42%),
     var(--card);
-  border-color: color-mix(in oklab, #f2efe9 9%, transparent);
+  border-color: var(--cabinet-card-edge);
   box-shadow: 0 1px 0 color-mix(in oklab, #fff 4%, transparent) inset;
+}
+
+.cabinet-theme[data-cabinet-theme="light"] [data-slot="card"] {
+  background: var(--card);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, #fff 80%, transparent) inset,
+    0 1px 2px color-mix(in oklab, #17151a 6%, transparent);
 }
 
 .cabinet-theme [data-slot="input"],
@@ -485,7 +553,7 @@
 .cabinet-theme [data-slot="select-trigger"]:focus-visible,
 .cabinet-theme [data-slot="input"]:focus-visible,
 .cabinet-theme [data-slot="textarea"]:focus-visible {
-  background-color: #1a1b21;
+  background-color: var(--cabinet-field-focus);
 }
 
 .cabinet-theme [data-slot="label"] {
@@ -553,8 +621,8 @@
 }
 
 .cabinet-theme [data-slot="tabs-trigger"][data-state="active"] {
-  background-color: color-mix(in oklab, var(--primary) 88%, #fff) !important;
-  border-color: transparent !important;
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
   color: var(--primary-foreground) !important;
 }
 
@@ -565,7 +633,7 @@
 /* Подсказки под полями - чуть приглушённее лейблов */
 .cabinet-theme .text-xs.text-muted-foreground,
 .cabinet-theme p.text-xs.text-muted-foreground {
-  color: #5a5c63;
+  color: var(--cabinet-hint);
 }
 
 /* Compact native audio controls (admin track preview) */

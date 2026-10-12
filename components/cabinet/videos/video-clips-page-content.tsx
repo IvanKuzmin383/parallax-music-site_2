@@ -2,9 +2,16 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Film, Search, Upload } from "lucide-react"
+import { ExternalLink, Film, MessageSquareText, Search, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { Spinner } from "@/components/ui/spinner"
 import { DistributionSectionTabs } from "@/components/cabinet/distribution/distribution-section-tabs"
@@ -13,6 +20,7 @@ import {
   type VideoClipStatus,
   type VideoClipView,
 } from "@/lib/video-clips-shared"
+import { PLATFORM_ICON_SRC } from "@/lib/smartlink-platforms"
 import { cn } from "@/lib/utils"
 
 const STATUS_TONE: Record<VideoClipStatus, string> = {
@@ -23,9 +31,61 @@ const STATUS_TONE: Record<VideoClipStatus, string> = {
   rejected: "bg-zinc-500/15 text-zinc-300",
 }
 
+const STREAMING_PLATFORMS = [
+  { key: "appleMusic" as const, label: "Apple Music", icon: PLATFORM_ICON_SRC.appleMusic },
+  { key: "yandex" as const, label: "Яндекс Музыка", icon: PLATFORM_ICON_SRC.yandex },
+  { key: "vk" as const, label: "VK", icon: PLATFORM_ICON_SRC.vk },
+]
+
+function StreamingIcon({
+  href,
+  label,
+  iconSrc,
+}: {
+  href: string | null
+  label: string
+  iconSrc: string
+}) {
+  const active = Boolean(href)
+  const inner = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={iconSrc}
+      alt=""
+      className={cn(
+        "h-7 w-7 object-contain transition-opacity",
+        active ? "opacity-100" : "opacity-30 grayscale"
+      )}
+    />
+  )
+  if (!active || !href) {
+    return (
+      <span
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md"
+        title={`${label} - ссылка появится после публикации`}
+        aria-label={`${label} недоступен`}
+      >
+        {inner}
+      </span>
+    )
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted/60"
+      title={label}
+      aria-label={label}
+    >
+      {inner}
+    </a>
+  )
+}
+
 function VideoClipCard({ clip }: { clip: VideoClipView }) {
   return (
-    <div className="rounded-xl border border-border bg-card/40 p-4 space-y-3">
+    <div className="rounded-xl border border-border bg-card/40 p-4">
       <div className="flex items-start gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-muted">
           {clip.coverUrl ? (
@@ -35,27 +95,65 @@ function VideoClipCard({ clip }: { clip: VideoClipView }) {
             <Film className="h-6 w-6 text-muted-foreground" />
           )}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="font-medium truncate">{clip.title}</p>
-          <p className="text-sm text-muted-foreground truncate">{clip.artist}</p>
-          <span
-            className={cn(
-              "inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-              STATUS_TONE[clip.status]
-            )}
-          >
-            {VIDEO_CLIP_STATUS_LABELS[clip.status]}
-          </span>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="space-y-1">
+            <p className="font-medium truncate">{clip.title}</p>
+            <p className="text-sm text-muted-foreground truncate">{clip.artist}</p>
+            <span
+              className={cn(
+                "inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
+                STATUS_TONE[clip.status]
+              )}
+            >
+              {VIDEO_CLIP_STATUS_LABELS[clip.status]}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {clip.fileUrl ? (
+              <Button asChild variant="outline" size="sm" className="h-8">
+                <a href={clip.fileUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                  Исходник
+                </a>
+              </Button>
+            ) : null}
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  disabled={!clip.comment}
+                >
+                  <MessageSquareText className="h-3.5 w-3.5 mr-1.5" />
+                  Пожелания
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Комментарии и пожелания</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                  {clip.comment || "Комментарий не указан"}
+                </p>
+              </DialogContent>
+            </Dialog>
+
+            <div className="ml-auto flex items-center gap-0.5">
+              {STREAMING_PLATFORMS.map((p) => (
+                <StreamingIcon
+                  key={p.key}
+                  href={clip.platformLinks[p.key]}
+                  label={p.label}
+                  iconSrc={p.icon}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-      {clip.platforms.length > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          Площадки: {clip.platforms.join(", ")}
-        </p>
-      ) : null}
-      {clip.releaseDate ? (
-        <p className="text-xs text-muted-foreground">Дата: {clip.releaseDate}</p>
-      ) : null}
     </div>
   )
 }

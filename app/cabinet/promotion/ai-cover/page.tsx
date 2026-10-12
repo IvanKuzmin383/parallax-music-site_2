@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -36,7 +35,6 @@ function AiCoverPageInner() {
   const backLabel = getCabinetServiceHubBackLabel(backHref, t.cabinet.promotion.backToServices)
   const service = t.cabinet.promotion.aiCover
   const formText = t.cabinet.promotion.trackCover
-  const [orderOpen, setOrderOpen] = useState(false)
   const [tracks, setTracks] = useState<Array<{ id: string; trackName: string }>>([])
   const [tracksLoading, setTracksLoading] = useState(true)
   const [trackTitle, setTrackTitle] = useState("")
@@ -99,10 +97,6 @@ function AiCoverPageInner() {
     })()
   }, [searchParams, router])
 
-  useEffect(() => {
-    if (!orderOpen) setError(null)
-  }, [orderOpen])
-
   const hasTracks = tracks.length > 0
   const validTrackTitle = orderWithoutTrackSelection || trackTitle.trim().length > 0
   const validComment = comment.trim().length >= 2
@@ -155,184 +149,181 @@ function AiCoverPageInner() {
 
   return (
     <div className="w-full min-w-0 max-w-none space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={backHref}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{service.title}</h1>
-            <p className="text-muted-foreground">{service.description}</p>
-          </div>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href={backHref}>
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">{service.title}</h1>
+          <p className="text-muted-foreground">{service.description}</p>
         </div>
+      </div>
 
-        <Card className="w-full min-w-0 max-w-none">
-          <CardContent className="space-y-6 pt-6">
-            <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,0.65fr)] lg:items-start lg:gap-8">
-              {service.exampleImages?.length ? (
-                <div className="min-w-0 space-y-3">
-                  <p className="font-medium">{service.examplesTitle}</p>
-                  <div className="flex flex-wrap gap-3">
-                    {service.exampleImages.map((image) => (
-                      <div
-                        key={image.src}
-                        className="h-[150px] w-[150px] shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-[180px] sm:w-[180px] md:h-[200px] md:w-[200px]"
-                      >
-                        <img
-                          src={image.src}
-                          alt={image.alt}
-                          width={300}
-                          height={300}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    ))}
-                  </div>
+      <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.7fr)] lg:items-start lg:gap-8">
+        {service.exampleImages?.length ? (
+          <div className="min-w-0 space-y-3">
+            <p className="font-medium">{service.examplesTitle}</p>
+            <div className="flex flex-wrap gap-3">
+              {service.exampleImages.map((image) => (
+                <div
+                  key={image.src}
+                  className="h-[150px] w-[150px] shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-[180px] sm:w-[180px] md:h-[200px] md:w-[200px]"
+                >
+                  <img
+                    src={image.src}
+                    alt={image.alt}
+                    width={300}
+                    height={300}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
-              ) : (
-                <div className="min-w-0" />
-              )}
-              <div className="min-w-0 space-y-3 lg:sticky lg:top-4">
-                <h2 className="text-xl font-semibold leading-none">
-                  {service.serviceDescriptionTitle}
-                </h2>
-                {Array.isArray(service.serviceSteps) && service.serviceSteps.length > 0 ? (
-                  <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground marker:text-foreground">
-                    {service.serviceSteps.map((step) => (
-                      <li key={step} className="pl-1">
-                        <span className="text-foreground">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{service.serviceDescription}</p>
-                )}
-              </div>
+              ))}
             </div>
-            <div>
-              <h2 className="mb-2 text-lg font-semibold">{service.priceTitle}</h2>
-              <p className="text-xl font-bold text-primary">{service.price}</p>
-            </div>
-            <div className="flex justify-start">
-              <Button type="button" onClick={() => setOrderOpen(true)}>
-                {formText.orderButton}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ) : (
+          <div className="min-w-0" />
+        )}
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" asChild>
-            <Link href={backHref}>{backLabel}</Link>
-          </Button>
-        </div>
-      <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-[84rem] max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{service.title}</DialogTitle>
-            <DialogDescription>{formText.orderDialogDescription}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="ai-cover-track-title">{formText.trackTitleLabel}</Label>
-              <div className="flex items-start gap-3 rounded-md border border-border p-3">
-                <Checkbox
-                  id="ai-cover-without-track-selection"
-                  checked={orderWithoutTrackSelection}
-                  onCheckedChange={(checked) => setOrderWithoutTrackSelection(checked === true)}
+        <div className="min-w-0 space-y-5 lg:sticky lg:top-4">
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold leading-none">
+              {service.serviceDescriptionTitle}
+            </h2>
+            {Array.isArray(service.serviceSteps) && service.serviceSteps.length > 0 ? (
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground marker:text-foreground">
+                {service.serviceSteps.map((step) => (
+                  <li key={step} className="pl-1">
+                    <span className="text-foreground">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-sm text-muted-foreground">{service.serviceDescription}</p>
+            )}
+          </div>
+
+          <div className="space-y-4 bg-transparent">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold leading-none">Заявка на услугу</h3>
+              <p className="text-xs text-muted-foreground">{formText.orderDialogDescription}</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-2">
+                <Label htmlFor="ai-cover-track-title">{formText.trackTitleLabel}</Label>
+                <div className="flex items-start gap-3 rounded-md border border-border p-3">
+                  <Checkbox
+                    id="ai-cover-without-track-selection"
+                    checked={orderWithoutTrackSelection}
+                    onCheckedChange={(checked) => setOrderWithoutTrackSelection(checked === true)}
+                    disabled={loading}
+                  />
+                  <label
+                    htmlFor="ai-cover-without-track-selection"
+                    className="cursor-pointer text-sm font-normal leading-snug"
+                  >
+                    {formText.orderWithoutTrackSelectionLabel}
+                  </label>
+                </div>
+                {orderWithoutTrackSelection ? (
+                  <p className="text-sm text-muted-foreground">
+                    {formText.orderWithoutTrackSelectionHint}
+                  </p>
+                ) : null}
+                <select
+                  id="ai-cover-track-title"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={trackTitle}
+                  onChange={(e) => setTrackTitle(e.target.value)}
+                  disabled={loading || tracksLoading || !hasTracks || orderWithoutTrackSelection}
+                >
+                  {tracksLoading ? (
+                    <option value="">{formText.trackSelectLoading}</option>
+                  ) : hasTracks ? (
+                    tracks.map((track) => (
+                      <option key={track.id} value={track.trackName}>
+                        {track.trackName}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">{formText.trackSelectEmpty}</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ai-cover-comment">{formText.commentLabel}</Label>
+                <Textarea
+                  id="ai-cover-comment"
+                  placeholder={formText.commentPlaceholder}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
                   disabled={loading}
                 />
-                <label htmlFor="ai-cover-without-track-selection" className="text-sm font-normal leading-snug cursor-pointer">
-                  {formText.orderWithoutTrackSelectionLabel}
-                </label>
+                <p className="text-xs text-muted-foreground">{formText.commentRequiredHint}</p>
               </div>
-              {orderWithoutTrackSelection ? (
-                <p className="text-sm text-muted-foreground">{formText.orderWithoutTrackSelectionHint}</p>
-              ) : null}
-              <select
-                id="ai-cover-track-title"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                value={trackTitle}
-                onChange={(e) => setTrackTitle(e.target.value)}
-                disabled={loading || tracksLoading || !hasTracks || orderWithoutTrackSelection}
-              >
-                {tracksLoading ? (
-                  <option value="">{formText.trackSelectLoading}</option>
-                ) : hasTracks ? (
-                  tracks.map((track) => (
-                    <option key={track.id} value={track.trackName}>
-                      {track.trackName}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">{formText.trackSelectEmpty}</option>
-                )}
-              </select>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ai-cover-comment">{formText.commentLabel}</Label>
-              <Textarea
-                id="ai-cover-comment"
-                placeholder={formText.commentPlaceholder}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={4}
-                disabled={loading}
-              />
-              <p className="text-sm text-muted-foreground">{formText.commentRequiredHint}</p>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="ai-cover-contact-type">{formText.contactTypeLabel}</Label>
+                <select
+                  id="ai-cover-contact-type"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={contactType}
+                  onChange={(e) => setContactType(e.target.value as "telegram" | "vk" | "max")}
+                  disabled={loading}
+                >
+                  <option value="telegram">{formText.contactTypeTelegram}</option>
+                  <option value="vk">{formText.contactTypeVk}</option>
+                  <option value="max">{formText.contactTypeMax}</option>
+                </select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ai-cover-contact-type">{formText.contactTypeLabel}</Label>
-              <select
-                id="ai-cover-contact-type"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                value={contactType}
-                onChange={(e) => setContactType(e.target.value as "telegram" | "vk" | "max")}
-                disabled={loading}
-              >
-                <option value="telegram">{formText.contactTypeTelegram}</option>
-                <option value="vk">{formText.contactTypeVk}</option>
-                <option value="max">{formText.contactTypeMax}</option>
-              </select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="ai-cover-contact-value">{formText.contactValueLabel}</Label>
+                <Input
+                  id="ai-cover-contact-value"
+                  type="text"
+                  placeholder={formText.contactValuePlaceholder}
+                  value={contactValue}
+                  onChange={(e) => setContactValue(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ai-cover-contact-value">{formText.contactValueLabel}</Label>
-              <Input
-                id="ai-cover-contact-value"
-                type="text"
-                placeholder={formText.contactValuePlaceholder}
-                value={contactValue}
-                onChange={(e) => setContactValue(e.target.value)}
-                disabled={loading}
-              />
-            </div>
+              <p className="text-sm font-semibold">
+                {formText.totalLabel}: {AI_COVER_PRICE_RUB} {formText.currencySuffix}
+              </p>
 
-            <p className="text-sm font-medium">
-              {formText.totalLabel}: {AI_COVER_PRICE_RUB} {formText.currencySuffix}
-            </p>
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOrderOpen(false)} disabled={loading}>
-                {formText.cancel}
-              </Button>
               <Button
                 type="submit"
-                disabled={!validTrackTitle || !validContact || !validComment || (!orderWithoutTrackSelection && !hasTracks) || loading}
+                className="w-full"
+                disabled={
+                  !validTrackTitle ||
+                  !validContact ||
+                  !validComment ||
+                  (!orderWithoutTrackSelection && !hasTracks) ||
+                  loading
+                }
               >
                 {loading ? formText.payLoading : formText.pay}
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" asChild>
+          <Link href={backHref}>{backLabel}</Link>
+        </Button>
+      </div>
 
       <Dialog
         open={paymentSuccessOpen}
@@ -348,7 +339,9 @@ function AiCoverPageInner() {
         >
           <DialogHeader className="text-center sm:text-center">
             <DialogTitle>{formText.paymentSuccessTitle}</DialogTitle>
-            <DialogDescription className="text-base text-foreground pt-2">{formText.paymentSuccessToast}</DialogDescription>
+            <DialogDescription className="pt-2 text-base text-foreground">
+              {formText.paymentSuccessToast}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-center">
             <Button type="button" className="min-w-[120px]" onClick={() => setPaymentSuccessOpen(false)}>

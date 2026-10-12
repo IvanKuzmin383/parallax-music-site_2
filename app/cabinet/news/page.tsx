@@ -5,6 +5,13 @@ import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { AnnouncementBody } from "@/components/announcement-body"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Spinner } from "@/components/ui/spinner"
 
 type NewsItem = {
@@ -14,10 +21,26 @@ type NewsItem = {
   createdAt: string
 }
 
+const PREVIEW_MAX = 160
+
+function plainPreview(body: string): string {
+  const plain = body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[#>*_~-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (plain.length <= PREVIEW_MAX) return plain
+  return `${plain.slice(0, PREVIEW_MAX).trimEnd()}…`
+}
+
 export default function CabinetNewsPage() {
   const [items, setItems] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<NewsItem | null>(null)
 
   const load = useCallback(async () => {
     setError(null)
@@ -53,30 +76,65 @@ export default function CabinetNewsPage() {
         <p className="text-sm text-muted-foreground">Пока нет новостей</p>
       ) : null}
 
-      <div className="space-y-4">
-        {items.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-xl border border-border/60 bg-card/70 px-4 py-4 sm:px-5 sm:py-5"
-          >
-            <header className="mb-3 space-y-1">
-              <h2 className="text-base font-semibold leading-snug sm:text-lg">{item.title}</h2>
-              {item.createdAt ? (
-                <time
-                  dateTime={item.createdAt}
-                  className="block text-xs text-muted-foreground"
-                >
-                  {format(new Date(item.createdAt), "d MMMM yyyy", { locale: ru })}
-                </time>
+      <div className="space-y-3">
+        {items.map((item) => {
+          const preview = plainPreview(item.body || "")
+          const needsMore = (item.body || "").trim().length > PREVIEW_MAX
+
+          return (
+            <article
+              key={item.id}
+              className="rounded-xl border border-border/60 bg-card/70 px-4 py-3.5 sm:px-5"
+            >
+              <header className="mb-2 space-y-1">
+                <h2 className="text-base font-semibold leading-snug sm:text-lg">{item.title}</h2>
+                {item.createdAt ? (
+                  <time dateTime={item.createdAt} className="block text-xs text-muted-foreground">
+                    {format(new Date(item.createdAt), "d MMMM yyyy", { locale: ru })}
+                  </time>
+                ) : null}
+              </header>
+              {preview ? (
+                <p className="text-sm leading-relaxed text-muted-foreground">{preview}</p>
               ) : null}
-            </header>
-            <AnnouncementBody
-              body={item.body}
-              className="text-sm text-muted-foreground leading-relaxed"
-            />
-          </article>
-        ))}
+              {needsMore ? (
+                <button
+                  type="button"
+                  className="mt-2 text-sm font-medium text-primary underline-offset-2 hover:underline"
+                  onClick={() => setSelected(item)}
+                >
+                  Читать полностью
+                </button>
+              ) : null}
+            </article>
+          )
+        })}
       </div>
+
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="flex max-h-[90vh] w-[95vw] flex-col gap-0 overflow-hidden sm:max-w-2xl">
+          {selected ? (
+            <>
+              <DialogHeader className="shrink-0 space-y-1.5 pr-6 text-left">
+                <DialogTitle className="text-left leading-snug">{selected.title}</DialogTitle>
+                {selected.createdAt ? (
+                  <DialogDescription className="text-left">
+                    {format(new Date(selected.createdAt), "d MMMM yyyy", { locale: ru })}
+                  </DialogDescription>
+                ) : (
+                  <DialogDescription className="sr-only">Текст новости</DialogDescription>
+                )}
+              </DialogHeader>
+              <div className="cabinet-sidebar-scroll mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+                <AnnouncementBody
+                  body={selected.body}
+                  className="text-sm leading-relaxed text-muted-foreground"
+                />
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

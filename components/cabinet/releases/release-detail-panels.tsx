@@ -503,7 +503,7 @@ export function ReleaseInfoButton({
         Информация о релизе
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="cabinet-scroll max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="pr-6 leading-snug">{title}</DialogTitle>
             <DialogDescription>

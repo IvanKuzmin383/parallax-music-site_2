@@ -1,10 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { ru } from "date-fns/locale"
-import { Bell, CreditCard, LogOut, User } from "lucide-react"
+import { Bell, CreditCard, LogOut, User, Wallet } from "lucide-react"
+import { formatRub } from "@/lib/withdrawal-payout-calc"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CabinetGlobalSearch } from "@/components/cabinet/shell/cabinet-global-search"
 import { CabinetProjectFilter } from "@/components/cabinet/shell/cabinet-project-filter"
+import { CabinetThemeToggle } from "@/components/cabinet/shell/cabinet-theme-toggle"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { cn } from "@/lib/utils"
@@ -68,7 +70,7 @@ export function CabinetTopbar() {
   const loadInbox = useCallback(async () => {
     try {
       const [eventsRes, newsRes] = await Promise.all([
-        fetch("/api/cabinet/notifications?limit=15", { credentials: "include" }),
+        fetch("/api/cabinet/notifications?limit=15&unread=1", { credentials: "include" }),
         fetch("/api/cabinet/announcements", { credentials: "include" }),
       ])
 
@@ -140,9 +142,82 @@ export function CabinetTopbar() {
   const name = user?.displayName?.trim() || "Аккаунт"
   const email = user?.email ?? ""
   const initial = userInitial(user?.displayName, user?.email)
+  const walletBalance = user?.walletBalance ?? 0
   const badgeCount = unreadEvents + news.length
-  const hasEvents = items.length > 0
-  const hasNews = news.length > 0
+
+  type InboxRow =
+    | {
+        kind: "event"
+        id: string
+        title: string
+        body: string | null
+        href: string | null
+        createdAt: string
+        unread: boolean
+      }
+    | {
+        kind: "news"
+        id: string
+        title: string
+        body: null
+        href: "/cabinet/news"
+        createdAt: string
+        unread: true
+      }
+
+  const inboxRows = useMemo((): InboxRow[] => {
+    const eventRows: InboxRow[] = items.map((item) => ({
+      kind: "event",
+      id: item.id,
+      title: item.title,
+      body: item.body,
+      href: item.href,
+      createdAt: item.createdAt,
+      unread: !item.readAt,
+    }))
+    const newsRows: InboxRow[] = news.map((item) => ({
+      kind: "news",
+      id: item.id,
+      title: item.title,
+      body: null,
+      href: "/cabinet/news",
+      createdAt: item.createdAt || new Date(0).toISOString(),
+      unread: true,
+    }))
+    return [...eventRows, ...newsRows].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  }, [items, news])
+
+  const markAllRead = useCallback(async () => {
+    try {
+      const tasks: Promise<unknown>[] = []
+      if (unreadEvents > 0) {
+        tasks.push(
+          fetch("/api/cabinet/notifications/read", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ all: true }),
+          })
+        )
+      }
+      for (const item of news) {
+        tasks.push(
+          fetch("/api/cabinet/announcements/dismiss", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ announcementId: item.id }),
+          })
+        )
+      }
+      await Promise.all(tasks)
+    } catch {
+      // ignore
+    }
+    await loadInbox()
+  }, [loadInbox, news, unreadEvents])
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/50 bg-background/55 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40 sm:px-4 md:px-6">
@@ -156,6 +231,7 @@ export function CabinetTopbar() {
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <CabinetThemeToggle />
         <DropdownMenu onOpenChange={(open) => open && void loadInbox()}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -184,29 +260,31 @@ export function CabinetTopbar() {
             <div className="cabinet-sidebar-scroll max-h-[min(22rem,70vh)] min-w-0 overflow-y-auto overscroll-contain">
               <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  События
+                  Непрочитанные
                 </p>
-                {unreadEvents > 0 ? (
+                {badgeCount > 0 ? (
                   <button
                     type="button"
                     className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground"
-                    onClick={() => void markEventsRead(undefined, true)}
+                    onClick={() => void markAllRead()}
                   >
                     Прочитать все
                   </button>
                 ) : null}
               </div>
 
-              {!hasEvents ? (
-                <p className="px-3 pb-3 text-sm text-muted-foreground">Нет новых событий</p>
+              {inboxRows.length === 0 ? (
+                <p className="px-3 pb-3 text-sm text-muted-foreground">
+                  Нет непрочитанных уведомлений
+                </p>
               ) : (
                 <ul className="min-w-0 space-y-0.5 px-1.5 pb-2">
-                  {items.map((item) => {
-                    const unread = !item.readAt
-                    const opensSupport = isSupportChatHref(item.href)
+                  {inboxRows.map((item) => {
+                    const opensSupport =
+                      item.kind === "event" && isSupportChatHref(item.href)
                     const rowClass = cn(
                       "block min-w-0 rounded-md px-2 py-2 transition-colors hover:bg-muted/70",
-                      unread
+                      item.unread
                         ? "bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/20"
                         : "bg-transparent",
                     )
@@ -215,7 +293,7 @@ export function CabinetTopbar() {
                         <span
                           className={cn(
                             "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                            unread ? "bg-emerald-500" : "bg-transparent",
+                            item.unread ? "bg-emerald-500" : "bg-transparent",
                           )}
                           aria-hidden
                         />
@@ -223,7 +301,7 @@ export function CabinetTopbar() {
                           <p
                             className={cn(
                               "break-words text-sm leading-snug text-foreground",
-                              unread ? "font-semibold" : "font-medium",
+                              item.unread ? "font-semibold" : "font-medium",
                             )}
                           >
                             {item.title}
@@ -241,12 +319,17 @@ export function CabinetTopbar() {
                     )
 
                     const onActivate = () => {
-                      if (unread) void markEventsRead([item.id])
+                      if (item.kind === "event" && item.unread) {
+                        void markEventsRead([item.id])
+                      }
+                      if (item.kind === "news") {
+                        void dismissNews(item.id)
+                      }
                       if (opensSupport) openCabinetSupportChat()
                     }
 
                     return (
-                      <li key={item.id} className="min-w-0">
+                      <li key={`${item.kind}-${item.id}`} className="min-w-0">
                         {opensSupport ? (
                           <button
                             type="button"
@@ -256,11 +339,7 @@ export function CabinetTopbar() {
                             {body}
                           </button>
                         ) : item.href ? (
-                          <Link
-                            href={item.href}
-                            className={rowClass}
-                            onClick={onActivate}
-                          >
+                          <Link href={item.href} className={rowClass} onClick={onActivate}>
                             {body}
                           </Link>
                         ) : (
@@ -277,51 +356,11 @@ export function CabinetTopbar() {
                   })}
                 </ul>
               )}
-
-              <div className="mx-3 border-t border-border/60" />
-
-              <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Новости
-                </p>
-                {hasNews ? (
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                    {news.length}
-                  </span>
-                ) : null}
-              </div>
-
-              {!hasNews ? (
-                <p className="px-3 pb-3 text-sm text-muted-foreground">
-                  Нет непрочитанных новостей
-                </p>
-              ) : (
-                <ul className="min-w-0 space-y-0.5 px-1.5 pb-2">
-                  {news.slice(0, 5).map((item) => (
-                    <li key={item.id} className="min-w-0">
-                      <Link
-                        href="/cabinet/news"
-                        className="block min-w-0 rounded-md bg-muted/35 px-2 py-2 transition-colors hover:bg-accent/60"
-                        onClick={() => void dismissNews(item.id)}
-                      >
-                        <p className="break-words text-sm font-semibold leading-snug">
-                          {item.title}
-                        </p>
-                        {item.createdAt ? (
-                          <p className="mt-0.5 text-[11px] text-muted-foreground/75">
-                            {relativeTime(item.createdAt)}
-                          </p>
-                        ) : null}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
 
             <div className="border-t border-border/60 p-1">
               <DropdownMenuItem asChild className="cursor-pointer justify-center">
-                <Link href="/cabinet/news">Все новости</Link>
+                <Link href="/cabinet/notifications">Показать все</Link>
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>
@@ -332,15 +371,24 @@ export function CabinetTopbar() {
             <Button
               type="button"
               variant="secondary"
-              size="icon"
               className={cn(
-                "h-9 w-9 rounded-full text-sm font-semibold",
-                "bg-primary/15 text-foreground ring-1 ring-inset ring-primary/30",
-                "hover:bg-primary/25",
+                "h-9 gap-2 rounded-full pl-1 pr-2.5 sm:pr-3",
+                "bg-muted/70 text-foreground ring-1 ring-inset ring-border/60",
+                "hover:bg-muted",
               )}
-              aria-label="Меню аккаунта"
+              aria-label={`Меню аккаунта, баланс ${formatRub(walletBalance)}`}
             >
-              {initial}
+              <span
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                  "bg-primary/15 text-foreground ring-1 ring-inset ring-primary/30",
+                )}
+              >
+                {initial}
+              </span>
+              <span className="text-sm font-medium tabular-nums whitespace-nowrap">
+                {formatRub(walletBalance)}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
@@ -351,6 +399,12 @@ export function CabinetTopbar() {
               ) : null}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/cabinet/finance/balance" className="cursor-pointer gap-2">
+                <Wallet className="h-4 w-4" />
+                Баланс · {formatRub(walletBalance)}
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/cabinet/settings?tab=profile#cabinet-tariff" className="cursor-pointer gap-2">
                 <CreditCard className="h-4 w-4" />

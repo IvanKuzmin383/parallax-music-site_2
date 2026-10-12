@@ -341,11 +341,25 @@ export async function POST(request: NextRequest) {
       if (order.orderType === "music_video") {
         try {
           const { ensureVideoClipFromOrder } = await import("@/lib/video-clips")
+          const details = order.serviceDetails
+          const titleFromDetails = details?.trackTitle?.trim()
+          const commentFromDetails = details?.comment?.trim()
+          const fileUrl =
+            details?.fileUrl?.trim() ||
+            (typeof comment === "string" && comment.startsWith("http") ? comment : null)
           await ensureVideoClipFromOrder({
             userId: order.userId,
             orderId,
-            title: String(trackTitle !== "-" ? trackTitle : "Видеоклип"),
-            fileUrl: comment !== "-" ? String(comment) : null,
+            title: titleFromDetails || (trackTitle !== "-" ? String(trackTitle) : "Видеоклип"),
+            fileUrl,
+            comment:
+              commentFromDetails ||
+              (comment !== "-" ? String(comment) : null),
+            releaseDate: details?.releaseDate?.trim() || null,
+            previewTimecodeSec:
+              typeof details?.previewTimecodeSec === "number"
+                ? details.previewTimecodeSec
+                : null,
           })
         } catch (e) {
           console.error("[payments/webhook] video clip create failed", { orderId, e })

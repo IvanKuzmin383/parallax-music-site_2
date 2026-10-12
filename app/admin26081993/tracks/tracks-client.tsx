@@ -428,7 +428,7 @@ export default function TracksPageClient() {
   const [lyricsExpanded, setLyricsExpanded] = useState(false)
   const [moderationHistoryExpanded, setModerationHistoryExpanded] = useState(false)
   const [trackEditorTab, setTrackEditorTab] = useState<
-    "moderation" | "release" | "content" | "distribution"
+    "moderation" | "release" | "content" | "distribution" | "history"
   >("moderation")
   const [trackDraftBaseline, setTrackDraftBaseline] = useState("")
   const [uploadDraftStatusBaseline, setUploadDraftStatusBaseline] = useState<UploadDraftStatus | "">(
@@ -3031,7 +3031,9 @@ export default function TracksPageClient() {
               <Tabs
                 value={trackEditorTab}
                 onValueChange={(v) =>
-                  setTrackEditorTab(v as "moderation" | "release" | "content" | "distribution")
+                  setTrackEditorTab(
+                    v as "moderation" | "release" | "content" | "distribution" | "history"
+                  )
                 }
                 className="flex min-h-0 flex-1 flex-col"
               >
@@ -3053,6 +3055,9 @@ export default function TracksPageClient() {
                   </TabsTrigger>
                   <TabsTrigger value="distribution" className="text-xs sm:text-sm">
                     Дистрибуция
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="text-xs sm:text-sm">
+                    История
                   </TabsTrigger>
                 </TabsList>
 
@@ -3159,7 +3164,6 @@ export default function TracksPageClient() {
                             ) : null}
                           </div>
                         ) : null}
-                        <AdminReleaseEntityVersions trackId={selectedTrack.id} />
                         <div className="space-y-2 rounded-md border border-violet-500/30 bg-violet-500/5 p-3">
                           <Label htmlFor="admin-ai-analysis">
                             AI-анализ релиза
@@ -3989,6 +3993,16 @@ export default function TracksPageClient() {
                 </div>
                 ) : null}
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="history" className="mt-0 space-y-4">
+                    {selectedTrack ? (
+                      <AdminReleaseEntityVersions trackId={selectedTrack.id} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        История версий доступна после создания трека из черновика.
+                      </p>
+                    )}
                   </TabsContent>
 
                 </div>

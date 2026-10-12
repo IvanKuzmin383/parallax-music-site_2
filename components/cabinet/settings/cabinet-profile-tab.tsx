@@ -196,11 +196,11 @@ export function CabinetProfileTab() {
             className="border-green-500/20 bg-green-500/5 py-4 gap-3 cursor-pointer transition-colors hover:bg-green-500/10"
             role="link"
             tabIndex={0}
-            onClick={() => router.push("/cabinet?tab=reports")}
+            onClick={() => router.push("/cabinet/finance/balance")}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault()
-                router.push("/cabinet?tab=reports")
+                router.push("/cabinet/finance/balance")
               }
             }}
           >

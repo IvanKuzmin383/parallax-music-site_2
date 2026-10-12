@@ -35,6 +35,7 @@ export function AiAnalysisBadge({
         className={cn(
           "border-transparent bg-violet-500/30 text-violet-100 hover:bg-violet-500/40",
           "cursor-pointer gap-1 text-[11px] font-medium",
+          "animate-ai-analysis-badge-pulse",
         )}
       >
         <Sparkles className="h-3 w-3" />

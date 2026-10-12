@@ -47,7 +47,7 @@ function BrandMark({ className }: { className?: string }) {
       className={cn(
         "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
         "bg-primary/15 ring-1 ring-inset ring-primary/35",
-        "shadow-[0_0_18px_-4px_var(--cabinet-glow,rgba(232,106,74,0.45))]",
+        "shadow-[0_0_18px_-4px_var(--cabinet-glow,rgba(220,50,40,0.4))]",
         className,
       )}
       aria-hidden

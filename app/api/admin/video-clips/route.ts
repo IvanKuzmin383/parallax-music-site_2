@@ -6,6 +6,14 @@ function requireAdmin(request: NextRequest) {
   return verifySession(getAdminToken(request))
 }
 
+function optionalUrl(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined
+  if (value === null) return null
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed || null
+}
+
 export async function GET(request: NextRequest) {
   if (!requireAdmin(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -31,6 +39,9 @@ export async function PATCH(request: NextRequest) {
     artist?: string
     platforms?: string[]
     releaseDate?: string | null
+    appleMusicUrl?: string | null
+    yandexMusicUrl?: string | null
+    vkUrl?: string | null
   }
   if (!body.id?.trim()) {
     return NextResponse.json({ error: "Укажите id" }, { status: 400 })
@@ -41,6 +52,9 @@ export async function PATCH(request: NextRequest) {
     artist: body.artist,
     platforms: body.platforms,
     releaseDate: body.releaseDate,
+    appleMusicUrl: optionalUrl(body.appleMusicUrl),
+    yandexMusicUrl: optionalUrl(body.yandexMusicUrl),
+    vkUrl: optionalUrl(body.vkUrl),
   })
   if (!clip) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 })

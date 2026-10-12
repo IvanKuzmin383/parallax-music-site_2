@@ -30,7 +30,10 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const [projectName, setProjectName] = useState("")
   const [trackLink, setTrackLink] = useState("")
   const [comment, setComment] = useState("")
+  const [releaseDate, setReleaseDate] = useState("")
+  const [previewTimecodeSec, setPreviewTimecodeSec] = useState("")
   const [submitting, setSubmitting] = useState<"card" | "balance" | null>(null)
+  const isMusicVideo = service.orderType === "music_video" || service.slug === "music-video"
 
   useEffect(() => {
     const paymentState = searchParams.get("payment")
@@ -84,6 +87,17 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       toast.error("Заполните комментарий к заказу")
       return
     }
+    if (!interestOnly && isMusicVideo && !releaseDate.trim()) {
+      toast.error("Укажите дату публикации")
+      return
+    }
+    if (!interestOnly && isMusicVideo) {
+      const preview = Number(previewTimecodeSec.trim())
+      if (!Number.isFinite(preview) || preview < 0) {
+        toast.error("Укажите таймкод превью в секундах")
+        return
+      }
+    }
 
     setSubmitting(payFromBalance ? "balance" : "card")
     try {
@@ -100,6 +114,12 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                 trackLink: link || undefined,
                 fileUrl: link || undefined,
                 comment: comment.trim(),
+                ...(isMusicVideo
+                  ? {
+                      releaseDate: releaseDate.trim(),
+                      previewTimecodeSec: Number(previewTimecodeSec.trim()),
+                    }
+                  : {}),
                 contactType: "telegram",
                 contactValue: "@artist",
                 ...(payFromBalance ? { payFromBalance: true } : {}),
@@ -127,6 +147,8 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         setProjectName("")
         setTrackLink("")
         setComment("")
+        setReleaseDate("")
+        setPreviewTimecodeSec("")
         return
       }
       if (data.paid === true) {
@@ -134,6 +156,8 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         setProjectName("")
         setTrackLink("")
         setComment("")
+        setReleaseDate("")
+        setPreviewTimecodeSec("")
         router.refresh()
         return
       }
@@ -214,6 +238,35 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
             <p className="text-xs text-muted-foreground">{service.linkFieldHint}</p>
           ) : null}
         </div>
+        {isMusicVideo ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="release-date">Дата публикации *</Label>
+              <Input
+                id="release-date"
+                type="date"
+                value={releaseDate}
+                onChange={(e) => setReleaseDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="preview-timecode">Таймкод превью (сек) *</Label>
+              <Input
+                id="preview-timecode"
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={previewTimecodeSec}
+                onChange={(e) => setPreviewTimecodeSec(e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-xs text-muted-foreground">
+                Секунда, с которой начинается превью клипа на площадках
+              </p>
+            </div>
+          </>
+        ) : null}
         <div className="space-y-1.5">
           <Label htmlFor="comment">Комментарий</Label>
           <Textarea

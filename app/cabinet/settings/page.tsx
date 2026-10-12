@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CabinetProfileTab } from "@/components/cabinet/settings/cabinet-profile-tab"
 import { SecuritySettings } from "@/components/cabinet/settings/security-settings"
@@ -22,8 +21,6 @@ export default function CabinetSettingsPage() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageHeader title="Настройки" />
-
       <Tabs
         value={tab}
         onValueChange={(v) => {
@@ -33,14 +30,19 @@ export default function CabinetSettingsPage() {
           router.replace(url, { scroll: false })
         }}
       >
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="profile">Профиль</TabsTrigger>
-          <TabsTrigger value="security">Безопасность</TabsTrigger>
-        </TabsList>
-        <TabsContent value="profile" className="mt-6 focus-visible:outline-none">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold tracking-tight md:text-[1.75rem] md:leading-tight">
+            Настройки
+          </h1>
+          <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:min-w-[16rem]">
+            <TabsTrigger value="profile">Профиль</TabsTrigger>
+            <TabsTrigger value="security">Безопасность</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="profile" className="mt-0 focus-visible:outline-none">
           <CabinetProfileTab />
         </TabsContent>
-        <TabsContent value="security" className="mt-6 focus-visible:outline-none">
+        <TabsContent value="security" className="mt-0 focus-visible:outline-none">
           <SecuritySettings />
         </TabsContent>
       </Tabs>

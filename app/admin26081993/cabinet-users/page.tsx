@@ -236,9 +236,9 @@ function AdminCabinetUsersPageInner() {
         return
       }
       toast.success("Пользователь добавлен")
-      setNewEmail("")
-      setNewPassword("")
-      setNewArtistName("")
+        setNewEmail("")
+        setNewPassword("")
+        setNewArtistName("")
       await loadUsers()
     } catch {
       toast.error("Ошибка сети")
@@ -256,8 +256,8 @@ function AdminCabinetUsersPageInner() {
       })
       if (!response.ok) {
         toast.error("Не удалось удалить")
-        return
-      }
+      return
+    }
       toast.success("Пользователь удалён")
       setDeleteDialogOpen(false)
       setUserToDelete(null)
@@ -341,12 +341,12 @@ function AdminCabinetUsersPageInner() {
             Кабинет:{" "}
             <span className="font-medium text-foreground">
               {(user.walletBalance || 0).toLocaleString("ru-RU")} ₽
-            </span>
+                  </span>
             {" · "}
             Роялти:{" "}
             <span className="font-medium text-emerald-500">
               {(user.streamingBalance || 0).toLocaleString("ru-RU")} ₽
-            </span>
+                  </span>
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -515,41 +515,41 @@ function AdminCabinetUsersPageInner() {
               ) : (
                 billingRuns.map((run) => (
                   <div key={run.id} className="space-y-2 rounded border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">
-                        {run.source === "admin_manual" ? "Ручной запуск из админки" : run.source}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(run.startedAt), "d MMM yyyy, HH:mm:ss", { locale: ru })}
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium">
+                          {run.source === "admin_manual" ? "Ручной запуск из админки" : run.source}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(run.startedAt), "d MMM yyyy, HH:mm:ss", { locale: ru })}
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
                       users: {run.usersConsidered} · списаний: {run.chargesInitiated} · напоминаний:{" "}
                       {run.remindersSent} · ошибок: {run.errorsCount}
-                    </p>
-                    {run.errors.length > 0 ? (
+                      </p>
+                      {run.errors.length > 0 ? (
                       <div className="rounded border border-destructive/20 bg-destructive/5 p-2">
                         <p className="mb-1 text-sm font-medium text-destructive">Ошибки:</p>
-                        <div className="space-y-1">
-                          {run.errors.slice(0, 5).map((errorText, idx) => (
+                          <div className="space-y-1">
+                            {run.errors.slice(0, 5).map((errorText, idx) => (
                             <p
                               key={`${run.id}-err-${idx}`}
                               className="break-words text-xs text-destructive/90"
                             >
-                              {errorText}
-                            </p>
-                          ))}
-                          {run.errors.length > 5 ? (
+                                {errorText}
+                              </p>
+                            ))}
+                            {run.errors.length > 5 ? (
                             <p className="text-xs text-muted-foreground">
                               ...и ещё {run.errors.length - 5}
                             </p>
-                          ) : null}
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-emerald-600">Ошибок нет</p>
-                    )}
-                  </div>
+                      ) : (
+                        <p className="text-xs text-emerald-600">Ошибок нет</p>
+                      )}
+                    </div>
                 ))
               )}
             </div>
@@ -565,7 +565,7 @@ function AdminCabinetUsersPageInner() {
             className="pl-9"
             aria-label="Поиск пользователей"
           />
-        </div>
+            </div>
 
         <div className="divide-y rounded-lg border">
           {users.length === 0 ? (
@@ -642,7 +642,7 @@ function AdminCabinetUsersPageInner() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+            </div>
   )
 }
 

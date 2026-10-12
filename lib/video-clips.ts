@@ -14,8 +14,13 @@ type ClipRow = {
   order_id: string | null
   file_url: string | null
   cover_url: string | null
+  comment: string | null
+  preview_timecode_sec: number | string | null
   status: string
   platforms_json: string | null
+  apple_music_url: string | null
+  yandex_music_url: string | null
+  vk_url: string | null
   release_date: string | null
   created_at: string
   updated_at: string
@@ -42,7 +47,34 @@ function parsePlatforms(raw: string | null): string[] {
   }
 }
 
+function toIntOrNull(v: number | string | null | undefined): number | null {
+  if (v === null || v === undefined || v === "") return null
+  const n = typeof v === "number" ? v : Number(v)
+  return Number.isFinite(n) ? Math.trunc(n) : null
+}
+
+function platformsFromLinks(links: {
+  appleMusic: string | null
+  yandex: string | null
+  vk: string | null
+}): string[] {
+  const out: string[] = []
+  if (links.appleMusic) out.push("Apple Music")
+  if (links.yandex) out.push("Яндекс Музыка")
+  if (links.vk) out.push("VK")
+  return out
+}
+
 function toView(row: ClipRow): VideoClipView {
+  const platformLinks = {
+    appleMusic: row.apple_music_url?.trim() || null,
+    yandex: row.yandex_music_url?.trim() || null,
+    vk: row.vk_url?.trim() || null,
+  }
+  const fromJson = parsePlatforms(row.platforms_json)
+  const platforms =
+    fromJson.length > 0 ? fromJson : platformsFromLinks(platformLinks)
+
   return {
     id: row.id,
     title: row.title,
@@ -52,7 +84,10 @@ function toView(row: ClipRow): VideoClipView {
     orderId: row.order_id,
     fileUrl: row.file_url,
     coverUrl: row.cover_url,
-    platforms: parsePlatforms(row.platforms_json),
+    comment: row.comment?.trim() || null,
+    previewTimecodeSec: toIntOrNull(row.preview_timecode_sec),
+    platforms,
+    platformLinks,
     releaseDate: row.release_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -114,21 +149,32 @@ export async function createVideoClip(input: {
   orderId?: string | null
   fileUrl?: string | null
   coverUrl?: string | null
+  comment?: string | null
+  previewTimecodeSec?: number | null
   status?: VideoClipStatus
   platforms?: string[]
   releaseDate?: string | null
+  appleMusicUrl?: string | null
+  yandexMusicUrl?: string | null
+  vkUrl?: string | null
 }): Promise<VideoClipView> {
   const id = randomUUID()
   const now = new Date().toISOString()
   const status = input.status ?? "draft"
   const platformsJson =
     input.platforms && input.platforms.length > 0 ? JSON.stringify(input.platforms) : null
+  const previewTimecodeSec =
+    typeof input.previewTimecodeSec === "number" && Number.isFinite(input.previewTimecodeSec)
+      ? Math.trunc(input.previewTimecodeSec)
+      : null
   await execute(
     `
     INSERT INTO video_clips (
       id, user_id, title, artist, track_id, order_id, file_url, cover_url,
-      status, platforms_json, release_date, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      comment, preview_timecode_sec, status, platforms_json,
+      apple_music_url, yandex_music_url, vk_url,
+      release_date, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       id,
@@ -139,8 +185,13 @@ export async function createVideoClip(input: {
       input.orderId ?? null,
       input.fileUrl ?? null,
       input.coverUrl ?? null,
+      input.comment?.trim() || null,
+      previewTimecodeSec,
       status,
       platformsJson,
+      input.appleMusicUrl?.trim() || null,
+      input.yandexMusicUrl?.trim() || null,
+      input.vkUrl?.trim() || null,
       input.releaseDate ?? null,
       now,
       now,
@@ -155,8 +206,13 @@ export async function createVideoClip(input: {
     order_id: input.orderId ?? null,
     file_url: input.fileUrl ?? null,
     cover_url: input.coverUrl ?? null,
+    comment: input.comment?.trim() || null,
+    preview_timecode_sec: previewTimecodeSec,
     status,
     platforms_json: platformsJson,
+    apple_music_url: input.appleMusicUrl?.trim() || null,
+    yandex_music_url: input.yandexMusicUrl?.trim() || null,
+    vk_url: input.vkUrl?.trim() || null,
     release_date: input.releaseDate ?? null,
     created_at: now,
     updated_at: now,
@@ -171,8 +227,13 @@ export async function updateVideoClip(
     artist?: string
     fileUrl?: string | null
     coverUrl?: string | null
+    comment?: string | null
+    previewTimecodeSec?: number | null
     platforms?: string[]
     releaseDate?: string | null
+    appleMusicUrl?: string | null
+    yandexMusicUrl?: string | null
+    vkUrl?: string | null
   }
 ): Promise<VideoClipView | null> {
   const existing = await queryOne<ClipRow>(`SELECT * FROM video_clips WHERE id = ?`, [id])
@@ -183,6 +244,14 @@ export async function updateVideoClip(
   const artist = patch.artist?.trim() || existing.artist
   const fileUrl = patch.fileUrl !== undefined ? patch.fileUrl : existing.file_url
   const coverUrl = patch.coverUrl !== undefined ? patch.coverUrl : existing.cover_url
+  const comment =
+    patch.comment !== undefined ? patch.comment?.trim() || null : existing.comment
+  const previewTimecodeSec =
+    patch.previewTimecodeSec !== undefined
+      ? typeof patch.previewTimecodeSec === "number" && Number.isFinite(patch.previewTimecodeSec)
+        ? Math.trunc(patch.previewTimecodeSec)
+        : null
+      : toIntOrNull(existing.preview_timecode_sec)
   const platformsJson =
     patch.platforms !== undefined
       ? patch.platforms.length
@@ -191,16 +260,43 @@ export async function updateVideoClip(
       : existing.platforms_json
   const releaseDate =
     patch.releaseDate !== undefined ? patch.releaseDate : existing.release_date
+  const appleMusicUrl =
+    patch.appleMusicUrl !== undefined
+      ? patch.appleMusicUrl?.trim() || null
+      : existing.apple_music_url
+  const yandexMusicUrl =
+    patch.yandexMusicUrl !== undefined
+      ? patch.yandexMusicUrl?.trim() || null
+      : existing.yandex_music_url
+  const vkUrl =
+    patch.vkUrl !== undefined ? patch.vkUrl?.trim() || null : existing.vk_url
   const now = new Date().toISOString()
 
   await execute(
     `
     UPDATE video_clips
     SET status = ?, title = ?, artist = ?, file_url = ?, cover_url = ?,
-        platforms_json = ?, release_date = ?, updated_at = ?
+        comment = ?, preview_timecode_sec = ?,
+        platforms_json = ?, apple_music_url = ?, yandex_music_url = ?, vk_url = ?,
+        release_date = ?, updated_at = ?
     WHERE id = ?
     `,
-    [status, title, artist, fileUrl, coverUrl, platformsJson, releaseDate, now, id]
+    [
+      status,
+      title,
+      artist,
+      fileUrl,
+      coverUrl,
+      comment,
+      previewTimecodeSec,
+      platformsJson,
+      appleMusicUrl,
+      yandexMusicUrl,
+      vkUrl,
+      releaseDate,
+      now,
+      id,
+    ]
   )
 
   return toView({
@@ -210,7 +306,12 @@ export async function updateVideoClip(
     artist,
     file_url: fileUrl,
     cover_url: coverUrl,
+    comment,
+    preview_timecode_sec: previewTimecodeSec,
     platforms_json: platformsJson,
+    apple_music_url: appleMusicUrl,
+    yandex_music_url: yandexMusicUrl,
+    vk_url: vkUrl,
     release_date: releaseDate,
     updated_at: now,
   })
@@ -221,6 +322,9 @@ export async function ensureVideoClipFromOrder(input: {
   orderId: string
   title: string
   fileUrl?: string | null
+  comment?: string | null
+  previewTimecodeSec?: number | null
+  releaseDate?: string | null
   artist?: string
 }): Promise<void> {
   const existing = await queryOne<{ id: string }>(
@@ -237,6 +341,9 @@ export async function ensureVideoClipFromOrder(input: {
     artist,
     orderId: input.orderId,
     fileUrl: input.fileUrl ?? null,
+    comment: input.comment ?? null,
+    previewTimecodeSec: input.previewTimecodeSec ?? null,
+    releaseDate: input.releaseDate ?? null,
     status: "on_moderation",
   })
 }
