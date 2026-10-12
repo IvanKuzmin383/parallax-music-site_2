@@ -145,7 +145,7 @@ export function CabinetTopbar() {
   const hasNews = news.length > 0
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 sm:px-4 md:px-5">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/50 bg-background/55 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40 sm:px-4 md:px-6">
       <div className="flex shrink-0 items-center md:hidden">
         <SidebarTrigger />
       </div>
@@ -335,7 +335,8 @@ export function CabinetTopbar() {
               size="icon"
               className={cn(
                 "h-9 w-9 rounded-full text-sm font-semibold",
-                "bg-muted text-foreground hover:bg-muted/80",
+                "bg-primary/15 text-foreground ring-1 ring-inset ring-primary/30",
+                "hover:bg-primary/25",
               )}
               aria-label="Меню аккаунта"
             >
@@ -364,7 +365,7 @@ export function CabinetTopbar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="cursor-pointer gap-2"
+              className="cursor-pointer gap-2 text-muted-foreground focus:text-rose-300"
               onSelect={() => void logout()}
             >
               <LogOut className="h-4 w-4" />

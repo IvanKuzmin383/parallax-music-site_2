@@ -14,9 +14,9 @@ export function CabinetAppShell({ children }: CabinetAppShellProps) {
   return (
     <SidebarProvider>
       <CabinetSidebar />
-      <SidebarInset>
+      <SidebarInset className="cabinet-shell-main bg-transparent">
         <CabinetTopbar />
-        <main className="min-w-0 w-full flex-1 px-3 py-4 sm:px-4 md:px-5 md:py-5">
+        <main className="relative min-w-0 w-full flex-1 px-3 py-4 sm:px-4 md:px-6 md:py-6">
           {children}
         </main>
       </SidebarInset>

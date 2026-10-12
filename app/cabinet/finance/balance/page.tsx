@@ -319,20 +319,27 @@ export default function FinanceBalancePage() {
   }
 
   return (
-    <div className="w-full max-w-none space-y-6">
-      <PageHeader title="Финансы" />
+    <div className="w-full max-w-none space-y-5">
+      <PageHeader
+        title="Финансы"
+        description="Баланс кабинета, роялти и история операций"
+      />
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="gap-2 py-4">
-          <CardContent className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Баланс кабинета</p>
-            <p className="text-2xl font-bold leading-none text-emerald-400">
-              {walletBalance.toLocaleString("ru-RU")} ₽
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Можно использовать для оплаты услуг лейбла.
-            </p>
-            <div className="flex flex-wrap gap-2 pt-0.5">
+        <Card className="gap-0 overflow-hidden py-0">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Баланс кабинета
+              </p>
+              <p className="text-2xl font-bold tabular-nums leading-none text-emerald-400">
+                {walletBalance.toLocaleString("ru-RU")} ₽
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Оплата услуг лейбла с баланса
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
               <Button type="button" size="sm" onClick={openTopup}>
                 Пополнить
               </Button>
@@ -340,16 +347,25 @@ export default function FinanceBalancePage() {
           </CardContent>
         </Card>
 
-        <Card className="gap-2 py-4">
-          <CardContent className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Роялти</p>
-            <p className="text-2xl font-bold leading-none text-amber-400">
-              {royaltyBalance.toLocaleString("ru-RU")} ₽
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Доступны к выводу или переводу на баланс кабинета.
-            </p>
-            <div className="flex flex-wrap gap-2 pt-0.5">
+        <Card className="gap-0 overflow-hidden py-0">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Роялти
+              </p>
+              <p className="text-2xl font-bold tabular-nums leading-none text-amber-400">
+                {royaltyBalance.toLocaleString("ru-RU")} ₽
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Вывод или перевод на баланс кабинета
+              </p>
+              {royaltyBalance > 0 && royaltyBalance < 1000 ? (
+                <p className="text-xs text-muted-foreground">
+                  Минимальная сумма вывода - 1 000 ₽
+                </p>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"
@@ -365,14 +381,9 @@ export default function FinanceBalancePage() {
                 onClick={openWithdraw}
                 disabled={royaltyBalance < 1000 || hasPending}
               >
-                {hasPending ? "Заявка в обработке" : "Вывод роялти"}
+                {hasPending ? "Заявка в обработке" : "Вывод"}
               </Button>
             </div>
-            {royaltyBalance > 0 && royaltyBalance < 1000 ? (
-              <p className="text-xs text-muted-foreground">
-                Минимальная сумма вывода - 1 000 ₽
-              </p>
-            ) : null}
           </CardContent>
         </Card>
       </div>

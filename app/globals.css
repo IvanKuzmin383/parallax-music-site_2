@@ -400,28 +400,76 @@
   animation: wizard-field-highlight-pulse 2.2s ease-out 1;
 }
 
-/* Кабинет: слои фона / полей / текста - чтобы инпуты не сливались со страницей */
+/* Кабинет «Parallax Studio»: свой ink + коралловый акцент (не клон мятных SaaS) */
 .cabinet-theme {
-  --background: #0a0b0d;
-  --foreground: #e1e1e6;
-  --card: #121318;
-  --card-foreground: #e1e1e6;
-  --popover: #16171b;
-  --popover-foreground: #e1e1e6;
-  --secondary: #1a1b21;
-  --secondary-foreground: #e1e1e6;
-  --muted: #1a1b21;
-  --muted-foreground: #7a7c85;
-  --border: #2c2d33;
-  --input: #16171b;
-  --sidebar: #0e0f12;
-  --sidebar-foreground: #e1e1e6;
-  --sidebar-accent: #1a1b21;
-  --sidebar-accent-foreground: #e1e1e6;
-  --sidebar-border: #2c2d33;
-  --radius: 0.5rem;
+  --background: #09090b;
+  --foreground: #f2efe9;
+  --card: #121116;
+  --card-foreground: #f2efe9;
+  --popover: #16141a;
+  --popover-foreground: #f2efe9;
+  /* Ember coral - теплее и мягче кислотного красного */
+  --primary: oklch(0.68 0.15 38);
+  --primary-foreground: #140c0a;
+  --secondary: #1b191f;
+  --secondary-foreground: #f2efe9;
+  --muted: #1b191f;
+  --muted-foreground: #9a958c;
+  --accent: oklch(0.68 0.15 38);
+  --accent-foreground: #140c0a;
+  --border: color-mix(in oklab, #f2efe9 10%, transparent);
+  --input: #17151b;
+  --ring: oklch(0.68 0.15 38);
+  --sidebar: #0c0b0e;
+  --sidebar-foreground: #f2efe9;
+  --sidebar-primary: oklch(0.68 0.15 38);
+  --sidebar-primary-foreground: #140c0a;
+  --sidebar-accent: color-mix(in oklab, oklch(0.68 0.15 38) 14%, #141218);
+  --sidebar-accent-foreground: #f2efe9;
+  --sidebar-border: color-mix(in oklab, #f2efe9 8%, transparent);
+  --sidebar-ring: oklch(0.68 0.15 38);
+  --radius: 0.75rem;
+  --cabinet-glow: color-mix(in oklab, oklch(0.68 0.15 38) 28%, transparent);
   color: var(--foreground);
   background-color: var(--background);
+}
+
+/* Атмосфера основной области */
+.cabinet-theme .cabinet-shell-main {
+  position: relative;
+  isolation: isolate;
+}
+
+.cabinet-theme .cabinet-shell-main::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 420px at 12% -8%, var(--cabinet-glow), transparent 62%),
+    radial-gradient(720px 380px at 96% 4%, color-mix(in oklab, #c4a574 9%, transparent), transparent 58%),
+    radial-gradient(800px 500px at 50% 110%, color-mix(in oklab, oklch(0.68 0.15 38) 8%, transparent), transparent 60%);
+}
+
+/* Активный пункт сайдбара: полоска + мягкая заливка */
+.cabinet-theme [data-sidebar="menu-button"][data-active="true"] {
+  background: color-mix(in oklab, var(--primary) 16%, transparent) !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 0 var(--primary);
+}
+
+.cabinet-theme [data-sidebar="menu-button"][data-active="true"] svg {
+  color: var(--primary);
+}
+
+.cabinet-theme [data-slot="card"] {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #fff 3.5%, transparent), transparent 42%),
+    var(--card);
+  border-color: color-mix(in oklab, #f2efe9 9%, transparent);
+  box-shadow: 0 1px 0 color-mix(in oklab, #fff 4%, transparent) inset;
 }
 
 .cabinet-theme [data-slot="input"],
@@ -505,14 +553,9 @@
 }
 
 .cabinet-theme [data-slot="tabs-trigger"][data-state="active"] {
-  background-color: var(--primary) !important;
-  border-color: var(--primary) !important;
+  background-color: color-mix(in oklab, var(--primary) 88%, #fff) !important;
+  border-color: transparent !important;
   color: var(--primary-foreground) !important;
-}
-
-.cabinet-theme [data-slot="card"] {
-  background-color: var(--card);
-  border-color: var(--border);
 }
 
 .cabinet-theme [data-slot="accordion-item"] {

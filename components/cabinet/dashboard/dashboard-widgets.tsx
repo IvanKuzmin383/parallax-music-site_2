@@ -136,62 +136,65 @@ export function DashboardMetricCards({
   balance: number
   royalty: number
 }) {
+  const metricCardClass =
+    "group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-border/70 bg-card/70 px-4 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card"
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <Link
-        href="/cabinet/distribution/music"
-        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+      <Link href="/cabinet/distribution/music" className={metricCardClass}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-inset ring-primary/25">
             <Disc3 className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">Релизы</p>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Релизы
+            </p>
             <p className="text-2xl font-semibold tabular-nums leading-tight">{releasesCount}</p>
           </div>
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground group-hover:border-primary/40 group-hover:text-primary transition-colors">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/80 text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-primary">
           <ArrowUpRight className="h-4 w-4" />
         </span>
       </Link>
 
-      <Link
-        href="/cabinet/finance/balance"
-        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+      <Link href="/cabinet/finance/balance" className={metricCardClass}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/25">
             <Wallet className="h-5 w-5 text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">Баланс</p>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Баланс
+            </p>
             <p className="text-2xl font-semibold tabular-nums leading-tight text-emerald-400">
               {formatRub(balance)}
             </p>
           </div>
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground group-hover:border-primary/40 group-hover:text-primary transition-colors">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/80 text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-primary">
           <ArrowUpRight className="h-4 w-4" />
         </span>
       </Link>
 
       <Link
         href="/cabinet/finance/balance?withdraw=1"
-        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card sm:col-span-2 lg:col-span-1"
+        className={cn(metricCardClass, "sm:col-span-2 lg:col-span-1")}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 ring-1 ring-inset ring-amber-500/25">
             <Banknote className="h-5 w-5 text-amber-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">Роялти</p>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Роялти
+            </p>
             <p className="text-2xl font-semibold tabular-nums leading-tight text-amber-400">
               {formatRub(royalty)}
             </p>
           </div>
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground group-hover:border-primary/40 group-hover:text-primary transition-colors">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/80 text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-primary">
           <ArrowUpRight className="h-4 w-4" />
         </span>
       </Link>
