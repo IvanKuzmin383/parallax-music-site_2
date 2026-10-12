@@ -64,21 +64,22 @@ export default function CabinetPublickaPage() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Музыка для бизнеса</h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Воспроизведение в общественных местах. Ваши треки попадут в плейлисты ресторанов, кафе, торговых центров и других общественных заведений России и стран СНГ.Ставка{" "}
-            {PUBLICKA_RATE_RUB.toLocaleString("ru-RU", { minimumFractionDigits: 2 })} ₽ за
-            прослушивание. Начисления попадают в роялти (Финансы).
-          </p>
+          <Button variant="outline" asChild className="shrink-0 self-start">
+            <Link href="/cabinet/music-stats?tab=publicka">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Статистика
+            </Link>
+          </Button>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/cabinet/music-stats?tab=publicka">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Статистика
-          </Link>
-        </Button>
+        <p className="w-full text-sm text-muted-foreground">
+          Воспроизведение в общественных местах. Ваши треки попадут в плейлисты ресторанов, кафе,
+          торговых центров и других общественных заведений России и стран СНГ. Ставка{" "}
+          {PUBLICKA_RATE_RUB.toLocaleString("ru-RU", { minimumFractionDigits: 2 })} ₽ за
+          прослушивание. Начисления попадают в роялти (Финансы).
+        </p>
       </div>
 
       {loading ? (
@@ -88,27 +89,33 @@ export default function CabinetPublickaPage() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Треков</CardTitle>
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-4 pb-0 pt-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Треков
+                </CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-bold tabular-nums">
+              <CardContent className="px-4 pt-0 text-xl font-bold tabular-nums leading-none">
                 {summary.count}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Прослушивания</CardTitle>
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-4 pb-0 pt-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Прослушивания
+                </CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-bold tabular-nums">
+              <CardContent className="px-4 pt-0 text-xl font-bold tabular-nums leading-none">
                 {summary.plays.toLocaleString("ru-RU")}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Заработано</CardTitle>
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-4 pb-0 pt-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Заработано
+                </CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-bold tabular-nums">
+              <CardContent className="px-4 pt-0 text-xl font-bold tabular-nums leading-none">
                 {summary.earnings.toLocaleString("ru-RU", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,

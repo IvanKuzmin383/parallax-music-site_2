@@ -24,11 +24,24 @@ export interface ServiceCatalogEntry {
   paymentStub?: boolean
   paymentEndpoint?: string
   orderType?: string
+  /** Плашка «Скоро» на карточке и странице услуги. */
+  comingSoon?: boolean
+  /** Только кнопка интереса без полей заявки. */
+  interestOnly?: boolean
+  /** Текст CTA для сбора интереса. */
+  interestCtaLabel?: string
   /** Подпись поля ссылки в форме заявки (по умолчанию - ссылка на трек). */
   linkFieldLabel?: string
   linkFieldPlaceholder?: string
   linkFieldHint?: string
   linkFieldRequired?: boolean
+  /** form-focus: форма слева, без колонки «что входит / как работает». */
+  layout?: "default" | "form-focus"
+  examples?: Array<{
+    platform: "appleMusic" | "yandex" | "vk"
+    title: string
+    href: string
+  }>
 }
 
 const DEFAULT_STEPS = [
@@ -165,34 +178,26 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
   {
     slug: "music-video",
     title: "Загрузить видеоклип",
-    shortDescription: "Доставка готового клипа на видеоплатформы площадок (Яндекс, VK и др.).",
+    shortDescription:
+      "Дистрибуция и монетизация ваших видеоклипов на Apple Music, VK Музыке и Яндекс Музыке",
     priceLabel: `${MUSIC_VIDEO_PRICE_RUB.toLocaleString("ru-RU")} ₽ / клип`,
     category: "design",
     href: "/cabinet/design/music-video",
-    features: [
-      "Загрузка готового клипа по ссылке на файл",
-      "Размещение на поддерживаемых площадках",
-      "Клип появляется в Дистрибуция → Видеоклипы",
-    ],
-    steps: [
-      "Оформите заказ: укажите релиз и ссылку на файл клипа, оплатите услугу",
-      "Менеджер проверит материал и уточнит детали при необходимости",
-      "Мы загружаем клип на площадки в оговорённые сроки",
-      "Вы получаете подтверждение в личном кабинете или на почту",
-    ],
-    requirements: [
-      "Название релиза / трека",
-      "Ссылка на скачивание клипа (Яндекс Диск, Google Drive и т.п.)",
-      "Права на видео и аудио",
-    ],
+    features: [],
+    steps: [],
+    requirements: [],
     faq: [
       {
-        q: "Какой формат файла нужен?",
-        a: "Обычно MP4, Full HD или выше. Точные требования подскажут при оформлении.",
+        q: "Сколько занимает публикация?",
+        a: "В среднем 5-6 дней.",
       },
       {
-        q: "На какие площадки загружаете?",
-        a: "Яндекс Музыка, VK Клипы и другие поддерживаемые видеоплатформы - уточним в заказе.",
+        q: "На какие площадки доставляется видеоклип?",
+        a: "Apple Music, VK Клипы, Яндекс Музыка.",
+      },
+      {
+        q: "Доступна ли статистика просмотров?",
+        a: "Просмотры видеоклипов на данный момент в кабинете не отображаются. Итоговые показатели поступают в финансовом отчёте.",
       },
     ],
     hasBackend: true,
@@ -202,6 +207,19 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     linkFieldPlaceholder: "https://disk.yandex.ru/...",
     linkFieldHint: "Укажите ссылку, по которой можно скачать клип (Яндекс Диск, Google Drive и т.п.).",
     linkFieldRequired: true,
+    layout: "form-focus",
+    examples: [
+      {
+        platform: "appleMusic",
+        title: "Открыть клип",
+        href: "https://music.apple.com/us/music-video/petal-in-the-pavement/1895421122",
+      },
+      {
+        platform: "yandex",
+        title: "Открыть клип",
+        href: "https://music.yandex.ru/video?ids=303926&activeIndex=0",
+      },
+    ],
   },
   {
     slug: "video-shots",
@@ -290,15 +308,22 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     "/cabinet/ai/press-release",
     ["Текст релиза", "Факты об артисте", "Готовность к публикации"]
   ),
-  mockService(
-    "deposit",
-    "Депонирование",
-    "Фиксация даты создания музыки, текста, обложки или фонограммы.",
-    "от 1 000 ₽",
-    "protect",
-    "/cabinet/protect/deposit",
-    ["Фиксация даты", "Справка", "Хранение метаданных"]
-  ),
+  {
+    ...mockService(
+      "deposit",
+      "Депонирование",
+      "Фиксация даты создания музыки, текста, обложки или фонограммы.",
+      "от 1 490 ₽",
+      "protect",
+      "/cabinet/protect/deposit",
+      ["Фиксация даты", "Справка", "Хранение метаданных"]
+    ),
+    comingSoon: true,
+    interestOnly: true,
+    interestCtaLabel: "Хочу задепонировать",
+    paymentStub: true,
+    paymentEndpoint: "/api/cabinet/payments/deposit/interest",
+  },
   mockService(
     "my-deposits",
     "Мои депозиты",

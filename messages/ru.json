@@ -1419,18 +1419,17 @@
         "serviceDescription": "Наша команда подготовит визуал для вашего релиза",
         "examplesTitle": "Примеры работ:",
         "exampleImages": [
-          {
-            "src": "/aicover/example1.png",
-            "alt": "Пример AI обложки 1"
-          },
-          {
-            "src": "/aicover/example2.png",
-            "alt": "Пример AI обложки 2"
-          },
-          {
-            "src": "/aicover/example3.png",
-            "alt": "Пример AI обложки 3"
-          }
+          { "src": "/aicover/example-01.webp", "alt": "Пример AI обложки 1" },
+          { "src": "/aicover/example-02.webp", "alt": "Пример AI обложки 2" },
+          { "src": "/aicover/example-03.webp", "alt": "Пример AI обложки 3" },
+          { "src": "/aicover/example-04.webp", "alt": "Пример AI обложки 4" },
+          { "src": "/aicover/example-05.webp", "alt": "Пример AI обложки 5" },
+          { "src": "/aicover/example-06.webp", "alt": "Пример AI обложки 6" },
+          { "src": "/aicover/example-07.webp", "alt": "Пример AI обложки 7" },
+          { "src": "/aicover/example-08.webp", "alt": "Пример AI обложки 8" },
+          { "src": "/aicover/example-09.webp", "alt": "Пример AI обложки 9" },
+          { "src": "/aicover/example-10.webp", "alt": "Пример AI обложки 10" },
+          { "src": "/aicover/example-11.webp", "alt": "Пример AI обложки 11" }
         ],
         "priceTitle": "Стоимость",
         "moreDetails": "Подробнее"

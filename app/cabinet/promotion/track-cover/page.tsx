@@ -180,18 +180,32 @@ function TrackCoverPageInner() {
 
             <div>
               <h2 className="text-lg font-semibold mb-4">Примеры работ</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="flex flex-wrap gap-3">
                 {[
-                  { src: "/aicover/example1.png", alt: "Пример обложки 1" },
-                  { src: "/aicover/example2.png", alt: "Пример обложки 2" },
-                  { src: "/aicover/example3.png", alt: "Пример обложки 3" },
+                  { src: "/aicover/example-01.webp", alt: "Пример обложки 1" },
+                  { src: "/aicover/example-02.webp", alt: "Пример обложки 2" },
+                  { src: "/aicover/example-03.webp", alt: "Пример обложки 3" },
+                  { src: "/aicover/example-04.webp", alt: "Пример обложки 4" },
+                  { src: "/aicover/example-05.webp", alt: "Пример обложки 5" },
+                  { src: "/aicover/example-06.webp", alt: "Пример обложки 6" },
+                  { src: "/aicover/example-07.webp", alt: "Пример обложки 7" },
+                  { src: "/aicover/example-08.webp", alt: "Пример обложки 8" },
+                  { src: "/aicover/example-09.webp", alt: "Пример обложки 9" },
+                  { src: "/aicover/example-10.webp", alt: "Пример обложки 10" },
+                  { src: "/aicover/example-11.webp", alt: "Пример обложки 11" },
                 ].map((image) => (
-                  <div key={image.src} className="overflow-hidden rounded-lg border border-border bg-muted">
+                  <div
+                    key={image.src}
+                    className="h-[150px] w-[150px] shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-[180px] sm:w-[180px]"
+                  >
                     <img
                       src={image.src}
                       alt={image.alt}
-                      className="aspect-square w-full object-cover"
+                      width={300}
+                      height={300}
+                      className="h-full w-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 ))}

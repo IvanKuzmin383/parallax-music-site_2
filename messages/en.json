@@ -1147,18 +1147,17 @@
         "serviceDescription": "You upload a track without artwork, and our team prepares visuals and separately aligns the final version with you.",
         "examplesTitle": "Examples:",
         "exampleImages": [
-          {
-            "src": "/aicover/example1.png",
-            "alt": "AI cover example 1"
-          },
-          {
-            "src": "/aicover/example2.png",
-            "alt": "AI cover example 2"
-          },
-          {
-            "src": "/aicover/example3.png",
-            "alt": "AI cover example 3"
-          }
+          { "src": "/aicover/example-01.webp", "alt": "AI cover example 1" },
+          { "src": "/aicover/example-02.webp", "alt": "AI cover example 2" },
+          { "src": "/aicover/example-03.webp", "alt": "AI cover example 3" },
+          { "src": "/aicover/example-04.webp", "alt": "AI cover example 4" },
+          { "src": "/aicover/example-05.webp", "alt": "AI cover example 5" },
+          { "src": "/aicover/example-06.webp", "alt": "AI cover example 6" },
+          { "src": "/aicover/example-07.webp", "alt": "AI cover example 7" },
+          { "src": "/aicover/example-08.webp", "alt": "AI cover example 8" },
+          { "src": "/aicover/example-09.webp", "alt": "AI cover example 9" },
+          { "src": "/aicover/example-10.webp", "alt": "AI cover example 10" },
+          { "src": "/aicover/example-11.webp", "alt": "AI cover example 11" }
         ],
         "priceTitle": "Pricing",
         "moreDetails": "Learn more"

@@ -176,10 +176,21 @@ function AiCoverPageInner() {
             {service.exampleImages?.length ? (
               <div className="space-y-3">
                 <p className="font-medium">{service.examplesTitle}</p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="flex flex-wrap gap-3">
                   {service.exampleImages.map((image) => (
-                    <div key={image.src} className="aspect-square overflow-hidden rounded-md border border-border bg-muted">
-                      <img src={image.src} alt={image.alt} className="h-full w-full object-cover" loading="lazy" />
+                    <div
+                      key={image.src}
+                      className="h-[150px] w-[150px] shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-[180px] sm:w-[180px] md:h-[200px] md:w-[200px]"
+                    >
+                      <img
+                        src={image.src}
+                        alt={image.alt}
+                        width={300}
+                        height={300}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                   ))}
                 </div>

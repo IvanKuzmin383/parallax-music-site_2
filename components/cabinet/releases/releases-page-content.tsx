@@ -221,9 +221,9 @@ export function MusicReleasesPageContent() {
   const uploadArtist = artistFilters.length === 1 ? artistFilters[0] : undefined
 
   return (
-    <div className="w-full max-w-none space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-3">
+    <div className="w-full max-w-none space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
           <h1 className="text-2xl font-bold tracking-tight leading-tight md:text-3xl">
             Дистрибуция
           </h1>
@@ -245,7 +245,7 @@ export function MusicReleasesPageContent() {
       </div>
 
       {!loading && artistScoped.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card/40 p-2 sm:p-2.5">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl bg-card/40 p-1.5">
           {RELEASE_FILTERS.map((f) => {
             const active = filter === f.key
             return (
@@ -254,15 +254,23 @@ export function MusicReleasesPageContent() {
                 type="button"
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-left transition-colors",
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-left transition-colors",
                   active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50"
                 )}
               >
-                <span className={cn("text-lg font-semibold tabular-nums", COUNT_TONE[f.key])}>
-                  {counts[f.key]}
-                </span>{" "}
                 <span
-                  className={cn("text-sm", active ? "text-foreground" : "text-muted-foreground")}
+                  className={cn(
+                    "text-sm font-semibold tabular-nums leading-none",
+                    COUNT_TONE[f.key]
+                  )}
+                >
+                  {counts[f.key]}
+                </span>
+                <span
+                  className={cn(
+                    "text-sm leading-none",
+                    active ? "text-foreground" : "text-muted-foreground"
+                  )}
                 >
                   {STAT_LABELS[f.key]}
                 </span>
@@ -270,7 +278,7 @@ export function MusicReleasesPageContent() {
             )
           })}
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-            <SelectTrigger className="ml-auto h-9 w-full sm:w-[11.5rem]">
+            <SelectTrigger className="ml-auto h-8 w-full sm:w-[11.5rem]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

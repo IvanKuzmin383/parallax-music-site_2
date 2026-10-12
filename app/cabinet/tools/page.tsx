@@ -4,7 +4,15 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 
-const TOOL_SECTIONS = [
+type ToolItem = {
+  label: string
+  href: string
+  description: string
+  soon?: boolean
+  priceLabel?: string
+}
+
+const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
   {
     title: "Оформление и звук",
     items: [
@@ -23,10 +31,16 @@ const TOOL_SECTIONS = [
     items: [
       { label: "Пресс-релиз", href: "/cabinet/ai/press-release", description: "Текст для промо" },
       { label: "Питчинг", href: "/cabinet/ai/pitch", description: "Материалы для кураторов" },
-      { label: "Депонирование", href: "/cabinet/protect/deposit", description: "Фиксация авторства" },
+      {
+        label: "Депонирование",
+        href: "/cabinet/protect/deposit",
+        description: "Фиксация авторства",
+        soon: true,
+        priceLabel: "от 1 490 ₽",
+      },
     ],
   },
-] as const
+]
 
 export default function CabinetToolsPage() {
   return (
@@ -45,8 +59,18 @@ export default function CabinetToolsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 space-y-1">
-                    <p className="font-medium">{item.label}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{item.label}</p>
+                      {item.soon ? (
+                        <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                          Скоро
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
+                    {item.priceLabel ? (
+                      <p className="text-sm font-medium text-primary">{item.priceLabel}</p>
+                    ) : null}
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
                 </div>

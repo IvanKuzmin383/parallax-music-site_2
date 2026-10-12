@@ -13,8 +13,10 @@ import { ComingSoonButton } from "@/components/cabinet/shared/coming-soon-button
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { getCabinetServiceHubHref } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { PLATFORM_ICON_SRC } from "@/lib/smartlink-platforms"
 import Link from "next/link"
-import { ArrowLeft, CheckCircle2 } from "lucide-react"
+import Image from "next/image"
+import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react"
 
 interface ServicePageTemplateProps {
   service: ServiceCatalogEntry
@@ -65,20 +67,21 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const handleCardPay = async () => {
     const isStub = Boolean(service.paymentStub && service.paymentEndpoint)
     const isLivePay = Boolean(service.hasBackend && service.paymentEndpoint && !service.paymentStub)
+    const interestOnly = Boolean(service.interestOnly)
 
     if (!isStub && !isLivePay) {
       handleMockOrder()
       return
     }
-    if (!projectName.trim()) {
+    if (!interestOnly && !projectName.trim()) {
       toast.error("Укажите название релиза или проекта")
       return
     }
-    if (service.linkFieldRequired && !trackLink.trim()) {
+    if (!interestOnly && service.linkFieldRequired && !trackLink.trim()) {
       toast.error(`Укажите: ${service.linkFieldLabel || "ссылку"}`)
       return
     }
-    if (isLivePay && (!comment.trim() || comment.trim().length < 2)) {
+    if (!interestOnly && isLivePay && (!comment.trim() || comment.trim().length < 2)) {
       toast.error("Заполните комментарий к заказу")
       return
     }
@@ -90,14 +93,18 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          trackTitle: projectName.trim(),
-          trackLink: link || undefined,
-          fileUrl: link || undefined,
-          comment: comment.trim(),
-          contactType: "telegram",
-          contactValue: "@artist",
-        }),
+        body: JSON.stringify(
+          interestOnly
+            ? {}
+            : {
+                trackTitle: projectName.trim(),
+                trackLink: link || undefined,
+                fileUrl: link || undefined,
+                comment: comment.trim(),
+                contactType: "telegram",
+                contactValue: "@artist",
+              }
+        ),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -131,7 +138,34 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
     }
   }
 
-  const orderForm = (
+  const interestCta = service.interestCtaLabel || "Оставить заявку"
+
+  const orderForm = service.interestOnly ? (
+    <Card id="order-form" className="w-full min-w-0 border-primary/20">
+      <CardHeader className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle>Скоро в кабинете</CardTitle>
+          {service.comingSoon ? (
+            <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+              Скоро
+            </span>
+          ) : null}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Оставьте интерес - мы напишем, когда депонирование станет доступно. Оплата сейчас не
+          списывается.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm font-medium">
+          Стоимость: <span className="text-primary">{service.priceLabel}</span>
+        </p>
+        <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full">
+          {submitting ? "Отправка..." : interestCta}
+        </Button>
+      </CardContent>
+    </Card>
+  ) : (
     <Card id="order-form" className="w-full min-w-0 border-primary/20">
       <CardHeader>
         <CardTitle>Заявка на услугу</CardTitle>
@@ -139,7 +173,12 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="project">Название релиза / проекта</Label>
-          <Input id="project" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Мой сингл" />
+          <Input
+            id="project"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="Мой сингл"
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="link">
@@ -158,9 +197,15 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="comment">Комментарий</Label>
-          <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Пожелания к заказу" rows={4} />
+          <Textarea
+            id="comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Пожелания к заказу"
+            rows={4}
+          />
         </div>
-        <div className="rounded-md border border-border p-4 space-y-3">
+        <div className="space-y-3 rounded-md border border-border p-4">
           <p className="font-semibold">Итого: {service.priceLabel}</p>
           {service.paymentStub ? (
             <p className="text-sm text-muted-foreground">
@@ -198,8 +243,17 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
             </Link>
           </Button>
           <div className="min-w-0 space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{service.title}</h1>
-            <p className="text-muted-foreground text-sm md:text-base max-w-2xl">{service.shortDescription}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{service.title}</h1>
+              {service.comingSoon ? (
+                <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+                  Скоро
+                </span>
+              ) : null}
+            </div>
+            <p className="max-w-3xl text-sm text-muted-foreground md:text-base">
+              {service.shortDescription}
+            </p>
           </div>
         </div>
         <Button type="button" variant="outline" className="shrink-0 self-start" onClick={() => openCabinetSupportChat()}>
@@ -207,60 +261,68 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         </Button>
       </div>
 
-      <Card className="w-full min-w-0 border-primary/20">
-        <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <p className="text-3xl font-bold text-primary">{service.priceLabel}</p>
-            <p className="text-muted-foreground text-sm mt-1">Стоимость услуги</p>
+      <Card className="w-full min-w-0 gap-0 border-primary/20 py-0">
+        <CardContent className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xl font-bold leading-none text-primary sm:text-2xl">
+              {service.priceLabel}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Стоимость услуги</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" })}>
-              Заказать
+            <Button
+              size="sm"
+              onClick={() =>
+                service.interestOnly
+                  ? void handleCardPay()
+                  : document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" })
+              }
+              disabled={submitting && Boolean(service.interestOnly)}
+            >
+              {service.interestOnly ? interestCta : "Заказать"}
             </Button>
-            <Button variant="outline" asChild>
+            <Button size="sm" variant="outline" asChild>
               <Link href="#faq">Подробнее</Link>
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-        <div className="min-w-0 space-y-8">
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Что входит</h2>
-            <ul className="space-y-2">
-              {service.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </section>
+      {service.layout === "form-focus" ? (
+        <div className="w-full min-w-0 space-y-8">
+          <div className="w-full max-w-xl min-w-0">{orderForm}</div>
 
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Как это работает</h2>
-            <ol className="space-y-2 text-sm text-muted-foreground">
-              {service.steps.map((step, i) => (
-                <li key={step} className="flex gap-2 text-foreground">
-                  <span className="text-muted-foreground shrink-0">{i + 1}.</span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Что нужно от артиста</h2>
-            <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
-              {service.requirements.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
-          </section>
+          {service.examples && service.examples.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Примеры видеоклипов</h2>
+              <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {service.examples.map((ex) => (
+                  <li key={ex.href}>
+                    <a
+                      href={ex.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+                    >
+                      <Image
+                        src={PLATFORM_ICON_SRC[ex.platform]}
+                        alt=""
+                        width={22}
+                        height={22}
+                        className="h-[22px] w-[22px] shrink-0 object-contain"
+                        unoptimized
+                      />
+                      <span>{ex.title}</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {service.faq.length > 0 ? (
-            <section id="faq" className="space-y-3">
+            <section id="faq" className="max-w-2xl space-y-3">
               <h2 className="text-lg font-semibold">FAQ</h2>
               <Accordion type="single" collapsible className="w-full">
                 {service.faq.map((item, i) => (
@@ -273,9 +335,66 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
             </section>
           ) : null}
         </div>
+      ) : (
+        <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+          <div className="min-w-0 space-y-8">
+            {service.features.length > 0 ? (
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold">Что входит</h2>
+                <ul className="space-y-2">
+                  {service.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
-        <aside className="min-w-0 lg:sticky lg:top-4">{orderForm}</aside>
-      </div>
+            {service.steps.length > 0 ? (
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold">Как это работает</h2>
+                <ol className="space-y-2 text-sm text-muted-foreground">
+                  {service.steps.map((step, i) => (
+                    <li key={step} className="flex gap-2 text-foreground">
+                      <span className="shrink-0 text-muted-foreground">{i + 1}.</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
+
+            {service.requirements.length > 0 ? (
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold">Что нужно от артиста</h2>
+                <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
+                  {service.requirements.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {service.faq.length > 0 ? (
+              <section id="faq" className="space-y-3">
+                <h2 className="text-lg font-semibold">FAQ</h2>
+                <Accordion type="single" collapsible className="w-full">
+                  {service.faq.map((item, i) => (
+                    <AccordionItem key={item.q} value={`faq-${i}`}>
+                      <AccordionTrigger>{item.q}</AccordionTrigger>
+                      <AccordionContent>{item.a}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </section>
+            ) : null}
+          </div>
+
+          <aside className="min-w-0 lg:sticky lg:top-4">{orderForm}</aside>
+        </div>
+      )}
     </div>
   )
 }

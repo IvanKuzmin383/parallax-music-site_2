@@ -2316,25 +2316,27 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
             <ModerationNoteAside note={moderationNote} maxHeight={140} />
           ) : null}
           <div className="flex flex-col gap-4 rounded-lg bg-muted/20 p-4 sm:flex-row sm:items-stretch">
-            {/* На sm+ высота = блок чеклиста, ширина = высота (квадрат), текст справа */}
-            <div
-              className="relative mx-auto aspect-square w-full max-w-xs shrink-0 overflow-hidden rounded-md bg-muted sm:mx-0 sm:max-w-[min(100%,28rem)] sm:min-h-[16rem] sm:w-auto sm:flex-none sm:self-stretch"
-              style={{ aspectRatio: "1 / 1" }}
-            >
-              {coverPreview ? (
-                <Image
-                  src={coverPreview}
-                  alt="Обложка релиза"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                  sizes="(min-width: 640px) min(40vw, 28rem), 320px"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                </div>
-              )}
+            {/* На sm+ высота = чеклист; ширина = высота (1:1), без max-w который ломал квадрат */}
+            <div className="mx-auto w-full max-w-xs shrink-0 sm:mx-0 sm:w-auto sm:max-w-none sm:self-stretch">
+              <div
+                className="relative aspect-square w-full overflow-hidden rounded-md bg-muted sm:h-full sm:w-auto"
+                style={{ aspectRatio: "1 / 1" }}
+              >
+                {coverPreview ? (
+                  <Image
+                    src={coverPreview}
+                    alt="Обложка релиза"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    sizes="(min-width: 640px) 40vw, 320px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="min-w-0 flex-1 space-y-3">
               {reviewChecks.map((c, idx) => {
