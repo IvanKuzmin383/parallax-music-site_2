@@ -18,6 +18,8 @@ export type AdminTracksApiResponse = {
   offset: number
   hasMore: boolean
   albums: Album[]
+  /** id релиза → title (для подписи сингла, если в track_name осталось имя файла) */
+  releaseTitles?: Record<string, string>
   uploadDrafts: UploadDraft[]
   stats: AdminTracksStats
 }

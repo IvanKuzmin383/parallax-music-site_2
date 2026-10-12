@@ -12,6 +12,7 @@ import {
   type AdminTracksSortField,
 } from "@/lib/admin-tracks-query"
 import { getAllAlbums } from "@/lib/albums"
+import { query } from "@/lib/database"
 import { listUploadDrafts } from "@/lib/upload-drafts"
 import type { TrackStatus } from "@/lib/tracks"
 
@@ -113,6 +114,14 @@ export async function GET(request: NextRequest) {
     })
 
     const albums = await getAllAlbums()
+    const releaseRows = await query<{ id: string; title: string | null }>(
+      "SELECT id, title FROM releases"
+    )
+    const releaseTitles: Record<string, string> = {}
+    for (const row of releaseRows) {
+      const title = `${row.title ?? ""}`.trim()
+      if (title) releaseTitles[row.id] = title
+    }
     const draftUserId = listQuery.userId
     const allDrafts = await listUploadDrafts({
       userId: draftUserId,
@@ -129,6 +138,7 @@ export async function GET(request: NextRequest) {
       offset: tracksPage.offset,
       hasMore: tracksPage.hasMore,
       albums,
+      releaseTitles,
       uploadDrafts,
       stats,
     })

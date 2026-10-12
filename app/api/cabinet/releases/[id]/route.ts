@@ -3,7 +3,8 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
 import { getReleaseById, isReleaseEditableStatus, updateRelease, deleteRelease } from "@/lib/releases"
-import { getTracksByReleaseId } from "@/lib/tracks"
+import { getTracksByReleaseId, updateTrack } from "@/lib/tracks"
+import { looksLikeAudioFileBaseName } from "@/lib/track-display-name"
 import { isCoverAiLevel, parseCoverAiLevel } from "@/lib/cover-ai-level"
 
 export async function GET(
@@ -105,6 +106,25 @@ export async function PATCH(
     }
 
     const updated = await updateRelease(id, patch)
+    if (!updated) {
+      return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
+    }
+
+    // Сингл: если в track_name осталось имя WAV - подтянуть название релиза.
+    if (updated.kind === "single" && typeof patch.title === "string") {
+      const title = patch.title.trim()
+      if (title) {
+        const tracks = await getTracksByReleaseId(id)
+        const only = tracks[0]
+        if (
+          only &&
+          tracks.length === 1 &&
+          looksLikeAudioFileBaseName(only.trackName, only.artistName)
+        ) {
+          await updateTrack(only.id, { trackName: title })
+        }
+      }
+    }
 
     return NextResponse.json({ release: updated })
   } catch (error) {

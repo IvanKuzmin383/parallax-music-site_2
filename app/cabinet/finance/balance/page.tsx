@@ -6,7 +6,7 @@ import { ru } from "date-fns/locale"
 import { Receipt } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -322,42 +322,37 @@ export default function FinanceBalancePage() {
     <div className="w-full max-w-none space-y-6">
       <PageHeader title="Финансы" />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Баланс кабинета
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-4xl font-bold text-emerald-400">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card className="gap-2 py-4">
+          <CardContent className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Баланс кабинета</p>
+            <p className="text-2xl font-bold leading-none text-emerald-400">
               {walletBalance.toLocaleString("ru-RU")} ₽
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Можно использовать для оплаты услуг лейбла.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={openTopup}>
+            <div className="flex flex-wrap gap-2 pt-0.5">
+              <Button type="button" size="sm" onClick={openTopup}>
                 Пополнить
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Роялти</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-4xl font-bold text-amber-400">
+        <Card className="gap-2 py-4">
+          <CardContent className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Роялти</p>
+            <p className="text-2xl font-bold leading-none text-amber-400">
               {royaltyBalance.toLocaleString("ru-RU")} ₽
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Доступны к выводу или переводу на баланс кабинета.
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-0.5">
               <Button
                 type="button"
+                size="sm"
                 onClick={openTransfer}
                 disabled={royaltyBalance <= 0}
               >
@@ -365,6 +360,7 @@ export default function FinanceBalancePage() {
               </Button>
               <Button
                 type="button"
+                size="sm"
                 variant="outline"
                 onClick={openWithdraw}
                 disabled={royaltyBalance < 1000 || hasPending}

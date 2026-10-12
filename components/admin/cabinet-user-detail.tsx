@@ -511,7 +511,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
 
   return (
     <div className="min-h-screen bg-background pt-4 pb-10">
-      <div className="mx-auto w-full max-w-6xl px-4 space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6">
         <AdminSectionNav active="cabinet-users" />
 
         <div className="flex flex-wrap items-center gap-3">

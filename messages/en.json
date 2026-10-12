@@ -1145,6 +1145,11 @@
         "price": "500₽/ea",
         "serviceDescriptionTitle": "How it works",
         "serviceDescription": "You send the release, lyrics, and any wishes you have. From that we prepare and send you 6-9 cover options. You pick and approve one - then we deliver it ready for streaming at 3000 × 3000 pixels.",
+        "serviceSteps": [
+          "You send the release, lyrics, and any wishes you have.",
+          "From that we prepare and send you 6-9 cover options.",
+          "You pick and approve one - then we deliver it ready for streaming at 3000 × 3000 pixels."
+        ],
         "examplesTitle": "Examples:",
         "exampleImages": [
           { "src": "/aicover/example-01.webp", "alt": "AI cover example 1" },

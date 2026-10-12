@@ -5,18 +5,17 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ComingSoonButton } from "@/components/cabinet/shared/coming-soon-button"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { getCabinetServiceHubHref } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { PLATFORM_ICON_SRC } from "@/lib/smartlink-platforms"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react"
+import { ArrowLeft, CheckCircle2 } from "lucide-react"
 
 interface ServicePageTemplateProps {
   service: ServiceCatalogEntry
@@ -31,7 +30,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const [projectName, setProjectName] = useState("")
   const [trackLink, setTrackLink] = useState("")
   const [comment, setComment] = useState("")
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = useState<"card" | "balance" | null>(null)
 
   useEffect(() => {
     const paymentState = searchParams.get("payment")
@@ -64,7 +63,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
     toast.error("Оформление этой услуги пока недоступно")
   }
 
-  const handleCardPay = async () => {
+  const handlePay = async (payFromBalance = false) => {
     const isStub = Boolean(service.paymentStub && service.paymentEndpoint)
     const isLivePay = Boolean(service.hasBackend && service.paymentEndpoint && !service.paymentStub)
     const interestOnly = Boolean(service.interestOnly)
@@ -86,7 +85,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       return
     }
 
-    setSubmitting(true)
+    setSubmitting(payFromBalance ? "balance" : "card")
     try {
       const link = trackLink.trim()
       const res = await fetch(service.paymentEndpoint!, {
@@ -103,12 +102,20 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                 comment: comment.trim(),
                 contactType: "telegram",
                 contactValue: "@artist",
+                ...(payFromBalance ? { payFromBalance: true } : {}),
               }
         ),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || (isStub ? "Не удалось отправить заявку" : "Не удалось создать оплату"))
+        toast.error(
+          data.error ||
+            (isStub
+              ? "Не удалось отправить заявку"
+              : payFromBalance
+                ? "Не удалось оплатить с баланса"
+                : "Не удалось создать оплату")
+        )
         return
       }
       if (isStub || data.stub === true) {
@@ -122,6 +129,14 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         setComment("")
         return
       }
+      if (data.paid === true) {
+        toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
+        setProjectName("")
+        setTrackLink("")
+        setComment("")
+        router.refresh()
+        return
+      }
       const payUrl =
         (typeof data.paymentUrl === "string" && data.paymentUrl) ||
         (typeof data.confirmationUrl === "string" && data.confirmationUrl) ||
@@ -130,21 +145,27 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         window.location.href = payUrl
         return
       }
-      toast.error("Не удалось создать оплату")
+      toast.error(payFromBalance ? "Не удалось оплатить с баланса" : "Не удалось создать оплату")
     } catch {
-      toast.error(isStub ? "Ошибка при отправке заявки" : "Ошибка при создании оплаты")
+      toast.error(
+        isStub
+          ? "Ошибка при отправке заявки"
+          : payFromBalance
+            ? "Ошибка при оплате с баланса"
+            : "Ошибка при создании оплаты"
+      )
     } finally {
-      setSubmitting(false)
+      setSubmitting(null)
     }
   }
 
   const interestCta = service.interestCtaLabel || "Оставить заявку"
 
   const orderForm = service.interestOnly ? (
-    <Card id="order-form" className="w-full min-w-0 gap-3 border-0 bg-transparent py-0 shadow-none">
-      <CardHeader className="space-y-1.5 px-0">
+    <div id="order-form" className="w-full min-w-0 space-y-3 bg-transparent">
+      <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <CardTitle>Скоро в кабинете</CardTitle>
+          <h2 className="text-lg font-semibold leading-none">Скоро в кабинете</h2>
           {service.comingSoon ? (
             <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
               Скоро
@@ -155,22 +176,20 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
           Оставьте интерес - мы напишем, когда депонирование станет доступно. Оплата сейчас не
           списывается.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-2.5 px-0">
+      </div>
+      <div className="space-y-2.5">
         <p className="text-sm font-medium">
           Стоимость: <span className="text-primary">{service.priceLabel}</span>
         </p>
-        <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full">
+        <Button onClick={() => void handlePay()} disabled={Boolean(submitting)} className="w-full">
           {submitting ? "Отправка..." : interestCta}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   ) : (
-    <Card id="order-form" className="w-full min-w-0 gap-3 border-0 bg-transparent py-0 shadow-none">
-      <CardHeader className="px-0 pb-0">
-        <CardTitle>Заявка на услугу</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2.5 px-0">
+    <div id="order-form" className="w-full min-w-0 space-y-3 bg-transparent">
+      <h2 className="text-lg font-semibold leading-none">Заявка на услугу</h2>
+      <div className="space-y-2.5">
         <div className="space-y-1.5">
           <Label htmlFor="project">Название релиза / проекта</Label>
           <Input
@@ -212,9 +231,13 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
               Оплата пока не списывается - заявка нужна, чтобы оценить спрос. Мы свяжемся с вами.
             </p>
           ) : null}
-          <div className="flex flex-col gap-1.5 sm:flex-row">
-            <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full sm:flex-1">
-              {submitting
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-stretch">
+            <Button
+              onClick={() => void handlePay(false)}
+              disabled={Boolean(submitting)}
+              className="w-full sm:min-w-0 sm:flex-1 sm:basis-0"
+            >
+              {submitting === "card"
                 ? service.paymentStub
                   ? "Отправка..."
                   : "Создание..."
@@ -223,14 +246,18 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                   : "Оплатить картой"}
             </Button>
             {!service.paymentStub ? (
-              <ComingSoonButton tooltip="Оплата с баланса будет доступна позже" className="w-full sm:flex-1">
-                Оплатить с баланса
-              </ComingSoonButton>
+              <Button
+                onClick={() => void handlePay(true)}
+                disabled={Boolean(submitting) || !service.hasBackend}
+                className="w-full sm:min-w-0 sm:flex-1 sm:basis-0"
+              >
+                {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
+              </Button>
             ) : null}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 
   return (
@@ -262,28 +289,12 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       </div>
 
       <Card className="w-full min-w-0 gap-0 border-primary/20 py-0">
-        <CardContent className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="px-4 py-3">
           <div className="min-w-0">
             <p className="text-xl font-bold leading-none text-primary sm:text-2xl">
               {service.priceLabel}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Стоимость услуги</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              onClick={() =>
-                service.interestOnly
-                  ? void handleCardPay()
-                  : document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" })
-              }
-              disabled={submitting && Boolean(service.interestOnly)}
-            >
-              {service.interestOnly ? interestCta : "Заказать"}
-            </Button>
-            <Button size="sm" variant="outline" asChild>
-              <Link href="#faq">Подробнее</Link>
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -303,9 +314,9 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                         href={ex.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={ex.title}
+                        aria-label={`Смотреть: ${ex.title}`}
                         title={ex.title}
-                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/40 px-2.5 py-2 transition-colors hover:bg-muted/50"
+                        className="inline-flex items-center gap-2 text-sm text-foreground transition-opacity hover:opacity-80"
                       >
                         <Image
                           src={PLATFORM_ICON_SRC[ex.platform]}
@@ -315,7 +326,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                           className="h-[22px] w-[22px] shrink-0 object-contain"
                           unoptimized
                         />
-                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                        Смотреть
                       </a>
                     </li>
                   ))}

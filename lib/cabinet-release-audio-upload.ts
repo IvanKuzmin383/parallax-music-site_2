@@ -14,9 +14,7 @@ export function uploadReleaseTrackAudio(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     const fd = new FormData()
-    const baseName = file.name.replace(/\.[^.]+$/, "").trim()
     fd.append("audio", file)
-    if (baseName) fd.append("trackName", baseName)
 
     xhr.upload.addEventListener("progress", (event) => {
       if (!event.lengthComputable || !onProgress) return

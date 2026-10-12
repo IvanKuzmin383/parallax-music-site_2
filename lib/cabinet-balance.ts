@@ -422,6 +422,125 @@ export async function creditRoyalty(params: {
   }
 }
 
+export type DebitWalletForServiceResult =
+  | { ok: true; amount: number; walletBalance: number; transaction: BalanceTransaction }
+  | { ok: false; error: string; status: number }
+
+/**
+ * Списание с wallet_balance за услугу + запись service_payment в журнал.
+ * Идемпотентно по orderId в note.
+ */
+export async function debitWalletForServicePayment(params: {
+  userId: string
+  amount: number
+  orderId: string
+  note?: string
+}): Promise<DebitWalletForServiceResult> {
+  const amount = roundMoney(params.amount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Сумма должна быть больше 0", status: 400 }
+  }
+  const orderId = params.orderId.trim()
+  if (!orderId) {
+    return { ok: false, error: "Не указан заказ", status: 400 }
+  }
+
+  const note =
+    params.note?.trim() || `Оплата услуги с баланса (заказ ${orderId})`
+
+  try {
+    const result = await withTransaction(async (client) => {
+      const existing = await clientQuery<TxRow>(
+        client,
+        `
+        SELECT * FROM cabinet_balance_transactions
+        WHERE user_id = ? AND type = 'service_payment' AND note LIKE ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        `,
+        [params.userId, `%${orderId}%`]
+      )
+      if (existing[0]) {
+        const balRows = await clientQuery<{ wallet_balance: number | string | null }>(
+          client,
+          `SELECT wallet_balance FROM cabinet_users WHERE id = ?`,
+          [params.userId]
+        )
+        return {
+          amount,
+          walletBalance: roundMoney(Number(balRows[0]?.wallet_balance) || 0),
+          transaction: rowToTx(existing[0]),
+          alreadyDebited: true as const,
+        }
+      }
+
+      const rows = await clientQuery<{ wallet_balance: number | string | null }>(
+        client,
+        `SELECT wallet_balance FROM cabinet_users WHERE id = ? FOR UPDATE`,
+        [params.userId]
+      )
+      const row = rows[0]
+      if (!row) throw new Error("USER_NOT_FOUND")
+
+      const prevWallet = roundMoney(Number(row.wallet_balance) || 0)
+      if (prevWallet < amount) {
+        throw new Error("INSUFFICIENT_FUNDS")
+      }
+
+      const nextWallet = roundMoney(prevWallet - amount)
+      const now = new Date().toISOString()
+      const txId = crypto.randomUUID()
+
+      await clientExecute(
+        client,
+        `UPDATE cabinet_users SET wallet_balance = ? WHERE id = ?`,
+        [nextWallet, params.userId]
+      )
+      await clientExecute(
+        client,
+        `
+        INSERT INTO cabinet_balance_transactions (
+          id, user_id, type, amount, royalty_delta, wallet_delta, note, created_at
+        ) VALUES (?, ?, 'service_payment', ?, 0, ?, ?, ?)
+        `,
+        [txId, params.userId, amount, -amount, note, now]
+      )
+
+      return {
+        amount,
+        walletBalance: nextWallet,
+        transaction: {
+          id: txId,
+          userId: params.userId,
+          type: "service_payment" as const,
+          amount,
+          royaltyDelta: 0,
+          walletDelta: -amount,
+          note,
+          createdAt: now,
+        },
+        alreadyDebited: false as const,
+      }
+    })
+
+    return {
+      ok: true,
+      amount: result.amount,
+      walletBalance: result.walletBalance,
+      transaction: result.transaction,
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+      return { ok: false, error: "Пользователь не найден", status: 404 }
+    }
+    if (error instanceof Error && error.message === "INSUFFICIENT_FUNDS") {
+      return { ok: false, error: "Недостаточно средств на балансе", status: 400 }
+    }
+    console.error("[cabinet-balance] debitWalletForServicePayment failed:", error)
+    return { ok: false, error: "Не удалось списать с баланса", status: 500 }
+  }
+}
+
 export type AdminSetBalancesResult =
   | {
       ok: true

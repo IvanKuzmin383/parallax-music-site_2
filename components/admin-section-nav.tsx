@@ -4,6 +4,7 @@ import Link from "next/link"
 import {
   BarChart3,
   Building2,
+  ChevronDown,
   ClipboardList,
   Database,
   FileText,
@@ -17,8 +18,16 @@ import {
   Users,
   Wallet,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 export type AdminSectionNavActive =
   | "articles"
@@ -40,98 +49,161 @@ interface AdminSectionNavProps {
   active: AdminSectionNavActive
 }
 
-function navVariant(isActive: boolean): "secondary" | "ghost" {
-  return isActive ? "secondary" : "ghost"
+type NavItem = {
+  id: AdminSectionNavActive
+  label: string
+  href: string
+  icon: LucideIcon
 }
+
+type NavGroup = {
+  id: string
+  label: string
+  items: NavItem[]
+}
+
+const ADMIN_NAV_GROUPS: NavGroup[] = [
+  {
+    id: "content",
+    label: "Контент",
+    items: [
+      { id: "articles", label: "Статьи", href: "/admin26081993", icon: FileText },
+      { id: "reviews", label: "Отзывы", href: "/admin26081993/reviews", icon: MessageSquare },
+    ],
+  },
+  {
+    id: "cabinet",
+    label: "Кабинет",
+    items: [
+      {
+        id: "cabinet-users",
+        label: "Пользователи",
+        href: "/admin26081993/cabinet-users",
+        icon: Users,
+      },
+      {
+        id: "cabinet-announcements",
+        label: "Новости",
+        href: "/admin26081993/cabinet-announcements",
+        icon: Megaphone,
+      },
+      { id: "support", label: "Поддержка", href: "/admin26081993/support", icon: Headset },
+      {
+        id: "legal-acceptance",
+        label: "Оферта",
+        href: "/admin26081993/legal-acceptance",
+        icon: Scale,
+      },
+    ],
+  },
+  {
+    id: "distribution",
+    label: "Дистрибуция",
+    items: [
+      { id: "tracks", label: "Треки", href: "/admin26081993/tracks", icon: Music },
+      {
+        id: "video-clips",
+        label: "Видеоклипы",
+        href: "/admin26081993/video-clips",
+        icon: Film,
+      },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Финансы",
+    items: [
+      { id: "reports", label: "Отчёты", href: "/admin26081993/reports", icon: BarChart3 },
+      {
+        id: "withdrawals",
+        label: "Выводы",
+        href: "/admin26081993/withdrawals",
+        icon: Wallet,
+      },
+      {
+        id: "service-fulfillments",
+        label: "Заказы услуг",
+        href: "/admin26081993/service-fulfillments",
+        icon: ClipboardList,
+      },
+    ],
+  },
+  {
+    id: "stats",
+    label: "Статистика",
+    items: [
+      {
+        id: "music-stats",
+        label: "Статистика",
+        href: "/admin26081993/music-stats",
+        icon: LineChart,
+      },
+      {
+        id: "music-track-map",
+        label: "Маппинг",
+        href: "/admin26081993/music-track-map",
+        icon: Database,
+      },
+      {
+        id: "publicka",
+        label: "Музыка для бизнеса",
+        href: "/admin26081993/publicka",
+        icon: Building2,
+      },
+    ],
+  },
+]
 
 export function AdminSectionNav({ active }: AdminSectionNavProps) {
   return (
     <div className="sticky top-0 z-40 -mx-4 mb-2 border-b border-border/60 bg-background/95 px-4 py-2.5 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant={navVariant(active === "articles")} size="sm" asChild>
-          <Link href="/admin26081993" prefetch={false}>
-            <FileText className="mr-1 h-4 w-4" />
-            Статьи
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "cabinet-users")} size="sm" asChild>
-          <Link href="/admin26081993/cabinet-users" prefetch={false}>
-            <Users className="mr-1 h-4 w-4" />
-            Пользователи ЛК
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "cabinet-announcements")} size="sm" asChild>
-          <Link href="/admin26081993/cabinet-announcements" prefetch={false}>
-            <Megaphone className="mr-1 h-4 w-4" />
-            Новости ЛК
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "tracks")} size="sm" asChild>
-          <Link href="/admin26081993/tracks" prefetch={false}>
-            <Music className="mr-1 h-4 w-4" />
-            Треки
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "reports")} size="sm" asChild>
-          <Link href="/admin26081993/reports" prefetch={false}>
-            <BarChart3 className="mr-1 h-4 w-4" />
-            Отчеты
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "music-stats")} size="sm" asChild>
-          <Link href="/admin26081993/music-stats" prefetch={false}>
-            <LineChart className="mr-1 h-4 w-4" />
-            Статистика
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "music-track-map")} size="sm" asChild>
-          <Link href="/admin26081993/music-track-map" prefetch={false}>
-            <Database className="mr-1 h-4 w-4" />
-            Маппинг треков stats
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "publicka")} size="sm" asChild>
-          <Link href="/admin26081993/publicka" prefetch={false}>
-            <Building2 className="mr-1 h-4 w-4" />
-            Музыка для бизнеса
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "video-clips")} size="sm" asChild>
-          <Link href="/admin26081993/video-clips" prefetch={false}>
-            <Film className="mr-1 h-4 w-4" />
-            Видеоклипы
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "withdrawals")} size="sm" asChild>
-          <Link href="/admin26081993/withdrawals" prefetch={false}>
-            <Wallet className="mr-1 h-4 w-4" />
-            Заявки на вывод
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "service-fulfillments")} size="sm" asChild>
-          <Link href="/admin26081993/service-fulfillments" prefetch={false}>
-            <ClipboardList className="mr-1 h-4 w-4" />
-            Заказы услуг
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "reviews")} size="sm" asChild>
-          <Link href="/admin26081993/reviews" prefetch={false}>
-            <MessageSquare className="mr-1 h-4 w-4" />
-            Отзывы
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "support")} size="sm" asChild>
-          <Link href="/admin26081993/support" prefetch={false}>
-            <Headset className="mr-1 h-4 w-4" />
-            Поддержка
-          </Link>
-        </Button>
-        <Button variant={navVariant(active === "legal-acceptance")} size="sm" asChild>
-          <Link href="/admin26081993/legal-acceptance" prefetch={false}>
-            <Scale className="mr-1 h-4 w-4" />
-            Акцепты оферты
-          </Link>
-        </Button>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {ADMIN_NAV_GROUPS.map((group) => {
+          const groupActive = group.items.some((item) => item.id === active)
+          const activeItem = group.items.find((item) => item.id === active)
+
+          return (
+            <DropdownMenu key={group.id}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant={groupActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(groupActive && "ring-1 ring-primary/35")}
+                >
+                  {group.label}
+                  {groupActive && activeItem ? (
+                    <span className="ml-1.5 hidden text-xs font-normal text-muted-foreground sm:inline">
+                      · {activeItem.label}
+                    </span>
+                  ) : null}
+                  <ChevronDown className="ml-1 h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[12rem]">
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive = item.id === active
+                  return (
+                    <DropdownMenuItem key={item.id} asChild>
+                      <Link
+                        href={item.href}
+                        prefetch={false}
+                        className={cn(
+                          "cursor-pointer",
+                          isActive && "bg-accent font-medium text-accent-foreground"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        })}
       </div>
     </div>
   )

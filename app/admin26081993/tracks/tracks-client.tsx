@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -46,6 +45,7 @@ import {
   type TracksViewFilter,
 } from "@/components/admin-tracks-stats-bar"
 import type { Track, TrackStatus } from "@/lib/tracks"
+import { resolveTrackDisplayName } from "@/lib/track-display-name"
 import type { UploadAddonBundleItem } from "@/lib/orders"
 import { formatUploadAddonBundleLine } from "@/lib/upload-addon-bundle-display"
 import ruMessages from "@/messages/ru.json"
@@ -103,7 +103,6 @@ import {
   type AdminTracksListQuery,
   type AdminTracksStats,
 } from "@/lib/admin-tracks-query-shared"
-
 const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "upload_pending", label: "Требуется доработка" },
   { value: "on_moderation", label: "На модерации" },
@@ -113,14 +112,31 @@ const STATUS_OPTIONS: { value: TrackStatus; label: string }[] = [
   { value: "rejected", label: "Отклонено" },
   { value: "postponed", label: "Отозван" },
 ]
-
+function adminStatusHeaderTone(status: string): string {
+  switch (status) {
+    case "released":
+      return "bg-emerald-500/15 text-emerald-200 ring-emerald-500/35"
+    case "on_moderation":
+      return "bg-amber-500/15 text-amber-100 ring-amber-500/35"
+    case "rejected":
+      return "bg-red-500/15 text-red-200 ring-red-500/35"
+    case "upload_pending":
+      return "bg-orange-500/15 text-orange-100 ring-orange-500/35"
+    case "postponed":
+      return "bg-slate-500/15 text-slate-200 ring-slate-500/35"
+    case "sent_to_platforms":
+    case "approved_by_platforms":
+      return "bg-sky-500/15 text-sky-100 ring-sky-500/35"
+    default:
+      return "bg-muted/60 text-muted-foreground ring-border"
+  }
+}
 type TrackListSortField = "releaseDate" | "createdAt"
 type AdminAlbum = {
   id: string
   title: string
   artistName: string
 }
-
 const EMPTY_TRACKS_STATS: AdminTracksStats = {
   total: 0,
   byStatus: {
@@ -137,7 +153,6 @@ const EMPTY_TRACKS_STATS: AdminTracksStats = {
     releasesTodayCount: 0,
     uploadDraftsCount: 0,
 }
-
 const MUSIC_RIGHTS_OPTIONS = [
   "Музыка написана мной. Есть проект",
   "Сгенерирована в ИИ (платно)",
@@ -157,11 +172,9 @@ const PERFORMANCE_RIGHTS_OPTIONS = [
   "Исполнитель ИИ",
   "Исполнитель другой человек. Являюсь правообладалетелем",
 ] as const
-
 const genreKeys = [...GENRES]
 const moodKeys = [...TRACK_MOODS]
 const RIGHTS_EMPTY = "__rights_empty__"
-
 const UPLOAD_DRAFT_STATUS_OPTIONS: { value: UploadDraftStatus; label: string }[] = [
   { value: "collecting", label: "Сбор данных" },
   { value: "awaiting_payment", label: "Ожидает оплаты" },
@@ -170,14 +183,11 @@ const UPLOAD_DRAFT_STATUS_OPTIONS: { value: UploadDraftStatus; label: string }[]
   { value: "expired", label: "Истёк" },
   { value: "cancelled", label: "Отменён" },
 ]
-
 /** Сколько строк показывать в «Простом списке» до нажатия «Еще». */
 const SIMPLE_LIST_PAGE_SIZE = 15
-
 function uploadDraftMediaEditable(d: UploadDraft): boolean {
   return d.status === "collecting" || d.status === "awaiting_payment" || d.status === "paid"
 }
-
 function transferDistributorValidationError(d: TrackDraft): string | null {
   if (!d.transferFromOtherDistributor) return null
   if (!d.previousDistributor.trim() || d.previousDistributor.trim().length < 2) {
@@ -188,7 +198,6 @@ function transferDistributorValidationError(d: TrackDraft): string | null {
   }
   return null
 }
-
 function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
   const p = d.payload
   const genreRaw = `${p.genre ?? ""}`.trim()
@@ -243,7 +252,6 @@ function uploadDraftToTrackDraft(d: UploadDraft): TrackDraft {
     smartlinkSlug: "",
   }
 }
-
 function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): UploadDraftPayload {
   const prev = draft.payload
   const genreTrim = d.genre.trim()
@@ -280,14 +288,12 @@ function buildUploadDraftPayloadFromEditor(draft: UploadDraft, d: TrackDraft): U
     addons: prev.addons ?? {},
   }
 }
-
 /** Порядок загрузки: раньше создан - выше в списке. */
 function sortTracksByUploadOrder(tracks: Track[]): Track[] {
   return [...tracks].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   )
 }
-
 function ruTracksCountLabel(n: number): string {
   const m10 = n % 10
   const m100 = n % 100
@@ -295,7 +301,6 @@ function ruTracksCountLabel(n: number): string {
   if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return `${n} трека`
   return `${n} треков`
 }
-
 /** Первая буква имени артиста для алфавитного индекса (А-Я / A-Z / 0-9 / #). */
 function getArtistIndexLetter(artistName: string): string {
   const trimmed = artistName.trim()
@@ -306,7 +311,6 @@ function getArtistIndexLetter(artistName: string): string {
   if (/[0-9]/.test(ch)) return "0-9"
   return "#"
 }
-
 function compareArtistIndexLetters(a: string, b: string): number {
   const rank = (letter: string) => {
     if (letter === "0-9") return 2
@@ -320,12 +324,10 @@ function compareArtistIndexLetters(a: string, b: string): number {
   if (ra !== rb) return ra - rb
   return a.localeCompare(b, "ru")
 }
-
 function getReleaseLabelName(labelName?: string | null): string {
   const trimmed = typeof labelName === "string" ? labelName.trim() : ""
   return trimmed || DEFAULT_RELEASE_LABEL_NAME
 }
-
 type TrackDraft = {
   trackName: string
   artistName: string
@@ -360,7 +362,6 @@ type TrackDraft = {
   platformLinks: PlatformLinks
   smartlinkSlug: string
 }
-
 function trackToDraft(t: Track): TrackDraft {
   let releaseDateStr = ""
   if (t.releaseDate) {
@@ -414,18 +415,25 @@ function trackToDraft(t: Track): TrackDraft {
     smartlinkSlug: t.smartlinkSlug ?? "",
   }
 }
-
 export default function TracksPageClient() {
   const [tracks, setTracks] = useState<Track[]>([])
   const [tracksTotal, setTracksTotal] = useState(0)
   const [tracksTotalInDb, setTracksTotalInDb] = useState(0)
   const [albums, setAlbums] = useState<AdminAlbum[]>([])
+  const [releaseTitlesById, setReleaseTitlesById] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [lyricsExpanded, setLyricsExpanded] = useState(false)
   const [moderationHistoryExpanded, setModerationHistoryExpanded] = useState(false)
+  const [trackEditorTab, setTrackEditorTab] = useState<
+    "moderation" | "release" | "content" | "distribution"
+  >("moderation")
+  const [trackDraftBaseline, setTrackDraftBaseline] = useState("")
+  const [uploadDraftStatusBaseline, setUploadDraftStatusBaseline] = useState<UploadDraftStatus | "">(
+    ""
+  )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null)
   const [deleteUploadDraftDialogOpen, setDeleteUploadDraftDialogOpen] = useState(false)
@@ -487,11 +495,9 @@ export default function TracksPageClient() {
   const [downloadingAlbumId, setDownloadingAlbumId] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-
   const userIdFilterRaw = searchParams.get("userId")?.trim() ?? ""
   const userIdFilterNorm = userIdFilterRaw ? userIdFilterRaw.toLowerCase() : ""
   const filterUserLabel = searchParams.get("label")?.trim() ?? ""
-
   const resetTrackListFilters = useCallback(() => {
     setViewFilter({ type: "all" })
     setReleaseDateFromDraft("")
@@ -500,12 +506,9 @@ export default function TracksPageClient() {
     setReleaseDateToApplied("")
     router.replace("/admin26081993/tracks")
   }, [router])
-
   const isUploadDraftsView = viewFilter.type === "upload_drafts"
-
   /** Фильтры применяются на сервере; локальный список уже отфильтрован. */
   const statusFilteredTracks = tracks
-
   const adminTracksQuery = useMemo((): Omit<AdminTracksListQuery, "limit" | "offset"> => {
     const base = {
       userId: userIdFilterNorm || undefined,
@@ -529,7 +532,6 @@ export default function TracksPageClient() {
     trackListSortField,
     trackListSortDirection,
   ])
-
   const refreshTracks = useCallback(async () => {
     try {
       const data = await fetchAdminTracksAllMatching(adminTracksQuery)
@@ -543,6 +545,7 @@ export default function TracksPageClient() {
           artistName: a.artistName,
         }))
       )
+      setReleaseTitlesById(data.releaseTitles ?? {})
       setUploadDrafts(data.uploadDrafts as UploadDraft[])
       setTracksStats(data.stats ?? EMPTY_TRACKS_STATS)
       setIsAuthenticated(true)
@@ -551,16 +554,54 @@ export default function TracksPageClient() {
       if (status === 401) setIsAuthenticated(false)
     }
   }, [adminTracksQuery])
-
   const trackAlbumTitleById = useMemo(() => {
     return albums.reduce<Record<string, string>>((acc, album) => {
       acc[album.id] = album.title
       return acc
     }, {})
   }, [albums])
-
+  const trackListDisplayName = useCallback(
+    (track: Track) =>
+      resolveTrackDisplayName({
+        trackName: track.trackName,
+        artistName: track.artistName,
+        releaseTitle: track.releaseId ? releaseTitlesById[track.releaseId] : undefined,
+        albumId: track.albumId,
+      }),
+    [releaseTitlesById]
+  )
+  const trackEditorDirty = Boolean(
+    trackDraft &&
+      trackDraftBaseline &&
+      (JSON.stringify(trackDraft) !== trackDraftBaseline ||
+        (selectedUploadDraft != null && uploadDraftRowStatus !== uploadDraftStatusBaseline))
+  )
+  const moderationTabNeedsAttention = Boolean(
+    trackDraft &&
+      selectedTrack &&
+      (trackDraft.status === "rejected" ||
+        trackDraft.status === "postponed" ||
+        trackDraft.status === "upload_pending") &&
+      !trackDraft.moderationNote.trim()
+  )
+  const releaseTabNeedsAttention = Boolean(
+    trackDraft?.transferFromOtherDistributor &&
+      (!trackDraft.upc.trim() || !trackDraft.isrc.trim())
+  )
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return
+      if (!trackDraft || !(selectedTrack || selectedUploadDraft)) return
+      event.preventDefault()
+      if (selectedTrack) void handleSaveTrackCard()
+      else void handleSaveUploadDraft()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+    // handlers recreate each render; listen while editor is open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackDraft, selectedTrack, selectedUploadDraft, uploadDraftRowStatus])
   const simpleListSearchNorm = simpleListSearchQuery.trim().toLowerCase()
-
   const simpleListTracks = useMemo(() => {
     let list = [...statusFilteredTracks]
     if (simpleListSearchNorm) {
@@ -570,6 +611,7 @@ export default function TracksPageClient() {
           : ""
         const haystack = [
           track.artistName,
+          trackListDisplayName(track),
           track.trackName,
           track.userId,
           track.isrc,
@@ -599,14 +641,13 @@ export default function TracksPageClient() {
     trackListSortDirection,
     simpleListSearchNorm,
     trackAlbumTitleById,
+    trackListDisplayName,
   ])
-
   const simpleListTracksVisible = useMemo(
     () => simpleListTracks.slice(0, simpleListVisibleCount),
     [simpleListTracks, simpleListVisibleCount]
   )
   const simpleListHasMore = simpleListTracks.length > simpleListVisibleCount
-
   const artistsByLetter = useMemo(() => {
     const map = new Map<string, AdminArtistIndexItem[]>()
     for (const artist of artistsIndex) {
@@ -620,12 +661,10 @@ export default function TracksPageClient() {
     }
     return map
   }, [artistsIndex])
-
   const availableArtistLetters = useMemo(
     () => [...artistsByLetter.keys()].sort(compareArtistIndexLetters),
     [artistsByLetter]
   )
-
   const artistSearchNorm = artistSearchQuery.trim().toLowerCase()
   const artistSearchResults = useMemo(() => {
     if (!artistSearchNorm) return null
@@ -633,7 +672,6 @@ export default function TracksPageClient() {
       .filter((a) => a.name.toLowerCase().includes(artistSearchNorm))
       .sort((a, b) => a.name.localeCompare(b.name, "ru"))
   }, [artistSearchNorm, artistsIndex])
-
   const selectedArtistTracks = useMemo(() => {
     if (!selectedGroupedArtist || !groupedArtistTracks) return null
     return [...groupedArtistTracks].sort((a, b) => {
@@ -642,7 +680,6 @@ export default function TracksPageClient() {
       return new Date(aDate).getTime() - new Date(bDate).getTime()
     })
   }, [selectedGroupedArtist, groupedArtistTracks])
-
   const refreshArtistsIndex = useCallback(async () => {
     setArtistsIndexLoading(true)
     try {
@@ -663,7 +700,6 @@ export default function TracksPageClient() {
       setArtistsIndexLoading(false)
     }
   }, [adminTracksQuery])
-
   const refreshGroupedArtistTracks = useCallback(
     async (artistName: string) => {
       setGroupedArtistTracksLoading(true)
@@ -684,7 +720,6 @@ export default function TracksPageClient() {
     },
     [adminTracksQuery]
   )
-
   useEffect(() => {
     setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
     setGroupedLetter(null)
@@ -693,11 +728,9 @@ export default function TracksPageClient() {
     setSimpleListSearchQuery("")
     setGroupedArtistTracks(null)
   }, [adminTracksQuery])
-
   useEffect(() => {
     setSimpleListVisibleCount(SIMPLE_LIST_PAGE_SIZE)
   }, [simpleListSearchNorm])
-
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -709,7 +742,6 @@ export default function TracksPageClient() {
       cancelled = true
     }
   }, [refreshTracks])
-
   useEffect(() => {
     let cancelled = false
     void (async () => {
@@ -720,7 +752,6 @@ export default function TracksPageClient() {
       cancelled = true
     }
   }, [refreshArtistsIndex])
-
   useEffect(() => {
     if (!selectedGroupedArtist) {
       setGroupedArtistTracks(null)
@@ -737,7 +768,6 @@ export default function TracksPageClient() {
       cancelled = true
     }
   }, [selectedGroupedArtist, refreshGroupedArtistTracks])
-
   const displayUploadDrafts = useMemo(() => {
     let list = uploadDrafts
     if (userIdFilterNorm) {
@@ -755,11 +785,9 @@ export default function TracksPageClient() {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
   }, [uploadDrafts, userIdFilterNorm])
-
   const hasViewContent = isUploadDraftsView
     ? displayUploadDrafts.length > 0
     : tracksTotal > 0
-
   useEffect(() => {
     if (!selectedTrack) {
       setTrackEditBundleAddons([])
@@ -791,7 +819,6 @@ export default function TracksPageClient() {
       cancelled = true
     }
   }, [selectedTrack?.id])
-
   const loadTracks = async () => {
     await refreshTracks()
     await refreshArtistsIndex()
@@ -799,7 +826,6 @@ export default function TracksPageClient() {
       await refreshGroupedArtistTracks(selectedGroupedArtist)
     }
   }
-
   useEffect(() => {
     if (!userIdFilterNorm) return
     if (artistsIndex.length === 0) return
@@ -810,7 +836,6 @@ export default function TracksPageClient() {
     setGroupedLetter(getArtistIndexLetter(first.name))
     setSelectedGroupedArtist(first.name)
   }, [userIdFilterNorm, artistsIndex, selectedGroupedArtist])
-
   const handleStatusChange = async (trackId: string, status: TrackStatus) => {
     setUpdatingId(trackId)
     try {
@@ -832,19 +857,24 @@ export default function TracksPageClient() {
       setUpdatingId(null)
     }
   }
-
   const closeTrackEditor = () => {
     setSelectedTrack(null)
     setSelectedUploadDraft(null)
     setTrackDraft(null)
+    setTrackDraftBaseline("")
+    setUploadDraftStatusBaseline("")
+    setTrackEditorTab("moderation")
     setLyricsExpanded(false)
     setModerationHistoryExpanded(false)
   }
-
   const handleViewDetails = (track: Track) => {
     setSelectedUploadDraft(null)
     setSelectedTrack(track)
-    setTrackDraft(trackToDraft(track))
+    const draft = trackToDraft(track)
+    setTrackDraft(draft)
+    setTrackDraftBaseline(JSON.stringify(draft))
+    setUploadDraftStatusBaseline("")
+    setTrackEditorTab("moderation")
     setLyricsExpanded(false)
     void (async () => {
       try {
@@ -855,21 +885,25 @@ export default function TracksPageClient() {
         const data = (await res.json()) as { track?: Track }
         if (!data.track) return
         setSelectedTrack(data.track)
-        setTrackDraft(trackToDraft(data.track))
+        const next = trackToDraft(data.track)
+        setTrackDraft(next)
+        setTrackDraftBaseline(JSON.stringify(next))
       } catch {
         /* ignore */
       }
     })()
   }
-
   const handleViewUploadDraft = (draft: UploadDraft) => {
     setSelectedTrack(null)
     setSelectedUploadDraft(draft)
     setUploadDraftRowStatus(draft.status)
-    setTrackDraft(uploadDraftToTrackDraft(draft))
+    setUploadDraftStatusBaseline(draft.status)
+    const next = uploadDraftToTrackDraft(draft)
+    setTrackDraft(next)
+    setTrackDraftBaseline(JSON.stringify(next))
+    setTrackEditorTab("moderation")
     setLyricsExpanded(false)
   }
-
   const handleUploadDraftStatusChange = async (draftId: string, status: UploadDraftStatus) => {
     setUpdatingDraftId(draftId)
     try {
@@ -891,7 +925,6 @@ export default function TracksPageClient() {
       setUpdatingDraftId(null)
     }
   }
-
   const handleFinalizeUploadDraft = async () => {
     if (!selectedUploadDraft || !trackDraft) return
     const tn = trackDraft.trackName.trim()
@@ -935,7 +968,6 @@ export default function TracksPageClient() {
       setFinalizingDraftId(null)
     }
   }
-
   const handleSaveUploadDraft = async () => {
     if (!selectedUploadDraft || !trackDraft) return
     const tn = trackDraft.trackName.trim()
@@ -967,7 +999,10 @@ export default function TracksPageClient() {
         if (data.draft) {
           setSelectedUploadDraft(data.draft)
           setUploadDraftRowStatus(data.draft.status)
-          setTrackDraft(uploadDraftToTrackDraft(data.draft))
+          setUploadDraftStatusBaseline(data.draft.status)
+          const next = uploadDraftToTrackDraft(data.draft)
+          setTrackDraft(next)
+          setTrackDraftBaseline(JSON.stringify(next))
         }
         loadTracks()
       } else {
@@ -980,7 +1015,6 @@ export default function TracksPageClient() {
       setSavingTrackId(null)
     }
   }
-
   const handleDownloadUploadDraftAudio = async (
     draftId: string,
     trackName: string,
@@ -1011,7 +1045,6 @@ export default function TracksPageClient() {
       toast.error("Ошибка при скачивании")
     }
   }
-
   const handleDownloadUploadDraftCover = async (
     draftId: string,
     trackName: string,
@@ -1040,7 +1073,6 @@ export default function TracksPageClient() {
       toast.error("Ошибка при скачивании")
     }
   }
-
   const handleSaveTrackCard = async () => {
     if (!selectedTrack || !trackDraft) return
     const tn = trackDraft.trackName.trim()
@@ -1109,7 +1141,9 @@ export default function TracksPageClient() {
         const data = await response.json()
         if (data.track) {
           setSelectedTrack(data.track)
-          setTrackDraft(trackToDraft(data.track))
+          const next = trackToDraft(data.track)
+          setTrackDraft(next)
+          setTrackDraftBaseline(JSON.stringify(next))
         }
         loadTracks()
       } else {
@@ -1122,19 +1156,16 @@ export default function TracksPageClient() {
       setSavingTrackId(null)
     }
   }
-
   const getSmartlinkUrl = (slug: string) => {
     if (typeof window === "undefined") return `https://parallaxmusic.ru/s/${slug}`
     return `${window.location.origin}/s/${slug}`
   }
-
   const handleCopySmartlink = (slug: string) => {
     const url = getSmartlinkUrl(slug)
     void navigator.clipboard.writeText(url).then(() => {
       toast.success("Ссылка скопирована")
     })
   }
-
   const handleOpenSmartlink = (track: Track) => {
     const slug = track.smartlinkSlug?.trim()
     if (!slug) {
@@ -1143,7 +1174,6 @@ export default function TracksPageClient() {
     }
     window.open(getSmartlinkUrl(slug), "_blank", "noopener,noreferrer")
   }
-
   const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
     const trimmed = upc.trim()
     if (!trimmed) {
@@ -1181,7 +1211,6 @@ export default function TracksPageClient() {
     }
     return links
   }
-
   const handleResolveTrackPlatformLinks = async () => {
     if (!trackDraft) return
     setResolvingTrackLinks(true)
@@ -1205,7 +1234,6 @@ export default function TracksPageClient() {
       setResolvingTrackLinks(false)
     }
   }
-
   const handleResolveAlbumBulkPlatformLinks = async () => {
     setResolvingAlbumLinks(true)
     try {
@@ -1218,7 +1246,6 @@ export default function TracksPageClient() {
       setResolvingAlbumLinks(false)
     }
   }
-
   const openAlbumBulkDialog = (albumId: string, albumTracks: Track[]) => {
     const ordered = sortTracksByUploadOrder(albumTracks)
     setAlbumBulkAlbumId(albumId)
@@ -1229,7 +1256,6 @@ export default function TracksPageClient() {
     setAlbumBulkPlatformLinks(first?.platformLinks ?? {})
     setAlbumBulkOpen(true)
   }
-
   const openAlbumModDialog = (albumId: string, albumTracks: Track[]) => {
     setAlbumModAlbumId(albumId)
     setAlbumModTrackCount(albumTracks.length)
@@ -1237,7 +1263,6 @@ export default function TracksPageClient() {
     setAlbumModNote("")
     setAlbumModOpen(true)
   }
-
   const handleAlbumModSave = async () => {
     if (!albumModAlbumId) return
     const body: { status?: TrackStatus; moderationNote?: string } = {}
@@ -1271,7 +1296,6 @@ export default function TracksPageClient() {
       setAlbumModSaving(false)
     }
   }
-
   const handleAlbumModClearComments = async () => {
     if (!albumModAlbumId) return
     setAlbumModSaving(true)
@@ -1299,7 +1323,6 @@ export default function TracksPageClient() {
       setAlbumModSaving(false)
     }
   }
-
   const handleAlbumBulkSave = async () => {
     if (!albumBulkAlbumId) return
     const hasAnyLink = Object.values(albumBulkPlatformLinks).some((v) => typeof v === "string" && v.trim().length > 0)
@@ -1336,7 +1359,6 @@ export default function TracksPageClient() {
       setAlbumBulkSaving(false)
     }
   }
-
   const groupTracksByAlbum = (artistTracks: Track[]) => {
     const byAlbum = artistTracks.reduce<{ albumId: string | null; tracks: Track[] }[]>((acc, track) => {
       const aid = track.albumId ?? null
@@ -1347,9 +1369,7 @@ export default function TracksPageClient() {
     }, [])
     return byAlbum
   }
-
   const safeFilename = (s: string) => (s ?? "").replace(/[/\\:*?"<>|]/g, "_").trim() || "track"
-
   const handleDownloadTrack = async (
     trackId: string,
     trackName: string,
@@ -1363,17 +1383,14 @@ export default function TracksPageClient() {
         toast.error("Не удалось скачать трек")
         return
       }
-
       const contentDisposition = response.headers.get("Content-Disposition")
       let filename = `${safeFilename(artistName ?? "")} - ${safeFilename(trackName)}.wav`
-
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i)
         if (filenameMatch && filenameMatch[1]) {
           filename = filenameMatch[1]
         }
       }
-
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -1388,7 +1405,6 @@ export default function TracksPageClient() {
       toast.error("Ошибка при скачивании трека")
     }
   }
-
   const handleDownloadAllAlbumTracks = async (orderedTracks: Track[]) => {
     if (orderedTracks.length === 0) return
     const albumId = orderedTracks[0]?.albumId
@@ -1437,7 +1453,6 @@ export default function TracksPageClient() {
       setDownloadingAlbumId(null)
     }
   }
-
   const handleDownloadCover = async (
     trackId: string,
     trackName: string,
@@ -1466,7 +1481,6 @@ export default function TracksPageClient() {
       toast.error("Ошибка при скачивании обложки")
     }
   }
-
   const handleCopyLyrics = async (track: Track) => {
     const text = track.lyricsText?.trim() ?? ""
     if (!text) {
@@ -1482,25 +1496,21 @@ export default function TracksPageClient() {
       toast.error("Не удалось скопировать текст")
     }
   }
-
   const handleCoverUpload = async (trackId: string, file: File) => {
     setUploadingCoverId(trackId)
     try {
       const formData = new FormData()
       formData.append("cover", file)
-
       const response = await fetch(`/api/admin/uploads/cover/${trackId}`, {
         method: "POST",
         body: formData,
         credentials: "include",
       })
-
       if (!response.ok) {
         const error = await response.json()
         toast.error(error.error || "Не удалось загрузить обложку")
         return
       }
-
       const data = await response.json()
       toast.success("Обложка успешно заменена")
       
@@ -1523,27 +1533,22 @@ export default function TracksPageClient() {
       setUploadingCoverId(null)
     }
   }
-
   const handleCoverFileChange = (event: React.ChangeEvent<HTMLInputElement>, trackId: string) => {
     const file = event.target.files?.[0]
     if (!file) return
-
     // Проверка формата
     const ext = file.name.toLowerCase().split(".").pop()
     if (!["jpg", "jpeg", "png"].includes(ext ?? "")) {
       toast.error("Обложка должна быть в формате JPEG или PNG")
       return
     }
-
     // Проверка размера (20 MB)
     if (file.size > 20 * 1024 * 1024) {
       toast.error("Размер обложки не должен превышать 20 MB")
       return
     }
-
     handleCoverUpload(trackId, file)
   }
-
   const handleUploadDraftCoverUpload = async (draftId: string, file: File) => {
     setUploadingDraftCoverId(draftId)
     try {
@@ -1572,7 +1577,6 @@ export default function TracksPageClient() {
       setUploadingDraftCoverId(null)
     }
   }
-
   const handleUploadDraftCoverFileChange = (
     event: React.ChangeEvent<HTMLInputElement>,
     draftId: string
@@ -1590,7 +1594,6 @@ export default function TracksPageClient() {
     }
     void handleUploadDraftCoverUpload(draftId, file)
   }
-
   const handleUploadDraftAudioUpload = async (draftId: string, file: File) => {
     setUploadingDraftAudioId(draftId)
     try {
@@ -1618,7 +1621,6 @@ export default function TracksPageClient() {
       setUploadingDraftAudioId(null)
     }
   }
-
   const handleUploadDraftAudioFileChange = (
     event: React.ChangeEvent<HTMLInputElement>,
     draftId: string
@@ -1636,15 +1638,12 @@ export default function TracksPageClient() {
     }
     void handleUploadDraftAudioUpload(draftId, file)
   }
-
   const handleDeleteClick = (track: Track) => {
     setTrackToDelete(track)
     setDeleteDialogOpen(true)
   }
-
   const handleDeleteConfirm = async () => {
     if (!trackToDelete) return
-
     setDeletingId(trackToDelete.id)
     try {
       const response = await fetch(`/api/admin/tracks/${trackToDelete.id}`, {
@@ -1665,12 +1664,10 @@ export default function TracksPageClient() {
       setDeletingId(null)
     }
   }
-
   const handleUploadDraftDeleteClick = (draft: UploadDraft) => {
     setUploadDraftToDelete(draft)
     setDeleteUploadDraftDialogOpen(true)
   }
-
   const handleUploadDraftDeleteConfirm = async () => {
     if (!uploadDraftToDelete) return
     setDeletingId(uploadDraftToDelete.id)
@@ -1700,7 +1697,6 @@ export default function TracksPageClient() {
     }
   }
 
-
   const renderSelectedArtistTracksPanel = () => {
     if (!selectedGroupedArtist) return null
     return (
@@ -1712,7 +1708,6 @@ export default function TracksPageClient() {
               ? ruTracksCountLabel(selectedArtistTracks.length)
               : "-"}
         </p>
-
                       {groupedArtistTracksLoading ? (
                         <p className="text-sm text-muted-foreground">Загрузка…</p>
                       ) : selectedArtistTracks && selectedArtistTracks.length > 0 ? (
@@ -1844,7 +1839,7 @@ export default function TracksPageClient() {
                                       )}
                                     </div>
                                     <div className="min-w-0 flex-1 space-y-1.5">
-                                      <p className="font-medium">{track.trackName}</p>
+                                      <p className="font-medium">{trackListDisplayName(track)}</p>
                                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                                         <p className="break-all">Пользователь: {track.userId}</p>
                                         <p>Лейбл: {getReleaseLabelName(track.labelName)}</p>
@@ -2015,13 +2010,11 @@ export default function TracksPageClient() {
       </div>
     )
   }
-
   const sortedAlbums = [...albums].sort((a, b) => {
     const byArtist = a.artistName.localeCompare(b.artistName)
     if (byArtist !== 0) return byArtist
     return a.title.localeCompare(b.title)
   })
-
   if (loading) {
     return (
       <div className="min-h-screen pt-4 flex items-center justify-center">
@@ -2029,19 +2022,15 @@ export default function TracksPageClient() {
       </div>
     )
   }
-
   if (!isAuthenticated) {
     router.replace("/admin26081993")
     return null
   }
-
   return (
     <div className="flex min-h-screen flex-col bg-background pt-4 lg:h-[100dvh] lg:overflow-hidden">
       <div className="mx-auto flex w-full max-w-none flex-1 flex-col gap-4 px-4 pb-4 lg:min-h-0">
         <AdminSectionNav active="tracks" />
-
         <h1 className="shrink-0 text-2xl font-bold">Модерация треков</h1>
-
         {userIdFilterRaw ? (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
             <p className="text-muted-foreground">
@@ -2074,178 +2063,91 @@ export default function TracksPageClient() {
             </Button>
           </div>
         ) : null}
-
-        <div className="grid items-start gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,46%)] lg:items-stretch lg:overflow-hidden">
-        <div className="min-w-0 space-y-6 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         {tracksTotalInDb === 0 && tracksStats.uploadDraftsCount === 0 ? (
           <div className="border rounded-lg p-12 text-center text-muted-foreground">
             Треков и активных черновиков загрузки пока нет
           </div>
         ) : (
           <>
-            <AdminTracksStatsBar
-              stats={tracksStats}
-              viewFilter={viewFilter}
-              onViewFilterChange={setViewFilter}
-            />
-
-            {!hasViewContent ? (
-              <div className="border rounded-lg p-12 text-center space-y-3">
-                <p className="text-muted-foreground">
-                  {userIdFilterRaw
-                    ? "У выбранного пользователя нет записей по текущему фильтру."
-                    : isUploadDraftsView
-                      ? "Нет активных черновиков загрузки."
-                      : viewFilter.type === "status" && viewFilter.status === "upload_pending"
-                        ? "Нет треков в статусе «Требуется доработка». Заявки из формы загрузки - в блоке «Черновики загрузки»."
-                        : viewFilter.type === "releases_today"
-                          ? "Нет треков с датой публикации на сегодня."
-                          : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
-                </p>
-                <Button type="button" variant="outline" onClick={resetTrackListFilters}>
-                  Сбросить фильтры
-                </Button>
-              </div>
-            ) : (
-              <>
-            {isUploadDraftsView ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно
-                  открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
-                </p>
-                <div className="space-y-2">
-                  {displayUploadDrafts.map((d) => {
-                    const title = `${d.payload.trackName ?? ""}`.trim() || "Без названия"
-                    const artist = `${d.payload.artistName ?? ""}`.trim() || "-"
-                    return (
-                      <div
-                        key={d.id}
-                        className={
-                          d.status === "expired" || d.status === "cancelled"
-                            ? "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-amber-500/40 bg-amber-500/5"
-                            : "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
-                        }
+            <div className="shrink-0 space-y-4">
+              <AdminTracksStatsBar
+                stats={tracksStats}
+                viewFilter={viewFilter}
+                onViewFilterChange={setViewFilter}
+              />
+              {!hasViewContent ? (
+                <div className="border rounded-lg p-12 text-center space-y-3">
+                  <p className="text-muted-foreground">
+                    {userIdFilterRaw
+                      ? "У выбранного пользователя нет записей по текущему фильтру."
+                      : isUploadDraftsView
+                        ? "Нет активных черновиков загрузки."
+                        : viewFilter.type === "status" && viewFilter.status === "upload_pending"
+                          ? "Нет треков в статусе «Требуется доработка». Заявки из формы загрузки - в блоке «Черновики загрузки»."
+                          : viewFilter.type === "releases_today"
+                            ? "Нет треков с датой публикации на сегодня."
+                            : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
+                  </p>
+                  <Button type="button" variant="outline" onClick={resetTrackListFilters}>
+                    Сбросить фильтры
+                  </Button>
+                </div>
+              ) : !isUploadDraftsView ? (
+                <div className="flex items-center gap-3 flex-wrap justify-between">
+                  <div className="flex items-center gap-3 flex-wrap min-w-0 flex-1">
+                    <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={() => setTracksTab("grouped")}
+                        className={cn(
+                          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all",
+                          tracksTab === "grouped"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "hover:text-foreground"
+                        )}
                       >
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
-                            {d.coverRelPath ? (
-                              <img
-                                src={`/api/admin/upload-drafts/${encodeURIComponent(d.id)}/cover`}
-                                alt=""
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = "none"
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
-                                {d.payload.requestAiCover ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.` : "Нет"}
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{title}</p>
-                            <p className="text-sm text-muted-foreground truncate">{artist}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              Пользователь: {d.userId}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {d.kind === "album" ? "Альбом" : "Сингл"} · обновлён{" "}
-                              {format(new Date(d.updatedAt), "d MMM yyyy, HH:mm", { locale: ru })}
-                            </p>
-                            {d.audioRelPath ? (
-                              <p className="text-xs text-muted-foreground">WAV в черновике</p>
-                            ) : (
-                              <p className="text-xs text-amber-700 dark:text-amber-300">WAV не загружен</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 flex-wrap items-center shrink-0">
-                          <Select
-                            value={d.status}
-                            onValueChange={(v) =>
-                              void handleUploadDraftStatusChange(d.id, v as UploadDraftStatus)
-                            }
-                            disabled={updatingDraftId === d.id}
-                          >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {UPLOAD_DRAFT_STATUS_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Подробнее"
-                            aria-label="Подробнее"
-                            onClick={() => handleViewUploadDraft(d)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Удалить"
-                            aria-label="Удалить"
-                            onClick={() => handleUploadDraftDeleteClick(d)}
-                            disabled={deletingId === d.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        Группировка по артистам
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTracksTab("simple")}
+                        className={cn(
+                          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all",
+                          tracksTab === "simple"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "hover:text-foreground"
+                        )}
+                      >
+                        Простой список
+                      </button>
+                    </div>
+                    {tracksTab === "grouped" ? (
+                      <div className="relative min-w-[200px] flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          value={artistSearchQuery}
+                          onChange={(e) => {
+                            setArtistSearchQuery(e.target.value)
+                            setSelectedGroupedArtist(null)
+                          }}
+                          placeholder="Поиск по имени артиста…"
+                          className="pl-9 h-9"
+                        />
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ) : (
-            <Tabs
-              value={tracksTab}
-              onValueChange={(value) => setTracksTab(value as "grouped" | "simple")}
-              className="w-full"
-            >
-              <div className="flex items-center gap-3 flex-wrap justify-between">
-                <div className="flex items-center gap-3 flex-wrap min-w-0 flex-1">
-                  <TabsList>
-                    <TabsTrigger value="grouped">Группировка по артистам</TabsTrigger>
-                    <TabsTrigger value="simple">Простой список</TabsTrigger>
-                  </TabsList>
-                  {tracksTab === "grouped" ? (
-                    <div className="relative min-w-[200px] flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                      <Input
-                        value={artistSearchQuery}
-                        onChange={(e) => {
-                          setArtistSearchQuery(e.target.value)
-                          setSelectedGroupedArtist(null)
-                        }}
-                        placeholder="Поиск по имени артиста…"
-                        className="pl-9 h-9"
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative min-w-[200px] flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                      <Input
-                        value={simpleListSearchQuery}
-                        onChange={(e) => setSimpleListSearchQuery(e.target.value)}
-                        placeholder="Поиск: артист, трек, альбом, ISRC, UPC…"
-                        className="pl-9 h-9"
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 flex-wrap shrink-0">
-                  <span className="text-sm text-muted-foreground">Дата публикации:</span>
+                    ) : (
+                      <div className="relative min-w-[200px] flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          value={simpleListSearchQuery}
+                          onChange={(e) => setSimpleListSearchQuery(e.target.value)}
+                          placeholder="Поиск: артист, трек, альбом, ISRC, UPC…"
+                          className="pl-9 h-9"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    <span className="text-sm text-muted-foreground">Дата публикации:</span>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -2353,9 +2255,118 @@ export default function TracksPageClient() {
                     </Button>
                   )}
                 </div>
-              </div>
-
-              <TabsContent value="grouped" className="space-y-4">
+                </div>
+              ) : null}
+            </div>
+            {hasViewContent ? (
+              <div className="grid items-start gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,46%)] lg:items-stretch lg:overflow-hidden">
+                <div className="min-w-0 space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+                  {isUploadDraftsView ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно
+                        открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
+                      </p>
+                      <div className="space-y-2">
+                        {displayUploadDrafts.map((d) => {
+                          const title = `${d.payload.trackName ?? ""}`.trim() || "Без названия"
+                          const artist = `${d.payload.artistName ?? ""}`.trim() || "-"
+                          return (
+                            <div
+                              key={d.id}
+                              className={
+                                d.status === "expired" || d.status === "cancelled"
+                                  ? "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-amber-500/40 bg-amber-500/5"
+                                  : "border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                              }
+                            >
+                              <div className="flex items-start gap-3 min-w-0">
+                                <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
+                                  {d.coverRelPath ? (
+                                    <img
+                                      src={`/api/admin/upload-drafts/${encodeURIComponent(d.id)}/cover`}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        ;(e.target as HTMLImageElement).style.display = "none"
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] text-muted-foreground leading-tight">
+                                      {d.payload.requestAiCover ? `ИИ ${AI_COVER_REQUEST_PRICE_RUB} руб.` : "Нет"}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{title}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{artist}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    Пользователь: {d.userId}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {d.kind === "album" ? "Альбом" : "Сингл"} · обновлён{" "}
+                                    {format(new Date(d.updatedAt), "d MMM yyyy, HH:mm", { locale: ru })}
+                                  </p>
+                                  {d.audioRelPath ? (
+                                    <p className="text-xs text-muted-foreground">WAV в черновике</p>
+                                  ) : (
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">WAV не загружен</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-wrap items-center shrink-0">
+                                <Select
+                                  value={d.status}
+                                  onValueChange={(v) =>
+                                    void handleUploadDraftStatusChange(d.id, v as UploadDraftStatus)
+                                  }
+                                  disabled={updatingDraftId === d.id}
+                                >
+                                  <SelectTrigger className="w-[200px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {UPLOAD_DRAFT_STATUS_OPTIONS.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Подробнее"
+                                  aria-label="Подробнее"
+                                  onClick={() => handleViewUploadDraft(d)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Удалить"
+                                  aria-label="Удалить"
+                                  onClick={() => handleUploadDraftDeleteClick(d)}
+                                  disabled={deletingId === d.id}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <Tabs
+                      value={tracksTab}
+                      onValueChange={(value) => setTracksTab(value as "grouped" | "simple")}
+                      className="w-full"
+                    >
+              <TabsContent value="grouped" className="space-y-4 mt-0">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Алфавит артистов</CardTitle>
@@ -2398,7 +2409,6 @@ export default function TracksPageClient() {
                     )}
                   </CardContent>
                 </Card>
-
                 {artistSearchResults ? (
                   <Card>
                     <CardHeader className="pb-3">
@@ -2480,7 +2490,6 @@ export default function TracksPageClient() {
                   </Card>
                 ) : null}
               </TabsContent>
-
               <TabsContent value="simple">
                 <Card>
                   <CardHeader className="pb-3">
@@ -2546,7 +2555,7 @@ export default function TracksPageClient() {
                                 <p className="font-medium leading-snug">
                                   {track.artistName?.trim() || "Без имени артиста"}
                                 </p>
-                                <p className="leading-snug">{track.trackName}</p>
+                                <p className="leading-snug">{trackListDisplayName(track)}</p>
                                 <p className="text-xs text-muted-foreground break-all leading-snug">
                                   {track.userId}
                                 </p>
@@ -2706,420 +2715,372 @@ export default function TracksPageClient() {
                   </CardContent>
                 </Card>
               </TabsContent>
-            </Tabs>
-            )}
-              </>
-            )}
-          </>
-        )}
-        </div>
-
+                    </Tabs>
+                  )}
+                </div>
         <aside className="flex min-h-[24rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:min-h-0 lg:h-full lg:max-h-full">
-          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-base font-semibold leading-tight">
-                {selectedUploadDraft ? "Черновик загрузки" : "Карточка трека"}
-              </p>
-              {selectedUploadDraft ? (
-                <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                  id: {selectedUploadDraft.id} · {selectedUploadDraft.kind}
+          {!(selectedTrack || selectedUploadDraft) || !trackDraft ? (
+            <>
+              <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-base font-semibold leading-tight">Карточка трека</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Выберите трек в списке слева
+                  </p>
+                </div>
+              </div>
+              <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+                <p className="text-center text-sm text-muted-foreground">
+                  Клик по строке трека открывает карточку здесь, без модалки.
                 </p>
-              ) : selectedTrack ? (
-                <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-                  id: {selectedTrack.id}
-                </p>
-              ) : (
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Выберите трек в списке слева
-                </p>
-              )}
-            </div>
-            {selectedTrack || selectedUploadDraft ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                onClick={closeTrackEditor}
-              >
-                Закрыть
-              </Button>
-            ) : null}
-          </div>
-          <div className="cabinet-sidebar-scroll min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-4">
-            {!(selectedTrack || selectedUploadDraft) || !trackDraft ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">
-                Клик по строке трека открывает карточку здесь, без модалки.
-              </p>
-            ) : (
-              <>
-            {selectedTrack &&
-            (selectedTrack.needsAiCover ||
-              (trackEditBundleAddonsFetched && trackEditBundleAddons.length > 0)) ? (
-              <Alert className="border-border bg-muted/40">
-                <Info className="h-4 w-4 text-muted-foreground" />
-                <AlertTitle>Заказанные доп. услуги при загрузке</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc pl-5 text-foreground space-y-0.5">
-                    {selectedTrack.needsAiCover ? (
-                      <li key="ai-cover-order">{ruMessages.cabinet.promotion.aiCover.title}</li>
-                    ) : null}
-                    {trackEditBundleAddons.map((line, idx) => (
-                      <li key={`${line.type}-${line.quantity}-${idx}`}>
-                        {formatUploadAddonBundleLine(line, ruMessages.cabinet.promotion)}
-                      </li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {(selectedTrack || selectedUploadDraft) && trackDraft && (
-              <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedTrack ? (
-                      <div className="md:col-span-2 space-y-2 rounded-md border bg-muted/30 p-3">
-                        <Label>Прослушать</Label>
-                        <audio
-                          key={selectedTrack.id}
-                          controls
-                          preload="metadata"
-                          className="admin-audio-compact"
-                          src={`/api/admin/uploads/audio/${selectedTrack.id}`}
-                          onPlay={(e) => {
-                            const current = e.currentTarget
-                            document.querySelectorAll("audio").forEach((el) => {
-                              if (el !== current) el.pause()
-                            })
-                          }}
-                        />
-                      </div>
-                    ) : selectedUploadDraft?.audioRelPath ? (
-                      <div className="md:col-span-2 space-y-2 rounded-md border bg-muted/30 p-3">
-                        <Label>Прослушать WAV черновика</Label>
-                        <audio
-                          key={selectedUploadDraft.id}
-                          controls
-                          preload="metadata"
-                          className="admin-audio-compact"
-                          src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
-                          onPlay={(e) => {
-                            const current = e.currentTarget
-                            document.querySelectorAll("audio").forEach((el) => {
-                              if (el !== current) el.pause()
-                            })
-                          }}
-                        />
-                      </div>
-                    ) : null}
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-track-name">Название трека</Label>
-                      <Input
-                        id="admin-track-name"
-                        value={trackDraft.trackName}
-                        onChange={(e) =>
-                          setTrackDraft((d) => d && { ...d, trackName: e.target.value })
-                        }
-                        placeholder="Название трека"
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="shrink-0 space-y-3 border-b border-border px-3 py-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+                    {selectedTrack?.coverPath?.trim() ? (
+                      <img
+                        src={`/api/admin/uploads/cover/${selectedTrack.id}?t=${coverRefreshKey[selectedTrack.id] || Date.now()}`}
+                        alt=""
+                        className="h-full w-full object-cover"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-artist">Исполнитель</Label>
-                      <Input
-                        id="admin-artist"
-                        value={trackDraft.artistName}
-                        onChange={(e) =>
-                          setTrackDraft((d) => d && { ...d, artistName: e.target.value })
-                        }
-                        placeholder="Исполнитель"
+                    ) : selectedUploadDraft?.coverRelPath ? (
+                      <img
+                        src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/cover?t=${coverRefreshKey[selectedUploadDraft.id] || 0}`}
+                        alt=""
+                        className="h-full w-full object-cover"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-label-name">Лейбл</Label>
-                      <Input
-                        id="admin-label-name"
-                        value={trackDraft.labelName}
-                        onChange={(e) =>
-                          setTrackDraft((d) => d && { ...d, labelName: e.target.value })
-                        }
-                        placeholder={DEFAULT_RELEASE_LABEL_NAME}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Жанр</Label>
-                      <Select
-                        value={
-                          GENRES.includes(trackDraft.genre as (typeof GENRES)[number])
-                            ? trackDraft.genre
-                            : trackDraft.genre || "Other"
-                        }
-                        onValueChange={(v) =>
-                          setTrackDraft((d) => d && { ...d, genre: v })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Выберите жанр" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {genreKeys.map((g) => (
-                            <SelectItem key={g} value={g}>
-                              {g}
-                            </SelectItem>
-                          ))}
-                          {trackDraft.genre &&
-                            !GENRES.includes(trackDraft.genre as (typeof GENRES)[number]) && (
-                              <SelectItem value={trackDraft.genre}>
-                                {trackDraft.genre}
-                              </SelectItem>
-                            )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Настроение трека</Label>
-                      <Select
-                        value={trackDraft.mood || "__none__"}
-                        onValueChange={(v) =>
-                          setTrackDraft((d) =>
-                            d ? { ...d, mood: v === "__none__" ? "" : v } : d
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Выберите настроение" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Не указано</SelectItem>
-                          {moodKeys.map((m) => (
-                            <SelectItem key={m} value={m}>
-                              {m}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <StreamingServicesField
-                      value={trackDraft.streamingScope}
-                      onChange={(value) =>
-                        setTrackDraft((d) => d && { ...d, streamingScope: value })
-                      }
-                      idPrefix="admin-track-streaming"
-                    />
-                    <div className="flex flex-col gap-2">
-                      <Label>Дата публикации на площадки</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal justify-between",
-                              !trackDraft.releaseDate && "text-muted-foreground"
-                            )}
-                          >
-                            {trackDraft.releaseDate ? (
-                              format(
-                                parseISO(trackDraft.releaseDate + "T12:00:00"),
-                                "PPP",
-                                { locale: ru }
-                              )
-                            ) : (
-                              <span>Выберите дату</span>
-                            )}
-                            <CalendarIcon className="ml-2 h-4 w-4 opacity-50 shrink-0" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={
-                              trackDraft.releaseDate
-                                ? parseISO(trackDraft.releaseDate + "T12:00:00")
-                                : undefined
-                            }
-                            onSelect={(date) =>
-                              setTrackDraft((d) =>
-                                d && date
-                                  ? { ...d, releaseDate: format(date, "yyyy-MM-dd") }
-                                  : d
-                              )
-                            }
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    {selectedTrack ? (
-                      <div className="space-y-2">
-                        <Label>Статус модерации</Label>
-                        <Select
-                          value={trackDraft.status}
-                          onValueChange={(v) =>
-                            setTrackDraft((d) =>
-                              d ? { ...d, status: v as TrackStatus } : d
-                            )
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     ) : (
-                      <div className="space-y-2">
-                        <Label>Статус черновика</Label>
-                        <Select
-                          value={uploadDraftRowStatus}
-                          onValueChange={(v) => setUploadDraftRowStatus(v as UploadDraftStatus)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {UPLOAD_DRAFT_STATUS_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                        Нет
                       </div>
                     )}
-                    {selectedTrack ? (
-                      <div className="space-y-2">
-                        <Label>Альбом</Label>
-                        <Select
-                          value={trackDraft.albumId}
-                          onValueChange={(v) =>
-                            setTrackDraft((d) => (d ? { ...d, albumId: v } : d))
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold leading-tight">
+                          {trackDraft.trackName.trim() || "Без названия"}
+                        </p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {trackDraft.artistName.trim() || "Без исполнителя"}
+                        </p>
+                        <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                          {selectedUploadDraft
+                            ? `черновик · ${selectedUploadDraft.id}`
+                            : `id: ${selectedTrack?.id}`}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={closeTrackEditor}
+                      >
+                        Закрыть
+                      </Button>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+                          adminStatusHeaderTone(
+                            selectedTrack ? trackDraft.status : uploadDraftRowStatus
+                          )
+                        )}
+                      >
+                        {selectedTrack
+                          ? STATUS_OPTIONS.find((o) => o.value === trackDraft.status)?.label ||
+                            trackDraft.status
+                          : UPLOAD_DRAFT_STATUS_OPTIONS.find(
+                              (o) => o.value === uploadDraftRowStatus
+                            )?.label || uploadDraftRowStatus}
+                      </span>
+                      {trackEditorDirty ? (
+                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200 ring-1 ring-inset ring-amber-500/30">
+                          Есть несохранённые изменения
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedTrack ? (
+                  <audio
+                    key={selectedTrack.id}
+                    controls
+                    preload="metadata"
+                    className="admin-audio-compact w-full"
+                    src={`/api/admin/uploads/audio/${selectedTrack.id}`}
+                    onPlay={(e) => {
+                      const current = e.currentTarget
+                      document.querySelectorAll("audio").forEach((el) => {
+                        if (el !== current) el.pause()
+                      })
+                    }}
+                  />
+                ) : selectedUploadDraft?.audioRelPath ? (
+                  <audio
+                    key={selectedUploadDraft.id}
+                    controls
+                    preload="metadata"
+                    className="admin-audio-compact w-full"
+                    src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
+                    onPlay={(e) => {
+                      const current = e.currentTarget
+                      document.querySelectorAll("audio").forEach((el) => {
+                        if (el !== current) el.pause()
+                      })
+                    }}
+                  />
+                ) : null}
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {selectedTrack ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Статус модерации</Label>
+                      <Select
+                        value={trackDraft.status}
+                        onValueChange={(v) =>
+                          setTrackDraft((d) => (d ? { ...d, status: v as TrackStatus } : d))
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Статус черновика</Label>
+                      <Select
+                        value={uploadDraftRowStatus}
+                        onValueChange={(v) => setUploadDraftRowStatus(v as UploadDraftStatus)}
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UPLOAD_DRAFT_STATUS_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Дата публикации</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "h-9 w-full justify-between font-normal",
+                            !trackDraft.releaseDate && "text-muted-foreground"
+                          )}
+                        >
+                          {trackDraft.releaseDate ? (
+                            format(parseISO(trackDraft.releaseDate + "T12:00:00"), "PPP", {
+                              locale: ru,
+                            })
+                          ) : (
+                            <span>Выберите дату</span>
+                          )}
+                          <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={
+                            trackDraft.releaseDate
+                              ? parseISO(trackDraft.releaseDate + "T12:00:00")
+                              : undefined
+                          }
+                          onSelect={(date) =>
+                            setTrackDraft((d) =>
+                              d && date ? { ...d, releaseDate: format(date, "yyyy-MM-dd") } : d
+                            )
+                          }
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={selectedTrack ? handleSaveTrackCard : handleSaveUploadDraft}
+                    disabled={
+                      savingTrackId === (selectedTrack?.id ?? selectedUploadDraft?.id ?? "") ||
+                      finalizingDraftId === selectedUploadDraft?.id ||
+                      uploadingDraftCoverId === selectedUploadDraft?.id ||
+                      uploadingDraftAudioId === selectedUploadDraft?.id
+                    }
+                  >
+                    <Save className="mr-1 h-4 w-4" />
+                    {savingTrackId === (selectedTrack?.id ?? selectedUploadDraft?.id)
+                      ? "Сохранение…"
+                      : "Сохранить"}
+                  </Button>
+                  {selectedTrack ? (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          handleDownloadTrack(
+                            selectedTrack.id,
+                            trackDraft.trackName,
+                            trackDraft.artistName
+                          )
+                        }
+                      >
+                        <Download className="mr-1 h-4 w-4" />
+                        WAV
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          handleDownloadCover(
+                            selectedTrack.id,
+                            trackDraft.trackName,
+                            trackDraft.artistName
+                          )
+                        }
+                      >
+                        <ImageIcon className="mr-1 h-4 w-4" />
+                        Обложка
+                      </Button>
+                    </>
+                  ) : selectedUploadDraft ? (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={!selectedUploadDraft.audioRelPath}
+                        onClick={() =>
+                          void handleDownloadUploadDraftAudio(
+                            selectedUploadDraft.id,
+                            trackDraft.trackName,
+                            trackDraft.artistName
+                          )
+                        }
+                      >
+                        <Download className="mr-1 h-4 w-4" />
+                        WAV
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!selectedUploadDraft.coverRelPath}
+                        onClick={() =>
+                          void handleDownloadUploadDraftCover(
+                            selectedUploadDraft.id,
+                            trackDraft.trackName,
+                            trackDraft.artistName
+                          )
+                        }
+                      >
+                        <ImageIcon className="mr-1 h-4 w-4" />
+                        Обложка
+                      </Button>
+                      {selectedUploadDraft.status !== "finalized" ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void handleFinalizeUploadDraft()}
+                          disabled={
+                            finalizingDraftId === selectedUploadDraft.id ||
+                            savingTrackId === selectedUploadDraft.id
                           }
                         >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Выберите альбом" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Без альбома</SelectItem>
-                            {sortedAlbums.map((album) => (
-                              <SelectItem key={album.id} value={album.id}>
-                                {album.artistName} - {album.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : selectedUploadDraft?.albumId ? (
-                      <p className="text-xs text-muted-foreground md:col-span-2">
-                        Привязка к альбому (id):{" "}
-                        <span className="font-mono">{selectedUploadDraft.albumId}</span>
-                      </p>
+                          <FileCheck className="mr-1 h-4 w-4" />
+                          {finalizingDraftId === selectedUploadDraft.id
+                            ? "Создание…"
+                            : "В модерацию"}
+                        </Button>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              <Tabs
+                value={trackEditorTab}
+                onValueChange={(v) =>
+                  setTrackEditorTab(v as "moderation" | "release" | "content" | "distribution")
+                }
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                <TabsList className="h-auto w-full shrink-0 flex-wrap justify-start gap-1 rounded-none border-b border-border bg-transparent p-2">
+                  <TabsTrigger value="moderation" className="text-xs sm:text-sm">
+                    Модерация
+                    {moderationTabNeedsAttention ? (
+                      <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
                     ) : null}
-                    <div className="md:col-span-2 flex flex-wrap items-start gap-3 rounded-md border border-border p-3">
-                      <Checkbox
-                        id="admin-transfer-distributor"
-                        checked={trackDraft.transferFromOtherDistributor}
-                        onCheckedChange={(c) => {
-                          const on = c === true
-                          setTrackDraft((d) =>
-                            d
-                              ? {
-                                  ...d,
-                                  transferFromOtherDistributor: on,
-                                  ...(!on
-                                    ? { previousDistributor: "", originalReleaseDate: "" }
-                                    : {}),
-                                }
-                              : d
-                          )
-                        }}
-                      />
-                      <label
-                        htmlFor="admin-transfer-distributor"
-                        className="cursor-pointer text-sm leading-snug"
-                      >
-                        Перенос от другого дистрибьютора
-                      </label>
-                    </div>
-                    {trackDraft.transferFromOtherDistributor ? (
-                      <>
-                        <div className="md:col-span-2 space-y-2">
-                          <Label htmlFor="admin-previous-distributor">
-                            Предыдущий дистрибьютор
-                          </Label>
-                          <Input
-                            id="admin-previous-distributor"
-                            placeholder="Название дистрибьютора"
-                            value={trackDraft.previousDistributor}
-                            onChange={(e) =>
-                              setTrackDraft((d) =>
-                                d ? { ...d, previousDistributor: e.target.value } : d
-                              )
-                            }
-                          />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                          <Label htmlFor="admin-original-release-date">
-                            Оригинальная дата релиза
-                          </Label>
-                          <Input
-                            id="admin-original-release-date"
-                            type="date"
-                            value={trackDraft.originalReleaseDate}
-                            onChange={(e) =>
-                              setTrackDraft((d) =>
-                                d ? { ...d, originalReleaseDate: e.target.value } : d
-                              )
-                            }
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Дата, когда этот релиз был опубликован впервые
-                          </p>
-                        </div>
-                      </>
+                  </TabsTrigger>
+                  <TabsTrigger value="release" className="text-xs sm:text-sm">
+                    Релиз
+                    {releaseTabNeedsAttention ? (
+                      <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
                     ) : null}
-                    <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-catalog-number">Артикул</Label>
-                        <Input
-                          id="admin-catalog-number"
-                          className="font-mono"
-                          placeholder="PRLXM000025"
-                          value={trackDraft.catalogNumber}
-                          onChange={(e) =>
-                            setTrackDraft((d) => (d ? { ...d, catalogNumber: e.target.value } : d))
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-upc">UPC</Label>
-                        <Input
-                          id="admin-upc"
-                          className="font-mono"
-                          placeholder="UPC"
-                          value={trackDraft.upc}
-                          onChange={(e) =>
-                            setTrackDraft((d) => (d ? { ...d, upc: e.target.value } : d))
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-isrc">ISRC</Label>
-                        <Input
-                          id="admin-isrc"
-                          className="font-mono"
-                          placeholder="ISRC"
-                          value={trackDraft.isrc}
-                          onChange={(e) =>
-                            setTrackDraft((d) => (d ? { ...d, isrc: e.target.value } : d))
-                          }
-                        />
-                      </div>
-                    </div>
+                  </TabsTrigger>
+                  <TabsTrigger value="content" className="text-xs sm:text-sm">
+                    Контент
+                  </TabsTrigger>
+                  <TabsTrigger value="distribution" className="text-xs sm:text-sm">
+                    Дистрибуция
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className="cabinet-sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3">
+                  <TabsContent value="moderation" className="mt-0 space-y-4">
+                  {selectedTrack &&
+                  (selectedTrack.needsAiCover ||
+                    (trackEditBundleAddonsFetched && trackEditBundleAddons.length > 0)) ? (
+                    <Alert className="mb-3 border-border bg-muted/40">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <AlertTitle>Заказанные доп. услуги при загрузке</AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-disc space-y-0.5 pl-5 text-foreground">
+                          {selectedTrack.needsAiCover ? (
+                            <li key="ai-cover-order">{ruMessages.cabinet.promotion.aiCover.title}</li>
+                          ) : null}
+                          {trackEditBundleAddons.map((line, idx) => (
+                            <li key={`${line.type}-${line.quantity}-${idx}`}>
+                              {formatUploadAddonBundleLine(line, ruMessages.cabinet.promotion)}
+                            </li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                    <div className="grid grid-cols-1 gap-4">
                     {selectedTrack ? (
-                      <div className="md:col-span-2 space-y-2">
+                      <div className="space-y-2">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <Label htmlFor="admin-mod-note">
                             Комментарий модерации (при «Отклонено» / «Отозван» / «Требуется доработка»)
@@ -3222,7 +3183,237 @@ export default function TracksPageClient() {
                       </div>
                     ) : null}
 
-                    <div className="md:col-span-2 space-y-2">
+                    
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="release" className="mt-0 space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+<div className="space-y-2">
+                      <Label htmlFor="admin-track-name">Название трека</Label>
+                      <Input
+                        id="admin-track-name"
+                        value={trackDraft.trackName}
+                        onChange={(e) =>
+                          setTrackDraft((d) => d && { ...d, trackName: e.target.value })
+                        }
+                        placeholder="Название трека"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-artist">Исполнитель</Label>
+                      <Input
+                        id="admin-artist"
+                        value={trackDraft.artistName}
+                        onChange={(e) =>
+                          setTrackDraft((d) => d && { ...d, artistName: e.target.value })
+                        }
+                        placeholder="Исполнитель"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-label-name">Лейбл</Label>
+                      <Input
+                        id="admin-label-name"
+                        value={trackDraft.labelName}
+                        onChange={(e) =>
+                          setTrackDraft((d) => d && { ...d, labelName: e.target.value })
+                        }
+                        placeholder={DEFAULT_RELEASE_LABEL_NAME}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Жанр</Label>
+                      <Select
+                        value={
+                          GENRES.includes(trackDraft.genre as (typeof GENRES)[number])
+                            ? trackDraft.genre
+                            : trackDraft.genre || "Other"
+                        }
+                        onValueChange={(v) =>
+                          setTrackDraft((d) => d && { ...d, genre: v })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Выберите жанр" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {genreKeys.map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g}
+                            </SelectItem>
+                          ))}
+                          {trackDraft.genre &&
+                            !GENRES.includes(trackDraft.genre as (typeof GENRES)[number]) && (
+                              <SelectItem value={trackDraft.genre}>
+                                {trackDraft.genre}
+                              </SelectItem>
+                            )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Настроение трека</Label>
+                      <Select
+                        value={trackDraft.mood || "__none__"}
+                        onValueChange={(v) =>
+                          setTrackDraft((d) =>
+                            d ? { ...d, mood: v === "__none__" ? "" : v } : d
+                          )
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Выберите настроение" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Не указано</SelectItem>
+                          {moodKeys.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <StreamingServicesField
+                        value={trackDraft.streamingScope}
+                        onChange={(value) =>
+                          setTrackDraft((d) => d && { ...d, streamingScope: value })
+                        }
+                        idPrefix="admin-track-streaming"
+                      />
+                    </div>
+                    {selectedTrack ? (
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label>Альбом</Label>
+                        <Select
+                          value={trackDraft.albumId}
+                          onValueChange={(v) =>
+                            setTrackDraft((d) => (d ? { ...d, albumId: v } : d))
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Выберите альбом" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Без альбома</SelectItem>
+                            {sortedAlbums.map((album) => (
+                              <SelectItem key={album.id} value={album.id}>
+                                {album.artistName} - {album.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : selectedUploadDraft?.albumId ? (
+                      <p className="text-xs text-muted-foreground sm:col-span-2">
+                        Привязка к альбому (id):{" "}
+                        <span className="font-mono">{selectedUploadDraft.albumId}</span>
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap items-start gap-3 rounded-md border border-border p-3 sm:col-span-2">
+                      <Checkbox
+                        id="admin-transfer-distributor"
+                        checked={trackDraft.transferFromOtherDistributor}
+                        onCheckedChange={(c) => {
+                          const on = c === true
+                          setTrackDraft((d) =>
+                            d
+                              ? {
+                                  ...d,
+                                  transferFromOtherDistributor: on,
+                                  ...(!on
+                                    ? { previousDistributor: "", originalReleaseDate: "" }
+                                    : {}),
+                                }
+                              : d
+                          )
+                        }}
+                      />
+                      <label
+                        htmlFor="admin-transfer-distributor"
+                        className="cursor-pointer text-sm leading-snug"
+                      >
+                        Перенос от другого дистрибьютора
+                      </label>
+                    </div>
+                    {trackDraft.transferFromOtherDistributor ? (
+                      <>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label htmlFor="admin-previous-distributor">
+                            Предыдущий дистрибьютор
+                          </Label>
+                          <Input
+                            id="admin-previous-distributor"
+                            placeholder="Название дистрибьютора"
+                            value={trackDraft.previousDistributor}
+                            onChange={(e) =>
+                              setTrackDraft((d) =>
+                                d ? { ...d, previousDistributor: e.target.value } : d
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label htmlFor="admin-original-release-date">
+                            Оригинальная дата релиза
+                          </Label>
+                          <Input
+                            id="admin-original-release-date"
+                            type="date"
+                            value={trackDraft.originalReleaseDate}
+                            onChange={(e) =>
+                              setTrackDraft((d) =>
+                                d ? { ...d, originalReleaseDate: e.target.value } : d
+                              )
+                            }
+                          />
+                        </div>
+                      </>
+                    ) : null}
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-catalog-number">Артикул</Label>
+                      <Input
+                        id="admin-catalog-number"
+                        className="font-mono"
+                        placeholder="PRLXM000025"
+                        value={trackDraft.catalogNumber}
+                        onChange={(e) =>
+                          setTrackDraft((d) => (d ? { ...d, catalogNumber: e.target.value } : d))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-upc">UPC</Label>
+                      <Input
+                        id="admin-upc"
+                        className="font-mono"
+                        placeholder="UPC"
+                        value={trackDraft.upc}
+                        onChange={(e) =>
+                          setTrackDraft((d) => (d ? { ...d, upc: e.target.value } : d))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-isrc">ISRC</Label>
+                      <Input
+                        id="admin-isrc"
+                        className="font-mono"
+                        placeholder="ISRC"
+                        value={trackDraft.isrc}
+                        onChange={(e) =>
+                          setTrackDraft((d) => (d ? { ...d, isrc: e.target.value } : d))
+                        }
+                      />
+                    </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="content" className="mt-0 space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+<div className="md:col-span-2 space-y-2">
                       <Label htmlFor="admin-short-desc">Краткое описание трека</Label>
                       <Input
                         id="admin-short-desc"
@@ -3528,7 +3719,13 @@ export default function TracksPageClient() {
                       )}
                     </div>
 
-                    <div className="md:col-span-2 space-y-2">
+                    
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="distribution" className="mt-0 space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+<div className="md:col-span-2 space-y-2">
                       <Label>
                         Обложка
                         {selectedTrack || selectedUploadDraft ? " (заменить файл)" : ""}
@@ -3729,7 +3926,7 @@ export default function TracksPageClient() {
                     .env. YouTube Music - опционально YOUTUBE_API_KEY. VK и Звук - вручную. Не
                     забудьте сохранить трек.
                   </p>
-                  <div className="grid gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {SMARTLINK_PLATFORMS.map(({ key, label }) => (
                       <div key={key} className="flex flex-col gap-1">
                         <span className="text-xs text-muted-foreground">{label}</span>
@@ -3755,7 +3952,7 @@ export default function TracksPageClient() {
                       </div>
                     ))}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="admin-smart-slug">Слаг смартлинка (после /s/)</Label>
                     <Input
                       id="admin-smart-slug"
@@ -3791,124 +3988,19 @@ export default function TracksPageClient() {
                   </div>
                 </div>
                 ) : null}
+                    </div>
+                  </TabsContent>
 
-                <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 pt-2">
-                  <Button
-                    type="button"
-                    className="flex-1"
-                    onClick={selectedTrack ? handleSaveTrackCard : handleSaveUploadDraft}
-                    disabled={
-                      savingTrackId === (selectedTrack?.id ?? selectedUploadDraft?.id ?? "") ||
-                      finalizingDraftId === selectedUploadDraft?.id ||
-                      uploadingDraftCoverId === selectedUploadDraft?.id ||
-                      uploadingDraftAudioId === selectedUploadDraft?.id
-                    }
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {savingTrackId === (selectedTrack?.id ?? selectedUploadDraft?.id)
-                      ? "Сохранение…"
-                      : "Сохранить изменения"}
-                  </Button>
-                  {!selectedTrack && selectedUploadDraft && selectedUploadDraft.status !== "finalized" ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="flex-1"
-                      onClick={() => void handleFinalizeUploadDraft()}
-                      disabled={
-                        finalizingDraftId === selectedUploadDraft.id ||
-                        savingTrackId === selectedUploadDraft.id
-                      }
-                    >
-                      <FileCheck className="h-4 w-4 mr-2" />
-                      {finalizingDraftId === selectedUploadDraft.id
-                        ? "Создание трека…"
-                        : "Создать трек на модерации"}
-                    </Button>
-                  ) : null}
                 </div>
-
-                <div className="md:col-span-2 flex gap-3 pt-2 border-t">
-                  {selectedTrack ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() =>
-                          handleDownloadTrack(
-                            selectedTrack.id,
-                            trackDraft.trackName,
-                            trackDraft.artistName
-                          )
-                        }
-                        className="flex-1"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Скачать трек
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          handleDownloadCover(
-                            selectedTrack.id,
-                            trackDraft.trackName,
-                            trackDraft.artistName
-                          )
-                        }
-                        className="flex-1"
-                      >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        Скачать обложку
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={!selectedUploadDraft?.audioRelPath}
-                        onClick={() =>
-                          selectedUploadDraft &&
-                          void handleDownloadUploadDraftAudio(
-                            selectedUploadDraft.id,
-                            trackDraft.trackName,
-                            trackDraft.artistName
-                          )
-                        }
-                        className="flex-1"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Скачать WAV черновика
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={!selectedUploadDraft?.coverRelPath}
-                        onClick={() =>
-                          selectedUploadDraft &&
-                          void handleDownloadUploadDraftCover(
-                            selectedUploadDraft.id,
-                            trackDraft.trackName,
-                            trackDraft.artistName
-                          )
-                        }
-                        className="flex-1"
-                      >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        Скачать обложку черновика
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-              </>
-            )}
-          </div>
+              </Tabs>
+            </>
+          )}
         </aside>
-        </div>
 
+              </div>
+            ) : null}
+          </>
+        )}
         <Dialog
           open={albumModOpen}
           onOpenChange={(open) => {
@@ -3984,7 +4076,6 @@ export default function TracksPageClient() {
             </div>
           </DialogContent>
         </Dialog>
-
         <AlertDialog open={albumModClearOpen} onOpenChange={setAlbumModClearOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -4009,7 +4100,6 @@ export default function TracksPageClient() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
         <Dialog open={albumBulkOpen} onOpenChange={setAlbumBulkOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -4092,7 +4182,6 @@ export default function TracksPageClient() {
             </div>
           </DialogContent>
         </Dialog>
-
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -4113,7 +4202,6 @@ export default function TracksPageClient() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
         <AlertDialog
           open={deleteUploadDraftDialogOpen}
           onOpenChange={setDeleteUploadDraftDialogOpen}

@@ -40,7 +40,7 @@ function notifyStaff(
   telegramMessage: string,
   emailSubject: string,
   logContext: string,
-  provider: "tbank" | "yookassa"
+  provider: "tbank" | "yookassa" | "wallet"
 ) {
   if (!isStaffNotificationConfigured()) return
   notifyStaffInBackground({
@@ -82,7 +82,7 @@ export type FulfillPaidOrderParams = {
   paidAt: string
   amountRub?: string
   metadata?: Record<string, string>
-  provider?: "tbank" | "yookassa"
+  provider?: "tbank" | "yookassa" | "wallet"
 }
 
 /**

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -168,37 +168,53 @@ function AiCoverPageInner() {
         </div>
 
         <Card className="w-full min-w-0 max-w-none">
-        <CardHeader>
-            <CardTitle className="text-xl">{service.serviceDescriptionTitle}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-muted-foreground">{service.serviceDescription}</p>
-            {service.exampleImages?.length ? (
-              <div className="space-y-3">
-                <p className="font-medium">{service.examplesTitle}</p>
-                <div className="flex flex-wrap gap-3">
-                  {service.exampleImages.map((image) => (
-                    <div
-                      key={image.src}
-                      className="h-[150px] w-[150px] shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-[180px] sm:w-[180px] md:h-[200px] md:w-[200px]"
-                    >
-                      <img
-                        src={image.src}
-                        alt={image.alt}
-                        width={300}
-                        height={300}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-                  ))}
+          <CardContent className="space-y-6 pt-6">
+            <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,0.65fr)] lg:items-start lg:gap-8">
+              {service.exampleImages?.length ? (
+                <div className="min-w-0 space-y-3">
+                  <p className="font-medium">{service.examplesTitle}</p>
+                  <div className="flex flex-wrap gap-3">
+                    {service.exampleImages.map((image) => (
+                      <div
+                        key={image.src}
+                        className="h-[150px] w-[150px] shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-[180px] sm:w-[180px] md:h-[200px] md:w-[200px]"
+                      >
+                        <img
+                          src={image.src}
+                          alt={image.alt}
+                          width={300}
+                          height={300}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <div className="min-w-0" />
+              )}
+              <div className="min-w-0 space-y-3 lg:sticky lg:top-4">
+                <h2 className="text-xl font-semibold leading-none">
+                  {service.serviceDescriptionTitle}
+                </h2>
+                {Array.isArray(service.serviceSteps) && service.serviceSteps.length > 0 ? (
+                  <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground marker:text-foreground">
+                    {service.serviceSteps.map((step) => (
+                      <li key={step} className="pl-1">
+                        <span className="text-foreground">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{service.serviceDescription}</p>
+                )}
               </div>
-            ) : null}
+            </div>
             <div>
-              <h2 className="text-lg font-semibold mb-2">{service.priceTitle}</h2>
-              <p className="text-primary text-xl font-bold">{service.price}</p>
+              <h2 className="mb-2 text-lg font-semibold">{service.priceTitle}</h2>
+              <p className="text-xl font-bold text-primary">{service.price}</p>
             </div>
             <div className="flex justify-start">
               <Button type="button" onClick={() => setOrderOpen(true)}>

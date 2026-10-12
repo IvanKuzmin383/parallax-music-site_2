@@ -206,26 +206,37 @@ export function CabinetTopbar() {
                     const opensSupport = isSupportChatHref(item.href)
                     const rowClass = cn(
                       "block min-w-0 rounded-md px-2 py-2 transition-colors hover:bg-muted/70",
-                      unread && "bg-muted/45",
+                      unread
+                        ? "bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/20"
+                        : "bg-transparent",
                     )
                     const body = (
-                      <div className="min-w-0 space-y-0.5">
-                        <p
+                      <div className="flex min-w-0 items-start gap-2">
+                        <span
                           className={cn(
-                            "break-words text-sm leading-snug text-foreground",
-                            unread ? "font-semibold" : "font-medium",
+                            "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                            unread ? "bg-emerald-500" : "bg-transparent",
                           )}
-                        >
-                          {item.title}
-                        </p>
-                        {item.body ? (
-                          <p className="line-clamp-2 break-words text-xs text-foreground/70">
-                            {item.body}
+                          aria-hidden
+                        />
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <p
+                            className={cn(
+                              "break-words text-sm leading-snug text-foreground",
+                              unread ? "font-semibold" : "font-medium",
+                            )}
+                          >
+                            {item.title}
                           </p>
-                        ) : null}
-                        <p className="text-[11px] text-foreground/55">
-                          {relativeTime(item.createdAt)}
-                        </p>
+                          {item.body ? (
+                            <p className="line-clamp-2 break-words text-xs text-foreground/70">
+                              {item.body}
+                            </p>
+                          ) : null}
+                          <p className="text-[11px] text-foreground/55">
+                            {relativeTime(item.createdAt)}
+                          </p>
+                        </div>
                       </div>
                     )
 

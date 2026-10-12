@@ -747,11 +747,9 @@ function CabinetMusicStatsPageContent() {
 
   return (
     <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-3">
-            <h1 className="text-2xl font-bold">Статистика</h1>
-            <StatsSectionTabs active="streaming" />
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold">Статистика</h1>
+          <StatsSectionTabs active="streaming" />
         </div>
 
         <Card>

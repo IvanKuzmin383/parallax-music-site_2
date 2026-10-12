@@ -380,19 +380,12 @@ export default function AdminSupportPage() {
                       className={cn(
                         "max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-snug",
                         m.author === "admin"
-                          ? "ml-auto rounded-br-md bg-primary text-primary-foreground"
+                          ? "ml-auto rounded-br-md bg-primary/20 text-foreground ring-1 ring-inset ring-primary/30"
                           : "mr-auto rounded-bl-md bg-muted",
                       )}
                     >
                       <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                      <p
-                        className={cn(
-                          "mt-1 text-[10px]",
-                          m.author === "admin"
-                            ? "text-primary-foreground/70"
-                            : "text-muted-foreground",
-                        )}
-                      >
+                      <p className="mt-1 text-[10px] text-muted-foreground">
                         {relative(m.createdAt)}
                       </p>
                     </div>
