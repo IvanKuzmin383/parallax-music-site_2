@@ -145,7 +145,7 @@ export function CabinetTopbar() {
   const hasNews = news.length > 0
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-white/10 bg-white/[0.04] px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/[0.04] sm:px-4 md:px-5">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 bg-background/90 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 sm:px-4 md:px-5">
       <div className="flex shrink-0 items-center md:hidden">
         <SidebarTrigger />
       </div>

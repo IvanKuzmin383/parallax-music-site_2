@@ -140,7 +140,7 @@ export function DashboardMetricCards({
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Link
         href="/cabinet/music/distribution"
-        className="group flex items-center justify-between gap-4 cabinet-glass rounded-2xl px-5 py-4 transition-colors hover:bg-white/[0.08]"
+        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
@@ -158,7 +158,7 @@ export function DashboardMetricCards({
 
       <Link
         href="/cabinet/finance/balance"
-        className="group flex items-center justify-between gap-4 cabinet-glass rounded-2xl px-5 py-4 transition-colors hover:bg-white/[0.08]"
+        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
@@ -178,7 +178,7 @@ export function DashboardMetricCards({
 
       <Link
         href="/cabinet/finance/balance?withdraw=1"
-        className="group flex items-center justify-between gap-4 cabinet-glass rounded-2xl px-5 py-4 transition-colors hover:bg-white/[0.08] sm:col-span-2 lg:col-span-1"
+        className="group flex items-center justify-between gap-4 rounded-2xl bg-card/80 px-5 py-4 transition-colors hover:bg-card sm:col-span-2 lg:col-span-1"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
@@ -282,7 +282,7 @@ export function DashboardStatsPanel() {
   ]
 
   return (
-    <section className="flex h-full flex-col cabinet-glass rounded-2xl p-5">
+    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Статистика</h2>
@@ -381,7 +381,7 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
 
   if (!release) {
     return (
-      <section className="flex h-full flex-col cabinet-glass rounded-2xl p-5">
+      <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
         <h2 className="text-lg font-semibold">Ближайший релиз</h2>
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-4 rounded-xl bg-muted/20 p-6 text-center">
           <Music className="h-10 w-10 text-muted-foreground" />
@@ -395,7 +395,7 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
   }
 
   return (
-    <section className="flex items-stretch overflow-hidden cabinet-glass rounded-2xl">
+    <section className="flex items-stretch overflow-hidden rounded-2xl bg-card/80">
       <div className="relative aspect-square shrink-0 self-stretch bg-muted">
         {release.coverUrl ? (
           <Image
@@ -595,7 +595,7 @@ export function DashboardTasks({
   const tasks = releases.filter(isDashboardTask).slice(0, 5)
 
   return (
-    <section className="flex h-full flex-col cabinet-glass rounded-2xl p-5">
+    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Задачи</h2>
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
@@ -647,7 +647,7 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
   const weekdays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
 
   return (
-    <section className="flex h-full flex-col cabinet-glass rounded-2xl p-5">
+    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Релизный календарь</h2>
         <div className="flex items-center gap-1">
