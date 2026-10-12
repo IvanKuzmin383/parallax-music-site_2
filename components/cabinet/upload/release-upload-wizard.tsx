@@ -98,10 +98,8 @@ import {
 import { ReleaseUploadStepper, WIZARD_STEP_COUNT } from "./release-upload-stepper"
 import { TrackMetadataFields, type TrackDraftPatch } from "./track-metadata-fields"
 import {
-  ALBUM_SHARED_METADATA_FIELDS,
   AlbumSharedAiLabelingFields,
   AlbumSharedMetadataFields,
-  albumSharedFieldId,
 } from "./album-shared-fields"
 import type { TrackAiLabeling } from "@/lib/track-ai-labeling"
 import { ModerationNoteAside } from "@/components/cabinet/releases/release-detail-panels"
@@ -205,6 +203,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [audioTime, setAudioTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
   const [metaAccordionOpen, setMetaAccordionOpen] = useState<string[]>([])
+  const [albumSharedMetaRevealKey, setAlbumSharedMetaRevealKey] = useState(0)
+  const [albumSharedAiRevealKey, setAlbumSharedAiRevealKey] = useState(0)
   const [aiLabelingAccordionOpen, setAiLabelingAccordionOpen] = useState<string[]>([])
   const [dragTrackIndex, setDragTrackIndex] = useState<number | null>(null)
   const [dragOverTrackIndex, setDragOverTrackIndex] = useState<number | null>(null)
@@ -1092,25 +1092,12 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }
 
   const resolveAlbumMetaFieldFocus = (trackId: string, field: string) => {
-    if (showAlbumSharedFields && ALBUM_SHARED_METADATA_FIELDS.has(field)) {
-      return { fieldId: albumSharedFieldId(field), trackId: undefined as string | undefined }
-    }
+    // Поля остаются у каждого трека; групповой блок только массово заполняет их.
     return { fieldId: wizardTrackFieldId(trackId, field), trackId }
   }
 
   const resolveAlbumAiFieldFocus = (track: Track) => {
-    const aiShared =
-      showAlbumSharedFields &&
-      tracks.every(
-        (t) =>
-          JSON.stringify(t.aiLabeling ?? null) === JSON.stringify(track.aiLabeling ?? null),
-      )
-    if (aiShared) {
-      return {
-        fieldId: wizardFieldId("album-shared-aiLabeling"),
-        trackId: undefined as string | undefined,
-      }
-    }
+    // Маркировка остаётся у каждого трека; групповой блок только массово заполняет её.
     return {
       fieldId: wizardTrackFieldId(track.id, "aiLabeling"),
       trackId: track.id,
@@ -1205,10 +1192,24 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           prev.includes(issue.trackId!) ? prev : [...prev, issue.trackId!],
         )
       }
+      if (
+        issue.step === 3 &&
+        typeof issue.fieldId === "string" &&
+        issue.fieldId.startsWith("album-shared")
+      ) {
+        setAlbumSharedMetaRevealKey((k) => k + 1)
+      }
       if (issue.trackId && issue.step === 4) {
         setAiLabelingAccordionOpen((prev) =>
           prev.includes(issue.trackId!) ? prev : [...prev, issue.trackId!],
         )
+      }
+      if (
+        issue.step === 4 &&
+        typeof issue.fieldId === "string" &&
+        issue.fieldId.includes("album-shared-aiLabeling")
+      ) {
+        setAlbumSharedAiRevealKey((k) => k + 1)
       }
 
       if (issue.step !== step) {
@@ -2165,6 +2166,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               tracks={tracks}
               onApply={applyPatchToAllTracks}
               disabled={formDisabled}
+              revealKey={albumSharedMetaRevealKey}
             />
           ) : null}
           <Accordion
@@ -2196,7 +2198,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     track={track}
                     onChange={(patch) => void updateTrackLocal(track.id, patch)}
                     showTransferFields
-                    hideAlbumSharedFields={showAlbumSharedFields}
                     disabled={formDisabled}
                   />
                 </AccordionContent>
@@ -2213,13 +2214,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
               tracks={tracks}
               onApply={applyAiLabelingToAllTracks}
               disabled={formDisabled}
+              revealKey={albumSharedAiRevealKey}
             />
-          ) : null}
-          {showAlbumSharedFields ? (
-            <p className="text-sm text-muted-foreground">
-              Общая маркировка задана выше. Ниже можно при необходимости переопределить её для
-              отдельного трека.
-            </p>
           ) : null}
           <Accordion
             type="multiple"

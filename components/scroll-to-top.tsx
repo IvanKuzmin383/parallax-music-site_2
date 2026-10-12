@@ -1,31 +1,34 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function ScrollToTop() {
+  const pathname = usePathname() ?? ""
   const [isVisible, setIsVisible] = useState(false)
+  const hideInCabinet = pathname === "/cabinet" || pathname.startsWith("/cabinet/")
 
   useEffect(() => {
-    const toggleVisibility = () => {
-      // Показываем кнопку после прокрутки на 300px вниз
-      if (window.scrollY > 300) {
-        setIsVisible(true)
-      } else {
-        setIsVisible(false)
-      }
+    if (hideInCabinet) {
+      setIsVisible(false)
+      return
     }
 
-    // Добавляем обработчик события скролла
-    window.addEventListener("scroll", toggleVisibility)
+    const toggleVisibility = () => {
+      setIsVisible(window.scrollY > 300)
+    }
 
-    // Очистка обработчика при размонтировании компонента
+    toggleVisibility()
+    window.addEventListener("scroll", toggleVisibility)
     return () => {
       window.removeEventListener("scroll", toggleVisibility)
     }
-  }, [])
+  }, [hideInCabinet])
+
+  if (hideInCabinet) return null
 
   const scrollToTop = () => {
     window.scrollTo({

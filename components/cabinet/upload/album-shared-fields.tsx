@@ -1,9 +1,15 @@
 "use client"
 
-import { CircleHelp } from "lucide-react"
+import { useEffect, useId, useState } from "react"
+import { ChevronDown, CircleHelp } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   Select,
   SelectContent,
@@ -112,13 +118,23 @@ type AlbumSharedMetadataFieldsProps = {
   tracks: Track[]
   onApply: (patch: TrackDraftPatch) => void
   disabled?: boolean
+  /** Инкремент раскрывает блок (фокус ошибки валидации). */
+  revealKey?: number
 }
 
 export function AlbumSharedMetadataFields({
   tracks,
   onApply,
   disabled,
+  revealKey = 0,
 }: AlbumSharedMetadataFieldsProps) {
+  const panelId = useId()
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (revealKey > 0) setOpen(true)
+  }, [revealKey])
+
   const genre = unanimous(tracks, (t) => t.genre)
   const mood = unanimous(tracks, (t) => t.mood)
   const musicAuthor = unanimous(tracks, (t) => t.musicAuthor)
@@ -136,15 +152,34 @@ export function AlbumSharedMetadataFields({
   const transferOn = transfer === true
 
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-      <div>
-        <h2 className="text-base font-semibold">Общие поля альбома</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Эти значения применяются сразу ко всем трекам. У каждого трека ниже остаются название,
-          текст, версия и индивидуальные поля.
-        </p>
-      </div>
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <section className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+        <CollapsibleTrigger
+          type="button"
+          className={cn(
+            "flex w-full items-start justify-between gap-3 rounded-md text-left",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+          aria-expanded={open}
+          aria-controls={panelId}
+        >
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold">Групповая обработка треков</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Укажите значение здесь - оно сразу заполнится во всех треках ниже. У каждого трека
+              поля остаются и их можно поправить отдельно.
+            </p>
+          </div>
+          <ChevronDown
+            className={cn(
+              "mt-0.5 h-5 w-5 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </CollapsibleTrigger>
 
+        <CollapsibleContent id={panelId} className="mt-4 space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div data-wizard-field={albumSharedFieldId("genre")}>
           <Label>Жанр *</Label>
@@ -352,7 +387,9 @@ export function AlbumSharedMetadataFields({
           </>
         ) : null}
       </div>
-    </section>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
   )
 }
 
@@ -360,13 +397,23 @@ type AlbumSharedAiLabelingFieldsProps = {
   tracks: Track[]
   onApply: (aiLabeling: TrackAiLabeling) => void
   disabled?: boolean
+  /** Инкремент раскрывает блок (фокус ошибки валидации). */
+  revealKey?: number
 }
 
 export function AlbumSharedAiLabelingFields({
   tracks,
   onApply,
   disabled,
+  revealKey = 0,
 }: AlbumSharedAiLabelingFieldsProps) {
+  const panelId = useId()
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (revealKey > 0) setOpen(true)
+  }, [revealKey])
+
   const shared = unanimous(tracks, (t) => JSON.stringify(t.aiLabeling ?? null))
   const value =
     shared === undefined
@@ -374,24 +421,47 @@ export function AlbumSharedAiLabelingFields({
       : tracks[0]?.aiLabeling ?? null
 
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-      <div>
-        <h2 className="text-base font-semibold">Общая AI-маркировка альбома</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Выбор ниже применяется ко всем трекам.
-          {shared === undefined
-            ? " Сейчас у треков разные значения - выберите общий вариант."
-            : ""}
-        </p>
-      </div>
-      <div data-wizard-field={wizardFieldId("album-shared-aiLabeling")}>
-        <TrackAiLabelingFields
-          trackId="album-shared"
-          value={value}
-          disabled={disabled}
-          onChange={onApply}
-        />
-      </div>
-    </section>
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <section className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
+        <CollapsibleTrigger
+          type="button"
+          className={cn(
+            "flex w-full items-start justify-between gap-3 rounded-md text-left",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+          aria-expanded={open}
+          aria-controls={panelId}
+        >
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold">Групповое редактирование полей треков</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              AI-маркировка для всех треков сразу. Выбор заполнит поля у треков ниже - у каждого
+              трека маркировку можно поправить отдельно.
+              {shared === undefined
+                ? " Сейчас у треков разные значения."
+                : ""}
+            </p>
+          </div>
+          <ChevronDown
+            className={cn(
+              "mt-0.5 h-5 w-5 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </CollapsibleTrigger>
+
+        <CollapsibleContent id={panelId} className="mt-4 space-y-4">
+          <div data-wizard-field={wizardFieldId("album-shared-aiLabeling")}>
+            <TrackAiLabelingFields
+              trackId="album-shared"
+              value={value}
+              disabled={disabled}
+              onChange={onApply}
+            />
+          </div>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
   )
 }

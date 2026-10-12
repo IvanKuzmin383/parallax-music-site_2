@@ -80,7 +80,7 @@ type TrackMetadataFieldsProps = {
   onChange: (patch: TrackDraftPatch) => void
   disabled?: boolean
   showTransferFields?: boolean
-  /** Скрыть поля, вынесенные в блок «Общие поля альбома». */
+  /** Скрыть поля, вынесенные в блок групповой обработки треков. */
   hideAlbumSharedFields?: boolean
 }
 
