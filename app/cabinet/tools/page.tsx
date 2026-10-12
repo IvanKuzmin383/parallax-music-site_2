@@ -21,7 +21,7 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
       { label: "Вертикальные видео", href: "/cabinet/design/vertical-videos", description: "Видео для Reels / Shorts / TikTok" },
       {
         label: "Загрузить видеоклип",
-        href: "/cabinet/music/distribution?tab=videos",
+        href: "/cabinet/distribution/music-video",
         description: "Каталог клипов и доставка на площадки",
       },
     ],

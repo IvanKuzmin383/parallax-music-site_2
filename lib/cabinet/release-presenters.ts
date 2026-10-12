@@ -5,7 +5,7 @@ import { releaseContinueHref } from "./adapters/map-track-to-release"
 
 export function releaseDetailHref(release: ReleaseView): string {
   if (release.kind === "draft") return releaseContinueHref(release)
-  return `/cabinet/music/releases/${release.id}`
+  return `/cabinet/distribution/music/${release.id}`
 }
 
 export function pickFeaturedRelease(releases: ReleaseView[]): ReleaseView | null {

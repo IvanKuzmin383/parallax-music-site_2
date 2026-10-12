@@ -212,8 +212,8 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
               Оплата пока не списывается - заявка нужна, чтобы оценить спрос. Мы свяжемся с вами.
             </p>
           ) : null}
-          <div className="flex flex-col gap-1.5">
-            <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full">
+          <div className="flex flex-col gap-1.5 sm:flex-row">
+            <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full sm:flex-1">
               {submitting
                 ? service.paymentStub
                   ? "Отправка..."
@@ -223,7 +223,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                   : "Оплатить картой"}
             </Button>
             {!service.paymentStub ? (
-              <ComingSoonButton tooltip="Оплата с баланса будет доступна позже" className="w-full">
+              <ComingSoonButton tooltip="Оплата с баланса будет доступна позже" className="w-full sm:flex-1">
                 Оплатить с баланса
               </ComingSoonButton>
             ) : null}
@@ -296,14 +296,16 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
             {service.examples && service.examples.length > 0 ? (
               <section className="space-y-3">
                 <h2 className="text-lg font-semibold">Примеры видеоклипов</h2>
-                <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:flex-col xl:flex-row">
+                <ul className="flex flex-row flex-wrap gap-2">
                   {service.examples.map((ex) => (
                     <li key={ex.href}>
                       <a
                         href={ex.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+                        aria-label={ex.title}
+                        title={ex.title}
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/40 px-2.5 py-2 transition-colors hover:bg-muted/50"
                       >
                         <Image
                           src={PLATFORM_ICON_SRC[ex.platform]}
@@ -313,7 +315,6 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                           className="h-[22px] w-[22px] shrink-0 object-contain"
                           unoptimized
                         />
-                        <span>{ex.title}</span>
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                       </a>
                     </li>

@@ -102,6 +102,37 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      {
+        source: '/cabinet/music/distribution',
+        has: [{ type: 'query', key: 'tab', value: 'videos' }],
+        destination: '/cabinet/distribution/music-video',
+        permanent: true,
+      },
+      {
+        source: '/cabinet/music/distribution',
+        destination: '/cabinet/distribution/music',
+        permanent: true,
+      },
+      {
+        source: '/cabinet/music/releases',
+        destination: '/cabinet/distribution/music',
+        permanent: true,
+      },
+      {
+        source: '/cabinet/music/releases/:id',
+        destination: '/cabinet/distribution/music/:id',
+        permanent: true,
+      },
+      {
+        source: '/cabinet/music/videos',
+        destination: '/cabinet/distribution/music-video',
+        permanent: true,
+      },
+      {
+        source: '/cabinet/design/music-video',
+        destination: '/cabinet/distribution/music-video/upload',
+        permanent: true,
+      },
     ]
   },
   async headers() {

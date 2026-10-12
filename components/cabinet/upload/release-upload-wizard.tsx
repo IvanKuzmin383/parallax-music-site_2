@@ -380,7 +380,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         const data = await parseCabinetApiJson(res)
         if (res.ok) {
           toast.success("Оплата получена, релиз отправлен на модерацию")
-          router.push("/cabinet/music/releases")
+          router.push("/cabinet/distribution/music")
         } else if (data.error?.includes("оплатите")) {
           toast.message("Ожидаем подтверждение оплаты…")
         }
@@ -1374,7 +1374,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         return
       }
       toast.success("Релиз отправлен на модерацию")
-      router.push("/cabinet/music/releases")
+      router.push("/cabinet/distribution/music")
     } finally {
       setSubmitting(false)
     }
@@ -1639,7 +1639,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     <div className="w-full space-y-6 pb-12">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/cabinet/music/releases"><ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/cabinet/distribution/music"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <h1 className="min-w-0 truncate text-xl font-semibold">
           Новый релиз

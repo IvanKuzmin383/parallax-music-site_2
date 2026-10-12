@@ -2036,11 +2036,11 @@ export default function TracksPageClient() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-4">
-      <div className="mx-auto w-full max-w-none px-4 space-y-6">
+    <div className="flex min-h-screen flex-col bg-background pt-4 lg:h-[100dvh] lg:overflow-hidden">
+      <div className="mx-auto flex w-full max-w-none flex-1 flex-col gap-4 px-4 pb-4 lg:min-h-0">
         <AdminSectionNav active="tracks" />
 
-        <h1 className="text-2xl font-bold">Модерация треков</h1>
+        <h1 className="shrink-0 text-2xl font-bold">Модерация треков</h1>
 
         {userIdFilterRaw ? (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
@@ -2075,8 +2075,8 @@ export default function TracksPageClient() {
           </div>
         ) : null}
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,46%)]">
-        <div className="min-w-0 space-y-6">
+        <div className="grid items-start gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,46%)] lg:items-stretch lg:overflow-hidden">
+        <div className="min-w-0 space-y-6 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         {tracksTotalInDb === 0 && tracksStats.uploadDraftsCount === 0 ? (
           <div className="border rounded-lg p-12 text-center text-muted-foreground">
             Треков и активных черновиков загрузки пока нет
@@ -2714,7 +2714,7 @@ export default function TracksPageClient() {
         )}
         </div>
 
-        <aside className="sticky top-16 flex max-h-[calc(100vh-5rem)] min-h-[24rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <aside className="flex min-h-[24rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:min-h-0 lg:h-full lg:max-h-full">
           <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 py-3">
             <div className="min-w-0">
               <p className="text-base font-semibold leading-tight">

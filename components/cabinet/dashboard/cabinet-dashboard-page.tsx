@@ -42,8 +42,8 @@ function CabinetDashboardPageContent() {
   const upcoming = pickUpcomingRelease(scopedReleases)
   const releasesHref =
     artistFilters.length === 0
-      ? "/cabinet/music/distribution"
-      : `/cabinet/music/distribution?${artistFilters
+      ? "/cabinet/distribution/music"
+      : `/cabinet/distribution/music?${artistFilters
           .map((a) => `artist=${encodeURIComponent(a)}`)
           .join("&")}`
 

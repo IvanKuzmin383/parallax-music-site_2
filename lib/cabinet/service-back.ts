@@ -7,17 +7,19 @@
 export type CabinetServiceBackHref =
   | "/cabinet/tools"
   | "/cabinet/promotion"
-  | "/cabinet/music/distribution?tab=videos"
+  | "/cabinet/distribution/music-video"
 
 export function getCabinetServiceHubHref(
   pathname: string | null | undefined
 ): CabinetServiceBackHref {
   const path = pathname?.trim() || ""
   if (
+    path === "/cabinet/distribution/music-video/upload" ||
+    path.startsWith("/cabinet/distribution/music-video/upload/") ||
     path === "/cabinet/design/music-video" ||
     path.startsWith("/cabinet/design/music-video/")
   ) {
-    return "/cabinet/music/distribution?tab=videos"
+    return "/cabinet/distribution/music-video"
   }
   if (
     path.startsWith("/cabinet/design/") ||
@@ -33,7 +35,7 @@ export function getCabinetServiceHubBackLabel(
   href: CabinetServiceBackHref | string,
   promotionLabel: string
 ): string {
-  if (href === "/cabinet/music/distribution?tab=videos") {
+  if (href === "/cabinet/distribution/music-video") {
     return "Назад к видеоклипам"
   }
   if (href === "/cabinet/tools") return "Назад к инструментам"

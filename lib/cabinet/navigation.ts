@@ -39,7 +39,7 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
     label: null,
     items: [
       { id: "home", label: "Главная", href: "/cabinet", icon: Home },
-      { id: "distribution", label: "Дистрибуция", href: "/cabinet/music/distribution", icon: Disc3 },
+      { id: "distribution", label: "Дистрибуция", href: "/cabinet/distribution/music", icon: Disc3 },
       { id: "publicka", label: "Музыка для бизнеса", href: "/cabinet/publicka", icon: Building2 },
       { id: "stats", label: "Статистика", href: "/cabinet/music-stats", icon: BarChart3 },
     ],
@@ -101,6 +101,10 @@ export function isCabinetFinancePath(pathname: string): boolean {
 
 export function isCabinetDistributionPath(pathname: string): boolean {
   return (
+    pathname === "/cabinet/distribution/music" ||
+    pathname.startsWith("/cabinet/distribution/music/") ||
+    pathname === "/cabinet/distribution/music-video" ||
+    pathname.startsWith("/cabinet/distribution/music-video/") ||
     pathname === "/cabinet/music/distribution" ||
     pathname.startsWith("/cabinet/music/distribution/") ||
     pathname === "/cabinet/music/releases" ||

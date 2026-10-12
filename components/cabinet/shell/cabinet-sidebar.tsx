@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils"
 function isActive(href: string, pathname: string): boolean {
   if (href === "/cabinet") return pathname === "/cabinet"
   if (href === "/cabinet/finance/balance") return isCabinetFinancePath(pathname)
-  if (href === "/cabinet/music/distribution") return isCabinetDistributionPath(pathname)
+  if (href === "/cabinet/distribution/music") return isCabinetDistributionPath(pathname)
   if (href === "/cabinet/publicka") return isCabinetPublickaPath(pathname)
   if (href === "/cabinet/promotion") return isCabinetPromotionPath(pathname)
   if (href === "/cabinet/tools") return isCabinetToolsPath(pathname)

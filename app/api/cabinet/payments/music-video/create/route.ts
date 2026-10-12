@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  const returnUrl = `${siteBase}/cabinet/design/music-video?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/design/music-video?payment=fail&orderId=${encodeURIComponent(order.id)}`
+  const returnUrl = `${siteBase}/cabinet/distribution/music-video/upload?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const failUrl = `${siteBase}/cabinet/distribution/music-video/upload?payment=fail&orderId=${encodeURIComponent(order.id)}`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,

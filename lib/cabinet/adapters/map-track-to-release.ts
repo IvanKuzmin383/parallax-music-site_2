@@ -262,7 +262,7 @@ export function releaseContinueHref(release: ReleaseView): string {
   ) {
     return `/cabinet/upload/${release.id}?step=${release.wizardStep ?? 1}`
   }
-  if (release.kind !== "draft") return "/cabinet/music/releases"
+  if (release.kind !== "draft") return "/cabinet/distribution/music"
   const step = release.wizardStep ?? 1
   if (release.releaseStatus === "awaiting_payment") {
     return `/cabinet/upload/${release.id}?step=6`

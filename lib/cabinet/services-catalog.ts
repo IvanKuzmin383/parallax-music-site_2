@@ -192,7 +192,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
       "Дистрибуция и монетизация ваших видеоклипов на Apple Music, VK Музыке и Яндекс Музыке",
     priceLabel: `${MUSIC_VIDEO_PRICE_RUB.toLocaleString("ru-RU")} ₽ / клип`,
     category: "design",
-    href: "/cabinet/design/music-video",
+    href: "/cabinet/distribution/music-video/upload",
     features: [],
     steps: [],
     requirements: [],

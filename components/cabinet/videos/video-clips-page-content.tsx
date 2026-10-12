@@ -118,7 +118,7 @@ export function VideoClipsPageContent() {
             />
           </div>
           <Button asChild>
-            <Link href="/cabinet/design/music-video">
+            <Link href="/cabinet/distribution/music-video/upload">
               <Upload className="h-4 w-4 mr-2" />
               Загрузить клип
             </Link>
@@ -137,7 +137,7 @@ export function VideoClipsPageContent() {
           icon={Film}
           action={
             <Button asChild>
-              <Link href="/cabinet/design/music-video">Загрузить клип</Link>
+              <Link href="/cabinet/distribution/music-video/upload">Загрузить клип</Link>
             </Button>
           }
         />

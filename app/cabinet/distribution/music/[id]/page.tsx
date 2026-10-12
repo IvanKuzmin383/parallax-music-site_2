@@ -142,7 +142,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
       <div className="max-w-lg mx-auto text-center space-y-4 py-16">
         <p className="text-muted-foreground">Релиз не найден</p>
         <Button asChild variant="outline">
-          <Link href="/cabinet/music/releases">К списку релизов</Link>
+          <Link href="/cabinet/distribution/music">К списку релизов</Link>
         </Button>
       </div>
     )
@@ -224,7 +224,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
     <div className="w-full max-w-none space-y-8">
       <div className="space-y-3">
         <Button variant="ghost" size="sm" asChild className="-ml-2">
-          <Link href="/cabinet/music/releases">
+          <Link href="/cabinet/distribution/music">
             <ArrowLeft className="h-4 w-4 mr-1" />
             Все релизы
           </Link>

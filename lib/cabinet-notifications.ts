@@ -238,7 +238,7 @@ export async function tryNotifyReleaseModeration(params: {
   const userId = await resolveCabinetUserId(params.releaseUserKey)
   if (!userId) return
 
-  const href = `/cabinet/music/releases/${params.releaseId}`
+  const href = `/cabinet/distribution/music/${params.releaseId}`
   const titleName = params.releaseTitle.trim() || "Релиз"
   const statusChanged =
     params.nextStatus !== undefined && params.nextStatus !== params.prevStatus
@@ -304,7 +304,7 @@ export async function tryNotifyReleaseAiAnalysis(params: {
     type: "release_ai_analysis",
     title: "Готов AI-анализ релиза",
     body: `Для «${titleName}» доступен AI-анализ с рекомендациями.`,
-    href: `/cabinet/music/releases/${params.releaseId}?ai=1`,
+    href: `/cabinet/distribution/music/${params.releaseId}?ai=1`,
     entityType: "release",
     entityId: params.releaseId,
   })
