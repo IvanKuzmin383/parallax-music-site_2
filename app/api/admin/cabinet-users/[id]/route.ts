@@ -8,8 +8,11 @@ import {
   updateCabinetUserArtistName,
   updateCabinetUserCounterpartyType,
   updateCabinetUserDisabled,
+  updateCabinetUserAdminProfile,
   deleteCabinetUser,
+  getCabinetUserById,
 } from "@/lib/cabinet-users"
+import { adminSetBalances } from "@/lib/cabinet-balance"
 import { SUBSCRIPTION_PLANS } from "@/lib/subscription-plans"
 
 const updatePasswordSchema = z.object({
@@ -173,6 +176,55 @@ export async function PATCH(
         subscriptionName: updated.subscriptionName,
         subscriptionExpiresAt: updated.subscriptionExpiresAt,
         subscriptionTrackLimit: updated.subscriptionTrackLimit,
+      },
+    })
+  }
+
+  if ("streamingBalance" in bodyObj || "walletBalance" in bodyObj) {
+    const streaming =
+      typeof bodyObj.streamingBalance === "number" ? bodyObj.streamingBalance : undefined
+    const wallet = typeof bodyObj.walletBalance === "number" ? bodyObj.walletBalance : undefined
+    const note = typeof bodyObj.balanceNote === "string" ? bodyObj.balanceNote : ""
+    if (streaming === undefined && wallet === undefined) {
+      return NextResponse.json({ error: "Укажите числовой баланс" }, { status: 400 })
+    }
+    const result = await adminSetBalances({
+      userId: id,
+      streamingBalance: streaming,
+      walletBalance: wallet,
+      note,
+    })
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
+    }
+    const updated = await getCabinetUserById(id)
+    return NextResponse.json({
+      user: {
+        id,
+        email: updated?.email,
+        streamingBalance: result.streamingBalance,
+        walletBalance: result.walletBalance,
+      },
+      transaction: result.transaction,
+    })
+  }
+
+  if ("profile" in bodyObj && bodyObj.profile && typeof bodyObj.profile === "object") {
+    const updated = await updateCabinetUserAdminProfile(
+      id,
+      bodyObj.profile as Record<string, string | boolean | null | undefined>
+    )
+    if (!updated) {
+      return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
+    }
+    return NextResponse.json({
+      user: {
+        id: updated.id,
+        email: updated.email,
+        artistName: updated.artistName,
+        counterpartyType: updated.counterpartyType ?? "individual",
+        phone: updated.phone,
+        telegram: updated.telegram,
       },
     })
   }

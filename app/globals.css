@@ -428,7 +428,7 @@
 .cabinet-theme [data-slot="textarea"],
 .cabinet-theme [data-slot="select-trigger"] {
   background-color: var(--input);
-  border-color: var(--border);
+  border-color: transparent;
   color: var(--foreground);
   box-shadow: none;
 }

@@ -229,6 +229,11 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
         title: "Открыть клип",
         href: "https://music.yandex.ru/video?ids=303926&activeIndex=0",
       },
+      {
+        platform: "vk",
+        title: "Открыть клип",
+        href: "https://vkvideo.ru/video-4257753_456239883",
+      },
     ],
   },
   {

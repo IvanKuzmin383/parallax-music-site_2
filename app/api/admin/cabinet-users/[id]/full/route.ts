@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminToken, verifySession } from "@/lib/auth"
+import { listBalanceTransactions } from "@/lib/cabinet-balance"
 import { query, queryOne } from "@/lib/database"
 
 function safeJsonParse<T>(value: unknown): T | null {
@@ -152,6 +153,8 @@ export async function GET(
     [email]
   )
 
+  const balanceTransactions = await listBalanceTransactions(id, 80)
+
   const preparedTracks = tracks.map((row) => ({
     ...row,
     platform_links_json: safeJsonParse<Record<string, string | undefined>>(row.platform_links),
@@ -195,6 +198,7 @@ export async function GET(
       pendingAutopay: pendingAutopay ?? null,
       autopayDisableTokens,
       deletedHistory,
+      balanceTransactions,
     },
   })
 }

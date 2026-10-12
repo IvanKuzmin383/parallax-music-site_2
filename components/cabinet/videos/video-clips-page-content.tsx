@@ -99,9 +99,9 @@ export function VideoClipsPageContent() {
 
   return (
     <div className="w-full max-w-none space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight leading-tight md:text-3xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight leading-none md:text-3xl">
             Дистрибуция
           </h1>
           <DistributionSectionTabs active="videos" />

@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         subscriptionTrackLimit,
         purchasedTracksBalance,
         streamingBalance,
+        walletBalance,
       }) => ({
         id,
         email,
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
         subscriptionTrackLimit,
         purchasedTracksBalance: purchasedTracksBalance ?? 0,
         streamingBalance: streamingBalance || 0,
+        walletBalance: walletBalance ?? 0,
       })
     )
     return NextResponse.json({ users: safeUsers })

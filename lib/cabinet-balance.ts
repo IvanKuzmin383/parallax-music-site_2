@@ -15,6 +15,7 @@ export type BalanceTransactionType =
   | "service_payment"
   | "refund"
   | "referral_bonus"
+  | "admin_adjustment"
 
 export type BalanceTransaction = {
   id: string
@@ -35,6 +36,7 @@ export const BALANCE_TRANSACTION_LABELS: Record<string, string> = {
   service_payment: "Оплата услуги",
   refund: "Возврат",
   referral_bonus: "Партнёрский бонус",
+  admin_adjustment: "Корректировка админом",
 }
 
 export function roundMoney(value: number): number {
@@ -417,5 +419,128 @@ export async function creditRoyalty(params: {
     }
     console.error("[cabinet-balance] creditRoyalty failed:", error)
     return { ok: false, error: "Не удалось начислить роялти" }
+  }
+}
+
+export type AdminSetBalancesResult =
+  | {
+      ok: true
+      streamingBalance: number
+      walletBalance: number
+      transaction: BalanceTransaction | null
+    }
+  | { ok: false; error: string; status: number }
+
+/**
+ * Админ: установить абсолютные значения балансов с записью в журнал.
+ * Обязательна причина (note).
+ */
+export async function adminSetBalances(params: {
+  userId: string
+  streamingBalance?: number
+  walletBalance?: number
+  note: string
+}): Promise<AdminSetBalancesResult> {
+  const note = params.note.trim()
+  if (note.length < 3) {
+    return { ok: false, error: "Укажите причину корректировки (минимум 3 символа)", status: 400 }
+  }
+
+  const hasStreaming = typeof params.streamingBalance === "number"
+  const hasWallet = typeof params.walletBalance === "number"
+  if (!hasStreaming && !hasWallet) {
+    return { ok: false, error: "Укажите хотя бы один баланс", status: 400 }
+  }
+  if (hasStreaming && (!Number.isFinite(params.streamingBalance!) || params.streamingBalance! < 0)) {
+    return { ok: false, error: "Роялти не может быть отрицательным", status: 400 }
+  }
+  if (hasWallet && (!Number.isFinite(params.walletBalance!) || params.walletBalance! < 0)) {
+    return { ok: false, error: "Баланс кабинета не может быть отрицательным", status: 400 }
+  }
+
+  try {
+    const result = await withTransaction(async (client) => {
+      const rows = await clientQuery<{
+        streaming_balance: number | string | null
+        wallet_balance: number | string | null
+      }>(
+        client,
+        `SELECT streaming_balance, wallet_balance FROM cabinet_users WHERE id = ? FOR UPDATE`,
+        [params.userId]
+      )
+      const row = rows[0]
+      if (!row) throw new Error("USER_NOT_FOUND")
+
+      const prevRoyalty = roundMoney(Number(row.streaming_balance) || 0)
+      const prevWallet = roundMoney(Number(row.wallet_balance) || 0)
+      const nextRoyalty = hasStreaming
+        ? roundMoney(params.streamingBalance!)
+        : prevRoyalty
+      const nextWallet = hasWallet ? roundMoney(params.walletBalance!) : prevWallet
+      const royaltyDelta = roundMoney(nextRoyalty - prevRoyalty)
+      const walletDelta = roundMoney(nextWallet - prevWallet)
+
+      if (royaltyDelta === 0 && walletDelta === 0) {
+        return {
+          streamingBalance: nextRoyalty,
+          walletBalance: nextWallet,
+          transaction: null as BalanceTransaction | null,
+        }
+      }
+
+      await clientExecute(
+        client,
+        `UPDATE cabinet_users SET streaming_balance = ?, wallet_balance = ? WHERE id = ?`,
+        [nextRoyalty, nextWallet, params.userId]
+      )
+
+      const now = new Date().toISOString()
+      const txId = crypto.randomUUID()
+      const amount = roundMoney(Math.abs(royaltyDelta) + Math.abs(walletDelta))
+      const fullNote = [
+        note,
+        royaltyDelta !== 0
+          ? `роялти ${prevRoyalty.toLocaleString("ru-RU")} → ${nextRoyalty.toLocaleString("ru-RU")}`
+          : null,
+        walletDelta !== 0
+          ? `кабинет ${prevWallet.toLocaleString("ru-RU")} → ${nextWallet.toLocaleString("ru-RU")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+
+      await clientExecute(
+        client,
+        `
+        INSERT INTO cabinet_balance_transactions (
+          id, user_id, type, amount, royalty_delta, wallet_delta, note, created_at
+        ) VALUES (?, ?, 'admin_adjustment', ?, ?, ?, ?, ?)
+        `,
+        [txId, params.userId, amount, royaltyDelta, walletDelta, fullNote, now]
+      )
+
+      return {
+        streamingBalance: nextRoyalty,
+        walletBalance: nextWallet,
+        transaction: {
+          id: txId,
+          userId: params.userId,
+          type: "admin_adjustment" as const,
+          amount,
+          royaltyDelta,
+          walletDelta,
+          note: fullNote,
+          createdAt: now,
+        } satisfies BalanceTransaction,
+      }
+    })
+
+    return { ok: true, ...result }
+  } catch (error) {
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+      return { ok: false, error: "Пользователь не найден", status: 404 }
+    }
+    console.error("[cabinet-balance] adminSetBalances failed:", error)
+    return { ok: false, error: "Не удалось обновить балансы", status: 500 }
   }
 }

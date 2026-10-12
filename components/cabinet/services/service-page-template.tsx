@@ -289,8 +289,8 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       </Card>
 
       {service.layout === "form-focus" ? (
-        <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
-          <div className="w-full min-w-0 lg:max-w-none">{orderForm}</div>
+        <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(14rem,0.55fr)] lg:items-start xl:gap-10">
+          <div className="w-full min-w-0">{orderForm}</div>
 
           <div className="min-w-0 space-y-8 lg:sticky lg:top-4">
             {service.examples && service.examples.length > 0 ? (

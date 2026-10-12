@@ -451,6 +451,89 @@ export async function updateCabinetUserBalance(id: string, balance: number): Pro
   return getCabinetUserById(id)
 }
 
+export async function updateCabinetUserWalletBalance(
+  id: string,
+  balance: number
+): Promise<CabinetUser | null> {
+  const user = await getCabinetUserById(id)
+  if (!user) return null
+
+  await execute("UPDATE cabinet_users SET wallet_balance = ? WHERE id = ?", [balance, id])
+  return getCabinetUserById(id)
+}
+
+/** Админ: точечное обновление полей профиля без строгой клиентской валидации кабинета. */
+export async function updateCabinetUserAdminProfile(
+  id: string,
+  fields: Record<string, string | boolean | null | undefined>
+): Promise<CabinetUser | null> {
+  const user = await getCabinetUserById(id)
+  if (!user) return null
+
+  const allowed: Record<string, string> = {
+    artistName: "artist_name",
+    telegram: "telegram",
+    phone: "phone",
+    lastName: "last_name",
+    firstName: "first_name",
+    patronymic: "patronymic",
+    registrationAddress: "registration_address",
+    bankAccountNumber: "bank_account_number",
+    bankBic: "bank_bic",
+    bankName: "bank_name",
+    bankCorrespondentAccount: "bank_correspondent_account",
+    counterpartyType: "counterparty_type",
+    companyFullName: "company_full_name",
+    companyShortName: "company_short_name",
+    inn: "inn",
+    kpp: "kpp",
+    ogrn: "ogrn",
+    ogrnip: "ogrnip",
+    legalAddress: "legal_address",
+    postalAddress: "postal_address",
+    ipFullName: "ip_full_name",
+    signatoryFullName: "signatory_full_name",
+    signatoryPosition: "signatory_position",
+    signatoryAuthorityBasis: "signatory_authority_basis",
+    documentsEmail: "documents_email",
+    taxSystem: "tax_system",
+    edoIdentifier: "edo_identifier",
+  }
+
+  const boolAllowed: Record<string, string> = {
+    vatPayer: "vat_payer",
+    edoRequired: "edo_required",
+  }
+
+  const sets: string[] = []
+  const values: Array<string | boolean | null> = []
+
+  for (const [key, column] of Object.entries(allowed)) {
+    if (!(key in fields)) continue
+    const raw = fields[key]
+    if (raw === undefined) continue
+    if (typeof raw === "boolean") continue
+    const next =
+      raw == null ? null : typeof raw === "string" ? nullIfEmpty(raw) : null
+    sets.push(`${column} = ?`)
+    values.push(next)
+  }
+
+  for (const [key, column] of Object.entries(boolAllowed)) {
+    if (!(key in fields)) continue
+    const raw = fields[key]
+    if (typeof raw !== "boolean") continue
+    sets.push(`${column} = ?`)
+    values.push(raw)
+  }
+
+  if (sets.length === 0) return user
+
+  values.push(id)
+  await execute(`UPDATE cabinet_users SET ${sets.join(", ")} WHERE id = ?`, values)
+  return getCabinetUserById(id)
+}
+
 export async function updateCabinetUserCounterpartyType(
   id: string,
   counterpartyType: CounterpartyType
