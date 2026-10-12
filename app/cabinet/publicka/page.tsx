@@ -74,12 +74,17 @@ export default function CabinetPublickaPage() {
             </Link>
           </Button>
         </div>
-        <p className="w-full text-sm text-muted-foreground">
-          Воспроизведение в общественных местах. Ваши треки попадут в плейлисты ресторанов, кафе,
-          торговых центров и других общественных заведений России и стран СНГ. Ставка{" "}
-          {PUBLICKA_RATE_RUB.toLocaleString("ru-RU", { minimumFractionDigits: 2 })} ₽ за
-          прослушивание. Начисления попадают в роялти (Финансы).
-        </p>
+        <div className="w-full space-y-1 text-sm text-muted-foreground">
+          <p>
+            Воспроизведение в общественных местах. Ваши треки попадут в плейлисты ресторанов, кафе,
+            торговых центров и других общественных заведений России и стран СНГ.
+          </p>
+          <p>
+            Ставка{" "}
+            {PUBLICKA_RATE_RUB.toLocaleString("ru-RU", { minimumFractionDigits: 2 })} ₽ за
+            прослушивание. Начисления попадают в роялти (Финансы).
+          </p>
+        </div>
       </div>
 
       {loading ? (

@@ -254,7 +254,7 @@ export function MusicReleasesPageContent() {
                 type="button"
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-left transition-colors",
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
                   active ? STAT_ACTIVE_BG[f.key] : "hover:bg-muted/50"
                 )}
               >

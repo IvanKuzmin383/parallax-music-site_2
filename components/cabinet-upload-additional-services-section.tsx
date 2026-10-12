@@ -79,7 +79,8 @@ type AddonInfoEntry = {
 export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonInfoEntry> = {
   aiCover: {
     title: "AI обложка для трека",
-    description: "Наша команда подготовит визуал для вашего релиза",
+    description:
+      "Вы присылаете релиз, текст песни и пожелания (если есть). По этим материалам мы готовим и отправляем вам 6-9 вариантов обложки на выбор. Вы утверждаете один - и мы доводим его до готового формата для стримингов: 3000 × 3000 пикселей, без лишних правок с вашей стороны.",
     examples: [],
     exampleImages: [
       { src: "/aicover/example-01.webp", alt: "Пример AI обложки 1" },
