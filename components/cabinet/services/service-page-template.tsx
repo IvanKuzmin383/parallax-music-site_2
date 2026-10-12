@@ -141,8 +141,8 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const interestCta = service.interestCtaLabel || "Оставить заявку"
 
   const orderForm = service.interestOnly ? (
-    <Card id="order-form" className="w-full min-w-0 border-primary/20">
-      <CardHeader className="space-y-2">
+    <Card id="order-form" className="w-full min-w-0 gap-3 border-0 bg-transparent py-0 shadow-none">
+      <CardHeader className="space-y-1.5 px-0">
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle>Скоро в кабинете</CardTitle>
           {service.comingSoon ? (
@@ -156,7 +156,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
           списывается.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5 px-0">
         <p className="text-sm font-medium">
           Стоимость: <span className="text-primary">{service.priceLabel}</span>
         </p>
@@ -166,12 +166,12 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       </CardContent>
     </Card>
   ) : (
-    <Card id="order-form" className="w-full min-w-0 border-primary/20">
-      <CardHeader>
+    <Card id="order-form" className="w-full min-w-0 gap-3 border-0 bg-transparent py-0 shadow-none">
+      <CardHeader className="px-0 pb-0">
         <CardTitle>Заявка на услугу</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
+      <CardContent className="space-y-2.5 px-0">
+        <div className="space-y-1.5">
           <Label htmlFor="project">Название релиза / проекта</Label>
           <Input
             id="project"
@@ -180,7 +180,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
             placeholder="Мой сингл"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Label htmlFor="link">
             {service.linkFieldLabel || "Ссылка на трек"}
             {service.linkFieldRequired ? " *" : ""}
@@ -195,24 +195,24 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
             <p className="text-xs text-muted-foreground">{service.linkFieldHint}</p>
           ) : null}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <Label htmlFor="comment">Комментарий</Label>
           <Textarea
             id="comment"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Пожелания к заказу"
-            rows={4}
+            rows={3}
           />
         </div>
-        <div className="space-y-3 rounded-md border border-border p-4">
+        <div className="space-y-2 pt-1">
           <p className="font-semibold">Итого: {service.priceLabel}</p>
           {service.paymentStub ? (
             <p className="text-sm text-muted-foreground">
               Оплата пока не списывается - заявка нужна, чтобы оценить спрос. Мы свяжемся с вами.
             </p>
           ) : null}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             <Button onClick={() => void handleCardPay()} disabled={submitting} className="w-full">
               {submitting
                 ? service.paymentStub
@@ -289,51 +289,53 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       </Card>
 
       {service.layout === "form-focus" ? (
-        <div className="w-full min-w-0 space-y-8">
-          <div className="w-full max-w-xl min-w-0">{orderForm}</div>
+        <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+          <div className="w-full min-w-0 lg:max-w-none">{orderForm}</div>
 
-          {service.examples && service.examples.length > 0 ? (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Примеры видеоклипов</h2>
-              <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                {service.examples.map((ex) => (
-                  <li key={ex.href}>
-                    <a
-                      href={ex.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
-                    >
-                      <Image
-                        src={PLATFORM_ICON_SRC[ex.platform]}
-                        alt=""
-                        width={22}
-                        height={22}
-                        className="h-[22px] w-[22px] shrink-0 object-contain"
-                        unoptimized
-                      />
-                      <span>{ex.title}</span>
-                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          <div className="min-w-0 space-y-8 lg:sticky lg:top-4">
+            {service.examples && service.examples.length > 0 ? (
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold">Примеры видеоклипов</h2>
+                <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:flex-col xl:flex-row">
+                  {service.examples.map((ex) => (
+                    <li key={ex.href}>
+                      <a
+                        href={ex.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+                      >
+                        <Image
+                          src={PLATFORM_ICON_SRC[ex.platform]}
+                          alt=""
+                          width={22}
+                          height={22}
+                          className="h-[22px] w-[22px] shrink-0 object-contain"
+                          unoptimized
+                        />
+                        <span>{ex.title}</span>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
-          {service.faq.length > 0 ? (
-            <section id="faq" className="max-w-2xl space-y-3">
-              <h2 className="text-lg font-semibold">FAQ</h2>
-              <Accordion type="single" collapsible className="w-full">
-                {service.faq.map((item, i) => (
-                  <AccordionItem key={item.q} value={`faq-${i}`}>
-                    <AccordionTrigger>{item.q}</AccordionTrigger>
-                    <AccordionContent>{item.a}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </section>
-          ) : null}
+            {service.faq.length > 0 ? (
+              <section id="faq" className="space-y-3">
+                <h2 className="text-lg font-semibold">FAQ</h2>
+                <Accordion type="single" collapsible className="w-full">
+                  {service.faq.map((item, i) => (
+                    <AccordionItem key={item.q} value={`faq-${i}`}>
+                      <AccordionTrigger>{item.q}</AccordionTrigger>
+                      <AccordionContent>{item.a}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </section>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="grid w-full min-w-0 grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
