@@ -68,3 +68,4 @@ next-env.d.ts
 
 # Локальные заметки / идеи (не в репозитории)
 docs/ideas-addon-services.md
+docs/manual-db-recovery-log.md
