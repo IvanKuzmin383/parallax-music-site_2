@@ -47,7 +47,7 @@ export function CabinetSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader className="border-b border-sidebar-border px-2 py-3">
+      <SidebarHeader className="border-b border-white/10 px-2 py-3">
         <div className="flex items-center gap-0.5">
           <SidebarMenu className="min-w-0 flex-1">
             <SidebarMenuItem>
@@ -99,7 +99,7 @@ export function CabinetSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-white/10">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton

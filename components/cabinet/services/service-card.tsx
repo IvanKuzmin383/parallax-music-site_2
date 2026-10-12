@@ -13,7 +13,7 @@ interface ServiceCardProps {
 export function ServiceCard({ service, compact }: ServiceCardProps) {
   return (
     <Link href={service.href} className="block group">
-      <Card className="h-full transition-colors hover:border-primary/50 hover:bg-card/80">
+      <Card className="h-full transition-colors hover:border-primary/40 hover:bg-white/[0.08]">
         <CardHeader className={compact ? "pb-2" : undefined}>
           <CardTitle className="text-base group-hover:text-primary transition-colors">{service.title}</CardTitle>
           {!compact ? <CardDescription className="line-clamp-2">{service.shortDescription}</CardDescription> : null}

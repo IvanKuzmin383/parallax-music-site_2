@@ -260,7 +260,7 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Поиск по кабинету…"
-          className="h-9 border-border/70 bg-muted/30 pl-9 pr-3 text-sm"
+          className="h-9 border-white/10 bg-white/[0.05] pl-9 pr-3 text-sm backdrop-blur-md"
           aria-label="Поиск по кабинету"
           aria-expanded={open}
           aria-controls="cabinet-global-search-list"
@@ -271,7 +271,7 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
       {open ? (
         <div
           id="cabinet-global-search-list"
-          className="absolute left-0 top-[calc(100%+0.35rem)] z-50 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border/70 bg-popover shadow-lg"
+          className="cabinet-glass absolute left-0 top-[calc(100%+0.35rem)] z-50 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl shadow-lg"
           role="listbox"
         >
           <div className="cabinet-sidebar-scroll max-h-[min(22rem,70vh)] overflow-y-auto overscroll-contain p-1.5">

@@ -19,7 +19,7 @@ export default function CabinetLayout({
     <CabinetSubscriptionExpiredGuard>
       <CabinetSessionProvider>
         <CabinetThemeRoot />
-        <div className="cabinet-theme min-h-screen bg-background text-foreground">
+        <div className="cabinet-theme min-h-screen text-foreground">
           <CabinetRouteShell>{children}</CabinetRouteShell>
         </div>
       </CabinetSessionProvider>

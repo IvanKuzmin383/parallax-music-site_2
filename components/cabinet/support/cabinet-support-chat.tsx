@@ -237,10 +237,10 @@ function CabinetSupportChatInner() {
         <div
           className={cn(
             "pointer-events-auto flex h-[min(28rem,70vh)] w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden",
-            "rounded-2xl border border-border bg-card shadow-2xl shadow-black/40",
+            "cabinet-glass rounded-2xl shadow-2xl shadow-black/40",
           )}
         >
-          <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2.5">
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">Поддержка</p>
               <p className="text-[11px] text-muted-foreground">

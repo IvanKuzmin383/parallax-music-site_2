@@ -58,7 +58,7 @@ function CabinetDashboardPageContent() {
       <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <DashboardStatsPanel />
         {releasesLoading ? (
-          <div className="flex min-h-[280px] items-center justify-center rounded-2xl bg-card/80">
+          <div className="flex min-h-[280px] items-center justify-center cabinet-glass rounded-2xl">
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
@@ -68,7 +68,7 @@ function CabinetDashboardPageContent() {
 
       <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         {releasesLoading ? (
-          <div className="flex min-h-[200px] items-center justify-center rounded-2xl bg-card/80">
+          <div className="flex min-h-[200px] items-center justify-center cabinet-glass rounded-2xl">
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
@@ -79,7 +79,7 @@ function CabinetDashboardPageContent() {
           />
         )}
         {releasesLoading ? (
-          <div className="flex min-h-[280px] items-center justify-center rounded-2xl bg-card/80">
+          <div className="flex min-h-[280px] items-center justify-center cabinet-glass rounded-2xl">
             <Spinner className="h-6 w-6" />
           </div>
         ) : (
