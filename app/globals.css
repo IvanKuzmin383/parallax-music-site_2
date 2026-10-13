@@ -416,8 +416,9 @@
   animation: wizard-field-highlight-pulse 2.2s ease-out 1;
 }
 
-/* Кабинет «Parallax Studio»: фирменный красный (как на сайте) + светлая/тёмная тема */
-.cabinet-theme,
+/* Кабинет: палитра только на элементе с data-cabinet-theme (обычно html).
+   Не вешать тёмные переменные на голый .cabinet-theme - иначе внутренний
+   wrapper перебивает светлую тему с html. */
 .cabinet-theme[data-cabinet-theme="dark"] {
   --background: #09090b;
   --foreground: #f2efe9;
@@ -453,6 +454,7 @@
   --cabinet-active-fg: #fff;
   color: var(--foreground);
   background-color: var(--background);
+  color-scheme: dark;
 }
 
 .cabinet-theme[data-cabinet-theme="light"] {
@@ -481,11 +483,15 @@
   --sidebar-accent-foreground: #17151a;
   --sidebar-border: color-mix(in oklab, #17151a 10%, transparent);
   --sidebar-ring: oklch(0.55 0.22 25);
+  --radius: 0.75rem;
   --cabinet-glow: color-mix(in oklab, oklch(0.55 0.22 25) 16%, transparent);
   --cabinet-hint: #6b6762;
   --cabinet-field-focus: #f0f1f3;
   --cabinet-card-edge: color-mix(in oklab, #17151a 10%, transparent);
   --cabinet-active-fg: #17151a;
+  color: var(--foreground);
+  background-color: var(--background);
+  color-scheme: light;
 }
 
 /* Атмосфера основной области - мягкий красный, без коралла */

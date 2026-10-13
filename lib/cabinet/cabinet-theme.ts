@@ -17,8 +17,10 @@ export function readCabinetTheme(): CabinetThemeMode {
 
 export function applyCabinetTheme(mode: CabinetThemeMode) {
   if (typeof document === "undefined") return
-  document.documentElement.setAttribute("data-cabinet-theme", mode)
-  document.documentElement.classList.toggle("dark", mode === "dark")
+  const root = document.documentElement
+  root.classList.add("cabinet-theme")
+  root.setAttribute("data-cabinet-theme", mode)
+  root.classList.toggle("dark", mode === "dark")
 }
 
 export function persistCabinetTheme(mode: CabinetThemeMode) {
@@ -31,4 +33,4 @@ export function persistCabinetTheme(mode: CabinetThemeMode) {
 }
 
 /** Inline script: без мигания до гидрации. */
-export const CABINET_THEME_BOOTSTRAP_SCRIPT = `(function(){try{var k=${JSON.stringify(CABINET_THEME_STORAGE_KEY)};var t=localStorage.getItem(k);if(t!=="light"&&t!=="dark")t="dark";document.documentElement.setAttribute("data-cabinet-theme",t);document.documentElement.classList.toggle("dark",t==="dark");}catch(e){document.documentElement.setAttribute("data-cabinet-theme","dark");document.documentElement.classList.add("dark");}})();`
+export const CABINET_THEME_BOOTSTRAP_SCRIPT = `(function(){try{var k=${JSON.stringify(CABINET_THEME_STORAGE_KEY)};var t=localStorage.getItem(k);if(t!=="light"&&t!=="dark")t="dark";var r=document.documentElement;r.classList.add("cabinet-theme");r.setAttribute("data-cabinet-theme",t);r.classList.toggle("dark",t==="dark");}catch(e){var r2=document.documentElement;r2.classList.add("cabinet-theme");r2.setAttribute("data-cabinet-theme","dark");r2.classList.add("dark");}})();`

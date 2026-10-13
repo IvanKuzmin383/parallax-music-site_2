@@ -23,7 +23,7 @@ export default function CabinetLayout({
           dangerouslySetInnerHTML={{ __html: CABINET_THEME_BOOTSTRAP_SCRIPT }}
         />
         <CabinetThemeRoot>
-          <div className="cabinet-theme min-h-screen bg-background text-foreground">
+          <div className="min-h-screen bg-background text-foreground">
             <CabinetRouteShell>{children}</CabinetRouteShell>
           </div>
         </CabinetThemeRoot>
