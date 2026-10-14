@@ -195,7 +195,7 @@ function AiCoverLandingInner() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const backHref = getCabinetServiceHubHref(pathname)
-  const backLabel = getCabinetServiceHubBackLabel(pathname)
+  const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const commentHintId = useId()
   const textHintId = useId()
 
