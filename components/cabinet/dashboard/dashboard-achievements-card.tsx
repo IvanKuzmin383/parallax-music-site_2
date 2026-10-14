@@ -53,7 +53,9 @@ export function DashboardAchievementsCard() {
             <div className="h-full rounded-full bg-primary" style={{ width: `${filled}%` }} />
           </div>
           <p className="text-xs text-muted-foreground">
-            {next ? `До «${next.title}»` : "Все достижения открыты"}
+            {next
+              ? `До «${next.title}»: ${Math.max(0, next.minXp - progress.xp)} XP`
+              : "Максимальный уровень"}
           </p>
         </div>
       </div>

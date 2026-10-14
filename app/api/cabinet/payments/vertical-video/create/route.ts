@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import {
   getVerticalVideoUnitPrice,
   VERTICAL_VIDEO_MAX_COUNT,
   VERTICAL_VIDEO_MIN_COUNT,
 } from "@/lib/vertical-video-pricing"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
-
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 
 export async function POST(request: NextRequest) {
@@ -22,13 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[payments/vertical-video/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
-  const siteBase = getSiteBaseUrl()
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -92,25 +81,5 @@ export async function POST(request: NextRequest) {
       contactValue,
     },
   })
-  const returnUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=fail&orderId=${encodeURIComponent(order.id)}`
-  const description = "Монтаж вертикальных видео из готового видеоряда под трек"
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "vertical_video",
-    receiptEmail: user.email,
-    receiptItemName: description,
-    logPrefix: "payments/vertical-video/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
+  return respondWithWalletPayment(order)
 }

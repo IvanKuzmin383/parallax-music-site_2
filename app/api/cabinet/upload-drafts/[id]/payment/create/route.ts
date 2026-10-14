@@ -2,13 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
-import { createOrder, updateOrderStatus } from "@/lib/orders"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
+import { createOrder } from "@/lib/orders"
 import { getUploadDraftById, updateUploadDraft } from "@/lib/upload-drafts"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
 
 export async function POST(
   request: NextRequest,
@@ -23,11 +19,6 @@ export async function POST(
     return NextResponse.json({ error: "Черновик не найден" }, { status: 404 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[upload-drafts/payment/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
@@ -48,27 +39,5 @@ export async function POST(
   })
   await updateUploadDraft(draft.id, { bundleOrderId: order.id, status: "awaiting_payment" })
 
-  const siteBase = getSiteBaseUrl()
-  const returnPath = draft.kind === "album" ? "/cabinet/upload/album" : "/cabinet/upload"
-  const returnUrl = `${siteBase}${returnPath}?draftId=${encodeURIComponent(draft.id)}&payment=return`
-  const failUrl = `${siteBase}${returnPath}?draftId=${encodeURIComponent(draft.id)}&payment=fail`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount: order.totalAmount,
-    description: "Пакет услуг",
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "upload_addon_bundle",
-    receiptEmail: user.email,
-    receiptItemName: "Пакет услуг при загрузке",
-    logPrefix: "upload-drafts/payment/create",
-  })
-
-  if (!pay.ok) {
-    await updateOrderStatus(order.id, "failed")
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ paymentUrl: pay.confirmationUrl })
+  return respondWithWalletPayment(order)
 }

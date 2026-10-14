@@ -854,7 +854,7 @@ export function CabinetUploadAdditionalServicesSection({
               <div className="rounded-md bg-green-500/5 p-3">
                 <p className="text-lg font-semibold">
                   <span className="text-white">Стоимость: </span>
-                  <span className="text-red-500">100 руб. / трек</span>
+                  <span className="text-red-500">{AI_MASTERING_PRICE_RUB} руб. / трек</span>
                 </p>
               </div>
             ) : null}

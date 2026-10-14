@@ -1,9 +1,27 @@
+import { NextResponse } from "next/server"
 import { debitWalletForServicePayment } from "@/lib/cabinet-balance"
 import { fulfillPaidOrder } from "@/lib/fulfill-paid-order"
 import { updateOrderStatus, type Order } from "@/lib/orders"
 
 export function isPayFromBalance(body: Record<string, unknown>): boolean {
   return body.payFromBalance === true
+}
+
+/**
+ * Кабинет: услуги оплачиваются только с баланса.
+ * Карта (T-Bank) - только для пополнения баланса (wallet_topup).
+ */
+export async function respondWithWalletPayment(order: Order) {
+  const paid = await payOrderFromWallet(order)
+  if (!paid.ok) {
+    return NextResponse.json({ error: paid.error }, { status: paid.status })
+  }
+  return NextResponse.json({
+    paid: true,
+    orderId: paid.orderId,
+    paymentId: paid.paymentId,
+    walletBalance: paid.walletBalance,
+  })
 }
 
 export type PayOrderFromWalletResult =

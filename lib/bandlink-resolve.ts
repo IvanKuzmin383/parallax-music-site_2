@@ -83,6 +83,11 @@ function classifyBandlinkUrl(url: string): keyof PlatformLinks | null {
   if (u.includes("spotify.com") || u.startsWith("spotify:")) return "spotify"
   if (u.includes("deezer.com")) return "deezer"
   if (u.includes("music.youtube.com") || u.includes("youtube.com/watch")) return "youtubeMusic"
+  if (u.includes("music.amazon.") || u.includes("amazon.com/music")) return "amazonMusic"
+  if (u.includes("ok.ru") || u.includes("odnoklassniki.ru")) return "odnoklassniki"
+  if (u.includes("tidal.com")) return "tidal"
+  if (u.includes("soundcloud.com")) return "soundcloud"
+  if (u.includes("wink.ru") || u.includes("music.wink")) return "wink"
   return null
 }
 

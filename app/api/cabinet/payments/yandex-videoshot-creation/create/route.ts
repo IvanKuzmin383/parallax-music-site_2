@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import {
@@ -8,12 +9,6 @@ import {
   videoDirectionLabel,
   type VideoDirectionValue,
 } from "@/lib/yandex-videoshot-mode"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
-
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const DIRECTION_VALUES = new Set<string>(VIDEO_DIRECTION_OPTIONS.map((o) => o.value))
 const PAYMENT_DESCRIPTION = "Создание видеошота для Яндекс Музыки"
@@ -34,13 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[payments/yandex-videoshot-creation/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
-  const siteBase = getSiteBaseUrl()
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -119,24 +108,5 @@ export async function POST(request: NextRequest) {
   })
 
   const returnPath = "/cabinet/promotion/yandex-videoshot-creation"
-  const returnUrl = `${siteBase}${returnPath}?payment=return&orderId=${encodeURIComponent(order.id)}&mode=create`
-  const failUrl = `${siteBase}${returnPath}?payment=fail&orderId=${encodeURIComponent(order.id)}&mode=create`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description: PAYMENT_DESCRIPTION,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "yandex_videoshot_creation",
-    receiptEmail: user.email,
-    receiptItemName: PAYMENT_DESCRIPTION,
-    logPrefix: "payments/yandex-videoshot-creation/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
+  return respondWithWalletPayment(order)
 }

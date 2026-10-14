@@ -6,7 +6,11 @@ import {
   getTracksByReleaseId,
   type Track,
 } from "@/lib/tracks"
-import { PLATFORM_LINK_KEYS, type PlatformLinks } from "@/lib/smartlink-platforms"
+import {
+  PLATFORM_LINK_KEYS,
+  normalizePlatformLinks,
+  type PlatformLinks,
+} from "@/lib/smartlink-platforms"
 import {
   DEFAULT_SMARTLINK_THEME,
   parseSmartlinkTheme,
@@ -37,6 +41,12 @@ function mergePlatformLinks(tracks: Track[]): PlatformLinks {
     }
   }
   return merged
+}
+
+function resolveEditablePlatformLinks(primary: Track, tracks: Track[]): PlatformLinks {
+  const own = normalizePlatformLinks(primary.platformLinks)
+  if (PLATFORM_LINK_KEYS.some((key) => Boolean(own[key]))) return own
+  return mergePlatformLinks(tracks)
 }
 
 function pickSmartlinkTrack(tracks: Track[]): Track | null {
@@ -78,7 +88,7 @@ export async function resolveCabinetSmartlinkContext(
         : coverUrlFor(track, release.id),
       status: release.status,
       theme: parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME),
-      platformLinks: mergePlatformLinks(tracks),
+      platformLinks: resolveEditablePlatformLinks(track, tracks),
       smartlinkSlug: track.smartlinkSlug?.trim() || null,
     }
   }
@@ -105,7 +115,7 @@ export async function resolveCabinetSmartlinkContext(
     coverUrl: coverUrlFor(track, releaseId),
     status: track.status,
     theme: parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME),
-    platformLinks: mergePlatformLinks(tracks),
+    platformLinks: resolveEditablePlatformLinks(track, tracks),
     smartlinkSlug: track.smartlinkSlug?.trim() || null,
   }
 }

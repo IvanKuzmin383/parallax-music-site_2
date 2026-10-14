@@ -81,17 +81,13 @@ export default function ReferralsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-x-6 gap-y-2 sm:grid-cols-3">
         {[
           { label: "Приглашено", value: String(stats?.invitedCount ?? 0) },
           { label: "Оплатили", value: String(stats?.paidReferrals ?? 0) },
           {
             label: "Начислено",
             value: `${(stats?.earnedRub ?? 0).toLocaleString("ru-RU")} ₽`,
-          },
-          {
-            label: "На балансе",
-            value: "см. Финансы",
           },
         ].map((stat) => (
           <div

@@ -31,6 +31,12 @@ const patchBodySchema = z.object({
       vk: optionalUrl,
       sberzvuk: optionalUrl,
       kion: optionalUrl,
+      amazonMusic: optionalUrl,
+      odnoklassniki: optionalUrl,
+      tidal: optionalUrl,
+      soundcloud: optionalUrl,
+      wink: optionalUrl,
+      other: optionalUrl,
     })
     .optional(),
   status: z.enum(trackStatusValues).optional(),

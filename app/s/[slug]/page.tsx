@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
 import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
-import { getOrderedSmartlinkLinks } from "@/lib/smartlink-theme"
+import { DEFAULT_SMARTLINK_THEME, getOrderedSmartlinkLinks } from "@/lib/smartlink-theme"
 
 interface SmartlinkPageProps {
   params: Promise<{ slug: string }>
@@ -13,8 +13,8 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
   if (!track) notFound()
 
   const coverUrl = smartlinkOgImagePath(slug)
-  const theme = track.smartlinkTheme
-  const linksList = getOrderedSmartlinkLinks(track.platformLinks, theme?.platformOrder)
+  const theme = track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME
+  const linksList = getOrderedSmartlinkLinks(track.platformLinks, theme)
 
   return (
     <SmartlinkLanding
@@ -22,7 +22,7 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
       artist={track.artistName}
       coverUrl={coverUrl}
       links={linksList}
-      theme={theme ?? { preset: "ink", accent: "#E2532F", buttons: "solid", cover: "rounded" }}
+      theme={theme}
     />
   )
 }

@@ -43,7 +43,7 @@ export function BusinessMusicOrderDialog({
     setComment("")
   }
 
-  const handlePay = async (payFromBalance = false) => {
+  const handlePay = async () => {
     if (!projectName.trim()) {
       toast.error("Укажите название релиза или проекта")
       return
@@ -53,7 +53,7 @@ export function BusinessMusicOrderDialog({
       return
     }
 
-    setSubmitting(payFromBalance ? "balance" : "card")
+    setSubmitting("balance")
     try {
       const link = trackLink.trim()
       const res = await fetch("/api/cabinet/payments/business-music/create", {
@@ -68,15 +68,12 @@ export function BusinessMusicOrderDialog({
           contactType: "telegram",
           contactValue: "@artist",
           returnPath: "/cabinet/publicka",
-          ...(payFromBalance ? { payFromBalance: true } : {}),
+          payFromBalance: true,
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(
-          data.error ||
-            (payFromBalance ? "Не удалось оплатить с баланса" : "Не удалось создать оплату")
-        )
+        toast.error(data.error || "Не удалось оплатить с баланса")
         return
       }
       if (data.paid === true) {
@@ -86,17 +83,9 @@ export function BusinessMusicOrderDialog({
         onPaidFromBalance?.()
         return
       }
-      const payUrl =
-        (typeof data.paymentUrl === "string" && data.paymentUrl) ||
-        (typeof data.confirmationUrl === "string" && data.confirmationUrl) ||
-        ""
-      if (payUrl) {
-        window.location.href = payUrl
-        return
-      }
-      toast.error(payFromBalance ? "Не удалось оплатить с баланса" : "Не удалось создать оплату")
+      toast.error("Не удалось оплатить с баланса")
     } catch {
-      toast.error(payFromBalance ? "Ошибка при оплате с баланса" : "Ошибка при создании оплаты")
+      toast.error("Ошибка при оплате с баланса")
     } finally {
       setSubmitting(null)
     }
@@ -144,22 +133,12 @@ export function BusinessMusicOrderDialog({
             />
           </div>
           <p className="font-semibold">Итого: {PRICE_LABEL}</p>
-          <div className="flex flex-col gap-1.5 sm:flex-row">
-            <Button
-              onClick={() => void handlePay(false)}
-              disabled={Boolean(submitting)}
-              className="w-full sm:flex-1"
-            >
-              {submitting === "card" ? "Создание..." : "Оплатить картой"}
-            </Button>
-            <Button
-              onClick={() => void handlePay(true)}
-              disabled={Boolean(submitting)}
-              className="w-full sm:flex-1"
-            >
-              {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
-            </Button>
-          </div>
+          <Button onClick={() => void handlePay()} disabled={Boolean(submitting)} className="w-full">
+            {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Оплата только с баланса. Пополнение картой - в разделе «Баланс».
+          </p>
         </div>
       </DialogContent>
     </Dialog>

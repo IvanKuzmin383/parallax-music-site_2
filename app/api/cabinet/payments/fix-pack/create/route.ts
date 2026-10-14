@@ -7,13 +7,8 @@ import {
   isValidFixPackTracksCount,
   MAX_FIX_PACK_ORDER,
 } from "@/lib/fix-pack-pricing"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
-
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
   const session = getCabinetSession(token)
@@ -21,11 +16,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[payments/fix-pack/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -87,25 +77,5 @@ export async function POST(request: NextRequest) {
     userId: user.id,
   })
 
-  const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}/cabinet?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet?payment=fail&orderId=${encodeURIComponent(order.id)}`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "fix_pack",
-    receiptEmail: user.email,
-    receiptItemName: `Дистрибуция треков Fix (${tracksCount} шт.)`,
-    logPrefix: "payments/fix-pack/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
+  return respondWithWalletPayment(order)
 }

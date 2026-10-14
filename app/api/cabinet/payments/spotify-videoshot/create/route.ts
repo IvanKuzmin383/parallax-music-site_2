@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const YOOKASSA_PAYMENT_DESCRIPTION = "Видеошот для Spotify"
 
@@ -18,13 +14,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[payments/spotify-videoshot/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
-  const siteBase = getSiteBaseUrl()
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -70,24 +60,5 @@ export async function POST(request: NextRequest) {
       contactValue,
     },
   })
-  const returnUrl = `${siteBase}/cabinet/promotion/spotify-videoshot?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/promotion/spotify-videoshot?payment=fail&orderId=${encodeURIComponent(order.id)}`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description: YOOKASSA_PAYMENT_DESCRIPTION,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "spotify_videoshot",
-    receiptEmail: user.email,
-    receiptItemName: YOOKASSA_PAYMENT_DESCRIPTION,
-    logPrefix: "payments/spotify-videoshot/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
+  return respondWithWalletPayment(order)
 }

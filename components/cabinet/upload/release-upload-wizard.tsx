@@ -1353,13 +1353,19 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           method: "POST",
           credentials: "include",
         })
-        const payData = await parseCabinetApiJson<{ paymentUrl?: string }>(payRes)
-        if (payRes.ok && payData.paymentUrl) {
-          window.location.href = payData.paymentUrl
+        const payData = await parseCabinetApiJson<{ paymentUrl?: string; paid?: boolean; error?: string }>(
+          payRes
+        )
+        if (payRes.ok && payData.paid) {
+          toast.success("Оплата с баланса прошла успешно")
+          // продолжаем submit после оплаты допов
+        } else if (payRes.ok && payData.paymentUrl) {
+          toast.error("Оплата картой отключена. Пополните баланс и повторите.")
+          return
+        } else {
+          toast.error(payData.error ?? "Не удалось оплатить с баланса")
           return
         }
-        toast.error(payData.error ?? "Не удалось создать платёж")
-        return
       }
 
       const res = await fetch(`/api/cabinet/releases/${releaseId}/submit`, {

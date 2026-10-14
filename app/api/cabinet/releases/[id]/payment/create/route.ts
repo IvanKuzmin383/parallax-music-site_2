@@ -2,17 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
-import { createOrder, updateOrderStatus } from "@/lib/orders"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
+import { createOrder } from "@/lib/orders"
 import {
   getReleaseById,
   markReleaseAwaitingPayment,
   releasePayloadForPricing,
 } from "@/lib/releases"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
 import { getTracksByReleaseId } from "@/lib/tracks"
 
 export async function POST(
@@ -29,11 +25,6 @@ export async function POST(
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[releases/payment/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
@@ -56,26 +47,5 @@ export async function POST(
 
   await markReleaseAwaitingPayment(id, order.id)
 
-  const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}/cabinet/upload/${encodeURIComponent(id)}?step=6&payment=return`
-  const failUrl = `${siteBase}/cabinet/upload/${encodeURIComponent(id)}?step=6&payment=fail`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount: order.totalAmount,
-    description: "Пакет услуг",
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "upload_addon_bundle",
-    receiptEmail: user.email,
-    receiptItemName: "Пакет услуг при загрузке",
-    logPrefix: "releases/payment/create",
-  })
-
-  if (!pay.ok) {
-    await updateOrderStatus(order.id, "failed")
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ paymentUrl: pay.confirmationUrl, amountRub: totalRub })
+  return respondWithWalletPayment(order)
 }

@@ -130,13 +130,13 @@ function SpotifyVideoshotPageInner() {
           contactValue: contactValue.trim(),
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as { confirmationUrl?: string; error?: string }
+      const data = (await res.json().catch(() => ({}))) as { paid?: boolean; error?: string }
       if (!res.ok) {
         setError(data.error || formText.errorCreate)
         return
       }
-      if (data.confirmationUrl) {
-        window.location.href = data.confirmationUrl
+      if (data.paid) {
+        toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
         return
       }
       setError(formText.errorCreate)

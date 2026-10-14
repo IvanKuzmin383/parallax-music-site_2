@@ -191,6 +191,15 @@ export function nextArtistLevel(xp: number): ArtistLevel | null {
   return ARTIST_LEVELS[idx + 1] ?? null
 }
 
+/** Короткий текст награды для UI, или null если награды нет. */
+export function formatAchievementReward(reward: AchievementReward): string | null {
+  if (reward.type === "wallet") return `+${reward.amountRub} ₽ на баланс`
+  if (reward.type === "coupon") {
+    return `${reward.title} (до ${reward.maxDiscountRub} ₽, ${reward.daysValid} дн.)`
+  }
+  return null
+}
+
 /** Экономика рефералки и годовой потолок наград. */
 export const GAMIFICATION_ECONOMY = {
   referralFirstPaymentPercent: 10,

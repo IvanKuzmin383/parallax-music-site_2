@@ -7,27 +7,33 @@ import {
 } from "@/lib/cabinet-smartlink"
 import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
 import {
+  PLATFORM_LINK_KEYS,
+  normalizePlatformLinks,
+  type PlatformLinks,
+} from "@/lib/smartlink-platforms"
+import {
   isSmartlinkButtonStyle,
   isSmartlinkCoverShape,
   isSmartlinkPreset,
   normalizeAccentHex,
   parseSmartlinkTheme,
-  SMARTLINK_BUTTON_STYLES,
-  SMARTLINK_COVER_SHAPES,
-  SMARTLINK_PRESETS,
 } from "@/lib/smartlink-theme"
 import { isSmartlinkSlugTaken, updateTrack } from "@/lib/tracks"
 
+const optionalUrl = z.string().trim().max(2000).optional().nullable()
+
+const platformLinksSchema = z
+  .object(
+    Object.fromEntries(PLATFORM_LINK_KEYS.map((key) => [key, optionalUrl])) as Record<
+      (typeof PLATFORM_LINK_KEYS)[number],
+      typeof optionalUrl
+    >,
+  )
+  .partial()
+
 const patchSchema = z.object({
-  theme: z
-    .object({
-      preset: z.enum(SMARTLINK_PRESETS),
-      accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-      buttons: z.enum(SMARTLINK_BUTTON_STYLES),
-      cover: z.enum(SMARTLINK_COVER_SHAPES),
-      platformOrder: z.array(z.string()).optional(),
-    })
-    .optional(),
+  theme: z.unknown().optional(),
+  platformLinks: platformLinksSchema.optional(),
   smartlinkSlug: z.string().optional(),
   ensureSlug: z.boolean().optional(),
 })
@@ -113,20 +119,32 @@ export async function PATCH(
   }
 
   let nextTheme = ctx.theme
-  if (payload.theme) {
-    const accent = normalizeAccentHex(payload.theme.accent)
-    if (!accent || !isSmartlinkPreset(payload.theme.preset)) {
+  if (payload.theme !== undefined) {
+    const theme = parseSmartlinkTheme(payload.theme)
+    const accent = normalizeAccentHex(theme.accent)
+    if (!accent || !isSmartlinkPreset(theme.preset)) {
       return NextResponse.json({ error: "Некорректная тема" }, { status: 400 })
     }
-    if (!isSmartlinkButtonStyle(payload.theme.buttons) || !isSmartlinkCoverShape(payload.theme.cover)) {
+    if (!isSmartlinkButtonStyle(theme.buttons) || !isSmartlinkCoverShape(theme.cover)) {
       return NextResponse.json({ error: "Некорректная тема" }, { status: 400 })
     }
-    nextTheme = parseSmartlinkTheme(payload.theme)
+    nextTheme = theme
+  }
+
+  let nextPlatformLinks: PlatformLinks | undefined
+  if (payload.platformLinks !== undefined) {
+    const cleaned: Partial<PlatformLinks> = {}
+    for (const key of PLATFORM_LINK_KEYS) {
+      const value = payload.platformLinks[key]
+      cleaned[key] = typeof value === "string" ? value : undefined
+    }
+    nextPlatformLinks = normalizePlatformLinks(cleaned)
   }
 
   const updated = await updateTrack(ctx.track.id, {
     smartlinkSlug: nextSlug ?? undefined,
     smartlinkTheme: nextTheme,
+    ...(nextPlatformLinks !== undefined ? { platformLinks: nextPlatformLinks } : {}),
   })
   if (!updated) {
     return NextResponse.json({ error: "Не удалось сохранить" }, { status: 500 })

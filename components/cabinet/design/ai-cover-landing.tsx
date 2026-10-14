@@ -328,7 +328,7 @@ function AiCoverLandingInner() {
         }),
       })
       const data = (await res.json().catch(() => ({}))) as {
-        confirmationUrl?: string
+        paid?: boolean
         error?: string
         fieldErrors?: AiCoverFieldErrors
       }
@@ -337,14 +337,19 @@ function AiCoverLandingInner() {
           setFieldErrors(data.fieldErrors)
           focusFirstError(data.fieldErrors)
         }
-        setFormError(data.error || "Не удалось создать платёж, попробуйте позже")
+        setFormError(data.error || "Не удалось оплатить с баланса")
         return
       }
-      if (data.confirmationUrl) {
-        window.location.href = data.confirmationUrl
+      if (data.paid) {
+        toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
+        setIncludeTextOnCover(false)
+        setArtistName("")
+        setReleaseTitle("")
+        setComment("")
+        setContactValue("")
         return
       }
-      setFormError("Не удалось создать платёж, попробуйте позже")
+      setFormError("Не удалось оплатить с баланса")
     } catch {
       setFormError("Ошибка сети, попробуйте позже")
     } finally {
@@ -762,7 +767,7 @@ function AiCoverLandingInner() {
             className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90"
             disabled={loading}
           >
-            {loading ? "Создание платежа…" : `Оплатить ${AI_COVER_PRICE_RUB} \u20BD`}
+            {loading ? "Оплата…" : `Оплатить ${AI_COVER_PRICE_RUB} \u20BD с баланса`}
           </Button>
         </form>
       </section>

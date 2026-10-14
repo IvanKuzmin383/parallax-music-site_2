@@ -438,15 +438,15 @@ function YandexVideoshotLandingInner() {
         body: JSON.stringify(body),
       })
       const data = (await res.json().catch(() => ({}))) as {
-        confirmationUrl?: string
+        paid?: boolean
         error?: string
       }
       if (!res.ok) {
         setFieldErrors({ form: data.error || "Не удалось создать заказ" })
         return
       }
-      if (data.confirmationUrl) {
-        window.location.href = data.confirmationUrl
+      if (data.paid) {
+        toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
         return
       }
       setFieldErrors({ form: "Не удалось создать заказ" })

@@ -701,3 +701,90 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   will-change: transform;
   opacity: 0.9;
 }
+
+/* Smartlink entrance - CSS only, no server work */
+@keyframes sl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes sl-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sl-cascade {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sl-soft-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sl-slide {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sl-anim-rise {
+  animation: sl-rise var(--sl-anim-ms, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sl-anim-fade {
+  animation: sl-fade var(--sl-anim-ms, 700ms) ease both;
+}
+.sl-anim-cascade {
+  animation: sl-cascade var(--sl-anim-ms, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--sl-anim-i, 0) * 70ms);
+}
+.sl-anim-softPop {
+  animation: sl-soft-pop var(--sl-anim-ms, 700ms) cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.sl-anim-slide {
+  animation: sl-slide var(--sl-anim-ms, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-anim-rise,
+  .sl-anim-fade,
+  .sl-anim-cascade,
+  .sl-anim-softPop,
+  .sl-anim-slide {
+    animation: none !important;
+  }
+}

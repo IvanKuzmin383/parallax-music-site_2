@@ -3,13 +3,9 @@ import { promises as fs } from "fs"
 import path from "path"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
 import { getUploadsBasePath } from "@/lib/tracks"
 import { validateWavStereoFromPrefix } from "@/lib/wav-parse-stereo"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
@@ -40,13 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[payments/ai-mastering/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
-  const siteBase = getSiteBaseUrl()
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -167,35 +157,5 @@ export async function POST(request: NextRequest) {
 
   const trackTitlesJoined = displayNames.join(" | ")
   const trackSummary = trackTitlesJoined.slice(0, 200)
-  const returnUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/promotion/ai-mastering?payment=fail&orderId=${encodeURIComponent(order.id)}`
-  const description = `AI мастеринг: ${trackSummary.slice(0, 60)}${trackSummary.length > 60 ? "…" : ""}, ${tracksCount} тр., ${user.email}`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "ai_mastering",
-    receiptEmail: user.email,
-    receiptItemName: "AI мастеринг",
-    logPrefix: "payments/ai-mastering/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-      return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
-    } finally {
-      await multipart.cleanup()
-    }
-  } catch (error) {
-    if (error instanceof MultipartRequestError) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
-    }
-    console.error("[payments/ai-mastering/create] Unexpected error:", error)
-    return NextResponse.json({ error: "Некорректное тело запроса" }, { status: 400 })
-  }
+  return respondWithWalletPayment(order)
 }

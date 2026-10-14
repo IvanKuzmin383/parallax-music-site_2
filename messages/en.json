@@ -1172,7 +1172,7 @@
       "aiMastering": {
         "title": "AI mastering",
         "description": "Automatic track mastering with AI trained on top engineers' work",
-        "price": "100₽/track",
+        "price": "500₽/track",
         "serviceDescriptionTitle": "Description",
         "priceTitle": "Pricing",
         "serviceDescription": "AI mastering analyzes spectrum and dynamics, then applies EQ, compression and limiting. You get a release-ready loudness level for streaming platforms.",

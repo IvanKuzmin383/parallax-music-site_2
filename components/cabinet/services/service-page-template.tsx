@@ -32,7 +32,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const [comment, setComment] = useState("")
   const [releaseDate, setReleaseDate] = useState("")
   const [previewTimecodeSec, setPreviewTimecodeSec] = useState("")
-  const [submitting, setSubmitting] = useState<"card" | "balance" | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const isMusicVideo = service.orderType === "music_video" || service.slug === "music-video"
 
   useEffect(() => {
@@ -66,7 +66,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
     toast.error("Оформление этой услуги пока недоступно")
   }
 
-  const handlePay = async (payFromBalance = false) => {
+  const handlePay = async () => {
     const isStub = Boolean(service.paymentStub && service.paymentEndpoint)
     const isLivePay = Boolean(service.hasBackend && service.paymentEndpoint && !service.paymentStub)
     const interestOnly = Boolean(service.interestOnly)
@@ -99,7 +99,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       }
     }
 
-    setSubmitting(payFromBalance ? "balance" : "card")
+    setSubmitting(true)
     try {
       const link = trackLink.trim()
       const res = await fetch(service.paymentEndpoint!, {
@@ -122,7 +122,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                   : {}),
                 contactType: "telegram",
                 contactValue: "@artist",
-                ...(payFromBalance ? { payFromBalance: true } : {}),
+                payFromBalance: true,
               }
         ),
       })
@@ -130,11 +130,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       if (!res.ok) {
         toast.error(
           data.error ||
-            (isStub
-              ? "Не удалось отправить заявку"
-              : payFromBalance
-                ? "Не удалось оплатить с баланса"
-                : "Не удалось создать оплату")
+            (isStub ? "Не удалось отправить заявку" : "Не удалось оплатить с баланса")
         )
         return
       }
@@ -161,25 +157,11 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         router.refresh()
         return
       }
-      const payUrl =
-        (typeof data.paymentUrl === "string" && data.paymentUrl) ||
-        (typeof data.confirmationUrl === "string" && data.confirmationUrl) ||
-        ""
-      if (payUrl) {
-        window.location.href = payUrl
-        return
-      }
-      toast.error(payFromBalance ? "Не удалось оплатить с баланса" : "Не удалось создать оплату")
+      toast.error("Не удалось оплатить с баланса")
     } catch {
-      toast.error(
-        isStub
-          ? "Ошибка при отправке заявки"
-          : payFromBalance
-            ? "Ошибка при оплате с баланса"
-            : "Ошибка при создании оплаты"
-      )
+      toast.error(isStub ? "Ошибка при отправке заявки" : "Ошибка при оплате с баланса")
     } finally {
-      setSubmitting(null)
+      setSubmitting(false)
     }
   }
 
@@ -284,30 +266,23 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
               Оплата пока не списывается - заявка нужна, чтобы оценить спрос. Мы свяжемся с вами.
             </p>
           ) : null}
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-stretch">
-            <Button
-              onClick={() => void handlePay(false)}
-              disabled={Boolean(submitting)}
-              className="w-full sm:min-w-0 sm:flex-1 sm:basis-0"
-            >
-              {submitting === "card"
-                ? service.paymentStub
-                  ? "Отправка..."
-                  : "Создание..."
-                : service.paymentStub
-                  ? "Оплатить"
-                  : "Оплатить картой"}
-            </Button>
-            {!service.paymentStub ? (
-              <Button
-                onClick={() => void handlePay(true)}
-                disabled={Boolean(submitting) || !service.hasBackend}
-                className="w-full sm:min-w-0 sm:flex-1 sm:basis-0"
-              >
-                {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
-              </Button>
-            ) : null}
-          </div>
+          <Button onClick={() => void handlePay()} disabled={submitting} className="w-full">
+            {submitting
+              ? service.paymentStub
+                ? "Отправка..."
+                : "Оплата..."
+              : service.paymentStub
+                ? "Оплатить"
+                : "Оплатить с баланса"}
+          </Button>
+          {!service.paymentStub ? (
+            <p className="text-xs text-muted-foreground">
+              Оплата только с баланса кабинета.{" "}
+              <Link href="/cabinet/finance/balance" className="text-primary underline-offset-2 hover:underline">
+                Пополнить картой
+              </Link>
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

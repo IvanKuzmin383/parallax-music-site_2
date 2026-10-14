@@ -7,24 +7,21 @@ export const SMARTLINK_PLATFORMS = [
   { key: "vk", label: "VK Музыка" },
   { key: "sberzvuk", label: "Звук" },
   { key: "kion", label: "МТС КИОН" },
+  { key: "amazonMusic", label: "Amazon Music" },
+  { key: "odnoklassniki", label: "Одноклассники" },
+  { key: "tidal", label: "TIDAL" },
+  { key: "soundcloud", label: "SoundCloud" },
+  { key: "wink", label: "Wink Музыка" },
+  { key: "other", label: "Другое" },
 ] as const
 
 export type PlatformLinkKey = (typeof SMARTLINK_PLATFORMS)[number]["key"]
 
-export interface PlatformLinks {
-  spotify?: string
-  appleMusic?: string
-  deezer?: string
-  yandex?: string
-  youtubeMusic?: string
-  vk?: string
-  sberzvuk?: string
-  kion?: string
-}
+export type PlatformLinks = Partial<Record<PlatformLinkKey, string>>
 
 export const PLATFORM_LINK_KEYS = SMARTLINK_PLATFORMS.map((p) => p.key) as PlatformLinkKey[]
 
-/** Официальные иконки площадок в public/platforms. */
+/** Официальные / фирменные иконки площадок в public/platforms. */
 export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   spotify: "/platforms/spotify.svg",
   appleMusic: "/platforms/apple-music.svg",
@@ -34,12 +31,27 @@ export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   vk: "/platforms/vk.png",
   sberzvuk: "/platforms/sberzvuk.svg",
   kion: "/platforms/kion.svg",
+  amazonMusic: "/platforms/amazon-music.svg",
+  odnoklassniki: "/platforms/odnoklassniki.svg",
+  tidal: "/platforms/tidal.svg",
+  soundcloud: "/platforms/soundcloud.svg",
+  wink: "/platforms/wink.svg",
+  other: "/platforms/other.svg",
+}
+
+export function isPlatformLinkKey(value: unknown): value is PlatformLinkKey {
+  return typeof value === "string" && (PLATFORM_LINK_KEYS as readonly string[]).includes(value)
+}
+
+export function platformLabel(key: PlatformLinkKey, otherLabel?: string | null): string {
+  if (key === "other" && otherLabel?.trim()) return otherLabel.trim()
+  return SMARTLINK_PLATFORMS.find((p) => p.key === key)?.label ?? key
 }
 
 /** PATCH merge: обновляет только ключи из incoming; пустое значение - удалить ключ. */
 export function mergePartialPlatformLinks(
   existing: PlatformLinks | undefined,
-  incoming: Partial<PlatformLinks>
+  incoming: Partial<PlatformLinks>,
 ): PlatformLinks {
   const next: PlatformLinks = { ...(existing ?? {}) }
   for (const key of PLATFORM_LINK_KEYS) {
@@ -49,6 +61,19 @@ export function mergePartialPlatformLinks(
       next[key] = value.trim()
     } else {
       delete next[key]
+    }
+  }
+  return next
+}
+
+/** Полная замена набора ссылок (пустые ключи отбрасываются). */
+export function normalizePlatformLinks(incoming: Partial<PlatformLinks> | undefined): PlatformLinks {
+  const next: PlatformLinks = {}
+  if (!incoming) return next
+  for (const key of PLATFORM_LINK_KEYS) {
+    const value = incoming[key]
+    if (typeof value === "string" && value.trim()) {
+      next[key] = value.trim()
     }
   }
   return next

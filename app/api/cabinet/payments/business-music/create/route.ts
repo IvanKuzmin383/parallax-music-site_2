@@ -2,14 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
-import { isPayFromBalance, payOrderFromWallet } from "@/lib/cabinet-wallet-pay"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
-
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const PAYMENT_DESCRIPTION = "Музыка для бизнеса - размещение трека"
 
@@ -33,7 +27,6 @@ export async function POST(request: NextRequest) {
   }
 
   const raw = body as Record<string, unknown>
-  const payFromBalance = isPayFromBalance(raw)
   const trackTitle = typeof raw.trackTitle === "string" ? raw.trackTitle.trim() : ""
   const trackLink = typeof raw.trackLink === "string" ? raw.trackLink.trim() : ""
   const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
@@ -53,13 +46,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  if (!payFromBalance) {
-    const tbankCfg = assertTbankConfigured()
-    if (!tbankCfg.ok) {
-      console.error("[payments/business-music/create] Missing TBANK env")
-      return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-    }
-  }
 
   const totalAmount = BUSINESS_MUSIC_PRICE_RUB.toFixed(2)
   const isTelegramContact = contactType === "telegram"
@@ -78,51 +64,6 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  if (payFromBalance) {
-    const paid = await payOrderFromWallet(order)
-    if (!paid.ok) {
-      return NextResponse.json({ error: paid.error }, { status: paid.status })
-    }
-    return NextResponse.json({
-      paid: true,
-      orderId: paid.orderId,
-      paymentId: paid.paymentId,
-      walletBalance: paid.walletBalance,
-    })
-  }
 
-  const allowedReturnPaths = new Set([
-    "/cabinet/publicka",
-    "/cabinet/promotion/business-music",
-  ])
-  const returnPath =
-    typeof raw.returnPath === "string" && allowedReturnPaths.has(raw.returnPath)
-      ? raw.returnPath
-      : "/cabinet/publicka"
-
-  const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}${returnPath}?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}${returnPath}?payment=fail&orderId=${encodeURIComponent(order.id)}`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description: PAYMENT_DESCRIPTION,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "business_music",
-    receiptEmail: user.email,
-    receiptItemName: PAYMENT_DESCRIPTION,
-    logPrefix: "payments/business-music/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({
-    confirmationUrl: pay.confirmationUrl,
-    paymentUrl: pay.confirmationUrl,
-    paymentId: pay.paymentId,
-  })
+  return respondWithWalletPayment(order)
 }

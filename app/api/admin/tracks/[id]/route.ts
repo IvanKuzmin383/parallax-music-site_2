@@ -86,6 +86,12 @@ const patchBodySchema = z.object({
       vk: optionalUrl,
       sberzvuk: optionalUrl,
       kion: optionalUrl,
+      amazonMusic: optionalUrl,
+      odnoklassniki: optionalUrl,
+      tidal: optionalUrl,
+      soundcloud: optionalUrl,
+      wink: optionalUrl,
+      other: optionalUrl,
     })
     .optional(),
   userId: z.string().trim().email().optional(),
@@ -279,29 +285,10 @@ export async function PATCH(
   if (data.platformLinks !== undefined) {
     const links = data.platformLinks
     const normalized: Partial<typeof links> = {}
-    if (Object.prototype.hasOwnProperty.call(links, "spotify")) {
-      normalized.spotify = links.spotify === "" ? undefined : links.spotify
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "appleMusic")) {
-      normalized.appleMusic = links.appleMusic === "" ? undefined : links.appleMusic
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "deezer")) {
-      normalized.deezer = links.deezer === "" ? undefined : links.deezer
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "yandex")) {
-      normalized.yandex = links.yandex === "" ? undefined : links.yandex
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "youtubeMusic")) {
-      normalized.youtubeMusic = links.youtubeMusic === "" ? undefined : links.youtubeMusic
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "vk")) {
-      normalized.vk = links.vk === "" ? undefined : links.vk
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "sberzvuk")) {
-      normalized.sberzvuk = links.sberzvuk === "" ? undefined : links.sberzvuk
-    }
-    if (Object.prototype.hasOwnProperty.call(links, "kion")) {
-      normalized.kion = links.kion === "" ? undefined : links.kion
+    for (const key of Object.keys(links) as Array<keyof typeof links>) {
+      if (!Object.prototype.hasOwnProperty.call(links, key)) continue
+      const value = links[key]
+      normalized[key] = value === "" || value == null ? undefined : value
     }
     updatePayload.platformLinks = mergePartialPlatformLinks(current.platformLinks, normalized)
   }

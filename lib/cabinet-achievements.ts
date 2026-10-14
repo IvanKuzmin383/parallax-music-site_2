@@ -5,7 +5,9 @@ import { tryCreateCabinetNotification } from "@/lib/cabinet-notifications"
 import {
   ACHIEVEMENT_BY_ID,
   ACHIEVEMENTS_CATALOG,
+  ARTIST_LEVELS,
   GAMIFICATION_ECONOMY,
+  formatAchievementReward,
   nextArtistLevel,
   resolveArtistLevel,
   type AchievementDef,
@@ -20,6 +22,8 @@ export type UserAchievementView = {
   description: string
   category: AchievementDef["category"]
   xp: number
+  /** Текст награды для UI, null если только XP */
+  rewardLabel: string | null
   unlocked: boolean
   unlockedAt: string | null
 }
@@ -28,6 +32,8 @@ export type GamificationProgress = {
   xp: number
   level: ArtistLevel
   nextLevel: ArtistLevel | null
+  /** Все уровни по порядку (лестница) */
+  levels: ArtistLevel[]
   unlockedCount: number
   totalCount: number
   achievements: UserAchievementView[]
@@ -186,6 +192,7 @@ export async function getGamificationProgress(userId: string): Promise<Gamificat
       description: def.description,
       category: def.category,
       xp: def.xp,
+      rewardLabel: formatAchievementReward(def.reward),
       unlocked: Boolean(row),
       unlockedAt: row?.unlocked_at ?? null,
     }
@@ -194,6 +201,7 @@ export async function getGamificationProgress(userId: string): Promise<Gamificat
     xp,
     level: resolveArtistLevel(xp),
     nextLevel: nextArtistLevel(xp),
+    levels: ARTIST_LEVELS,
     unlockedCount: unlocked.size,
     totalCount: ACHIEVEMENTS_CATALOG.length,
     achievements,

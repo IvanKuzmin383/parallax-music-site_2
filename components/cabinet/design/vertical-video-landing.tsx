@@ -622,18 +622,20 @@ function VerticalVideoLandingInner() {
         }),
       })
       const data = (await res.json().catch(() => ({}))) as {
-        confirmationUrl?: string
+        paid?: boolean
         error?: string
       }
       if (!res.ok) {
-        setError(data.error || "Не удалось создать платёж, попробуйте позже")
+        setError(data.error || "Не удалось оплатить с баланса")
         return
       }
-      if (data.confirmationUrl) {
-        window.location.href = data.confirmationUrl
+      if (data.paid) {
+        toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
+        setComment("")
+        setContactValue("")
         return
       }
-      setError("Не удалось создать платёж, попробуйте позже")
+      setError("Не удалось оплатить с баланса")
     } catch {
       setError("Ошибка сети, попробуйте позже")
     } finally {
@@ -984,10 +986,10 @@ function VerticalVideoLandingInner() {
               disabled={!validCount || !validTrackTitle || !validContact || !hasTracks || loading}
             >
               {loading
-                ? "Создание платежа…"
+                ? "Оплата…"
                 : validCount
-                  ? `Оплатить ${formatVerticalVideoRub(total)}`
-                  : "Оплатить"}
+                  ? `Оплатить ${formatVerticalVideoRub(total)} с баланса`
+                  : "Оплатить с баланса"}
             </Button>
           </form>
         </div>

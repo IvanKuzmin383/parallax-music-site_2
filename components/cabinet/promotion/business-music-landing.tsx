@@ -266,84 +266,70 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
     })
   }, [])
 
-  const handlePay = useCallback(
-    async (payFromBalance: boolean) => {
-      if (!service.paymentEndpoint) {
-        toast.error("Оформление этой услуги пока недоступно")
+  const handlePay = useCallback(async () => {
+    if (!service.paymentEndpoint) {
+      toast.error("Оформление этой услуги пока недоступно")
+      return
+    }
+
+    const nextErrors: { projectName?: string; trackLink?: string; comment?: string } = {}
+    if (!projectName.trim()) {
+      nextErrors.projectName = "Укажите название трека / релиза"
+    }
+    const link = trackLink.trim()
+    if (link && !isHttpUrl(link)) {
+      nextErrors.trackLink = "Укажите корректную ссылку (http или https)"
+    }
+    if (!comment.trim() || comment.trim().length < 2) {
+      nextErrors.comment = "Заполните комментарий к заказу"
+    }
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      toast.error(
+        nextErrors.projectName || nextErrors.trackLink || nextErrors.comment || "Заполните поля"
+      )
+      scrollToId("bm-order")
+      return
+    }
+
+    setSubmitting("balance")
+    try {
+      const res = await fetch(service.paymentEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          trackTitle: projectName.trim(),
+          trackLink: link || undefined,
+          fileUrl: link || undefined,
+          comment: comment.trim(),
+          contactType: "telegram",
+          contactValue: "@artist",
+          returnPath: "/cabinet/promotion/business-music",
+          payFromBalance: true,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error || "Не удалось оплатить с баланса")
         return
       }
-
-      const nextErrors: { projectName?: string; trackLink?: string; comment?: string } = {}
-      if (!projectName.trim()) {
-        nextErrors.projectName = "Укажите название трека / релиза"
-      }
-      const link = trackLink.trim()
-      if (link && !isHttpUrl(link)) {
-        nextErrors.trackLink = "Укажите корректную ссылку (http или https)"
-      }
-      if (!comment.trim() || comment.trim().length < 2) {
-        nextErrors.comment = "Заполните комментарий к заказу"
-      }
-      setFieldErrors(nextErrors)
-      if (Object.keys(nextErrors).length > 0) {
-        toast.error(
-          nextErrors.projectName || nextErrors.trackLink || nextErrors.comment || "Заполните поля"
-        )
-        scrollToId("bm-order")
+      if (data.paid === true) {
+        toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
+        setProjectName("")
+        setTrackLink("")
+        setComment("")
+        setFieldErrors({})
+        router.refresh()
         return
       }
-
-      setSubmitting(payFromBalance ? "balance" : "card")
-      try {
-        const res = await fetch(service.paymentEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            trackTitle: projectName.trim(),
-            trackLink: link || undefined,
-            fileUrl: link || undefined,
-            comment: comment.trim(),
-            contactType: "telegram",
-            contactValue: "@artist",
-            returnPath: "/cabinet/promotion/business-music",
-            ...(payFromBalance ? { payFromBalance: true } : {}),
-          }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          toast.error(
-            data.error ||
-              (payFromBalance ? "Не удалось оплатить с баланса" : "Не удалось создать оплату")
-          )
-          return
-        }
-        if (data.paid === true) {
-          toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
-          setProjectName("")
-          setTrackLink("")
-          setComment("")
-          setFieldErrors({})
-          router.refresh()
-          return
-        }
-        const payUrl =
-          (typeof data.paymentUrl === "string" && data.paymentUrl) ||
-          (typeof data.confirmationUrl === "string" && data.confirmationUrl) ||
-          ""
-        if (payUrl) {
-          window.location.href = payUrl
-          return
-        }
-        toast.error(payFromBalance ? "Не удалось оплатить с баланса" : "Не удалось создать оплату")
-      } catch {
-        toast.error(payFromBalance ? "Ошибка при оплате с баланса" : "Ошибка при создании оплаты")
-      } finally {
-        setSubmitting(null)
-      }
-    },
-    [service.paymentEndpoint, projectName, trackLink, comment, router]
-  )
+      toast.error("Не удалось оплатить с баланса")
+    } catch {
+      toast.error("Ошибка при оплате с баланса")
+    } finally {
+      setSubmitting(null)
+    }
+  }, [service.paymentEndpoint, projectName, trackLink, comment, router])
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1120px] space-y-10 pb-10 md:space-y-12">
@@ -668,25 +654,20 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
               1 трек · размещение в каталоге - {priceDisplay}
             </p>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <Button
-                type="button"
-                className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90 sm:flex-1"
-                disabled={Boolean(submitting)}
-                onClick={() => void handlePay(false)}
-              >
-                {submitting === "card" ? "Создание..." : "Оплатить картой"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 min-h-11 w-full sm:flex-1"
-                disabled={Boolean(submitting)}
-                onClick={() => void handlePay(true)}
-              >
-                {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90"
+              disabled={Boolean(submitting)}
+              onClick={() => void handlePay()}
+            >
+              {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
+            </Button>
+            <p className="text-xs text-[#B0A9B6]">
+              Оплата только с баланса.{" "}
+              <Link href="/cabinet/finance/balance" className="text-[#F21D43] underline-offset-2 hover:underline">
+                Пополнить картой
+              </Link>
+            </p>
           </div>
         </div>
       </section>

@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { isLegacyFixPricing } from "@/lib/fix-pricing-legacy"
 import { getTrackPriceRubByCreatedAt, MAX_TRACKS_TOPUP } from "@/lib/track-pricing"
-import {
-  assertTbankConfigured,
-  createCabinetTbankPayment,
-  getSiteBaseUrl,
-} from "@/lib/tbank-cabinet-payment"
-
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
   const session = getCabinetSession(token)
@@ -17,11 +12,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-  const tbankCfg = assertTbankConfigured()
-  if (!tbankCfg.ok) {
-    console.error("[payments/tracks/create] Missing TBANK env")
-    return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
-  }
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -88,25 +78,5 @@ export async function POST(request: NextRequest) {
     totalAmount,
   })
 
-  const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}/cabinet?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet?payment=fail&orderId=${encodeURIComponent(order.id)}`
-
-  const pay = await createCabinetTbankPayment({
-    orderId: order.id,
-    totalAmount,
-    description,
-    successUrl: returnUrl,
-    failUrl,
-    orderType: "tracks_topup",
-    receiptEmail: user.email,
-    receiptItemName: `Доп. треки Fix (${tracksCount} шт.)`,
-    logPrefix: "payments/tracks/create",
-  })
-
-  if (!pay.ok) {
-    return NextResponse.json({ error: pay.error }, { status: 500 })
-  }
-
-  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
+  return respondWithWalletPayment(order)
 }
