@@ -13,7 +13,7 @@ import {
 } from "@/lib/ai-tracks-config"
 import { createRelease, listReleasesByUserId, type Release } from "@/lib/releases"
 import { createTrack, getAudioDir, getUploadsBasePath } from "@/lib/tracks"
-import { GENRES, TRACK_MOODS } from "@/lib/track-constants"
+import { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "@/lib/track-constants"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
 import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
@@ -30,7 +30,7 @@ function safeJoinUploads(base: string, storageKey: string): string | null {
   return resolved
 }
 
-function mapDirectionToGenre(direction: AiTracksDirectionId | null): string {
+function mapDirectionToGenre(direction: AiTracksDirectionId | null): TrackGenre {
   if (direction === "pop") return "Pop"
   if (direction === "rap") return "Hip-Hop"
   if (direction === "electronic") return "Electronic"
@@ -39,7 +39,7 @@ function mapDirectionToGenre(direction: AiTracksDirectionId | null): string {
   return GENRES[0]
 }
 
-function mapMoodToTrackMood(mood: AiTracksMoodId | null): string {
+function mapMoodToTrackMood(mood: AiTracksMoodId | null): TrackMood {
   if (mood === "atmospheric") return "Мечтательное"
   if (mood === "energetic") return "Энергичное"
   if (mood === "romantic") return "Романтичное"
