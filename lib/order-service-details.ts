@@ -37,6 +37,10 @@ export type OrderServiceDetails = {
   /** Применённый купон геймификации */
   couponCode?: string
   couponId?: string
+  /** ID релиза / трека / альбома из каталога кабинета (business music и т.п.). */
+  releaseId?: string
+  /** Источник каталога: release | track | album */
+  catalogSource?: string
 }
 
 export function stringifyServiceDetails(
@@ -90,6 +94,10 @@ export function stringifyServiceDetails(
   const couponId = details.couponId?.trim()
   if (couponCode) out.couponCode = couponCode
   if (couponId) out.couponId = couponId
+  const releaseId = details.releaseId?.trim()
+  const catalogSource = details.catalogSource?.trim()
+  if (releaseId) out.releaseId = releaseId
+  if (catalogSource) out.catalogSource = catalogSource
   return Object.keys(out).length > 0 ? JSON.stringify(out) : null
 }
 
