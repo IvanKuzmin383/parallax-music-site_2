@@ -278,17 +278,15 @@ function Segmented<T extends string>({
   cols?: number
 }) {
   return (
-    <div
-      className="grid gap-1.5"
-      style={{ gridTemplateColumns: `repeat(${cols ?? Math.min(options.length, 4)}, minmax(0, 1fr))` }}
-    >
+    <div className="flex flex-wrap gap-1.5">
       {options.map((option) => (
         <button
           key={option}
           type="button"
           onClick={() => onChange(option)}
           className={cn(
-            "rounded-lg border px-2.5 py-2.5 text-sm font-medium leading-snug transition-colors",
+            "rounded-lg border px-2.5 py-2 text-sm font-medium leading-snug whitespace-nowrap transition-colors",
+            cols && cols >= 5 ? "px-2 text-[13px]" : null,
             value === option
               ? "border-primary bg-primary/10 text-foreground"
               : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -1078,27 +1076,25 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
           </EditorSection>
 
           <EditorSection title="Детали" defaultOpen={false}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm">Кнопки</Label>
-                <Segmented
-                  value={theme.buttons}
-                  options={SMARTLINK_BUTTON_STYLES}
-                  labels={BUTTON_LABELS}
-                  onChange={(next) => patchTheme("buttons", next)}
-                  cols={5}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Обложка</Label>
-                <Segmented
-                  value={theme.cover}
-                  options={SMARTLINK_COVER_SHAPES}
-                  labels={COVER_LABELS}
-                  onChange={(next) => patchTheme("cover", next)}
-                  cols={3}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Кнопки</Label>
+              <Segmented
+                value={theme.buttons}
+                options={SMARTLINK_BUTTON_STYLES}
+                labels={BUTTON_LABELS}
+                onChange={(next) => patchTheme("buttons", next)}
+                cols={5}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Обложка</Label>
+              <Segmented
+                value={theme.cover}
+                options={SMARTLINK_COVER_SHAPES}
+                labels={COVER_LABELS}
+                onChange={(next) => patchTheme("cover", next)}
+                cols={3}
+              />
             </div>
 
             <div className="space-y-2">

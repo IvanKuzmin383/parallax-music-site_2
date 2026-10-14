@@ -429,8 +429,8 @@ function ToolsMasteringInner() {
   })()
 
   return (
-    <div className="w-full min-w-0 max-w-none space-y-6">
-      <div className="space-y-3">
+    <div className="flex w-full min-w-0 max-w-none flex-col gap-6 xl:h-[calc(100dvh-5.5rem)] xl:min-h-0">
+      <div className="shrink-0 space-y-3">
         <Link
           href="/cabinet/tools"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -445,7 +445,7 @@ function ToolsMasteringInner() {
         />
       </div>
 
-      <section className="space-y-3 rounded-lg border border-border bg-card/30 p-4">
+      <section className="shrink-0 space-y-3 rounded-lg border border-border bg-card/30 p-4">
         <p className="text-sm font-medium">Исходный WAV</p>
         <input
           ref={fileInputRef}
@@ -481,8 +481,8 @@ function ToolsMasteringInner() {
         ) : null}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <div className="order-2 min-w-0 space-y-6 xl:order-1">
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] xl:overflow-hidden">
+        <div className="min-w-0 space-y-6 xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
             <section className="rounded-lg border border-border bg-card/30">
               <CollapsibleTrigger asChild>
@@ -592,28 +592,41 @@ function ToolsMasteringInner() {
 
           <Collapsible open={fineTuneOpen} onOpenChange={setFineTuneOpen}>
             <section className="rounded-lg border border-border bg-card/30">
-              <div className="flex items-center gap-1.5 px-4 py-3">
+              <div
+                role="button"
+                tabIndex={0}
+                className="flex w-full cursor-pointer items-center gap-1.5 px-4 py-3 text-left hover:bg-muted/40"
+                aria-expanded={fineTuneOpen}
+                aria-label={
+                  fineTuneOpen ? "Свернуть тонкую настройку" : "Развернуть тонкую настройку"
+                }
+                onClick={() => setFineTuneOpen((v) => !v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setFineTuneOpen((v) => !v)
+                  }
+                }}
+              >
                 <span className="text-sm font-medium">Тонкая настройка</span>
-                <HintIcon
-                  label="Тонкая настройка"
-                  tip="Для тех, кто хочет подкрутить звук вручную. Если не уверены - оставьте пресет и сглаживание."
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <HintIcon
+                    label="Тонкая настройка"
+                    tip="Для тех, кто хочет подкрутить звук вручную. Если не уверены - оставьте пресет и сглаживание."
+                  />
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                    fineTuneOpen && "rotate-180"
+                  )}
+                  aria-hidden
                 />
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    className="ml-auto inline-flex shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-expanded={fineTuneOpen}
-                    aria-label={fineTuneOpen ? "Свернуть тонкую настройку" : "Развернуть тонкую настройку"}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 transition-transform",
-                        fineTuneOpen && "rotate-180"
-                      )}
-                      aria-hidden
-                    />
-                  </button>
-                </CollapsibleTrigger>
               </div>
               <CollapsibleContent>
                 <div className="space-y-4 border-t border-border px-4 py-4">
@@ -746,7 +759,7 @@ function ToolsMasteringInner() {
           </Collapsible>
         </div>
 
-        <aside className="sticky top-16 z-10 order-1 min-w-0 self-start xl:order-2">
+        <aside className="hidden min-w-0 xl:block xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain">
           <div className="space-y-4 rounded-lg border border-border bg-background/95 p-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
@@ -856,6 +869,106 @@ function ToolsMasteringInner() {
           </div>
         </aside>
       </div>
+
+      {/* Мобильный плеер - всегда поверх экрана, не уезжает со скроллом */}
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-3 pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.45)] backdrop-blur-md supports-[backdrop-filter]:bg-background/90 xl:hidden",
+          "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        )}
+      >
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">Предпрослушивание</p>
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              <button
+                type="button"
+                className={cn(
+                  "rounded px-2.5 py-1 text-[11px] font-semibold",
+                  abMode === "A"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => switchAb("A")}
+                disabled={loadState !== "ready"}
+              >
+                A
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded px-2.5 py-1 text-[11px] font-semibold",
+                  abMode === "B"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => switchAb("B")}
+                disabled={loadState !== "ready"}
+              >
+                B
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              disabled={loadState !== "ready"}
+              aria-label={playing ? "Пауза" : "Воспроизвести"}
+              onClick={() => void togglePlay()}
+            >
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex justify-between text-[11px] tabular-nums text-muted-foreground">
+                <span>{formatTime(playhead)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+              <Slider
+                value={[Math.min(playhead, duration || 0)]}
+                min={0}
+                max={duration > 0 ? duration : 1}
+                step={0.01}
+                disabled={loadState !== "ready" || duration <= 0}
+                aria-label="Позиция воспроизведения"
+                onValueChange={(value) => {
+                  scrubbingRef.current = true
+                  setPlayhead(value[0] ?? 0)
+                }}
+                onValueCommit={(value) => {
+                  scrubbingRef.current = false
+                  void seekTo(value[0] ?? 0)
+                }}
+              />
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              disabled={needsPurchase ? paying : busy || loadState !== "ready"}
+              aria-label={downloadLabel}
+              title={downloadLabel}
+              onClick={() => {
+                if (needsPurchase) {
+                  setPayDialogOpen(true)
+                  return
+                }
+                void handleDownload()
+              }}
+            >
+              {busy || paying ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        </div>
+      </div>
+      <div className="h-28 xl:hidden" aria-hidden />
 
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
         <DialogContent>

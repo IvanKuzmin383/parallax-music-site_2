@@ -463,7 +463,7 @@ export function SmartlinkLanding({
     >
       <div className="sl-vinyl-disc sl-vinyl-spin relative h-full w-full overflow-hidden rounded-full">
         <div aria-hidden className="sl-vinyl-grooves absolute inset-0 rounded-full" />
-        <div className="sl-vinyl-label absolute left-1/2 top-1/2 z-[1] aspect-square w-[42%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full shadow-[0_0_0_3px_rgba(0,0,0,0.55)]">
+        <div className="sl-vinyl-label absolute left-1/2 top-1/2 z-[1] aspect-square w-[56%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full shadow-[0_0_0_3px_rgba(0,0,0,0.55)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={coverUrl}

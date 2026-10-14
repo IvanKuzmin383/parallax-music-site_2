@@ -933,7 +933,7 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 .sl-vinyl-disc {
   background:
     radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.12), transparent 28%),
-    radial-gradient(circle at 50% 50%, #2a2a2e 0 18%, #141416 19%, #0c0c0e 100%);
+    radial-gradient(circle at 50% 50%, #2a2a2e 0 26%, #141416 27%, #0c0c0e 100%);
   box-shadow:
     0 0 0 3px #0a0a0a,
     0 0 0 5px rgba(255, 255, 255, 0.08),
