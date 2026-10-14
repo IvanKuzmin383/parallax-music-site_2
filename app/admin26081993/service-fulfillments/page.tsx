@@ -79,6 +79,8 @@ function serviceTitle(orderType: string, t: CabinetMessages): string {
       return "Музыка для бизнеса"
     case "music_video":
       return "Загрузка видеоклипа"
+    case "lyrics_sync":
+      return "Синхронизация текста"
     case "upload_addon_bundle":
       return m.uploadAddonBundle
     default:
@@ -416,6 +418,7 @@ export default function AdminServiceFulfillmentsPage() {
                 detailsItem.serviceDetails.artistName ||
                 typeof detailsItem.serviceDetails.includeTextOnCover === "boolean" ||
                 detailsItem.serviceDetails.comment ||
+                detailsItem.serviceDetails.lyricsText ||
                 detailsItem.serviceDetails.fileUrl ||
                 detailsItem.serviceDetails.videoDirection ||
                 detailsItem.serviceDetails.referencesUrl ||
@@ -475,7 +478,13 @@ export default function AdminServiceFulfillmentsPage() {
                     {detailsItem.serviceDetails.fileUrl ? (
                       <div className="md:col-span-2">
                         <p className="text-muted-foreground">
-                          {locale === "en" ? "Video file link" : "Ссылка на видео"}
+                          {detailsItem.orderType === "lyrics_sync"
+                            ? locale === "en"
+                              ? "Final track link"
+                              : "Финальная запись"
+                            : locale === "en"
+                              ? "Video file link"
+                              : "Ссылка на видео"}
                         </p>
                         <a
                           href={detailsItem.serviceDetails.fileUrl}
@@ -485,6 +494,16 @@ export default function AdminServiceFulfillmentsPage() {
                         >
                           {detailsItem.serviceDetails.fileUrl}
                         </a>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.lyricsText ? (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Lyrics" : "Текст песни"}
+                        </p>
+                        <pre className="mt-1 whitespace-pre-wrap break-words rounded-md border bg-muted/30 p-3 text-sm font-normal">
+                          {detailsItem.serviceDetails.lyricsText}
+                        </pre>
                       </div>
                     ) : null}
                     {detailsItem.serviceDetails.videoDirection ? (

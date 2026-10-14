@@ -63,6 +63,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   spotify_videoshot: "Spotify Video Shot",
   business_music: "Музыка для бизнеса",
   music_video: "Загрузка видеоклипа",
+  lyrics_sync: "Синхронизация текста",
   wallet_topup: "Пополнение баланса",
   upload_addon_bundle: "Дополнения к релизу",
 }

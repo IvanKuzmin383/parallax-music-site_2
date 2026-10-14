@@ -271,7 +271,7 @@ export async function evaluateUserAchievements(userId: string): Promise<string[]
         AND order_type IN (
           'ai_mastering','vertical_video','track_cover','ai_cover',
           'yandex_videoshot','yandex_videoshot_creation','yandex_videoavatar',
-          'spotify_videoshot','business_music','music_video','upload_addon_bundle'
+          'spotify_videoshot','business_music','music_video','lyrics_sync','upload_addon_bundle'
         )
       LIMIT 1
       `,

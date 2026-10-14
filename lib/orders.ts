@@ -31,6 +31,7 @@ export type OrderType =
   | "spotify_videoshot"
   | "business_music"
   | "music_video"
+  | "lyrics_sync"
   | "wallet_topup"
   | "upload_addon_bundle"
 
@@ -131,6 +132,7 @@ export interface OrderPromotionService extends OrderBase {
     | "spotify_videoshot"
     | "business_music"
     | "music_video"
+    | "lyrics_sync"
   userId: string
   tracksCount: number
   totalAmount: string
@@ -309,7 +311,8 @@ function rowToOrder(row: OrderRow): Order {
     row.order_type === "yandex_videoavatar" ||
     row.order_type === "spotify_videoshot" ||
     row.order_type === "business_music" ||
-    row.order_type === "music_video"
+    row.order_type === "music_video" ||
+    row.order_type === "lyrics_sync"
   ) {
     return {
       ...base,
@@ -556,7 +559,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     orderType === "yandex_videoavatar" ||
     orderType === "spotify_videoshot" ||
     orderType === "business_music" ||
-    orderType === "music_video"
+    orderType === "music_video" ||
+    orderType === "lyrics_sync"
   ) {
     const o = order as Omit<OrderPromotionService, "id" | "status" | "createdAt">
     await execute(

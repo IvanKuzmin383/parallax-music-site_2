@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
 
-
-
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
@@ -69,17 +67,17 @@ export async function POST(request: NextRequest) {
 
       const tracksCountRaw = multipart.getField("tracksCount")
       const tracksCount = tracksCountRaw ? parseInt(tracksCountRaw, 10) : NaN
-  if (
-    !Number.isInteger(tracksCount) ||
-    Number.isNaN(tracksCount) ||
-    tracksCount < 1 ||
-    tracksCount > MAX_AI_MASTERING_TRACKS
-  ) {
-    return NextResponse.json(
-      { error: `Количество треков должно быть от 1 до ${MAX_AI_MASTERING_TRACKS}` },
-      { status: 400 }
-    )
-  }
+      if (
+        !Number.isInteger(tracksCount) ||
+        Number.isNaN(tracksCount) ||
+        tracksCount < 1 ||
+        tracksCount > MAX_AI_MASTERING_TRACKS
+      ) {
+        return NextResponse.json(
+          { error: `Количество треков должно быть от 1 до ${MAX_AI_MASTERING_TRACKS}` },
+          { status: 400 }
+        )
+      }
 
       const wavFiles: ParsedMultipartFile[] = []
       for (let i = 0; i < tracksCount; i++) {
@@ -113,49 +111,56 @@ export async function POST(request: NextRequest) {
       const contactEmailRaw = String(multipart.getField("contactEmail") ?? "").trim()
       const contactTelegramRaw = String(multipart.getField("contactTelegram") ?? "").trim()
 
-  if (!contactEmailRaw && !contactTelegramRaw) {
-    return NextResponse.json(
-      { error: "Укажите email или Telegram для связи" },
-      { status: 400 }
-    )
+      if (!contactEmailRaw && !contactTelegramRaw) {
+        return NextResponse.json(
+          { error: "Укажите email или Telegram для связи" },
+          { status: 400 }
+        )
+      }
+
+      if (contactEmailRaw && !EMAIL_REGEX.test(contactEmailRaw)) {
+        return NextResponse.json({ error: "Некорректный email" }, { status: 400 })
+      }
+
+      if (contactTelegramRaw && contactTelegramRaw.length < 2) {
+        return NextResponse.json({ error: "Некорректный Telegram" }, { status: 400 })
+      }
+
+      const totalAmount = (tracksCount * AI_MASTERING_PRICE_RUB).toFixed(2)
+      const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
+
+      const order = await createOrder({
+        orderType: "ai_mastering",
+        userId: user.id,
+        tracksCount,
+        totalAmount,
+        contactEmail: contactEmailRaw || undefined,
+        contactTelegram: contactTelegramRaw || undefined,
+        serviceDetails: {
+          trackTitles: displayNames,
+          originalFilenames: displayNames,
+        },
+      })
+
+      try {
+        await persistAiMasteringWavs(order.id, wavFiles)
+      } catch (err) {
+        console.error("[payments/ai-mastering/create] Failed to save WAV files:", order.id, err)
+        return NextResponse.json(
+          { error: "Не удалось сохранить файлы, попробуйте позже" },
+          { status: 500 }
+        )
+      }
+
+      return respondWithWalletPayment(order)
+    } finally {
+      await multipart.cleanup()
+    }
+  } catch (error) {
+    if (error instanceof MultipartRequestError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    console.error("[payments/ai-mastering/create] Unexpected error:", error)
+    return NextResponse.json({ error: "Некорректное тело запроса" }, { status: 400 })
   }
-
-  if (contactEmailRaw && !EMAIL_REGEX.test(contactEmailRaw)) {
-    return NextResponse.json({ error: "Некорректный email" }, { status: 400 })
-  }
-
-  if (contactTelegramRaw && contactTelegramRaw.length < 2) {
-    return NextResponse.json({ error: "Некорректный Telegram" }, { status: 400 })
-  }
-
-  const totalAmount = (tracksCount * AI_MASTERING_PRICE_RUB).toFixed(2)
-
-  const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
-
-  const order = await createOrder({
-    orderType: "ai_mastering",
-    userId: user.id,
-    tracksCount,
-    totalAmount,
-    contactEmail: contactEmailRaw || undefined,
-    contactTelegram: contactTelegramRaw || undefined,
-    serviceDetails: {
-      trackTitles: displayNames,
-      originalFilenames: displayNames,
-    },
-  })
-
-  try {
-    await persistAiMasteringWavs(order.id, wavFiles)
-  } catch (err) {
-    console.error("[payments/ai-mastering/create] Failed to save WAV files:", order.id, err)
-    return NextResponse.json(
-      { error: "Не удалось сохранить файлы, попробуйте позже" },
-      { status: 500 }
-    )
-  }
-
-  const trackTitlesJoined = displayNames.join(" | ")
-  const trackSummary = trackTitlesJoined.slice(0, 200)
-  return respondWithWalletPayment(order)
 }

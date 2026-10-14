@@ -20,6 +20,7 @@ export const SERVICE_ORDER_TYPES: readonly OrderType[] = [
   "spotify_videoshot",
   "business_music",
   "music_video",
+  "lyrics_sync",
   "upload_addon_bundle",
 ] as const
 

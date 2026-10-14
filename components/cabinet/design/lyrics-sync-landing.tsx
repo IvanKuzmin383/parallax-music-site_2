@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useRef, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   ArrowLeft,
@@ -137,6 +137,7 @@ function scrollToId(id: string) {
 
 export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry }) {
   const pathname = usePathname()
+  const router = useRouter()
   const backHref = getCabinetServiceHubHref(pathname)
   const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const formHeadingId = useId()
@@ -156,7 +157,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
   const [demoPlaying, setDemoPlaying] = useState(false)
   const [demoEnded, setDemoEnded] = useState(false)
 
-  const priceLabel = service.priceLabel || LYRICS_SYNC_PRICE_LABEL
+  const priceLabel = LYRICS_SYNC_PRICE_LABEL
 
   const openOrderForm = useCallback(() => {
     requestAnimationFrame(() => {
@@ -179,7 +180,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
 
   const submitRequest = useCallback(async () => {
     if (!service.paymentEndpoint) {
-      toast.error("Заявка пока недоступна")
+      toast.error("Оформление этой услуги пока недоступно")
       return
     }
 
@@ -217,33 +218,36 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
           fileUrl: link,
           lyricsText: lyrics,
           comment: comment.replace(/\r\n/g, "\n").trim(),
+          payFromBalance: true,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as {
         error?: string
-        message?: string
-        stub?: boolean
+        paid?: boolean
+        orderId?: string
       }
       if (!res.ok) {
-        toast.error(data.error || "Не удалось отправить заявку")
+        toast.error(data.error || "Не удалось оплатить с баланса")
         return
       }
-      const successText =
-        typeof data.message === "string" && data.message
-          ? data.message
-          : "Заявка отправлена. Мы свяжемся с вами для уточнения деталей. Оплата не списана."
-      toast.success(successText)
-      setStatusMessage(successText)
-      setTrackLink("")
-      setLyricsText("")
-      setComment("")
-      setFieldErrors({})
+      if (data.paid === true) {
+        const successText = "Оплата с баланса прошла успешно. Заказ принят в работу."
+        toast.success(successText)
+        setStatusMessage(successText)
+        setTrackLink("")
+        setLyricsText("")
+        setComment("")
+        setFieldErrors({})
+        router.refresh()
+        return
+      }
+      toast.error("Не удалось оплатить с баланса")
     } catch {
-      toast.error("Ошибка при отправке заявки")
+      toast.error("Ошибка при оплате с баланса")
     } finally {
       setSubmitting(false)
     }
-  }, [service.paymentEndpoint, trackLink, lyricsText, comment])
+  }, [service.paymentEndpoint, trackLink, lyricsText, comment, router])
 
   const heroDemoLabel = demoPlaying
     ? "Пауза"
@@ -459,8 +463,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             ))}
           </ul>
           <p className="text-xs leading-relaxed text-[#B8AFBD]">
-            Сейчас собираем предварительные заявки. Оплата не списывается - стоимость согласуем
-            после уточнения деталей.
+            Оплата списывается с баланса кабинета. После оплаты менеджер уточнит детали в переписке.
           </p>
         </div>
 
@@ -558,10 +561,10 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
               disabled={submitting}
               onClick={() => void submitRequest()}
             >
-              {submitting ? "Отправляем…" : service.interestCtaLabel || "Отправить заявку"}
+              {submitting ? "Оплата…" : "Оплатить с баланса"}
             </Button>
             <p className="text-xs leading-relaxed text-[#B8AFBD]">
-              Это предварительная заявка. Оплата сейчас не списывается.
+              Сумма спишется с баланса кабинета сразу после подтверждения.
             </p>
             <div id={statusId} role="status" aria-live="polite" className="sr-only">
               {statusMessage}

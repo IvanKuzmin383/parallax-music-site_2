@@ -353,7 +353,8 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     order.orderType === "yandex_videoavatar" ||
     order.orderType === "spotify_videoshot" ||
     order.orderType === "business_music" ||
-    order.orderType === "music_video"
+    order.orderType === "music_video" ||
+    order.orderType === "lyrics_sync"
   ) {
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
     await tryRecordServiceFulfillment(orderId, order.orderType)
@@ -414,21 +415,25 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
       business_music: { title: "Музыка для бизнеса", hashtag: "#business_music" },
       music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
+      lyrics_sync: { title: "Синхронизация текста", hashtag: "#lyrics_sync" },
     }[order.orderType]
 
     const details = orderServiceDetails(order)
     const fileUrl =
-      order.orderType === "yandex_videoshot" || order.orderType === "music_video"
+      order.orderType === "yandex_videoshot" ||
+      order.orderType === "music_video" ||
+      order.orderType === "lyrics_sync"
         ? details?.fileUrl?.trim() || ""
         : ""
     const trackLabel =
-      order.orderType === "yandex_videoshot"
+      order.orderType === "yandex_videoshot" || order.orderType === "lyrics_sync"
         ? "Ссылка на трек"
         : order.orderType === "yandex_videoshot_creation"
           ? "Трек / демо"
           : "Название трека"
     const commentLabel =
       order.orderType === "yandex_videoshot_creation" ? "Пожелания" : "Комментарий"
+    const lyricsText = order.orderType === "lyrics_sync" ? details?.lyricsText?.trim() || "" : ""
     notifyStaff(
       [
         `<b>Оплата: ${config.title} (${provider})</b>`,
@@ -437,7 +442,10 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         metaOrDetails(metadata, order, "trackTitle")
           ? `<b>${trackLabel}:</b> ${escapeHtml(metaOrDetails(metadata, order, "trackTitle"))}`
           : null,
-        fileUrl ? `<b>Ссылка на видео:</b> ${escapeHtml(fileUrl)}` : null,
+        fileUrl
+          ? `<b>${order.orderType === "lyrics_sync" ? "Финальная запись" : "Ссылка на видео"}:</b> ${escapeHtml(fileUrl)}`
+          : null,
+        lyricsText ? `<b>Текст песни:</b>\n<pre>${escapeHtml(lyricsText)}</pre>` : null,
         details?.videoDirection?.trim()
           ? `<b>Направление:</b> ${escapeHtml(details.videoDirection.trim())}`
           : null,

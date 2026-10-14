@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
+import { LYRICS_SYNC_PRICE_LABEL } from "@/lib/lyrics-sync-pricing"
 
 type ToolItem = {
   label: string
@@ -29,6 +30,12 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
         href: "/cabinet/design/video-shots",
         description: "Загрузим готовый ролик или создадим видеошот под ваш трек",
         priceLabel: "от 900 ₽",
+      },
+      {
+        label: "Синхронизация текста",
+        href: "/cabinet/design/lyrics-sync",
+        description: "Строки текста привязаны к моментам исполнения в вашей записи",
+        priceLabel: LYRICS_SYNC_PRICE_LABEL,
       },
     ],
   },

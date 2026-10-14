@@ -311,7 +311,8 @@ export async function POST(request: NextRequest) {
     order.orderType === "yandex_videoavatar" ||
     order.orderType === "spotify_videoshot" ||
     order.orderType === "business_music" ||
-    order.orderType === "music_video"
+    order.orderType === "music_video" ||
+    order.orderType === "lyrics_sync"
   ) {
     await updateOrderStatus(orderId, "paid", { paidAt })
     await tryRecordServiceFulfillment(orderId, order.orderType)
@@ -380,22 +381,33 @@ export async function POST(request: NextRequest) {
         spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
         business_music: { title: "Музыка для бизнеса", hashtag: "#business_music" },
         music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
+        lyrics_sync: { title: "Синхронизация текста", hashtag: "#lyrics_sync" },
       }[order.orderType]
 
       const details = order.serviceDetails
       const fileUrlFromDetails = details?.fileUrl?.trim() || ""
+      const lyricsFromDetails = details?.lyricsText?.trim() || ""
       const trackFromDetails = details?.trackTitle?.trim() || ""
       const trackDisplay =
         trackFromDetails || (trackTitle !== "-" ? String(trackTitle) : "-")
       const trackLabel =
-        order.orderType === "yandex_videoshot" ? "Ссылка на трек" : "Название трека"
+        order.orderType === "yandex_videoshot" || order.orderType === "lyrics_sync"
+          ? "Ссылка на трек"
+          : "Название трека"
       const messageLines = [
         `<b>Оплата: ${config.title}</b>`,
         "",
         `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-        `<b>${trackLabel}:</b> ${escapeHtml(trackDisplay)}`,
-        fileUrlFromDetails
+        order.orderType === "lyrics_sync"
+          ? fileUrlFromDetails
+            ? `<b>Финальная запись:</b> ${escapeHtml(fileUrlFromDetails)}`
+            : null
+          : `<b>${trackLabel}:</b> ${escapeHtml(trackDisplay)}`,
+        order.orderType !== "lyrics_sync" && fileUrlFromDetails
           ? `<b>Ссылка на видео:</b> ${escapeHtml(fileUrlFromDetails)}`
+          : null,
+        lyricsFromDetails
+          ? `<b>Текст песни:</b>\n<pre>${escapeHtml(lyricsFromDetails)}</pre>`
           : null,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         `<b>Контакт:</b> ${escapeHtml(String(contactType))} - ${escapeHtml(String(contactValue))}`,

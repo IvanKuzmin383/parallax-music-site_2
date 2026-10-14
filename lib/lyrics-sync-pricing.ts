@@ -1,15 +1,9 @@
 /**
- * Синхронизация текста песни.
- * Фиксированный тариф в текущем согласовании не задан - оформление идёт как заявка без списания.
- * Когда появится подтверждённая цена, задайте число в LYRICS_SYNC_PRICE_RUB.
+ * Синхронизация текста песни - фиксированная цена за один трек.
+ * Синхронизировать с копирайтом на странице услуги.
  */
-export const LYRICS_SYNC_PRICE_RUB: number | null = null
+export const LYRICS_SYNC_PRICE_RUB = 1500
 
-function formatLyricsSyncPriceLabel(priceRub: number | null): string {
-  if (priceRub == null) return "по запросу"
-  return `${priceRub.toLocaleString("ru-RU")} ₽`
-}
+export const LYRICS_SYNC_PRICE_LABEL = `${LYRICS_SYNC_PRICE_RUB.toLocaleString("ru-RU")} ₽`
 
-export const LYRICS_SYNC_PRICE_LABEL = formatLyricsSyncPriceLabel(LYRICS_SYNC_PRICE_RUB)
-
-export const LYRICS_SYNC_HAS_FIXED_PRICE = LYRICS_SYNC_PRICE_RUB != null
+export const LYRICS_SYNC_HAS_FIXED_PRICE = true

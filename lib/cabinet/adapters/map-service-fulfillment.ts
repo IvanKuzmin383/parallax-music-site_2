@@ -13,6 +13,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   spotify_videoshot: "Видеошот (Spotify)",
   business_music: "Музыка для бизнеса",
   music_video: "Загрузка видеоклипа",
+  lyrics_sync: "Синхронизация текста",
   upload_addon_bundle: "Доп. услуги при загрузке",
 }
 
@@ -26,6 +27,7 @@ const ORDER_TYPE_CATEGORY: Record<string, OrderCategory> = {
   yandex_videoavatar: "design",
   spotify_videoshot: "design",
   music_video: "design",
+  lyrics_sync: "design",
   business_music: "promotion",
   upload_addon_bundle: "music",
 }
