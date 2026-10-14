@@ -5,6 +5,7 @@ import {
   SMARTLINK_SOCIALS,
   type SmartlinkSocialItem,
 } from "@/lib/smartlink-socials"
+import { platformBrandColor } from "@/lib/smartlink-platforms"
 import {
   SMARTLINK_FONT_META,
   contrastTextOnAccent,
@@ -178,34 +179,57 @@ export function SmartlinkLanding({
       : isVinyl
         ? "h-12 w-12 shrink-0 justify-center rounded-full"
         : isCapsule
-          ? "h-12 w-full justify-between gap-3 rounded-full px-5 text-sm"
+          ? "h-10 w-full justify-between gap-2.5 rounded-full px-4 text-sm"
           : isCinema
-            ? "h-12 w-full justify-center gap-3 rounded-none px-4 text-sm tracking-wide uppercase"
+            ? "h-10 w-full justify-center gap-2.5 rounded-none px-3 text-sm tracking-wide uppercase"
             : isTerminal
-              ? "h-10 w-full justify-start gap-2 rounded-none border-0 border-b px-1 text-sm"
+              ? "h-9 w-full justify-start gap-2 rounded-none border-0 border-b px-1 text-sm"
               : isPoster
-                ? "h-10 w-full justify-center gap-2 rounded-none px-3 text-xs font-semibold uppercase tracking-wider"
-                : "h-11 w-full justify-center gap-3 px-4 text-sm",
+                ? "h-9 w-full justify-center gap-2 rounded-none px-3 text-xs font-semibold uppercase tracking-wider"
+                : isInkblot
+                  ? "h-10 w-full justify-center gap-2.5 px-4 text-sm"
+                  : "h-10 w-full justify-center gap-2.5 px-3 text-sm",
   )
 
   const useGlassButton =
     theme.buttons === "glass" || (isGlassCard && theme.buttons === "soft") || isFilm
   const fgOnPage = contentLight ? "#161616" : "#F5F5F5"
 
-  const buttonClass = cn(
-    buttonBase,
-    !useIcons &&
-      !isCapsule &&
-      !isCinema &&
-      !isTerminal &&
-      !isPoster &&
-      (isSignal && theme.buttons === "solid" ? "rounded-none" : isInkblot ? "sl-inkblot" : "rounded-xl"),
-    isGrid && "rounded-lg",
-    isNeon && "sl-neon-btn",
-  )
+  const inkblotShapeClass = (index: number) => {
+    const variants = ["sl-inkblot", "sl-inkblot-1", "sl-inkblot-2", "sl-inkblot-3"] as const
+    return variants[index % variants.length]
+  }
 
-  const buttonVisualStyle = (): CSSProperties => {
+  const buttonClassFor = (index: number) =>
+    cn(
+      buttonBase,
+      !useIcons &&
+        !isCapsule &&
+        !isCinema &&
+        !isTerminal &&
+        !isPoster &&
+        (isSignal && theme.buttons === "solid"
+          ? "rounded-none"
+          : isInkblot
+            ? inkblotShapeClass(index)
+            : "rounded-xl"),
+      isGrid && "rounded-lg",
+      isNeon && "sl-neon-btn",
+    )
+
+  const buttonVisualStyle = (linkKey?: string): CSSProperties => {
     const drop = theme.buttonShadow ? "0 10px 28px rgba(0,0,0,0.28)" : undefined
+
+    if (isInkblot) {
+      const fill = platformBrandColor(linkKey ?? "other", theme.accent)
+      const inkText = contrastTextOnAccent(fill)
+      return {
+        backgroundColor: fill,
+        color: inkText,
+        border: `1px solid color-mix(in srgb, ${inkText} 12%, transparent)`,
+        boxShadow: "0 8px 22px rgba(0,0,0,0.28)",
+      }
+    }
 
     if (isNeon) {
       return {
@@ -271,6 +295,15 @@ export function SmartlinkLanding({
       }
     }
 
+    if (theme.buttons === "bare") {
+      return {
+        backgroundColor: "transparent",
+        color: fgOnPage,
+        border: "1px solid transparent",
+        boxShadow: "none",
+      }
+    }
+
     if (theme.buttons === "outline" || isTicket) {
       return {
         backgroundColor: "transparent",
@@ -303,7 +336,7 @@ export function SmartlinkLanding({
         : "1px solid transparent",
       borderLeftWidth: !useIcons && isSignal && theme.buttonBorder ? 4 : undefined,
       borderLeftColor: !useIcons && isSignal && theme.buttonBorder ? theme.accent : undefined,
-      boxShadow: isInkblot ? undefined : drop,
+      boxShadow: drop,
     }
   }
 
@@ -326,15 +359,16 @@ export function SmartlinkLanding({
                 isVinyl ? "gap-2.5" : "gap-2",
                 isGrid ? (preview ? "max-w-[200px]" : "max-w-[280px]") : coverMax,
               )
-            : isPoster
-              ? "flex flex-col gap-1"
-              : isTerminal
-                ? "flex flex-col"
-                : "flex flex-col gap-1.5",
+            : cn(
+                "mx-auto flex w-full flex-col",
+                coverMax,
+                isPoster ? "gap-1" : isTerminal ? "gap-0" : "gap-1.5",
+              ),
         )}
       >
-        {links.map((link) => {
+        {links.map((link, linkIndex) => {
           const i = animIndex++
+          const platformKey = link.key.startsWith("extra:") ? "other" : link.key
           return (
             <a
               key={link.key}
@@ -343,9 +377,9 @@ export function SmartlinkLanding({
               rel="noopener noreferrer"
               title={link.label}
               aria-label={link.label}
-              className={cn(buttonClass, animClass(theme))}
+              className={cn(buttonClassFor(linkIndex), animClass(theme))}
               style={{
-                ...buttonVisualStyle(),
+                ...buttonVisualStyle(platformKey),
                 ...animStyle(theme, i),
               }}
             >
@@ -417,7 +451,34 @@ export function SmartlinkLanding({
     </div>
   )
 
-  const coverBlock = (
+  const coverBlock = isVinyl ? (
+    <div
+      className={cn(
+        "relative aspect-square w-full",
+        coverMax,
+        theme.coverShadow && "drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)]",
+        animClass(theme),
+      )}
+      style={animStyle(theme, animIndex++)}
+    >
+      <div className="sl-vinyl-disc sl-vinyl-spin relative h-full w-full overflow-hidden rounded-full">
+        <div aria-hidden className="sl-vinyl-grooves absolute inset-0 rounded-full" />
+        <div className="sl-vinyl-label absolute left-1/2 top-1/2 z-[1] aspect-square w-[42%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full shadow-[0_0_0_3px_rgba(0,0,0,0.55)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={coverUrl}
+            alt={title}
+            className="h-full w-full object-cover"
+            sizes={preview ? "80px" : "120px"}
+          />
+        </div>
+        <div
+          aria-hidden
+          className="sl-vinyl-spindle absolute left-1/2 top-1/2 z-[2] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1a1a1a] ring-1 ring-white/25"
+        />
+      </div>
+    </div>
+  ) : (
     <div
       className={cn(
         "relative aspect-square w-full overflow-hidden bg-black/20",
@@ -425,7 +486,6 @@ export function SmartlinkLanding({
         coverRadiusClass(theme.cover, preset),
         theme.coverShadow && !isCinema && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
         isSignal && "ring-2 ring-[var(--sl-accent)]",
-        isVinyl && "sl-vinyl-disc ring-4 ring-black/40",
         animClass(theme),
       )}
       style={{

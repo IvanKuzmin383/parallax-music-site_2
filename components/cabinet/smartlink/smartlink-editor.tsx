@@ -91,6 +91,7 @@ const BUTTON_LABELS: Record<SmartlinkButtonStyle, string> = {
   outline: "Контур",
   soft: "Приглушённые",
   glass: "Матовые",
+  bare: "Без фона",
 }
 
 const COVER_LABELS: Record<SmartlinkCoverShape, string> = {
@@ -106,10 +107,10 @@ const SOCIAL_STYLE_LABELS: Record<SmartlinkSocialIconStyle, string> = {
 }
 
 function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: string }) {
-  const base = "relative h-12 w-full overflow-hidden rounded-lg border border-white/10"
+  const base = "relative h-7 w-full overflow-hidden rounded-md border border-white/10"
   if (preset === "sheet" || preset === "ticket") {
     return (
-      <div className={cn(base, "bg-[#F3EFE6] p-2")}>
+      <div className={cn(base, "bg-[#F3EFE6] p-1")}>
         <div
           className={cn(
             "h-full w-full",
@@ -122,12 +123,12 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
   }
   if (preset === "neon") {
     return (
-      <div className={cn(base, "bg-[#0B0B0C] p-2")}>
+      <div className={cn(base, "bg-[#0B0B0C] p-1")}>
         <div
-          className="h-full w-full rounded-full border-2 bg-transparent"
+          className="h-full w-full rounded-full border bg-transparent"
           style={{
             borderColor: accent,
-            boxShadow: `0 0 12px ${accent}`,
+            boxShadow: `0 0 8px ${accent}`,
           }}
         />
       </div>
@@ -135,13 +136,13 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
   }
   if (preset === "vinyl" || preset === "grid") {
     return (
-      <div className={cn(base, "flex items-center justify-center gap-1 bg-[#111] p-2")}>
+      <div className={cn(base, "flex items-center justify-center gap-0.5 bg-[#111] p-1")}>
         {[0, 1, 2].map((i) => (
           <span
             key={i}
             className={cn(
-              "h-5 w-5 border border-white/25",
-              preset === "vinyl" ? "rounded-full" : "rounded-md",
+              "h-3 w-3 border border-white/25",
+              preset === "vinyl" ? "rounded-full" : "rounded-sm",
             )}
             style={{ backgroundColor: i === 1 ? accent : "rgba(255,255,255,0.12)" }}
           />
@@ -151,7 +152,7 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
   }
   if (preset === "sunset") {
     return (
-      <div className={cn(base, "bg-[#0B0B0C] p-2")}>
+      <div className={cn(base, "bg-[#0B0B0C] p-1")}>
         <div
           className="h-full w-full rounded-full"
           style={{ backgroundImage: `linear-gradient(135deg, ${accent}, #0a0a0a)` }}
@@ -161,8 +162,8 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
   }
   if (preset === "terminal") {
     return (
-      <div className={cn(base, "bg-[#0B0B0C] px-2 py-1.5 font-mono text-[10px] text-white/70")}>
-        &gt; listen →
+      <div className={cn(base, "flex items-center bg-[#0B0B0C] px-1.5 font-mono text-[9px] text-white/70")}>
+        &gt; listen
       </div>
     )
   }
@@ -170,37 +171,37 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
     return (
       <div className={cn(base, "bg-[#111]")}>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-        <div className="absolute bottom-1 left-1.5 text-[9px] font-bold text-white">TITLE</div>
+        <div className="absolute bottom-0.5 left-1 text-[8px] font-bold text-white">TITLE</div>
       </div>
     )
   }
   if (preset === "carbon") {
     return (
       <div
-        className={cn(base, "p-2")}
+        className={cn(base, "p-1")}
         style={{
           backgroundImage:
-            "repeating-linear-gradient(-45deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 8px), #121214",
+            "repeating-linear-gradient(-45deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 6px), #121214",
         }}
       >
-        <div className="h-full w-full rounded-md bg-white/10" />
+        <div className="h-full w-full rounded-sm bg-white/10" />
       </div>
     )
   }
   if (preset === "cinema") {
     return (
       <div className={cn(base, "bg-[#0B0B0C]")}>
-        <div className="absolute inset-x-0 top-0 h-2 bg-black" />
-        <div className="absolute inset-x-0 bottom-0 h-2 bg-black" />
-        <div className="absolute inset-x-3 top-1/2 h-3 -translate-y-1/2" style={{ backgroundColor: accent }} />
+        <div className="absolute inset-x-0 top-0 h-1 bg-black" />
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-black" />
+        <div className="absolute inset-x-2 top-1/2 h-2 -translate-y-1/2" style={{ backgroundColor: accent }} />
       </div>
     )
   }
   if (preset === "blur" || preset === "glass" || preset === "film") {
     return (
-      <div className={cn(base, "bg-[#1a1a1e] p-2")}>
+      <div className={cn(base, "bg-[#1a1a1e] p-1")}>
         <div
-          className="h-full w-full rounded-full opacity-80 backdrop-blur"
+          className="h-full w-full rounded-full opacity-80"
           style={{
             backgroundColor: `color-mix(in srgb, ${accent} 40%, rgba(255,255,255,0.2))`,
           }}
@@ -209,15 +210,57 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
     )
   }
   return (
-    <div className={cn(base, "bg-[#0B0B0C] p-2")}>
+    <div className={cn(base, "bg-[#0B0B0C] p-1")}>
       <div
         className={cn(
           "h-full w-full",
-          preset === "capsule" ? "rounded-full" : preset === "inkblot" ? "rounded-[40%]" : "rounded-md",
+          preset === "capsule" ? "rounded-full" : preset === "inkblot" ? "rounded-[40%]" : "rounded-sm",
         )}
         style={{ backgroundColor: accent }}
       />
     </div>
+  )
+}
+
+function PresetPickButton({
+  preset,
+  accent,
+  active,
+  onPick,
+}: {
+  preset: SmartlinkPreset
+  accent: string
+  active: boolean
+  onPick: () => void
+}) {
+  const meta = SMARTLINK_PRESET_META[preset]
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-pressed={active}
+      className={cn(
+        "relative rounded-lg border p-1.5 text-left transition-all",
+        active
+          ? "border-primary bg-primary/20 shadow-[0_0_0_2px_var(--primary)]"
+          : "border-border/80 bg-card/20 hover:border-primary/50 hover:bg-card/40",
+      )}
+    >
+      {active ? (
+        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          ✓
+        </span>
+      ) : null}
+      <PresetSwatch preset={preset} accent={accent} />
+      <p
+        className={cn(
+          "mt-1 truncate text-xs font-semibold leading-tight",
+          active ? "text-primary" : "text-foreground",
+        )}
+      >
+        {meta.label}
+      </p>
+    </button>
   )
 }
 
@@ -589,116 +632,107 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col gap-4 lg:h-[calc(100dvh-3.5rem-3rem)] lg:min-h-0 lg:overflow-hidden">
-      <div className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 space-y-1.5">
-          <Button variant="ghost" size="sm" asChild className="-ml-2 h-9 text-sm">
-            <Link href={`/cabinet/distribution/music/${releaseKey}`}>
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              К релизу
-            </Link>
-          </Button>
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Смартлинк</p>
-            <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{data.title}</h1>
-            <p className="truncate text-base text-muted-foreground">{data.artist}</p>
-          </div>
-        </div>
-        <Button onClick={() => void onSave()} disabled={saving} size="lg" className="shrink-0 text-base">
-          {saving ? <Spinner className="h-5 w-5" /> : <Save className="h-5 w-5" />}
-          Сохранить
+    <div className="flex w-full max-w-none flex-col gap-3 lg:h-[calc(100dvh-3.5rem-3rem)] lg:min-h-0 lg:overflow-hidden">
+      <div className="sticky top-14 z-30 -mx-1 shrink-0 space-y-2 border-b border-border/50 bg-background/95 px-1 pb-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/85 lg:static lg:border-0 lg:bg-transparent lg:pb-0 lg:backdrop-blur-none">
+        <Button variant="ghost" size="sm" asChild className="-ml-2 h-8 text-sm">
+          <Link href={`/cabinet/distribution/music/${releaseKey}`}>
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            К релизу
+          </Link>
         </Button>
+
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1 truncate">
+            <p className="truncate text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{data.artist}</span>
+              <span className="mx-1.5 text-muted-foreground/50">·</span>
+              <span className="font-semibold text-foreground">{data.title}</span>
+            </p>
+          </div>
+
+          <div className="flex min-w-0 max-w-[min(100%,22rem)] flex-[1.2] items-center gap-1.5 sm:max-w-none">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5">
+              <span className="shrink-0 text-xs text-muted-foreground sm:text-sm">/s/</span>
+              <Input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
+                placeholder="my-release"
+                className="h-9 border-0 px-0 text-sm shadow-none focus-visible:ring-0 sm:text-base"
+                maxLength={20}
+                aria-label="Адрес смартлинка"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => void onCopy()}
+              disabled={!publicUrl}
+            >
+              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+            {publicUrl ? (
+              <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" asChild>
+                <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            ) : null}
+          </div>
+
+          <Button
+            onClick={() => void onSave()}
+            disabled={saving}
+            size="default"
+            className="h-9 shrink-0 px-3 text-sm sm:px-4"
+          >
+            {saving ? <Spinner className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+            <span className="hidden sm:inline">Сохранить</span>
+          </Button>
+        </div>
       </div>
 
       {!data.isPublic ? (
-        <p className="shrink-0 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
+        <p className="shrink-0 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
           Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее.
         </p>
       ) : null}
 
       <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
         <div className="min-h-0 space-y-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
-          <EditorSection title="Адрес">
-            <div className="flex flex-col gap-2.5 sm:flex-row">
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3">
-                <span className="shrink-0 text-sm text-muted-foreground">/s/</span>
-                <Input
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-                  placeholder="my-release"
-                  className="h-11 border-0 px-0 text-base shadow-none focus-visible:ring-0"
-                  maxLength={20}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void onCopy()} disabled={!publicUrl}>
-                  {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                </Button>
-                {publicUrl ? (
-                  <Button type="button" variant="outline" size="icon" className="h-11 w-11" asChild>
-                    <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          </EditorSection>
-
           <EditorSection title="Стиль">
             <div className="space-y-3">
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                   Базовые
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                  {SMARTLINK_PRESET_BASE.map((preset) => {
-                    const meta = SMARTLINK_PRESET_META[preset]
-                    const active = theme.preset === preset
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => applyPreset(preset)}
-                        className={cn(
-                          "rounded-xl border p-2 text-left transition-colors",
-                          active
-                            ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                            : "border-border hover:border-primary/40",
-                        )}
-                      >
-                        <PresetSwatch preset={preset} accent={theme.accent} />
-                        <p className="mt-2 text-sm font-semibold">{meta.label}</p>
-                      </button>
-                    )
-                  })}
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+                  {SMARTLINK_PRESET_BASE.map((preset) => (
+                    <PresetPickButton
+                      key={preset}
+                      preset={preset}
+                      accent={theme.accent}
+                      active={theme.preset === preset}
+                      onPick={() => applyPreset(preset)}
+                    />
+                  ))}
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                   Характер
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                  {SMARTLINK_PRESET_SIGNATURE.map((preset) => {
-                    const meta = SMARTLINK_PRESET_META[preset]
-                    const active = theme.preset === preset
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => applyPreset(preset)}
-                        className={cn(
-                          "rounded-xl border p-2 text-left transition-colors",
-                          active
-                            ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                            : "border-border hover:border-primary/40",
-                        )}
-                      >
-                        <PresetSwatch preset={preset} accent={theme.accent} />
-                        <p className="mt-2 text-sm font-semibold">{meta.label}</p>
-                      </button>
-                    )
-                  })}
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
+                  {SMARTLINK_PRESET_SIGNATURE.map((preset) => (
+                    <PresetPickButton
+                      key={preset}
+                      preset={preset}
+                      accent={theme.accent}
+                      active={theme.preset === preset}
+                      onPick={() => applyPreset(preset)}
+                    />
+                  ))}
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -720,6 +754,29 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                       style={{ backgroundColor: hex }}
                     />
                   ))}
+                  <label
+                    className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-border shadow-inner"
+                    title="Палитра цветов"
+                    style={{
+                      background:
+                        "conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-[3px] rounded-full border border-black/20"
+                      style={{
+                        backgroundColor: normalizeAccentHex(customAccent) ?? theme.accent,
+                      }}
+                    />
+                    <input
+                      type="color"
+                      aria-label="Выбрать цвет на палитре"
+                      value={(normalizeAccentHex(customAccent) ?? theme.accent).toLowerCase()}
+                      onChange={(e) => onAccentPick(e.target.value)}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </label>
                   <Input
                     value={customAccent}
                     onChange={(e) => {
@@ -805,7 +862,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
           </EditorSection>
 
           <EditorSection title="Площадки">
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {activePlatformKeys.map((key) => (
                 <div
                   key={key}
@@ -818,38 +875,38 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                     setDragKey(null)
                   }}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-xl border border-border bg-background/70 p-2.5",
+                    "flex items-center gap-2 rounded-lg border border-border bg-background/70 px-2 py-1.5",
                     dragKey === key && "opacity-50",
                   )}
                 >
-                  <GripVertical className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={PLATFORM_ICON_SRC[key]} alt="" className="h-7 w-7 rounded-[20%] object-contain" />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    {key === "other" ? (
-                      <Input
-                        value={theme.otherLabel ?? ""}
-                        onChange={(e) => patchTheme("otherLabel", e.target.value.slice(0, 40))}
-                        placeholder="Название"
-                        className="h-9 text-sm"
-                      />
-                    ) : (
-                      <p className="truncate px-1 text-sm font-medium">{platformLabel(key)}</p>
-                    )}
+                  <img src={PLATFORM_ICON_SRC[key]} alt="" className="h-6 w-6 shrink-0 rounded-[20%] object-contain" />
+                  {key === "other" ? (
                     <Input
-                      value={platformLinks[key] ?? ""}
-                      onChange={(e) =>
-                        setPlatformLinks((prev) => ({ ...prev, [key]: e.target.value }))
-                      }
-                      placeholder="https://"
-                      className="h-10 font-mono text-sm"
+                      value={theme.otherLabel ?? ""}
+                      onChange={(e) => patchTheme("otherLabel", e.target.value.slice(0, 40))}
+                      placeholder="Название"
+                      className="h-8 w-[7.5rem] shrink-0 text-sm"
                     />
-                  </div>
+                  ) : (
+                    <span className="w-[7.5rem] shrink-0 truncate text-sm font-medium">
+                      {platformLabel(key)}
+                    </span>
+                  )}
+                  <Input
+                    value={platformLinks[key] ?? ""}
+                    onChange={(e) =>
+                      setPlatformLinks((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                    placeholder="https://"
+                    className="h-8 min-w-0 flex-1 font-mono text-xs sm:text-sm"
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 shrink-0"
+                    className="h-8 w-8 shrink-0"
                     onClick={() => removePlatform(key)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -862,7 +919,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full justify-start gap-2 text-sm"
+                className="h-11 w-full justify-start gap-2 text-sm hover:!scale-100 hover:!shadow-none active:!scale-100"
                 onClick={() => setAddPlatformOpen((v) => !v)}
                 disabled={availableToAdd.length === 0}
               >
@@ -990,7 +1047,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 w-full justify-start gap-2 text-sm"
+                    className="h-11 w-full justify-start gap-2 text-sm hover:!scale-100 hover:!shadow-none active:!scale-100"
                     onClick={() => setAddSocialOpen((v) => !v)}
                     disabled={availableSocials.length === 0}
                   >
@@ -1029,7 +1086,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                   options={SMARTLINK_BUTTON_STYLES}
                   labels={BUTTON_LABELS}
                   onChange={(next) => patchTheme("buttons", next)}
-                  cols={4}
+                  cols={5}
                 />
               </div>
               <div className="space-y-2">

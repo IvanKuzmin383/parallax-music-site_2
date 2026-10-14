@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
+import {
+  assertUploadDraftBundlePayment,
+  uploadDraftRequiredPaymentRub,
+} from "@/lib/cabinet-upload-draft-addons"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
-import { createOrder } from "@/lib/orders"
+import { createOrder, getOrderById } from "@/lib/orders"
 import {
   getReleaseById,
   markReleaseAwaitingPayment,
@@ -33,6 +36,18 @@ export async function POST(
   const totalRub = uploadDraftRequiredPaymentRub(payload)
   if (totalRub <= 0) {
     return NextResponse.json({ ok: true, skippedPayment: true })
+  }
+
+  // Идемпотентность: повторный клик «Оплатить» не должен создавать второй заказ.
+  const alreadyPaid = await assertUploadDraftBundlePayment(payload, release.bundleOrderId)
+  if (alreadyPaid.ok && release.bundleOrderId) {
+    const existing = await getOrderById(release.bundleOrderId)
+    return NextResponse.json({
+      paid: true,
+      orderId: release.bundleOrderId,
+      paymentId: existing?.paymentId ?? `wallet:existing:${release.bundleOrderId}`,
+      walletBalance: user.walletBalance ?? 0,
+    })
   }
 
   const tracks = await getTracksByReleaseId(id)

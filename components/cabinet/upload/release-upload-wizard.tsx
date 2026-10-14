@@ -1343,9 +1343,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       return
     }
     if (!releaseId) return
-    await saveDraft(true)
+    if (submitting) return
     setSubmitting(true)
     try {
+      await saveDraft(true)
       if (paymentTotal > 0) {
         const prep = await fetch(`/api/cabinet/releases/${releaseId}/submit`, {
           method: "POST",

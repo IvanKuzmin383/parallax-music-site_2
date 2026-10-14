@@ -39,6 +39,29 @@ export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   other: "/platforms/other.svg?v=2",
 }
 
+/** Фирменные цвета кнопок (режим «Чернила» и т.п.). */
+export const PLATFORM_BRAND_COLOR: Record<PlatformLinkKey, string> = {
+  spotify: "#1DB954",
+  appleMusic: "#FA243C",
+  deezer: "#A238FF",
+  yandex: "#FFCC00",
+  youtubeMusic: "#FF0000",
+  vk: "#0077FF",
+  sberzvuk: "#111111",
+  kion: "#E31E24",
+  amazonMusic: "#25D1DA",
+  odnoklassniki: "#EE8208",
+  tidal: "#111111",
+  soundcloud: "#FF5500",
+  wink: "#E6007E",
+  other: "#6B7280",
+}
+
+export function platformBrandColor(key: string, fallback = "#6B7280"): string {
+  if (isPlatformLinkKey(key)) return PLATFORM_BRAND_COLOR[key]
+  return fallback
+}
+
 export function isPlatformLinkKey(value: unknown): value is PlatformLinkKey {
   return typeof value === "string" && (PLATFORM_LINK_KEYS as readonly string[]).includes(value)
 }

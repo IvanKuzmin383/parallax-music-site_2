@@ -13,27 +13,49 @@ type SmartlinkPreviewAudioProps = {
 
 /**
  * Автостарт muted (политика браузеров) + кнопка звука.
- * src - короткий mp3-хук, не полный трек.
+ * src - короткий хук, не полный трек.
  */
 export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPreviewAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [muted, setMuted] = useState(true)
-  const [ready, setReady] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
+    setFailed(false)
+    setPlaying(false)
+    setMuted(true)
     el.muted = true
+    el.defaultMuted = true
     el.volume = 0.9
+
+    const onPlaying = () => setPlaying(true)
+    const onPause = () => setPlaying(false)
+    const onError = () => setFailed(true)
+
+    el.addEventListener("playing", onPlaying)
+    el.addEventListener("pause", onPause)
+    el.addEventListener("error", onError)
+
     const tryPlay = () => {
-      void el.play().then(() => setReady(true)).catch(() => {
-        // Автоплей заблокирован - кнопка всё равно позволит включить
-        setReady(true)
+      el.muted = true
+      void el.play().catch(() => {
+        // Ждём жест пользователя - кнопка разблокирует
       })
     }
+
     if (el.readyState >= 2) tryPlay()
-    else el.addEventListener("canplay", tryPlay, { once: true })
+    else {
+      el.addEventListener("canplay", tryPlay, { once: true })
+      el.load()
+    }
+
     return () => {
+      el.removeEventListener("playing", onPlaying)
+      el.removeEventListener("pause", onPause)
+      el.removeEventListener("error", onError)
       el.pause()
     }
   }, [src])
@@ -41,31 +63,36 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
   const toggleMute = () => {
     const el = audioRef.current
     if (!el) return
-    const next = !muted
-    el.muted = next
-    setMuted(next)
-    if (!next) {
-      void el.play().catch(() => undefined)
+    if (failed) {
+      el.load()
+      setFailed(false)
     }
+    const nextMuted = !muted
+    el.muted = nextMuted
+    setMuted(nextMuted)
+    void el.play().then(() => setPlaying(true)).catch(() => setFailed(true))
   }
 
   return (
-    <div className={cn("pointer-events-auto", className)}>
-      <audio ref={audioRef} src={src} loop preload="auto" playsInline />
+    <div className={cn("pointer-events-auto flex flex-col items-end gap-1", className)}>
+      <audio ref={audioRef} src={src} loop preload="auto" playsInline muted />
       <button
         type="button"
         onClick={toggleMute}
         aria-label={muted ? "Включить звук" : "Выключить звук"}
-        title={muted ? "Включить звук" : "Выключить звук"}
+        title={failed ? "Не удалось загрузить хук" : muted ? "Включить звук" : "Выключить звук"}
         className={cn(
-          "inline-flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur-md transition-transform hover:scale-105 active:scale-95",
+          "inline-flex h-11 items-center gap-2 rounded-full border px-3 backdrop-blur-md transition-transform hover:scale-105 active:scale-95",
           light
-            ? "border-black/15 bg-white/80 text-[#161616] shadow-sm"
-            : "border-white/25 bg-black/45 text-white shadow-[0_8px_24px_rgba(0,0,0,0.35)]",
-          !ready && "opacity-70",
+            ? "border-black/15 bg-white/85 text-[#161616] shadow-sm"
+            : "border-white/25 bg-black/55 text-white shadow-[0_8px_24px_rgba(0,0,0,0.35)]",
+          failed && "border-red-400/50 text-red-200",
         )}
       >
-        {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+        {muted || failed ? <VolumeX className="h-5 w-5 shrink-0" /> : <Volume2 className="h-5 w-5 shrink-0" />}
+        <span className="text-xs font-medium">
+          {failed ? "Нет звука" : muted ? "Вкл. звук" : playing ? "Звук" : "Звук"}
+        </span>
       </button>
     </div>
   )

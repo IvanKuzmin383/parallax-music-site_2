@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises"
 import { Readable } from "node:stream"
 import { NextRequest, NextResponse } from "next/server"
 import {
-  ensureSmartlinkPreviewMp3,
+  ensureSmartlinkPreviewAudio,
   SMARTLINK_PREVIEW_AUDIO_CACHE_CONTROL,
 } from "@/lib/smartlink-preview-audio"
 import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
@@ -48,15 +48,15 @@ export async function GET(
   }
 
   try {
-    const filePath = await ensureSmartlinkPreviewMp3({
+    const preview = await ensureSmartlinkPreviewAudio({
       trackId: track.id,
       sourceWavPath: track.audioPath,
       startSec: theme.previewAudioStartSec,
     })
-    const { size } = await stat(filePath)
+    const { size } = await stat(preview.path)
     const range = parseByteRange(request.headers.get("range"), size)
     const common: Record<string, string> = {
-      "Content-Type": "audio/mpeg",
+      "Content-Type": preview.contentType,
       "Accept-Ranges": "bytes",
       "Cache-Control": SMARTLINK_PREVIEW_AUDIO_CACHE_CONTROL,
       "X-Content-Type-Options": "nosniff",
@@ -65,7 +65,7 @@ export async function GET(
     if (range) {
       const { start, end } = range
       const chunkSize = end - start + 1
-      const stream = createReadStream(filePath, { start, end })
+      const stream = createReadStream(preview.path, { start, end })
       return new NextResponse(Readable.toWeb(stream) as ReadableStream, {
         status: 206,
         headers: {
@@ -76,7 +76,7 @@ export async function GET(
       })
     }
 
-    const stream = createReadStream(filePath)
+    const stream = createReadStream(preview.path)
     return new NextResponse(Readable.toWeb(stream) as ReadableStream, {
       status: 200,
       headers: {

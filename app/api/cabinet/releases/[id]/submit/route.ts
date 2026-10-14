@@ -45,13 +45,9 @@ export async function POST(
     return NextResponse.json({ requiresPayment: true, amountRub: requiredRub })
   }
 
-  if (requiredRub > 0) {
-    return NextResponse.json(
-      { error: "Сначала оплатите выбранные услуги", requiresPayment: true, amountRub: requiredRub },
-      { status: 400 }
-    )
-  }
-
+  // Проверка оплаты - внутри submitReleaseToModeration (assertUploadDraftBundlePayment).
+  // Здесь нельзя отклонять только по requiredRub > 0: после оплаты с баланса
+  // клиент сразу вызывает finalize, и оплаченный bundleOrderId должен пропускать дальше.
   const result = await submitReleaseToModeration(id, {
     clientIp: clientIp(request),
     userAgent: request.headers.get("user-agent"),

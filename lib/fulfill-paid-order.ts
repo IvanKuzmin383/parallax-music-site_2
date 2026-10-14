@@ -481,6 +481,10 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
     if (order.draftId) {
       await markUploadDraftPaid(order.draftId, orderId)
     }
+    if (order.releaseId) {
+      const { markReleasePaid } = await import("@/lib/releases")
+      await markReleasePaid(order.releaseId, orderId)
+    }
     await notifyUserPaid(order, amount)
     return
   }

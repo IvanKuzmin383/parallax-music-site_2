@@ -871,20 +871,63 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 }
 
 .sl-vinyl-disc {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.12), transparent 28%),
+    radial-gradient(circle at 50% 50%, #2a2a2e 0 18%, #141416 19%, #0c0c0e 100%);
   box-shadow:
-    0 0 0 10px #111,
-    0 0 0 12px rgba(255, 255, 255, 0.08),
-    0 18px 40px rgba(0, 0, 0, 0.5);
+    0 0 0 3px #0a0a0a,
+    0 0 0 5px rgba(255, 255, 255, 0.08),
+    0 14px 36px rgba(0, 0, 0, 0.55);
 }
 
+.sl-vinyl-grooves {
+  background: repeating-radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.055) 0 1px,
+    transparent 1px 3px
+  );
+  opacity: 0.85;
+  mix-blend-mode: soft-light;
+}
+
+.sl-vinyl-label {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes sl-vinyl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sl-vinyl-spin {
+  animation: sl-vinyl-spin 22s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-vinyl-spin {
+    animation: none !important;
+  }
+}
+
+/* Чернила: мягкие «кляксы» без mask - иконки не обрезаются */
 .sl-inkblot {
-  border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'%3E%3Cpath fill='black' d='M2 18C6 6 18 2 32 4c10 2 14 10 28 10s18-8 28-10c12-2 20 4 22 14 2 12-6 20-20 20H22C8 38 0 30 2 18Z'/%3E%3C/svg%3E");
-  mask-size: 100% 100%;
-  mask-repeat: no-repeat;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'%3E%3Cpath fill='black' d='M2 18C6 6 18 2 32 4c10 2 14 10 28 10s18-8 28-10c12-2 20 4 22 14 2 12-6 20-20 20H22C8 38 0 30 2 18Z'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
+  border-radius: 1.35rem 2.1rem 1.5rem 2rem;
+}
+.sl-inkblot-1 {
+  border-radius: 2rem 1.25rem 2.15rem 1.4rem;
+}
+.sl-inkblot-2 {
+  border-radius: 1.5rem 1.9rem 1.2rem 2.2rem;
+}
+.sl-inkblot-3 {
+  border-radius: 2.2rem 1.55rem 1.85rem 1.3rem;
 }
 
 .sl-neon-btn {

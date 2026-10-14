@@ -51,7 +51,7 @@ export const SMARTLINK_PRESET_SIGNATURE = [
   "grid",
 ] as const
 
-export const SMARTLINK_BUTTON_STYLES = ["solid", "outline", "soft", "glass"] as const
+export const SMARTLINK_BUTTON_STYLES = ["solid", "outline", "soft", "glass", "bare"] as const
 export type SmartlinkButtonStyle = (typeof SMARTLINK_BUTTON_STYLES)[number]
 
 export const SMARTLINK_COVER_SHAPES = ["rounded", "soft", "square"] as const
@@ -142,7 +142,7 @@ export const SMARTLINK_PRESET_META: Record<
   vinyl: { label: "Винил", description: "Круглые значки вокруг обложки" },
   terminal: { label: "Терминал", description: "Mono-список со стрелками" },
   poster: { label: "Постер", description: "Крупный заголовок на обложке" },
-  inkblot: { label: "Чернила", description: "Неровный край заливки" },
+  inkblot: { label: "Чернила", description: "Кляксы в цветах площадок" },
   carbon: { label: "Карбон", description: "Диагональная сетка, мат" },
   sunset: { label: "Закат", description: "Градиент акцент → чёрный" },
   cinema: { label: "Кино", description: "Letterbox и широкие кнопки" },

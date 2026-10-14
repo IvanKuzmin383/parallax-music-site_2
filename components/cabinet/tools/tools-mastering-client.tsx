@@ -2,10 +2,11 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, CircleHelp, Download, Loader2, Pause, Play, Upload } from "lucide-react"
+import { ArrowLeft, ChevronDown, CircleHelp, Download, Loader2, Pause, Play, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -190,6 +191,8 @@ function ToolsMasteringInner() {
   const [abMode, setAbMode] = useState<AbMode>("B")
   const [playhead, setPlayhead] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [presetsOpen, setPresetsOpen] = useState(true)
+  const [fineTuneOpen, setFineTuneOpen] = useState(false)
 
   const walletBalance = user?.walletBalance ?? 0
 
@@ -415,13 +418,14 @@ function ToolsMasteringInner() {
     }
   }
 
-  const entitlementHint = (() => {
-    if (!entitlement) return "Загрузка лимитов…"
-    if (entitlement.freeAvailable) return "Доступно 1 бесплатное скачивание (навсегда на аккаунт)"
-    if (entitlement.credits > 0) {
-      return `Бесплатное использовано. Осталось платных скачиваний: ${entitlement.credits}`
+  const needsPurchase = Boolean(entitlement && !entitlement.canDownload)
+  const downloadLabel = (() => {
+    if (!entitlement) return "Скачать master WAV"
+    if (entitlement.freeAvailable) return "Скачать master WAV бесплатно"
+    if (needsPurchase) {
+      return `Купить скачивание за ${TOOLS_MASTERING_DOWNLOAD_PRICE_RUB} ₽ с баланса`
     }
-    return `Бесплатное использовано. Следующее скачивание - ${TOOLS_MASTERING_DOWNLOAD_PRICE_RUB} ₽ с баланса`
+    return "Скачать master WAV"
   })()
 
   return (
@@ -441,49 +445,64 @@ function ToolsMasteringInner() {
         />
       </div>
 
-      <div className="rounded-lg border border-border bg-card/40 px-4 py-3 text-sm text-muted-foreground">
-        {entitlementHint}
-      </div>
+      <section className="space-y-3 rounded-lg border border-border bg-card/30 p-4">
+        <p className="text-sm font-medium">Исходный WAV</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".wav,audio/wav,audio/x-wav"
+          className="hidden"
+          onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" />
+            Выбрать файл
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {file ? file.name : "Файл не выбран"}
+          </span>
+        </div>
+
+        {loadState === "loading" ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-muted-foreground">{loadPhase}</span>
+              <span className="tabular-nums text-muted-foreground">{loadPercent}%</span>
+            </div>
+            <Progress value={loadPercent} className="h-2" />
+          </div>
+        ) : null}
+
+        {loadState === "ready" ? (
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+            Трек загружен и готов к мастерингу
+          </div>
+        ) : null}
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <div className="min-w-0 space-y-6">
-          <section className="space-y-3 rounded-lg border border-border bg-card/30 p-4">
-            <p className="text-sm font-medium">Исходный WAV</p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".wav,audio/wav,audio/x-wav"
-              className="hidden"
-              onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" />
-                Выбрать файл
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {file ? file.name : "Файл не выбран"}
-              </span>
-            </div>
-
-            {loadState === "loading" ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-muted-foreground">{loadPhase}</span>
-                  <span className="tabular-nums text-muted-foreground">{loadPercent}%</span>
-                </div>
-                <Progress value={loadPercent} className="h-2" />
-              </div>
-            ) : null}
-
-            {loadState === "ready" ? (
-              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-                Трек загружен и готов к мастерингу
-              </div>
-            ) : null}
-          </section>
-
-          <section className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
+        <div className="order-2 min-w-0 space-y-6 xl:order-1">
+          <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
+            <section className="rounded-lg border border-border bg-card/30">
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  aria-expanded={presetsOpen}
+                >
+                  <span className="text-sm font-medium">Пресеты и уровни</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                      presetsOpen && "rotate-180"
+                    )}
+                    aria-hidden
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-4 border-t border-border px-4 py-4">
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium">Пресет</p>
@@ -566,16 +585,38 @@ function ToolsMasteringInner() {
               checked={params.magicMakeup}
               onCheckedChange={(magicMakeup) => patchParams({ magicMakeup })}
             />
-          </section>
+                </div>
+              </CollapsibleContent>
+            </section>
+          </Collapsible>
 
-          <section className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
-            <div className="flex items-center gap-1.5">
-              <p className="text-sm font-medium">Тонкая настройка</p>
-              <HintIcon
-                label="Тонкая настройка"
-                tip="Для тех, кто хочет подкрутить звук вручную. Если не уверены - оставьте пресет и сглаживание."
-              />
-            </div>
+          <Collapsible open={fineTuneOpen} onOpenChange={setFineTuneOpen}>
+            <section className="rounded-lg border border-border bg-card/30">
+              <div className="flex items-center gap-1.5 px-4 py-3">
+                <span className="text-sm font-medium">Тонкая настройка</span>
+                <HintIcon
+                  label="Тонкая настройка"
+                  tip="Для тех, кто хочет подкрутить звук вручную. Если не уверены - оставьте пресет и сглаживание."
+                />
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="ml-auto inline-flex shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-expanded={fineTuneOpen}
+                    aria-label={fineTuneOpen ? "Свернуть тонкую настройку" : "Развернуть тонкую настройку"}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        fineTuneOpen && "rotate-180"
+                      )}
+                      aria-hidden
+                    />
+                  </button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent>
+                <div className="space-y-4 border-t border-border px-4 py-4">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <ParamSlider
                 label="Обрезка низа"
@@ -699,11 +740,14 @@ function ToolsMasteringInner() {
                 onCheckedChange={(monoBass) => patchParams({ monoBass })}
               />
             </div>
-          </section>
+                </div>
+              </CollapsibleContent>
+            </section>
+          </Collapsible>
         </div>
 
-        <aside className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:self-start">
-          <section className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
+        <aside className="sticky top-16 z-10 order-1 min-w-0 self-start xl:order-2">
+          <div className="space-y-4 rounded-lg border border-border bg-background/95 p-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium">Предпрослушивание</p>
@@ -782,38 +826,33 @@ function ToolsMasteringInner() {
                 />
               </div>
             </div>
-          </section>
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <div className="flex flex-col gap-3">
-            <Button
-              type="button"
-              onClick={() => void handleDownload()}
-              disabled={busy || loadState !== "ready"}
-              className="w-full"
-            >
-              {busy ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Скачать master WAV
-            </Button>
-            {entitlement && !entitlement.canDownload ? (
+            <div className="flex flex-col gap-3">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setPayDialogOpen(true)}
-                disabled={paying}
+                onClick={() => {
+                  if (needsPurchase) {
+                    setPayDialogOpen(true)
+                    return
+                  }
+                  void handleDownload()
+                }}
+                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
                 className="w-full"
               >
-                Купить скачивание за {TOOLS_MASTERING_DOWNLOAD_PRICE_RUB} ₽ с баланса
+                {busy || paying ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : needsPurchase ? null : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                {downloadLabel}
               </Button>
-            ) : null}
-            <Button type="button" variant="ghost" asChild className="w-full">
-              <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
-            </Button>
+              <Button type="button" variant="ghost" asChild className="w-full">
+                <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
+              </Button>
+            </div>
           </div>
         </aside>
       </div>

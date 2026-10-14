@@ -5,6 +5,8 @@ export const SMARTLINK_SOCIALS = [
   { key: "youtube", label: "YouTube" },
   { key: "x", label: "X" },
   { key: "vk", label: "VK" },
+  { key: "odnoklassniki", label: "Одноклассники" },
+  { key: "max", label: "MAX" },
 ] as const
 
 export type SmartlinkSocialKey = (typeof SMARTLINK_SOCIALS)[number]["key"]
@@ -19,6 +21,8 @@ export const SOCIAL_ICON_SRC: Record<SmartlinkSocialKey, string> = {
   youtube: "/socials/youtube.svg?v=2",
   x: "/socials/x.svg?v=2",
   vk: "/socials/vk.svg?v=2",
+  odnoklassniki: "/socials/odnoklassniki.svg?v=1",
+  max: "/socials/max.svg?v=1",
 }
 
 export const SMARTLINK_SOCIAL_POSITIONS = ["above", "below"] as const
