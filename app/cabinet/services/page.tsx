@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
-import { SERVICES_CATALOG } from "@/lib/cabinet/services-catalog"
+import { getVisibleServicesCatalog } from "@/lib/cabinet/services-catalog"
 import type { OrderCategory } from "@/lib/cabinet/types"
 import { cn } from "@/lib/utils"
 
@@ -22,7 +22,7 @@ export default function CabinetServicesPage() {
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     label: CATEGORY_LABELS[cat],
-    items: SERVICES_CATALOG.filter((s) => s.category === cat),
+    items: getVisibleServicesCatalog().filter((s) => s.category === cat),
   })).filter((g) => g.items.length > 0)
 
   return (

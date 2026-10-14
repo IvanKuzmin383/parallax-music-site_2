@@ -44,6 +44,8 @@ const registerSchema = z.object({
   artistName: z.string().optional(),
   telegram: z.string().optional(),
   captchaToken: z.string().optional(),
+  /** Код из ?ref= / cookie партнёрки */
+  referralCode: z.string().max(40).optional(),
   consentPersonalData: z.literal(true, {
     errorMap: () => ({ message: "Необходимо согласие на обработку персональных данных" }),
   }),
@@ -149,6 +151,32 @@ export async function POST(request: NextRequest) {
       artistName: parsed.data.artistName,
       telegram: parsed.data.telegram,
     })
+
+    try {
+      const { attachReferrerOnRegister, tryGrantReferralFirstPaymentBonus } = await import(
+        "@/lib/cabinet-referrals"
+      )
+      await attachReferrerOnRegister({
+        userId: user.id,
+        referralCode: parsed.data.referralCode,
+      })
+      const firstPaid =
+        (hasPaidFixPack
+          ? eligiblePaidFixPacks[0]
+          : eligiblePaidSubscriptions
+              .filter(isPaidSubscriptionOrder)
+              .sort((a, b) => (a.paidAt ?? "").localeCompare(b.paidAt ?? ""))[0]) ?? null
+      if (firstPaid) {
+        await tryGrantReferralFirstPaymentBonus({
+          referredUserId: user.id,
+          order: firstPaid,
+        })
+      }
+      const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
+      await tryEvaluateAchievements(user.id)
+    } catch (e) {
+      console.error("[cabinet/register] gamification hook failed", e)
+    }
 
     if (hasPaidFixPack) {
       await applyFixPackCreditsOnRegister(user.id, email, eligiblePaidFixPacks)

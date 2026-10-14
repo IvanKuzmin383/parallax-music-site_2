@@ -17,18 +17,30 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
     title: "Оформление и звук",
     items: [
       { label: "Создание обложки", href: "/cabinet/design/covers", description: "AI-обложка для релиза" },
-      { label: "Мастеринг", href: "/cabinet/design/mastering", description: "Обработка трека" },
+      {
+        label: "Онлайн-мастеринг",
+        href: "/cabinet/tools/mastering",
+        description: "Пресеты и параметры, 1 бесплатное скачивание",
+        priceLabel: "далее 100 ₽",
+      },
       { label: "Вертикальные видео", href: "/cabinet/design/vertical-videos", description: "Видео для Reels / Shorts / TikTok" },
       {
-        label: "Загрузить видеоклип",
-        href: "/cabinet/distribution/music-video",
-        description: "Каталог клипов и доставка на площадки",
+        label: "Видеошот в Яндекс Музыке",
+        href: "/cabinet/design/video-shots",
+        description: "Загрузим готовый ролик или создадим видеошот под ваш трек",
+        priceLabel: "от 900 ₽",
       },
     ],
   },
   {
     title: "Контент и защита",
     items: [
+      {
+        label: "Генерация музыки",
+        href: "/cabinet/ai/tracks",
+        description: "Песни с вокалом и инструментал по вашей идее",
+        priceLabel: "Открыть студию",
+      },
       { label: "Пресс-релиз", href: "/cabinet/ai/press-release", description: "Текст для промо" },
       { label: "Питчинг", href: "/cabinet/ai/pitch", description: "Материалы для кураторов" },
       {

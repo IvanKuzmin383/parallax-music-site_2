@@ -15,6 +15,7 @@ export type BalanceTransactionType =
   | "service_payment"
   | "refund"
   | "referral_bonus"
+  | "achievement_reward"
   | "admin_adjustment"
 
 export type BalanceTransaction = {
@@ -36,6 +37,7 @@ export const BALANCE_TRANSACTION_LABELS: Record<string, string> = {
   service_payment: "Оплата услуги",
   refund: "Возврат",
   referral_bonus: "Партнёрский бонус",
+  achievement_reward: "Награда за достижение",
   admin_adjustment: "Корректировка админом",
 }
 
@@ -319,6 +321,13 @@ export async function creditWalletTopup(params: {
       }
     })
 
+    try {
+      const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
+      await tryEvaluateAchievements(params.userId)
+    } catch {
+      // ignore
+    }
+
     if (result.alreadyCredited || !result.transaction) {
       return {
         ok: true,
@@ -349,6 +358,126 @@ export async function creditWalletTopup(params: {
     }
     console.error("[cabinet-balance] creditWalletTopup failed:", error)
     return { ok: false, error: "Не удалось пополнить баланс" }
+  }
+}
+
+/** Бонус на wallet (реферал / ачивка). type: referral_bonus | achievement_reward */
+export async function creditWalletBonus(params: {
+  userId: string
+  amount: number
+  type: "referral_bonus" | "achievement_reward"
+  note: string
+  /** Идемпотентность по note LIKE %token% */
+  idempotencyToken?: string
+}): Promise<CreditWalletTopupResult> {
+  const amount = roundMoney(params.amount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Сумма должна быть больше 0" }
+  }
+  const note = params.note.trim() || "Бонус"
+  const type = params.type
+
+  try {
+    const result = await withTransaction(async (client) => {
+      if (params.idempotencyToken) {
+        const existing = await clientQuery<{ id: string }>(
+          client,
+          `
+          SELECT id FROM cabinet_balance_transactions
+          WHERE user_id = ? AND type = ? AND note LIKE ?
+          LIMIT 1
+          `,
+          [params.userId, type, `%${params.idempotencyToken}%`]
+        )
+        if (existing[0]) {
+          const balRows = await clientQuery<{ wallet_balance: number | string | null }>(
+            client,
+            `SELECT wallet_balance FROM cabinet_users WHERE id = ?`,
+            [params.userId]
+          )
+          return {
+            amount,
+            walletBalance: roundMoney(Number(balRows[0]?.wallet_balance) || 0),
+            transaction: null as BalanceTransaction | null,
+            alreadyCredited: true as const,
+          }
+        }
+      }
+
+      const rows = await clientQuery<{ wallet_balance: number | string | null }>(
+        client,
+        `SELECT wallet_balance FROM cabinet_users WHERE id = ? FOR UPDATE`,
+        [params.userId]
+      )
+      const row = rows[0]
+      if (!row) throw new Error("USER_NOT_FOUND")
+
+      const nextWallet = roundMoney((Number(row.wallet_balance) || 0) + amount)
+      const now = new Date().toISOString()
+      const txId = crypto.randomUUID()
+
+      await clientExecute(
+        client,
+        `UPDATE cabinet_users SET wallet_balance = ? WHERE id = ?`,
+        [nextWallet, params.userId]
+      )
+      await clientExecute(
+        client,
+        `
+        INSERT INTO cabinet_balance_transactions (
+          id, user_id, type, amount, royalty_delta, wallet_delta, note, created_at
+        ) VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+        `,
+        [txId, params.userId, type, amount, amount, note, now]
+      )
+
+      return {
+        amount,
+        walletBalance: nextWallet,
+        transaction: {
+          id: txId,
+          userId: params.userId,
+          type,
+          amount,
+          royaltyDelta: 0,
+          walletDelta: amount,
+          note,
+          createdAt: now,
+        } satisfies BalanceTransaction,
+        alreadyCredited: false as const,
+      }
+    })
+
+    if (result.alreadyCredited || !result.transaction) {
+      return {
+        ok: true,
+        amount: result.amount,
+        walletBalance: result.walletBalance,
+        transaction: {
+          id: "existing",
+          userId: params.userId,
+          type,
+          amount: result.amount,
+          royaltyDelta: 0,
+          walletDelta: amount,
+          note,
+          createdAt: new Date().toISOString(),
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      amount: result.amount,
+      walletBalance: result.walletBalance,
+      transaction: result.transaction,
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+      return { ok: false, error: "Пользователь не найден" }
+    }
+    console.error("[cabinet-balance] creditWalletBonus failed:", error)
+    return { ok: false, error: "Не удалось начислить бонус" }
   }
 }
 

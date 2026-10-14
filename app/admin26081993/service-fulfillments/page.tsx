@@ -413,7 +413,12 @@ export default function AdminServiceFulfillmentsPage() {
 
               {detailsItem.serviceDetails &&
               (detailsItem.serviceDetails.trackTitle ||
+                detailsItem.serviceDetails.artistName ||
+                typeof detailsItem.serviceDetails.includeTextOnCover === "boolean" ||
                 detailsItem.serviceDetails.comment ||
+                detailsItem.serviceDetails.fileUrl ||
+                detailsItem.serviceDetails.videoDirection ||
+                detailsItem.serviceDetails.referencesUrl ||
                 detailsItem.serviceDetails.trackTitles?.length ||
                 detailsItem.serviceDetails.originalFilenames?.length ||
                 detailsItem.serviceDetails.videosCount ||
@@ -422,9 +427,42 @@ export default function AdminServiceFulfillmentsPage() {
                 <div className="rounded-md border p-3 space-y-2">
                   <p className="font-medium">{locale === "en" ? "Order details" : "Детали заказа"}</p>
                   <div className="grid md:grid-cols-2 gap-3">
-                    {detailsItem.serviceDetails.trackTitle ? (
+                    {typeof detailsItem.serviceDetails.includeTextOnCover === "boolean" ? (
                       <div className="md:col-span-2">
-                        <p className="text-muted-foreground">{locale === "en" ? "Track title" : "Название трека"}</p>
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Text on cover" : "Текст на обложке"}
+                        </p>
+                        <p className="font-medium break-words">
+                          {detailsItem.serviceDetails.includeTextOnCover
+                            ? locale === "en"
+                              ? "Yes - add artist name and release title"
+                              : "Да - нанести имя артиста и название релиза"
+                            : locale === "en"
+                              ? "No - without text on cover"
+                              : "Нет - без текста на обложке"}
+                        </p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.artistName ? (
+                      <div>
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Artist name" : "Имя артиста"}
+                        </p>
+                        <p className="font-medium break-words">{detailsItem.serviceDetails.artistName}</p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.trackTitle ? (
+                      <div className={detailsItem.serviceDetails.artistName ? "" : "md:col-span-2"}>
+                        <p className="text-muted-foreground">
+                          {detailsItem.serviceDetails.artistName ||
+                          detailsItem.serviceDetails.includeTextOnCover
+                            ? locale === "en"
+                              ? "Release title"
+                              : "Название релиза"
+                            : locale === "en"
+                              ? "Track title"
+                              : "Название трека"}
+                        </p>
                         <p className="font-medium break-words">{detailsItem.serviceDetails.trackTitle}</p>
                       </div>
                     ) : null}
@@ -432,6 +470,46 @@ export default function AdminServiceFulfillmentsPage() {
                       <div>
                         <p className="text-muted-foreground">{locale === "en" ? "Videos" : "Видео"}</p>
                         <p className="font-medium">{detailsItem.serviceDetails.videosCount}</p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.fileUrl ? (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Video file link" : "Ссылка на видео"}
+                        </p>
+                        <a
+                          href={detailsItem.serviceDetails.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium break-all text-primary underline-offset-2 hover:underline"
+                        >
+                          {detailsItem.serviceDetails.fileUrl}
+                        </a>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.videoDirection ? (
+                      <div>
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Direction" : "Направление видеоряда"}
+                        </p>
+                        <p className="font-medium break-words">
+                          {detailsItem.serviceDetails.videoDirection}
+                        </p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.referencesUrl ? (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">
+                          {locale === "en" ? "Sources / references" : "Исходники / референсы"}
+                        </p>
+                        <a
+                          href={detailsItem.serviceDetails.referencesUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium break-all text-primary underline-offset-2 hover:underline"
+                        >
+                          {detailsItem.serviceDetails.referencesUrl}
+                        </a>
                       </div>
                     ) : null}
                     {detailsItem.serviceDetails.contactType || detailsItem.serviceDetails.contactValue ? (
@@ -647,6 +725,7 @@ export default function AdminServiceFulfillmentsPage() {
 
               {!detailsItem.serviceDetails?.trackTitle &&
               !detailsItem.serviceDetails?.comment &&
+              typeof detailsItem.serviceDetails?.includeTextOnCover !== "boolean" &&
               !(detailsItem.uploadAddonDetails ?? []).length &&
               detailsItem.orderType !== "ai_mastering" &&
               detailsItem.orderType !== "upload_addon_bundle" ? (

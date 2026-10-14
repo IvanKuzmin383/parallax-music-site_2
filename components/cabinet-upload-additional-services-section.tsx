@@ -21,7 +21,10 @@ import {
 
 const ADDON_CHECKBOX_CLASS =
   "mt-0.5 shrink-0 border-red-600 data-[state=checked]:border-red-600 data-[state=checked]:bg-red-600 data-[state=checked]:text-white dark:data-[state=checked]:border-red-600 dark:data-[state=checked]:bg-red-600"
-import { getVerticalVideoUnitPrice } from "@/lib/vertical-video-pricing"
+import {
+  getVerticalVideoUnitPrice,
+  VERTICAL_VIDEO_PRICE_TIER_3_RUB,
+} from "@/lib/vertical-video-pricing"
 import { AI_MASTERING_PRICE_RUB } from "@/lib/ai-mastering-pricing"
 import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
@@ -99,7 +102,7 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
   verticalVideo: {
     title: "Видео для трека",
     description:
-      "Создаем вертикальные видео под релиз для публикаций в Reels, Shorts и TikTok. Стилистика и визуальные акценты подбираются под жанр и настроение трека.",
+      "Монтаж вертикальных роликов из готовых общедоступных видео под релиз для публикаций в Reels, Shorts и TikTok. Подбор фрагментов, нарезка и склейка под настроение трека.",
     examples: [],
     exampleVideos: [
       { src: "/videos/vertical-examples/example-1.mp4", title: "Пример видео 1" },
@@ -408,7 +411,7 @@ export function CabinetUploadAdditionalServicesSection({
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
                 <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
-                  от 99 руб. / шт.
+                  от {VERTICAL_VIDEO_PRICE_TIER_3_RUB} руб. / шт.
                 </span>
                 <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("verticalVideo")}>
                   Подробнее

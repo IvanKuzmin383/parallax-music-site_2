@@ -18,7 +18,7 @@ import {
   CABINET_SIDEBAR_NAV,
   FINANCE_SUB_NAV,
 } from "@/lib/cabinet/navigation"
-import { SERVICES_CATALOG } from "@/lib/cabinet/services-catalog"
+import { getVisibleServicesCatalog } from "@/lib/cabinet/services-catalog"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { releaseDetailHref } from "@/lib/cabinet/release-presenters"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
@@ -136,7 +136,7 @@ export function CabinetGlobalSearch({ className }: { className?: string }) {
       ...EXTRA_PAGES,
     ]
 
-    const services: SearchHit[] = SERVICES_CATALOG.map((s) => ({
+    const services: SearchHit[] = getVisibleServicesCatalog().map((s) => ({
       id: `svc-${s.slug}`,
       title: s.title,
       subtitle: s.shortDescription,

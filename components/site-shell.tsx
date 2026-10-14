@@ -1,9 +1,11 @@
 "use client"
 
+import { Suspense } from "react"
 import { usePathname } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { CookieConsentBanner } from "@/components/cookie-consent"
+import { ReferralCapture } from "@/components/referral-capture"
 
 /** На смартлинках, кабинете и админке шапка/подвал публичного сайта не показываются. */
 export function SiteShell({ children }: { children: React.ReactNode }) {
@@ -15,13 +17,25 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     pathname === "/admin" ||
     pathname?.startsWith("/admin/")
 
+  const referral = (
+    <Suspense fallback={null}>
+      <ReferralCapture />
+    </Suspense>
+  )
+
   if (isSmartlink || isAdmin) {
-    return <>{children}</>
+    return (
+      <>
+        {referral}
+        {children}
+      </>
+    )
   }
 
   if (isCabinet) {
     return (
       <>
+        {referral}
         {children}
         <CookieConsentBanner />
       </>
@@ -30,6 +44,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {referral}
       <Header />
       {children}
       <Footer />

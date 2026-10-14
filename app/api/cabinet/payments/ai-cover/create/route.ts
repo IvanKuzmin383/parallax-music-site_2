@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { createOrder } from "@/lib/orders"
+import { validateAiCoverOrder } from "@/lib/ai-cover-order"
 import {
   assertTbankConfigured,
   createCabinetTbankPayment,
   getSiteBaseUrl,
 } from "@/lib/tbank-cabinet-payment"
 
-const AI_COVER_PRICE_RUB = 500
-const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const YOOKASSA_PAYMENT_DESCRIPTION = "AI обложка для трека"
 
 export async function POST(request: NextRequest) {
@@ -39,36 +38,29 @@ export async function POST(request: NextRequest) {
   }
 
   const raw = body as Record<string, unknown>
-  const trackTitle = typeof raw.trackTitle === "string" ? raw.trackTitle.trim() : ""
-  const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
-  const contactType = typeof raw.contactType === "string" ? raw.contactType.trim().toLowerCase() : ""
-  const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
+  const validated = validateAiCoverOrder({
+    includeTextOnCover: raw.includeTextOnCover === true,
+    artistName: typeof raw.artistName === "string" ? raw.artistName : null,
+    releaseTitle: typeof raw.releaseTitle === "string" ? raw.releaseTitle : null,
+    trackTitle: typeof raw.trackTitle === "string" ? raw.trackTitle : null,
+    comment: typeof raw.comment === "string" ? raw.comment : null,
+    contactType: typeof raw.contactType === "string" ? raw.contactType : null,
+    contactValue: typeof raw.contactValue === "string" ? raw.contactValue : null,
+  })
 
-  if (comment.length < 2) {
-    return NextResponse.json({ error: "Поле «Пожелания / комментарии» обязательно" }, { status: 400 })
-  }
-  if (!CONTACT_TYPE_VALUES.has(contactType)) {
-    return NextResponse.json({ error: "Выберите корректный контакт для связи" }, { status: 400 })
-  }
-  if (!contactValue || contactValue.length < 2) {
-    return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error, fieldErrors: validated.fieldErrors }, { status: 400 })
   }
 
-  const totalAmount = AI_COVER_PRICE_RUB.toFixed(2)
-  const isTelegramContact = contactType === "telegram"
+  const isTelegramContact = validated.contactType === "telegram"
   const order = await createOrder({
     orderType: "ai_cover",
     userId: user.id,
     tracksCount: 1,
-    totalAmount,
-    contactEmail: isTelegramContact ? undefined : `${contactType}: ${contactValue}`,
-    contactTelegram: isTelegramContact ? contactValue : undefined,
-    serviceDetails: {
-      trackTitle: trackTitle || undefined,
-      comment,
-      contactType,
-      contactValue,
-    },
+    totalAmount: validated.totalAmount,
+    contactEmail: isTelegramContact ? undefined : `${validated.contactType}: ${validated.contactValue}`,
+    contactTelegram: isTelegramContact ? validated.contactValue : undefined,
+    serviceDetails: validated.serviceDetails,
   })
 
   const returnUrl = `${siteBase}/cabinet/promotion/ai-cover?payment=return&orderId=${encodeURIComponent(order.id)}`
@@ -76,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,
-    totalAmount,
+    totalAmount: validated.totalAmount,
     description: YOOKASSA_PAYMENT_DESCRIPTION,
     successUrl: returnUrl,
     failUrl,

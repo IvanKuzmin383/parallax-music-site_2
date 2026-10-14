@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
+import { RADIO_PRICE_LABEL } from "@/lib/radio-pricing"
 import { escapeHtml } from "@/lib/telegram"
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === "http:" || url.protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
 /**
- * Заглушка спроса на «Радио»: клиент нажимает «Оплатить»,
- * деньги не списываются, заявка уходит в уведомление staff.
+ * Предварительная заявка на «Радио»: деньги не списываются,
+ * заявка уходит в уведомление staff.
  */
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -35,26 +45,33 @@ export async function POST(request: NextRequest) {
   if (!trackTitle) {
     return NextResponse.json({ error: "Укажите название релиза или проекта" }, { status: 400 })
   }
+  if (trackLink && !isHttpUrl(trackLink)) {
+    return NextResponse.json(
+      { error: "Укажите корректную ссылку на трек (http или https)" },
+      { status: 400 }
+    )
+  }
 
   const message = [
-    "<b>Интерес к услуге: Радио (заглушка оплаты)</b>",
+    "<b>Заявка на услугу: Радио</b>",
     "",
-    "<b>Деньги не списаны</b> - клиент нажал «Оплатить» для оценки спроса.",
+    "<b>Деньги не списаны</b> - предварительная заявка на размещение в радио-витрине.",
     "",
     `<b>Аккаунт:</b> ${escapeHtml(user.email)}`,
     `<b>User ID:</b> ${escapeHtml(user.id)}`,
+    `<b>Ориентир цены:</b> ${escapeHtml(RADIO_PRICE_LABEL)} за трек`,
     `<b>Название:</b> ${escapeHtml(trackTitle)}`,
     trackLink ? `<b>Ссылка:</b> ${escapeHtml(trackLink)}` : null,
     comment ? `<b>Комментарий:</b> ${escapeHtml(comment)}` : null,
     "",
-    "#radio #интерес #спрос",
+    "#radio #заявка #спрос",
   ]
     .filter(Boolean)
     .join("\n")
 
   notifyStaffInBackground({
     telegramMessage: message,
-    emailSubject: `[Parallax] Интерес к Радио: ${user.email}`,
+    emailSubject: `[Parallax] Заявка Радио: ${user.email}`,
     logContext: "payments/radio/interest",
   })
 
@@ -62,6 +79,6 @@ export async function POST(request: NextRequest) {
     ok: true,
     stub: true,
     message:
-      "Услуга скоро появится. Деньги не списаны - мы получили вашу заявку и свяжемся с вами.",
+      "Заявка отправлена. Мы свяжемся с вами для уточнения деталей. Оплата не списана.",
   })
 }

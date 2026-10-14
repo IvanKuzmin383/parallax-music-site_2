@@ -9,6 +9,10 @@ import {
   createCabinetTbankPayment,
   getSiteBaseUrl,
 } from "@/lib/tbank-cabinet-payment"
+import {
+  applyCouponToOrderAmount,
+  consumeCouponAfterOrder,
+} from "@/lib/cabinet-coupon-apply"
 
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const PAYMENT_DESCRIPTION = "Загрузка видеоклипа на площадки"
@@ -98,7 +102,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const totalAmount = MUSIC_VIDEO_PRICE_RUB.toFixed(2)
+  const couponCode = typeof raw.couponCode === "string" ? raw.couponCode.trim() : ""
+  const priced = await applyCouponToOrderAmount({
+    userId: user.id,
+    orderType: "music_video",
+    amountRub: MUSIC_VIDEO_PRICE_RUB,
+    couponCode: couponCode || null,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+  if (priced.amountRub <= 0) {
+    return NextResponse.json({ error: "Сумма после скидки некорректна" }, { status: 400 })
+  }
+
+  const totalAmount = priced.amountRub.toFixed(2)
   const isTelegramContact = contactType === "telegram"
   const order = await createOrder({
     orderType: "music_video",
@@ -115,6 +133,8 @@ export async function POST(request: NextRequest) {
       previewTimecodeSec: Math.trunc(previewTimecodeSec),
       contactType,
       contactValue,
+      couponCode: priced.coupon?.code,
+      couponId: priced.coupon?.id,
     },
   })
 
@@ -123,11 +143,13 @@ export async function POST(request: NextRequest) {
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: paid.status })
     }
+    await consumeCouponAfterOrder({ coupon: priced.coupon, orderId: paid.orderId })
     return NextResponse.json({
       paid: true,
       orderId: paid.orderId,
       paymentId: paid.paymentId,
       walletBalance: paid.walletBalance,
+      discountRub: priced.discountRub,
     })
   }
 

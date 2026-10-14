@@ -1,6 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import { getCabinetUserByEmail, getCabinetUserById, updateCabinetUserPurchasedTracks } from "@/lib/cabinet-users"
+import { addToolsMasteringCredits } from "@/lib/tools-mastering-entitlement"
 import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import type { Order } from "@/lib/orders"
 import { updateOrderStatus } from "@/lib/orders"
@@ -61,6 +62,25 @@ async function notifyUserPaid(order: Order, amountRub: string | number) {
     orderType: order.orderType,
     amountRub,
   })
+
+  try {
+    const { resolveCabinetUserId } = await import("@/lib/cabinet-notifications")
+    const userId = await resolveCabinetUserId(userKey)
+    if (userId) {
+      const { tryGrantReferralFirstPaymentBonus } = await import("@/lib/cabinet-referrals")
+      await tryGrantReferralFirstPaymentBonus({ referredUserId: userId, order })
+      const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
+      await tryEvaluateAchievements(userId)
+
+      const details = orderServiceDetails(order)
+      if (details?.couponId) {
+        const { markCouponUsed } = await import("@/lib/cabinet-coupons")
+        await markCouponUsed({ couponId: details.couponId, orderId: order.id })
+      }
+    }
+  } catch (e) {
+    console.error("[fulfill-paid-order] gamification hook failed", { orderId: order.id, e })
+  }
 }
 
 async function listAiMasteringFilenames(orderId: string): Promise<string[]> {
@@ -167,6 +187,39 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       ].join("\n"),
       `[Parallax] Пополнение баланса: ${email}`,
       "wallet_topup",
+      provider
+    )
+    await notifyUserPaid(order, amount)
+    return
+  }
+
+  if (order.orderType === "tools_mastering_download") {
+    const credits = Math.max(1, order.tracksCount || 1)
+    const credited = await addToolsMasteringCredits(order.userId, credits)
+    if (!credited) {
+      console.error("[fulfill-paid-order] User not found for tools_mastering_download", {
+        orderId,
+        userId: order.userId,
+      })
+    }
+    await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
+
+    const user = await getCabinetUserById(order.userId)
+    const email = user?.email ?? `userId=${order.userId}`
+    notifyStaff(
+      [
+        `<b>Оплата: онлайн-мастеринг Tools (${provider})</b>`,
+        "",
+        `<b>Пользователь:</b> ${escapeHtml(email)}`,
+        `<b>Кредитов:</b> ${credits}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,
+        "",
+        "#tools_mastering #оплата #кабинет",
+      ].join("\n"),
+      `[Parallax] Оплата онлайн-мастеринг: ${email}`,
+      "tools_mastering_download",
       provider
     )
     await notifyUserPaid(order, amount)
@@ -363,19 +416,39 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
     }[order.orderType]
 
+    const details = orderServiceDetails(order)
+    const fileUrl =
+      order.orderType === "yandex_videoshot" || order.orderType === "music_video"
+        ? details?.fileUrl?.trim() || ""
+        : ""
+    const trackLabel =
+      order.orderType === "yandex_videoshot"
+        ? "Ссылка на трек"
+        : order.orderType === "yandex_videoshot_creation"
+          ? "Трек / демо"
+          : "Название трека"
+    const commentLabel =
+      order.orderType === "yandex_videoshot_creation" ? "Пожелания" : "Комментарий"
     notifyStaff(
       [
         `<b>Оплата: ${config.title} (${provider})</b>`,
         "",
         `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
         metaOrDetails(metadata, order, "trackTitle")
-          ? `<b>Название трека:</b> ${escapeHtml(metaOrDetails(metadata, order, "trackTitle"))}`
+          ? `<b>${trackLabel}:</b> ${escapeHtml(metaOrDetails(metadata, order, "trackTitle"))}`
+          : null,
+        fileUrl ? `<b>Ссылка на видео:</b> ${escapeHtml(fileUrl)}` : null,
+        details?.videoDirection?.trim()
+          ? `<b>Направление:</b> ${escapeHtml(details.videoDirection.trim())}`
+          : null,
+        details?.referencesUrl?.trim()
+          ? `<b>Исходники / референсы:</b> ${escapeHtml(details.referencesUrl.trim())}`
           : null,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         order.contactEmail ? `<b>Контакт:</b> ${escapeHtml(order.contactEmail)}` : null,
         order.contactTelegram ? `<b>Telegram:</b> ${escapeHtml(order.contactTelegram)}` : null,
         metaOrDetails(metadata, order, "comment")
-          ? `<b>Комментарий:</b> ${escapeHtml(metaOrDetails(metadata, order, "comment"))}`
+          ? `<b>${commentLabel}:</b> ${escapeHtml(metaOrDetails(metadata, order, "comment"))}`
           : null,
         `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
         `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,

@@ -125,15 +125,6 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
           </ol>
         </CardContent>
       </Card>
-
-      <Card className="gap-0 py-0">
-        <CardContent className="space-y-1.5 px-3 py-2.5">
-          <p className="text-sm font-medium">Комментарии</p>
-          <p className="text-sm text-muted-foreground">
-            Переписка по заказу будет отображаться здесь.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   )
 }

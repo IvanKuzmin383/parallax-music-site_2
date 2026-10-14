@@ -1,9 +1,5 @@
-import { ServicePageTemplate } from "@/components/cabinet/services/service-page-template"
-import { getServiceBySlug } from "@/lib/cabinet/services-catalog"
-import { notFound } from "next/navigation"
+import { AiTracksStudioClient } from "@/components/cabinet/ai/ai-tracks-studio-client"
 
 export default function AiTracksPage() {
-  const service = getServiceBySlug("ai-tracks")
-  if (!service) notFound()
-  return <ServicePageTemplate service={service} />
+  return <AiTracksStudioClient />
 }

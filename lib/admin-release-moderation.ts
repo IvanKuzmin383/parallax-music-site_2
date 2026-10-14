@@ -119,6 +119,15 @@ export async function applyReleaseModerationStatus(params: {
       nextNote,
       noteChanged,
     })
+
+    try {
+      const { resolveCabinetUserId } = await import("@/lib/cabinet-notifications")
+      const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
+      const uid = await resolveCabinetUserId(release.userId)
+      await tryEvaluateAchievements(uid)
+    } catch (e) {
+      console.error("[admin-release-moderation] achievements hook failed", e)
+    }
   }
 
   return { release: updatedRelease, tracks: updatedTracks }

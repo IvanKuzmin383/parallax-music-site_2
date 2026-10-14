@@ -63,6 +63,10 @@ export interface CabinetUser {
   totpSecret?: string | null
   /** Секрет в процессе настройки. */
   totpPendingSecret?: string | null
+  /** Код партнёрской ссылки (?ref=). */
+  referralCode?: string | null
+  /** Кто пригласил (user id). */
+  referredByUserId?: string | null
 }
 
 interface CabinetUserRow {
@@ -117,6 +121,8 @@ interface CabinetUserRow {
   totp_enabled?: boolean | null
   totp_secret?: string | null
   totp_pending_secret?: string | null
+  referral_code?: string | null
+  referred_by_user_id?: string | null
 }
 
 interface CabinetUserDeletionRow {
@@ -186,6 +192,8 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     totpEnabled: row.totp_enabled === true,
     totpSecret: row.totp_secret ?? null,
     totpPendingSecret: row.totp_pending_secret ?? null,
+    referralCode: row.referral_code ?? null,
+    referredByUserId: row.referred_by_user_id ?? null,
   }
 }
 
@@ -320,6 +328,14 @@ export async function createCabinetUser(params: {
 
   if (process.env.NODE_ENV === "development") {
     console.log("[cabinet-users] Created user", { id: user.id, email: user.email })
+  }
+
+  try {
+    const { ensureReferralCode } = await import("@/lib/cabinet-referrals")
+    const code = await ensureReferralCode(user.id, user.email)
+    user.referralCode = code
+  } catch (e) {
+    console.error("[cabinet-users] ensureReferralCode failed", e)
   }
 
   return user

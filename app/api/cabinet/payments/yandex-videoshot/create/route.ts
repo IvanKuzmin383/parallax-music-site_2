@@ -8,8 +8,18 @@ import {
   createCabinetTbankPayment,
   getSiteBaseUrl,
 } from "@/lib/tbank-cabinet-payment"
+
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
-const YOOKASSA_PAYMENT_DESCRIPTION = "Загрузка видеошота в Яндекс Музыку"
+const PAYMENT_DESCRIPTION = "Загрузка видеошота в Яндекс Музыку"
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === "http:" || url.protocol === "https:"
+  } catch {
+    return false
+  }
+}
 
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -40,12 +50,22 @@ export async function POST(request: NextRequest) {
 
   const raw = body as Record<string, unknown>
   const trackTitle = typeof raw.trackTitle === "string" ? raw.trackTitle.trim() : ""
+  const fileUrl = typeof raw.fileUrl === "string" ? raw.fileUrl.trim() : ""
   const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
   const contactType = typeof raw.contactType === "string" ? raw.contactType.trim().toLowerCase() : ""
   const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
 
-  if (comment.length < 2) {
-    return NextResponse.json({ error: "Поле «Пожелания / комментарии» обязательно" }, { status: 400 })
+  if (!trackTitle || !isHttpUrl(trackTitle)) {
+    return NextResponse.json(
+      { error: "Укажите ссылку на трек в Яндекс Музыке (http/https)" },
+      { status: 400 },
+    )
+  }
+  if (!fileUrl || !isHttpUrl(fileUrl)) {
+    return NextResponse.json(
+      { error: "Укажите ссылку на готовое видео (http/https)" },
+      { status: 400 },
+    )
   }
   if (!CONTACT_TYPE_VALUES.has(contactType)) {
     return NextResponse.json({ error: "Выберите корректный контакт для связи" }, { status: 400 })
@@ -64,24 +84,27 @@ export async function POST(request: NextRequest) {
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
     serviceDetails: {
-      trackTitle: trackTitle || undefined,
-      comment,
+      trackTitle,
+      fileUrl,
+      comment: comment || undefined,
       contactType,
       contactValue,
     },
   })
-  const returnUrl = `${siteBase}/cabinet/promotion/yandex-videoshot?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/promotion/yandex-videoshot?payment=fail&orderId=${encodeURIComponent(order.id)}`
+
+  const returnPath = "/cabinet/promotion/yandex-videoshot"
+  const returnUrl = `${siteBase}${returnPath}?payment=return&orderId=${encodeURIComponent(order.id)}&mode=ready`
+  const failUrl = `${siteBase}${returnPath}?payment=fail&orderId=${encodeURIComponent(order.id)}&mode=ready`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,
     totalAmount,
-    description: YOOKASSA_PAYMENT_DESCRIPTION,
+    description: PAYMENT_DESCRIPTION,
     successUrl: returnUrl,
     failUrl,
     orderType: "yandex_videoshot",
     receiptEmail: user.email,
-    receiptItemName: YOOKASSA_PAYMENT_DESCRIPTION,
+    receiptItemName: PAYMENT_DESCRIPTION,
     logPrefix: "payments/yandex-videoshot/create",
   })
 

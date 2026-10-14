@@ -91,9 +91,18 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  const allowedReturnPaths = new Set([
+    "/cabinet/publicka",
+    "/cabinet/promotion/business-music",
+  ])
+  const returnPath =
+    typeof raw.returnPath === "string" && allowedReturnPaths.has(raw.returnPath)
+      ? raw.returnPath
+      : "/cabinet/publicka"
+
   const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}/cabinet/promotion/business-music?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/promotion/business-music?payment=fail&orderId=${encodeURIComponent(order.id)}`
+  const returnUrl = `${siteBase}${returnPath}?payment=return&orderId=${encodeURIComponent(order.id)}`
+  const failUrl = `${siteBase}${returnPath}?payment=fail&orderId=${encodeURIComponent(order.id)}`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,

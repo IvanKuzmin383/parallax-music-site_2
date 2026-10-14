@@ -1,12 +1,15 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 import { Building2, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { Spinner } from "@/components/ui/spinner"
+import { BusinessMusicOrderDialog } from "@/components/cabinet/publicka/business-music-order-dialog"
 import {
   PUBLICKA_RATE_RUB,
   PUBLICKA_STATUS_LABELS,
@@ -22,36 +25,61 @@ const STATUS_TONE: Record<string, string> = {
   rejected: "bg-red-500/15 text-red-300",
 }
 
-export default function CabinetPublickaPage() {
+function CabinetPublickaPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const paymentHandledRef = useRef(false)
   const [placements, setPlacements] = useState<PublickaPlacementView[]>([])
   const [stats, setStats] = useState<PublickaStatsResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const [pRes, sRes] = await Promise.all([
-          fetch("/api/cabinet/publicka/placements", { credentials: "include" }),
-          fetch("/api/cabinet/publicka/stats", { credentials: "include" }),
-        ])
-        if (!cancelled) {
-          if (pRes.ok) {
-            const data = (await pRes.json()) as { placements?: PublickaPlacementView[] }
-            setPlacements(data.placements ?? [])
-          }
-          if (sRes.ok) {
-            setStats((await sRes.json()) as PublickaStatsResponse)
-          }
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
+  const loadData = useCallback(async () => {
+    try {
+      const [pRes, sRes] = await Promise.all([
+        fetch("/api/cabinet/publicka/placements", { credentials: "include" }),
+        fetch("/api/cabinet/publicka/stats", { credentials: "include" }),
+      ])
+      if (pRes.ok) {
+        const data = (await pRes.json()) as { placements?: PublickaPlacementView[] }
+        setPlacements(data.placements ?? [])
       }
-    })()
-    return () => {
-      cancelled = true
+      if (sRes.ok) {
+        setStats((await sRes.json()) as PublickaStatsResponse)
+      }
+    } finally {
+      setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    const paymentState = searchParams.get("payment")
+    const orderId = searchParams.get("orderId")
+    if (paymentState !== "return" || !orderId || paymentHandledRef.current) return
+    paymentHandledRef.current = true
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/cabinet/payments/order-status?orderId=${encodeURIComponent(orderId)}`,
+          { credentials: "include" }
+        )
+        const data = await res.json().catch(() => ({}))
+        if (data.status === "paid") {
+          toast.success("Оплата прошла успешно. Заказ принят в работу.")
+          await loadData()
+        } else if (data.status === "failed") {
+          toast.error("Оплата не завершена")
+        }
+      } catch {
+        toast.error("Не удалось проверить статус оплаты")
+      } finally {
+        router.replace("/cabinet/publicka")
+      }
+    })()
+  }, [searchParams, router, loadData])
 
   const summary = useMemo(
     () => ({
@@ -67,12 +95,15 @@ export default function CabinetPublickaPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Музыка для бизнеса</h1>
-          <Button variant="outline" asChild className="shrink-0 self-start">
-            <Link href="/cabinet/music-stats?tab=publicka">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Статистика
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start">
+            <BusinessMusicOrderDialog onPaidFromBalance={() => void loadData()} />
+            <Button variant="outline" asChild>
+              <Link href="/cabinet/music-stats?tab=publicka">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Статистика
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="w-full space-y-1 text-sm text-muted-foreground">
           <p>
@@ -133,12 +164,13 @@ export default function CabinetPublickaPage() {
           {placements.length === 0 ? (
             <EmptyState
               title="Треков в «Музыка для бизнеса» пока нет"
-              description="После размещения менеджером трек появится здесь. Можно оформить заявку через Продвижение."
+              description="Оформите заявку на размещение - после проверки менеджером трек появится здесь."
               icon={Building2}
               action={
-                <Button asChild>
-                  <Link href="/cabinet/promotion/business-music">Оставить заявку</Link>
-                </Button>
+                <BusinessMusicOrderDialog
+                  triggerLabel="Оставить заявку"
+                  onPaidFromBalance={() => void loadData()}
+                />
               }
             />
           ) : (
@@ -180,5 +212,19 @@ export default function CabinetPublickaPage() {
         </>
       )}
     </div>
+  )
+}
+
+export default function CabinetPublickaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-16">
+          <Spinner className="h-8 w-8" />
+        </div>
+      }
+    >
+      <CabinetPublickaPageInner />
+    </Suspense>
   )
 }

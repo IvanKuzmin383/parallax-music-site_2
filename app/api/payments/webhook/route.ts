@@ -382,11 +382,21 @@ export async function POST(request: NextRequest) {
         music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
       }[order.orderType]
 
+      const details = order.serviceDetails
+      const fileUrlFromDetails = details?.fileUrl?.trim() || ""
+      const trackFromDetails = details?.trackTitle?.trim() || ""
+      const trackDisplay =
+        trackFromDetails || (trackTitle !== "-" ? String(trackTitle) : "-")
+      const trackLabel =
+        order.orderType === "yandex_videoshot" ? "Ссылка на трек" : "Название трека"
       const messageLines = [
         `<b>Оплата: ${config.title}</b>`,
         "",
         `<b>Аккаунт:</b> ${escapeHtml(accountEmail)}`,
-        `<b>Название трека:</b> ${escapeHtml(String(trackTitle))}`,
+        `<b>${trackLabel}:</b> ${escapeHtml(trackDisplay)}`,
+        fileUrlFromDetails
+          ? `<b>Ссылка на видео:</b> ${escapeHtml(fileUrlFromDetails)}`
+          : null,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         `<b>Контакт:</b> ${escapeHtml(String(contactType))} - ${escapeHtml(String(contactValue))}`,
         `<b>Комментарий:</b> ${escapeHtml(String(comment))}`,

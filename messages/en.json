@@ -131,10 +131,10 @@
             "href": "/cabinet/promotion/ai-mastering"
           },
           {
-            "name": "Karaoke and lyrics",
-            "blurb": "Lyrics and karaoke version for platforms",
+            "name": "Synced lyrics",
+            "blurb": "Song lines timed to your final recording for players that support synced lyrics",
             "price": "on request",
-            "href": "/#contact"
+            "href": "/cabinet/design/lyrics-sync"
           }
         ]
       },
@@ -145,7 +145,7 @@
           {
             "name": "Vertical videos for social",
             "blurb": "TikTok, Reels, Shorts for your track",
-            "price": "from 99 ₽",
+            "price": "from 149 ₽",
             "href": "/cabinet/promotion/vertical-video"
           },
           {
@@ -155,14 +155,8 @@
             "href": "/#contact"
           },
           {
-            "name": "Videoshots: creation",
-            "blurb": "Create a videoshot for Yandex Music",
-            "price": "from 3,000 ₽",
-            "href": "/cabinet/promotion/yandex-videoshot-creation"
-          },
-          {
-            "name": "Videoshots: upload",
-            "blurb": "Upload a ready videoshot to the release card",
+            "name": "Yandex Music videoshot",
+            "blurb": "Upload a ready clip or we create a videoshot for your track",
             "price": "from 900 ₽",
             "href": "/cabinet/promotion/yandex-videoshot"
           },
@@ -1050,34 +1044,34 @@
       "goToServices": "Go to services",
       "verticalVideo": {
         "title": "Vertical videos",
-        "description": "Vertical videos for TikTok, Reels and Shorts",
-        "price": "from 99₽/ea",
+        "description": "Video cuts for your track for TikTok, Reels and Shorts",
+        "price": "from 149₽/ea",
         "serviceDescriptionTitle": "Description",
-        "serviceDescription": "We create professional vertical videos for your tracks using modern visuals, typography and animation.",
+        "serviceDescription": "We select publicly available footage online, cut and stitch fragments to your music. You get ready vertical clips for TikTok, Reels and Shorts.",
         "processFlowTitle": "How it works",
         "processStep1": "Choose a track, number of videos, and pay",
-        "processStep2": "After payment, a manager contacts you to clarify and align your video requirements",
-        "processStep3": "We create one sample video, apply edits if needed, and approve the format",
-        "processStep4": "We produce the remaining videos using the approved template",
+        "processStep2": "After payment we clarify preferences and select ready footage from public sources",
+        "processStep3": "We cut and stitch fragments to the music and align the first edit sample",
+        "processStep4": "We edit the remaining clips using the approved montage template",
         "priceTitle": "Pricing",
-        "priceRange1": "up to 10 videos",
-        "priceRange2": "up to 50 videos",
-        "priceRange3": "Over 50 videos",
+        "priceRange1": "1-10 videos",
+        "priceRange2": "11-50 videos",
+        "priceRange3": "51-500 videos",
         "examplesTitle": "Examples",
         "moreDetails": "Learn more",
         "videoError": "Video unavailable",
         "watchInVk": "Watch on VK",
         "orderButton": "Order",
         "orderDialogTitle": "Place an order",
-        "orderDialogDescription": "Fill in order details. After payment, our manager will contact you.",
+        "orderDialogDescription": "Set the video count and choose a track. After payment we will clarify edit preferences.",
         "videosCountLabel": "Number of videos",
         "videosCountHint": "1 to 500",
         "trackTitleLabel": "Track for video",
         "trackTitlePlaceholder": "Enter track title",
         "trackSelectLoading": "Loading tracks...",
         "trackSelectEmpty": "No uploaded tracks",
-        "commentLabel": "Requests / comments",
-        "commentPlaceholder": "Add details, references and requests",
+        "commentLabel": "Footage preferences",
+        "commentPlaceholder": "For example: city, nature, road, calm mood",
         "contactTypeLabel": "Preferred contact",
         "contactTypeTelegram": "Telegram",
         "contactTypeVk": "VK",
@@ -1140,32 +1134,40 @@
         "paymentSuccessOk": "OK"
       },
       "aiCover": {
-        "title": "AI track cover",
-        "description": "We create an AI cover for your release and align the final version with you",
-        "price": "500₽/ea",
+        "title": "AI cover for your release",
+        "description": "A cover shaped to your sound. 6-9 AI options to choose from and one final cover at 3000 × 3000.",
+        "price": "500 ₽",
         "serviceDescriptionTitle": "How it works",
-        "serviceDescription": "You send the release, lyrics, and any wishes you have. From that we prepare and send you 6-9 cover options. You pick and approve one - then we deliver it ready for streaming at 3000 × 3000 pixels.",
+        "serviceDescription": "We prepare 6-9 AI options from your release materials and wishes. You pick one - we finalize it as a 3000 × 3000 streaming-ready cover.",
         "serviceSteps": [
-          "You send the release, lyrics, and any wishes you have.",
-          "From that we prepare and send you 6-9 cover options.",
-          "You pick and approve one - then we deliver it ready for streaming at 3000 × 3000 pixels."
+          "You send release materials and any design wishes.",
+          "We prepare and send 6-9 cover options. You mark one favorite.",
+          "We finalize the chosen cover at 3000 × 3000 pixels."
         ],
-        "examplesTitle": "Examples:",
+        "examplesTitle": "Portfolio",
         "exampleImages": [
-          { "src": "/aicover/example-01.webp", "alt": "AI cover example 1" },
-          { "src": "/aicover/example-02.webp", "alt": "AI cover example 2" },
-          { "src": "/aicover/example-03.webp", "alt": "AI cover example 3" },
-          { "src": "/aicover/example-04.webp", "alt": "AI cover example 4" },
-          { "src": "/aicover/example-05.webp", "alt": "AI cover example 5" },
-          { "src": "/aicover/example-06.webp", "alt": "AI cover example 6" },
-          { "src": "/aicover/example-07.webp", "alt": "AI cover example 7" },
-          { "src": "/aicover/example-08.webp", "alt": "AI cover example 8" },
-          { "src": "/aicover/example-09.webp", "alt": "AI cover example 9" },
-          { "src": "/aicover/example-10.webp", "alt": "AI cover example 10" },
-          { "src": "/aicover/example-11.webp", "alt": "AI cover example 11" }
+          { "src": "/aicover/example-01.webp", "alt": "Cover example 1" },
+          { "src": "/aicover/example-02.webp", "alt": "Cover example 2" },
+          { "src": "/aicover/example-03.webp", "alt": "Cover example 3" },
+          { "src": "/aicover/example-04.webp", "alt": "Cover example 4" },
+          { "src": "/aicover/example-05.webp", "alt": "Cover example 5" },
+          { "src": "/aicover/example-06.webp", "alt": "Cover example 6" },
+          { "src": "/aicover/example-07.webp", "alt": "Cover example 7" },
+          { "src": "/aicover/example-08.webp", "alt": "Cover example 8" },
+          { "src": "/aicover/example-09.webp", "alt": "Cover example 9" },
+          { "src": "/aicover/example-10.webp", "alt": "Cover example 10" },
+          { "src": "/aicover/example-11.webp", "alt": "Cover example 11" }
         ],
         "priceTitle": "Pricing",
-        "moreDetails": "Learn more"
+        "moreDetails": "Learn more",
+        "orderDialogDescription": "Tell us about the release and leave a contact. After payment, a manager will clarify materials.",
+        "includeTextOnCoverLabel": "Add artist name and release title to the cover",
+        "artistNameLabel": "Artist name",
+        "artistNamePlaceholder": "How it should appear on the cover",
+        "releaseTitleLabel": "Release title",
+        "releaseTitlePlaceholder": "Exact title for the cover",
+        "validationArtistName": "Enter artist name",
+        "validationReleaseTitle": "Enter release title"
       },
       "aiMastering": {
         "title": "AI mastering",
@@ -1206,10 +1208,10 @@
       },
       "yandexVideoshot": {
         "title": "Upload videoshot to Yandex Music",
-        "description": "We upload your ready-made videoshot to your release in Yandex Music",
-        "price": "900₽/ea",
+        "description": "We place your ready-made videoshot in the Yandex Music mobile player",
+        "price": "900 ₽",
         "serviceDescriptionTitle": "Description",
-        "serviceDescription": "A Yandex Music videoshot is a looping vertical video (5-15 seconds) that improves listener engagement. We check platform requirements and upload the asset to your release.",
+        "serviceDescription": "A Yandex Music videoshot is a looping vertical video (5-15 seconds) in the mobile player. We check platform requirements and upload the asset for your track.",
         "examplesTitle": "Examples:",
         "examplesUsageTitle": "You can use as a videoshot:",
         "examplesUsageItems": [
@@ -1227,15 +1229,15 @@
         "exampleVideos": [
           {
             "src": "/videoshot/example1.MOV",
-            "title": "Videoshot example 1"
+            "title": "Clip frames"
           },
           {
             "src": "/videoshot/example2.MOV",
-            "title": "Videoshot example 2"
+            "title": "Atmospheric visual"
           },
           {
             "src": "/videoshot/example3.MOV",
-            "title": "Videoshot example 3"
+            "title": "Live performance footage"
           }
         ],
         "priceTitle": "Pricing",
@@ -1337,30 +1339,30 @@
         {
           "id": "yandex-playlists",
           "slug": "yandex-playlists",
-          "title": "Yandex Music playlists",
-          "description": "The fastest way to kick off a new release: placement in our and partner playlists",
-          "price": "from 350₽",
+          "title": "Placement in Yandex Music playlists",
+          "description": "The fastest way to kick off promotion for a new release",
+          "price": "from 350₽ / playlist",
           "cta": "Buy",
           "ctaUrl": "https://playlisthub.ru/",
-          "orderPrefill": "Hi! I'd like to order Yandex Music playlist placement.\nFrom: cabinet → Promotion"
+          "orderPrefill": "Hello! I'd like playlist placement on Yandex Music.\nPage: cabinet → Promotion → Playlists"
         },
         {
           "id": "vk-ads",
           "slug": "vk-ads",
-          "title": "VK Ads",
-          "description": "VK Ads and VK Music: bring in new listeners and grow streams",
-          "price": "from 10 000₽",
+          "title": "Promotion in VK Music",
+          "description": "More listeners. More reach. More results.",
+          "price": "from 5 000₽",
           "cta": "Order",
-          "orderPrefill": "Hi! I'd like to discuss VK Ads promotion.\nFrom: cabinet → Promotion"
+          "orderPrefill": "Hello! I'd like VK Ads / VK Music promotion.\nPage: cabinet → Promotion → VK"
         },
         {
           "id": "yandex-direct",
           "slug": "yandex-direct",
-          "title": "Yandex Direct",
-          "description": "Targeted ads for your goals: track, show, merch, or socials",
-          "price": "from 10 000₽",
+          "title": "Promotion in Yandex Direct",
+          "description": "Precise promotion for your goals and audience",
+          "price": "from 5 000₽",
           "cta": "Order",
-          "orderPrefill": "Hi! I'd like to discuss Yandex Direct promotion.\nFrom: cabinet → Promotion"
+          "orderPrefill": "Hello! I'd like Yandex Direct promotion.\nPage: cabinet → Promotion → Yandex"
         },
         {
           "id": "tiktok-shorts",

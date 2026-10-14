@@ -6,7 +6,7 @@ import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
-import { ArrowLeft, Music } from "lucide-react"
+import { ArrowLeft, Link2, Music } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
@@ -295,6 +295,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
           territory={territory}
           smartlinkSlug={smartlinkSlug}
           platformLinks={platformLinks}
+          smartlinkEditHref={`/cabinet/distribution/music/${id}/smartlink`}
           className="pt-2"
         />
       </div>
@@ -318,6 +319,28 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Link
+            href={`/cabinet/distribution/music/${id}/smartlink`}
+            className="group relative overflow-hidden rounded-xl border border-border p-4 hover:border-primary/40 transition-all"
+          >
+            <div
+              className={cn(
+                "absolute inset-0 bg-gradient-to-br opacity-70 group-hover:opacity-100 transition-opacity",
+                ACCENT_BG.primary,
+              )}
+            />
+            <div className="relative flex gap-3 items-start">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-background/70 border border-border/60">
+                <Link2 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Смартлинк</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Оформить страницу релиза и получить ссылку для фанатов
+                </p>
+              </div>
+            </div>
+          </Link>
           {RELEASE_WORKFLOW_ACTIONS.map((action) => (
             <Link
               key={action.id}

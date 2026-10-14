@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE } from "@/lib/cabinet-account-messages"
+import { readReferralCodeFromCookie } from "@/components/referral-capture"
 import { getTurnstileSiteKeyClient, isTurnstileEnabledClient } from "@/lib/turnstile-config"
 
 const PRICING_PAGE_URL = "https://parallaxmusic.ru/#pricing"
@@ -162,6 +163,7 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
           password: registerPassword,
           artistName: registerArtistName,
           captchaToken: turnstileEnabled ? registerCaptchaToken : undefined,
+          referralCode: readReferralCodeFromCookie() || undefined,
           consentPersonalData: true,
           consentPrivacyPolicy: true,
           consentTermsOfUse: true,

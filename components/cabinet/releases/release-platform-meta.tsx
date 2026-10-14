@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Check, Copy, ExternalLink } from "lucide-react"
+import Link from "next/link"
+import { Check, Copy, ExternalLink, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -85,6 +86,8 @@ type ReleasePlatformMetaProps = {
   territory?: string | null
   smartlinkSlug?: string | null
   platformLinks?: PlatformLinks | null
+  /** id релиза/трека для ссылки на редактор смартлинка */
+  smartlinkEditHref?: string | null
   className?: string
 }
 
@@ -95,6 +98,7 @@ export function ReleasePlatformMeta({
   territory,
   smartlinkSlug,
   platformLinks,
+  smartlinkEditHref,
   className,
 }: ReleasePlatformMetaProps) {
   const [smartlinkUrl, setSmartlinkUrl] = useState<string | null>(null)
@@ -159,6 +163,14 @@ export function ReleasePlatformMeta({
             ) : (
               <p className="text-sm text-muted-foreground">Ещё не создан</p>
             )}
+            {smartlinkEditHref ? (
+              <Button type="button" variant="outline" size="sm" className="h-7 shrink-0 gap-1 px-2" asChild>
+                <Link href={smartlinkEditHref}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Оформить
+                </Link>
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

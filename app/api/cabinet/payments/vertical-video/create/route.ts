@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
   })
   const returnUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=return&orderId=${encodeURIComponent(order.id)}`
   const failUrl = `${siteBase}/cabinet/promotion/vertical-video?payment=fail&orderId=${encodeURIComponent(order.id)}`
-  const description = "Разработка видеоконтента для социальных сетей и видеоплатформ"
+  const description = "Монтаж вертикальных видео из готового видеоряда под трек"
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,

@@ -24,5 +24,6 @@ export async function GET(
     artistName: track.artistName,
     links: track.platformLinks ?? {},
     coverUrl,
+    theme: track.smartlinkTheme ?? null,
   })
 }

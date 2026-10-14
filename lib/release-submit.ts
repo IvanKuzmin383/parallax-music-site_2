@@ -261,6 +261,15 @@ export async function submitReleaseToModeration(
     actor: release.userId,
   })
 
+  try {
+    const { resolveCabinetUserId } = await import("@/lib/cabinet-notifications")
+    const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
+    const uid = await resolveCabinetUserId(release.userId)
+    await tryEvaluateAchievements(uid)
+  } catch {
+    // ignore
+  }
+
   return { ok: true, release: updatedRelease, tracks: updatedTracks }
 }
 

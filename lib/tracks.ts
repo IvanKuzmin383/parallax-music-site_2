@@ -5,6 +5,11 @@ import { nanoid } from "nanoid"
 import type { TrackGenre, TrackMood, TrackStreamingScope } from "./track-constants"
 import { normalizeStreamingScope } from "./track-constants"
 import type { PlatformLinks } from "./smartlink-platforms"
+import {
+  parseSmartlinkThemeJson,
+  serializeSmartlinkTheme,
+  type SmartlinkTheme,
+} from "./smartlink-theme"
 import { query, queryOne, execute, normalizePgTimestamptz } from "./database"
 import {
   parseTrackAiLabeling,
@@ -94,6 +99,8 @@ export interface Track {
   streamingScope: TrackStreamingScope
   smartlinkSlug?: string
   platformLinks?: PlatformLinks
+  /** Оформление публичного смартлинка */
+  smartlinkTheme?: SmartlinkTheme
   /** Списан ли Fix-слот при отправке на модерацию (новый тариф Fix). */
   fixPackCreditsCharged: boolean
   /** AI-анализ (legacy-сингл без releases; иначе канон в releases.ai_analysis_text). */
@@ -145,6 +152,7 @@ export interface TrackRow {
   streaming_scope?: string | null
   smartlink_slug: string | null
   platform_links: string | null
+  smartlink_theme?: string | null
   fix_pack_credits_charged?: boolean | null
   ai_analysis_text?: string | null
   created_at: string
@@ -214,6 +222,7 @@ export function rowToTrack(row: TrackRow): Track {
     streamingScope: normalizeStreamingScope(row.streaming_scope),
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
+    smartlinkTheme: parseSmartlinkThemeJson(row.smartlink_theme),
     fixPackCreditsCharged: row.fix_pack_credits_charged === true,
     aiAnalysisText: row.ai_analysis_text?.trim() ? row.ai_analysis_text : null,
     createdAt: normalizePgTimestamptz(row.created_at),
@@ -333,7 +342,7 @@ function hasAnyPlatformLink(links?: PlatformLinks): boolean {
   return values.some((v) => typeof v === "string" && v.trim().length > 0)
 }
 
-async function generateUniqueSmartlinkSlug(): Promise<string> {
+export async function generateUniqueSmartlinkSlug(): Promise<string> {
   const existing = await query<{ smartlink_slug: string }>(
     "SELECT smartlink_slug FROM tracks WHERE smartlink_slug IS NOT NULL"
   )
@@ -525,7 +534,7 @@ export async function updateTrack(
 
   await execute(
     `
-    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, lyrics_match_confirmed = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, moderation_notes_json = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, original_release_date = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, ai_analysis_text = ?, updated_at = ?
+    UPDATE tracks SET user_id = ?, album_id = ?, release_id = ?, track_order = ?, track_name = ?, track_version = ?, artist_name = ?, label_name = ?, genre = ?, mood = ?, short_description = ?, lyrics_text = ?, lyrics_language = ?, lyrics_match_confirmed = ?, music_author = ?, lyrics_author = ?, music_rights = ?, music_ai_service = ?, lyrics_rights = ?, performance_rights = ?, is_instrumental = ?, has_explicit_language = ?, backing_author = ?, tiktok_sound_start_sec = ?, cover_path = ?, audio_path = ?, status = ?, release_date = ?, moderation_note = ?, moderation_notes_json = ?, catalog_number = ?, upc = ?, isrc = ?, transfer_from_other_distributor = ?, previous_distributor = ?, original_release_date = ?, streaming_scope = ?, smartlink_slug = ?, platform_links = ?, smartlink_theme = ?, needs_ai_cover = ?, fix_pack_credits_charged = ?, ai_labeling_json = ?, ai_analysis_text = ?, updated_at = ?
     WHERE id = ?
   `,
     [
@@ -568,6 +577,7 @@ export async function updateTrack(
       updated.streamingScope,
       updated.smartlinkSlug ?? null,
       updated.platformLinks ? JSON.stringify(updated.platformLinks) : null,
+      updated.smartlinkTheme ? serializeSmartlinkTheme(updated.smartlinkTheme) : null,
       updated.needsAiCover,
       updated.fixPackCreditsCharged,
       updated.aiLabeling ? JSON.stringify(updated.aiLabeling) : null,

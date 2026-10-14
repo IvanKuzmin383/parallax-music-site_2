@@ -53,6 +53,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   fix_pack: "Пакет треков Fix",
   tracks_topup: "Докупка треков",
   ai_mastering: "AI-мастеринг",
+  tools_mastering_download: "Онлайн-мастеринг",
   vertical_video: "Вертикальное видео",
   track_cover: "Обложка трека",
   ai_cover: "AI-обложка",

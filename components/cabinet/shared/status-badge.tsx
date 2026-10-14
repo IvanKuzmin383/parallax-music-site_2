@@ -24,17 +24,25 @@ type StatusTone =
   | "red"
   | "zinc"
 
+/** Светлая тема: тёмный текст на мягком фоне. Тёмная: светлый текст. */
 const TONE_CLASS: Record<StatusTone, string> = {
-  slate: "border-transparent bg-slate-500/25 text-slate-100",
-  amber: "border-transparent bg-amber-500/30 text-amber-100",
-  orange: "border-transparent bg-orange-500/30 text-orange-100",
-  sky: "border-transparent bg-sky-500/30 text-sky-100",
-  blue: "border-transparent bg-blue-500/30 text-blue-100",
-  violet: "border-transparent bg-violet-500/30 text-violet-100",
-  teal: "border-transparent bg-teal-500/30 text-teal-100",
-  emerald: "border-transparent bg-emerald-500/30 text-emerald-100",
-  red: "border-transparent bg-red-500/30 text-red-100",
-  zinc: "border-transparent bg-zinc-500/30 text-zinc-200",
+  slate:
+    "border-transparent bg-slate-500/18 text-slate-800 dark:bg-slate-500/25 dark:text-slate-100",
+  amber:
+    "border-transparent bg-amber-500/20 text-amber-900 dark:bg-amber-500/30 dark:text-amber-100",
+  orange:
+    "border-transparent bg-orange-500/20 text-orange-900 dark:bg-orange-500/30 dark:text-orange-100",
+  sky: "border-transparent bg-sky-500/20 text-sky-900 dark:bg-sky-500/30 dark:text-sky-100",
+  blue:
+    "border-transparent bg-blue-500/18 text-blue-900 dark:bg-blue-500/30 dark:text-blue-100",
+  violet:
+    "border-transparent bg-violet-500/18 text-violet-900 dark:bg-violet-500/30 dark:text-violet-100",
+  teal:
+    "border-transparent bg-teal-500/18 text-teal-900 dark:bg-teal-500/30 dark:text-teal-100",
+  emerald:
+    "border-transparent bg-emerald-500/18 text-emerald-900 dark:bg-emerald-500/30 dark:text-emerald-100",
+  red: "border-transparent bg-red-500/18 text-red-900 dark:bg-red-500/30 dark:text-red-100",
+  zinc: "border-transparent bg-zinc-500/18 text-zinc-800 dark:bg-zinc-500/30 dark:text-zinc-200",
 }
 
 const ORDER_TONE: Record<OrderDisplayStatus, StatusTone> = {

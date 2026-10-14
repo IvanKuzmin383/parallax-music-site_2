@@ -4,12 +4,28 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { createOrder } from "@/lib/orders"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import {
+  VIDEO_DIRECTION_OPTIONS,
+  videoDirectionLabel,
+  type VideoDirectionValue,
+} from "@/lib/yandex-videoshot-mode"
+import {
   assertTbankConfigured,
   createCabinetTbankPayment,
   getSiteBaseUrl,
 } from "@/lib/tbank-cabinet-payment"
+
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
-const YOOKASSA_PAYMENT_DESCRIPTION = "Создание видеошота для Яндекс Музыки"
+const DIRECTION_VALUES = new Set<string>(VIDEO_DIRECTION_OPTIONS.map((o) => o.value))
+const PAYMENT_DESCRIPTION = "Создание видеошота для Яндекс Музыки"
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === "http:" || url.protocol === "https:"
+  } catch {
+    return false
+  }
+}
 
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -43,9 +59,37 @@ export async function POST(request: NextRequest) {
   const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
   const contactType = typeof raw.contactType === "string" ? raw.contactType.trim().toLowerCase() : ""
   const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
+  const directionRaw =
+    typeof raw.videoDirection === "string" ? raw.videoDirection.trim().toLowerCase() : "team"
+  const referencesUrl =
+    typeof raw.referencesUrl === "string" ? raw.referencesUrl.trim() : ""
 
+  if (!trackTitle || trackTitle.length < 2) {
+    return NextResponse.json(
+      { error: "Укажите ссылку на трек или демо" },
+      { status: 400 },
+    )
+  }
+  if (trackTitle.includes("://") && !isHttpUrl(trackTitle)) {
+    return NextResponse.json(
+      { error: "Укажите корректную ссылку на трек или демо (http/https)" },
+      { status: 400 },
+    )
+  }
   if (comment.length < 2) {
-    return NextResponse.json({ error: "Поле «Пожелания / комментарии» обязательно" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Добавьте пожелания или напишите «На ваш вкус»" },
+      { status: 400 },
+    )
+  }
+  if (!DIRECTION_VALUES.has(directionRaw)) {
+    return NextResponse.json({ error: "Выберите направление видеоряда" }, { status: 400 })
+  }
+  if (referencesUrl && !isHttpUrl(referencesUrl)) {
+    return NextResponse.json(
+      { error: "Укажите корректную ссылку на исходники или референсы (http/https)" },
+      { status: 400 },
+    )
   }
   if (!CONTACT_TYPE_VALUES.has(contactType)) {
     return NextResponse.json({ error: "Выберите корректный контакт для связи" }, { status: 400 })
@@ -54,6 +98,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
+  const videoDirection = videoDirectionLabel(directionRaw as VideoDirectionValue)
   const totalAmount = YANDEX_VIDEOSHOT_CREATION_PRICE_RUB.toFixed(2)
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
@@ -64,24 +109,28 @@ export async function POST(request: NextRequest) {
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
     serviceDetails: {
-      trackTitle: trackTitle || undefined,
+      trackTitle,
       comment,
+      videoDirection,
+      referencesUrl: referencesUrl || undefined,
       contactType,
       contactValue,
     },
   })
-  const returnUrl = `${siteBase}/cabinet/promotion/yandex-videoshot-creation?payment=return&orderId=${encodeURIComponent(order.id)}`
-  const failUrl = `${siteBase}/cabinet/promotion/yandex-videoshot-creation?payment=fail&orderId=${encodeURIComponent(order.id)}`
+
+  const returnPath = "/cabinet/promotion/yandex-videoshot-creation"
+  const returnUrl = `${siteBase}${returnPath}?payment=return&orderId=${encodeURIComponent(order.id)}&mode=create`
+  const failUrl = `${siteBase}${returnPath}?payment=fail&orderId=${encodeURIComponent(order.id)}&mode=create`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,
     totalAmount,
-    description: YOOKASSA_PAYMENT_DESCRIPTION,
+    description: PAYMENT_DESCRIPTION,
     successUrl: returnUrl,
     failUrl,
     orderType: "yandex_videoshot_creation",
     receiptEmail: user.email,
-    receiptItemName: YOOKASSA_PAYMENT_DESCRIPTION,
+    receiptItemName: PAYMENT_DESCRIPTION,
     logPrefix: "payments/yandex-videoshot-creation/create",
   })
 
