@@ -1,8 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   ChevronDown,
+  Disc3,
   Download,
   Heart,
   Loader2,
@@ -18,6 +20,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
@@ -87,7 +97,7 @@ function Chip({
       className={cn(
         "min-h-11 rounded-full border px-3.5 py-2 text-sm transition-colors",
         active
-          ? "border-primary bg-primary/15 text-foreground"
+          ? "border-primary bg-primary font-semibold text-primary-foreground shadow-[0_0_0_1px] shadow-primary"
           : "border-border bg-transparent text-muted-foreground hover:border-primary/40 hover:text-foreground",
         disabled && "opacity-50"
       )}
@@ -178,7 +188,9 @@ function ResultCard({
   onPlayToggle,
   onFavorite,
   onReuse,
+  onToRelease,
   busyFavorite,
+  busyToRelease,
 }: {
   result: AiTracksResultDto
   settings: AiTracksSettingsSnapshot
@@ -186,7 +198,9 @@ function ResultCard({
   onPlayToggle: (id: string, audio: HTMLAudioElement | null) => void
   onFavorite: (id: string, next: boolean) => void
   onReuse: (settings: AiTracksSettingsSnapshot) => void
+  onToRelease: (result: AiTracksResultDto) => void
   busyFavorite: boolean
+  busyToRelease: boolean
 }) {
   return (
     <article className="rounded-[20px] border border-border bg-card p-5 sm:p-6">
@@ -227,6 +241,20 @@ function ResultCard({
       <ResultPlayer result={result} playingId={playingId} onPlayToggle={onPlayToggle} />
 
       <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          className="min-h-11"
+          disabled={!result.audioUrl || busyToRelease}
+          onClick={() => onToRelease(result)}
+        >
+          {busyToRelease ? (
+            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+          ) : (
+            <Disc3 className="mr-1.5 h-4 w-4" />
+          )}
+          В дистрибуцию
+        </Button>
         {result.audioUrl ? (
           <Button variant="outline" size="sm" className="min-h-11" asChild>
             <a href={result.audioUrl} download>
@@ -251,6 +279,7 @@ function ResultCard({
 }
 
 export function AiTracksStudioClient() {
+  const router = useRouter()
   const formRef = useRef<HTMLDivElement | null>(null)
   const ideaId = useId()
   const lyricsId = useId()
@@ -270,6 +299,9 @@ export function AiTracksStudioClient() {
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [soundOpen, setSoundOpen] = useState(false)
   const [favoriteBusy, setFavoriteBusy] = useState<string | null>(null)
+  const [toReleaseTarget, setToReleaseTarget] = useState<AiTracksResultDto | null>(null)
+  const [toReleaseTitle, setToReleaseTitle] = useState("")
+  const [toReleaseBusy, setToReleaseBusy] = useState(false)
 
   const activeJob =
     status?.activeJobs?.[0] ??
@@ -392,6 +424,62 @@ export function AiTracksStudioClient() {
     [filter, loadHistory]
   )
 
+  const openToRelease = useCallback((result: AiTracksResultDto) => {
+    setToReleaseTarget(result)
+    setToReleaseTitle(result.title || "")
+  }, [])
+
+  const confirmToRelease = async () => {
+    if (!toReleaseTarget) return
+    setToReleaseBusy(true)
+    try {
+      const res = await fetch(
+        `/api/cabinet/ai-tracks/results/${encodeURIComponent(toReleaseTarget.id)}/to-release`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: toReleaseTitle.trim() || toReleaseTarget.title }),
+        }
+      )
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        errorCode?: string
+        uploadPath?: string
+        alreadyExisted?: boolean
+        audioAttached?: boolean
+        warning?: string | null
+      }
+      if (!res.ok) {
+        if (data.errorCode === "profile_incomplete") {
+          toast.error(data.error || "Заполните профиль, чтобы создать релиз")
+          router.push("/cabinet/settings?tab=profile")
+          return
+        }
+        toast.error(data.error || "Не удалось создать релиз")
+        return
+      }
+      if (data.alreadyExisted) {
+        toast.message("Черновик уже есть - открываем его")
+      } else if (data.warning) {
+        toast.warning(data.warning)
+      } else {
+        toast.success(
+          data.audioAttached
+            ? "Черновик релиза создан с аудио и текстом"
+            : "Черновик релиза создан"
+        )
+      }
+      setToReleaseTarget(null)
+      if (data.uploadPath) {
+        router.push(data.uploadPath)
+      }
+    } catch {
+      toast.error("Не удалось создать релиз")
+    } finally {
+      setToReleaseBusy(false)
+    }
+  }
+
   const insertExampleLyrics = () => {
     if (draft.lyrics.trim()) {
       toast.message("Поле текста уже заполнено. Очистите его, чтобы вставить пример.")
@@ -481,11 +569,6 @@ export function AiTracksStudioClient() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
             Генерация музыки
           </p>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Ваша идея.
-            <br />
-            Ваша новая песня.
-          </h1>
           <p className="text-base text-muted-foreground sm:text-[15px]">
             Опишите, что хотите услышать, или добавьте свой текст. Создавайте песни с вокалом и
             инструментальную музыку прямо в Parallax.
@@ -875,7 +958,9 @@ export function AiTracksStudioClient() {
                   onPlayToggle={onPlayToggle}
                   onFavorite={onFavorite}
                   onReuse={reuseSettings}
+                  onToRelease={openToRelease}
                   busyFavorite={favoriteBusy === result.id}
+                  busyToRelease={toReleaseBusy && toReleaseTarget?.id === result.id}
                 />
               ))}
             </div>
@@ -883,39 +968,52 @@ export function AiTracksStudioClient() {
         </section>
       </div>
 
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Дайте идее зазвучать.</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              n: "01",
-              t: "Задайте направление",
-              d: "Опишите идею или вставьте свой текст. Добавьте жанр, настроение и характер вокала.",
-            },
-            {
-              n: "02",
-              t: "Создайте варианты",
-              d: "Запустите генерацию. Сравните результаты и сохраните те, в которых слышите свою идею.",
-            },
-            {
-              n: "03",
-              t: "Развивайте песню",
-              d: "Используйте результат как демо, основу для дальнейшей работы или новую творческую идею.",
-            },
-          ].map((step) => (
-            <div
-              key={step.n}
-              className="rounded-[20px] border border-border bg-card p-5 sm:p-6"
+      <Dialog
+        open={Boolean(toReleaseTarget)}
+        onOpenChange={(open) => {
+          if (!open && !toReleaseBusy) setToReleaseTarget(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>В дистрибуцию</DialogTitle>
+            <DialogDescription>
+              Создадим черновик сингла с этим аудио и текстом (если он был в генерации). Обложку и
+              остальные поля дозаполните в мастере загрузки.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="ai-to-release-title">Название релиза</Label>
+            <Input
+              id="ai-to-release-title"
+              value={toReleaseTitle}
+              maxLength={120}
+              disabled={toReleaseBusy}
+              onChange={(e) => setToReleaseTitle(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={toReleaseBusy}
+              onClick={() => setToReleaseTarget(null)}
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                {step.n}
-              </p>
-              <h3 className="mt-2 font-semibold">{step.t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{step.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+              Отмена
+            </Button>
+            <Button type="button" disabled={toReleaseBusy} onClick={() => void confirmToRelease()}>
+              {toReleaseBusy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Создаём…
+                </>
+              ) : (
+                "Создать черновик"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <section className="rounded-[22px] border border-border bg-card p-6 sm:p-7">
         <h2 className="mb-2 text-xl font-semibold">Перед первым запуском</h2>
@@ -943,8 +1041,11 @@ export function AiTracksStudioClient() {
           <AccordionItem value="release">
             <AccordionTrigger>Можно выпустить полученную песню?</AccordionTrigger>
             <AccordionContent>
-              {status?.commercialRightsNote ??
-                "Возможность коммерческого использования зависит от условий выбранной модели и прав на исходные материалы."}
+              Да - на карточке результата нажмите «В дистрибуцию»: откроется черновик релиза с
+              аудио и текстом. Дозаполните обложку и метаданные, затем отправьте как обычный релиз.
+              {status?.commercialRightsNote
+                ? ` ${status.commercialRightsNote}`
+                : " Коммерческое использование зависит от условий модели и прав на исходные материалы."}
             </AccordionContent>
           </AccordionItem>
         </Accordion>

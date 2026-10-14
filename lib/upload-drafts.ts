@@ -84,6 +84,13 @@ export interface UploadDraftPayload {
       trackTitle?: string
       comment?: string
     }
+    lyricsSync?: {
+      enabled: boolean
+      /** Число треков для тарифа (сингл - 1, альбом - число треков). */
+      tracksCount?: number
+    }
+    /** Источник: результат AI-генерации музыки (идемпотентность «В дистрибуцию»). */
+    fromAiTracksResultId?: string
   }
   [key: string]: unknown
 }

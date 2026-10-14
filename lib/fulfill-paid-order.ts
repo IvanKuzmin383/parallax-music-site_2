@@ -452,6 +452,8 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
         details?.referencesUrl?.trim()
           ? `<b>Исходники / референсы:</b> ${escapeHtml(details.referencesUrl.trim())}`
           : null,
+        details?.isrc?.trim() ? `<b>ISRC:</b> ${escapeHtml(details.isrc.trim())}` : null,
+        details?.upc?.trim() ? `<b>UPC:</b> ${escapeHtml(details.upc.trim())}` : null,
         `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
         order.contactEmail ? `<b>Контакт:</b> ${escapeHtml(order.contactEmail)}` : null,
         order.contactTelegram ? `<b>Telegram:</b> ${escapeHtml(order.contactTelegram)}` : null,

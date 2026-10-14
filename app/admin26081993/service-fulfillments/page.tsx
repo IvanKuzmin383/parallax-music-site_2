@@ -420,6 +420,8 @@ export default function AdminServiceFulfillmentsPage() {
                 detailsItem.serviceDetails.comment ||
                 detailsItem.serviceDetails.lyricsText ||
                 detailsItem.serviceDetails.fileUrl ||
+                detailsItem.serviceDetails.isrc ||
+                detailsItem.serviceDetails.upc ||
                 detailsItem.serviceDetails.videoDirection ||
                 detailsItem.serviceDetails.referencesUrl ||
                 detailsItem.serviceDetails.trackTitles?.length ||
@@ -494,6 +496,18 @@ export default function AdminServiceFulfillmentsPage() {
                         >
                           {detailsItem.serviceDetails.fileUrl}
                         </a>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.isrc ? (
+                      <div>
+                        <p className="text-muted-foreground">ISRC</p>
+                        <p className="font-medium break-words">{detailsItem.serviceDetails.isrc}</p>
+                      </div>
+                    ) : null}
+                    {detailsItem.serviceDetails.upc ? (
+                      <div>
+                        <p className="text-muted-foreground">UPC</p>
+                        <p className="font-medium break-words">{detailsItem.serviceDetails.upc}</p>
                       </div>
                     ) : null}
                     {detailsItem.serviceDetails.lyricsText ? (

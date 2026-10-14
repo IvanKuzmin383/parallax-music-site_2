@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
   const trackTitle = typeof raw.trackTitle === "string" ? raw.trackTitle.trim() : ""
   const fileUrl = typeof raw.fileUrl === "string" ? raw.fileUrl.trim() : ""
   const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
+  const isrc =
+    typeof raw.isrc === "string" ? raw.isrc.trim().toUpperCase() : ""
+  const upc = typeof raw.upc === "string" ? raw.upc.trim().toUpperCase() : ""
   const contactType = typeof raw.contactType === "string" ? raw.contactType.trim().toLowerCase() : ""
   const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
 
@@ -55,6 +58,18 @@ export async function POST(request: NextRequest) {
       { error: "Укажите ссылку на готовое видео (http/https)" },
       { status: 400 },
     )
+  }
+  if (!isrc) {
+    return NextResponse.json({ error: "Укажите ISRC трека" }, { status: 400 })
+  }
+  if (isrc.length > 32) {
+    return NextResponse.json({ error: "ISRC не длиннее 32 символов" }, { status: 400 })
+  }
+  if (!upc) {
+    return NextResponse.json({ error: "Укажите UPC релиза" }, { status: 400 })
+  }
+  if (upc.length > 32) {
+    return NextResponse.json({ error: "UPC не длиннее 32 символов" }, { status: 400 })
   }
   if (!CONTACT_TYPE_VALUES.has(contactType)) {
     return NextResponse.json({ error: "Выберите корректный контакт для связи" }, { status: 400 })
@@ -75,6 +90,8 @@ export async function POST(request: NextRequest) {
     serviceDetails: {
       trackTitle,
       fileUrl,
+      isrc,
+      upc,
       comment: comment || undefined,
       contactType,
       contactValue,

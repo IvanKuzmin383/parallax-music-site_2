@@ -327,9 +327,6 @@ export function VkAdsAdPreview({ goal, projectName, className }: VkAdsAdPreviewP
             </div>
           </div>
         </div>
-        <figcaption className="mt-3 text-center text-xs text-[#B3ADBC]">
-          Пример рекламной записи
-        </figcaption>
       </figure>
     </div>
   )

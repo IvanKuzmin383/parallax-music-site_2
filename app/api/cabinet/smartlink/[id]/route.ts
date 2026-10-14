@@ -39,6 +39,10 @@ const patchSchema = z.object({
 })
 
 function toResponse(ctx: NonNullable<Awaited<ReturnType<typeof resolveCabinetSmartlinkContext>>>) {
+  const tiktokStart =
+    typeof ctx.track.tiktokSoundStartSec === "number" && Number.isFinite(ctx.track.tiktokSoundStartSec)
+      ? Math.max(0, Math.trunc(ctx.track.tiktokSoundStartSec))
+      : 0
   return {
     releaseId: ctx.releaseId,
     trackId: ctx.track.id,
@@ -51,6 +55,8 @@ function toResponse(ctx: NonNullable<Awaited<ReturnType<typeof resolveCabinetSma
     smartlinkSlug: ctx.smartlinkSlug,
     publicPath: ctx.smartlinkSlug ? `/s/${ctx.smartlinkSlug}` : null,
     isPublic: ctx.status === "released" && Boolean(ctx.smartlinkSlug) && Boolean(ctx.coverUrl),
+    /** Подсказка для хука смартлинка - секунда из карточки релиза (TikTok). */
+    defaultPreviewStartSec: tiktokStart,
   }
 }
 

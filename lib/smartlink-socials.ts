@@ -11,13 +11,14 @@ export type SmartlinkSocialKey = (typeof SMARTLINK_SOCIALS)[number]["key"]
 
 export const SMARTLINK_SOCIAL_KEYS = SMARTLINK_SOCIALS.map((s) => s.key) as SmartlinkSocialKey[]
 
+/** ?v= - сброс кэша после замены на официальные глифы */
 export const SOCIAL_ICON_SRC: Record<SmartlinkSocialKey, string> = {
-  telegram: "/socials/telegram.svg",
-  tiktok: "/socials/tiktok.svg",
-  instagram: "/socials/instagram.svg",
-  youtube: "/socials/youtube.svg",
-  x: "/socials/x.svg",
-  vk: "/socials/vk.svg",
+  telegram: "/socials/telegram.svg?v=2",
+  tiktok: "/socials/tiktok.svg?v=2",
+  instagram: "/socials/instagram.svg?v=2",
+  youtube: "/socials/youtube.svg?v=2",
+  x: "/socials/x.svg?v=2",
+  vk: "/socials/vk.svg?v=2",
 }
 
 export const SMARTLINK_SOCIAL_POSITIONS = ["above", "below"] as const

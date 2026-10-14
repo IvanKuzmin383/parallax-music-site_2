@@ -3,6 +3,12 @@ import {
   targetRmsDb,
   type MasteringParams,
 } from "@/lib/tools-mastering-params"
+import {
+  createSmoothingChain,
+  createStereoWidener,
+  linearCurve,
+  softClipCurve,
+} from "@/lib/tools-mastering-dsp"
 
 function dbToLinear(db: number): number {
   return Math.pow(10, db / 20)
@@ -25,17 +31,6 @@ function measureRms(buffer: AudioBuffer): number {
   return Math.sqrt(sum / count)
 }
 
-/** WaveShaperNode.curve expects Float32Array backed by ArrayBuffer (not SharedArrayBuffer). */
-function softClipCurve(amount = 2.5): Float32Array<ArrayBuffer> {
-  const n = 2048
-  const curve = new Float32Array(n)
-  for (let i = 0; i < n; i++) {
-    const x = (i * 2) / (n - 1) - 1
-    curve[i] = Math.tanh(x * amount) / Math.tanh(amount)
-  }
-  return curve as Float32Array<ArrayBuffer>
-}
-
 export type MasteringLoadProgress = {
   phase: "reading" | "decoding" | "ready"
   percent: number
@@ -45,7 +40,7 @@ export type AbMode = "A" | "B"
 
 /**
  * Live Web Audio graph for preview / A-B.
- * Soft-clip and mono-bass are approximated (full exact path is offline render for download).
+ * Soft-clip, mid EQ, stereo width; mono-bass exact path is offline render for download.
  */
 export class LiveMasteringEngine {
   private ctx: AudioContext | null = null
@@ -55,10 +50,13 @@ export class LiveMasteringEngine {
   private wetGain: GainNode | null = null
   private hpf: BiquadFilterNode | null = null
   private lf: BiquadFilterNode | null = null
+  private mf: BiquadFilterNode | null = null
   private hf: BiquadFilterNode | null = null
+  private smoother: ReturnType<typeof createSmoothingChain> | null = null
   private comp: DynamicsCompressorNode | null = null
   private makeup: GainNode | null = null
   private softClip: WaveShaperNode | null = null
+  private widener: ReturnType<typeof createStereoWidener> | null = null
   private ceiling: GainNode | null = null
   private startedAt = 0
   private offset = 0
@@ -135,23 +133,32 @@ export class LiveMasteringEngine {
     this.lf = ctx.createBiquadFilter()
     this.lf.type = "lowshelf"
     this.lf.frequency.value = 120
+    this.mf = ctx.createBiquadFilter()
+    this.mf.type = "peaking"
+    this.mf.frequency.value = 2000
+    this.mf.Q.value = 0.8
     this.hf = ctx.createBiquadFilter()
     this.hf.type = "highshelf"
     this.hf.frequency.value = 8000
+    this.smoother = createSmoothingChain(ctx)
     this.comp = ctx.createDynamicsCompressor()
     this.comp.knee.value = 8
     this.makeup = ctx.createGain()
     this.softClip = ctx.createWaveShaper()
     this.softClip.curve = softClipCurve()
     this.softClip.oversample = "2x"
+    this.widener = createStereoWidener(ctx)
     this.ceiling = ctx.createGain()
 
     this.hpf.connect(this.lf)
-    this.lf.connect(this.hf)
-    this.hf.connect(this.comp)
+    this.lf.connect(this.mf)
+    this.mf.connect(this.hf)
+    this.hf.connect(this.smoother.input)
+    this.smoother.output.connect(this.comp)
     this.comp.connect(this.makeup)
     this.makeup.connect(this.softClip)
-    this.softClip.connect(this.ceiling)
+    this.softClip.connect(this.widener.input)
+    this.widener.output.connect(this.ceiling)
     this.ceiling.connect(this.wetGain)
 
     this.dryGain.connect(ctx.destination)
@@ -160,7 +167,18 @@ export class LiveMasteringEngine {
   }
 
   applyParams(params: MasteringParams) {
-    if (!this.hpf || !this.lf || !this.hf || !this.comp || !this.makeup || !this.ceiling || !this.softClip) {
+    if (
+      !this.hpf ||
+      !this.lf ||
+      !this.mf ||
+      !this.hf ||
+      !this.smoother ||
+      !this.comp ||
+      !this.makeup ||
+      !this.ceiling ||
+      !this.softClip ||
+      !this.widener
+    ) {
       return
     }
     const density = densityCompTweaks(params.density)
@@ -169,7 +187,9 @@ export class LiveMasteringEngine {
 
     this.hpf.frequency.value = Math.max(20, Math.min(200, params.hpfHz))
     this.lf.gain.value = params.lfShelfDb
+    this.mf.gain.value = params.mfPeakDb
     this.hf.gain.value = params.hfShelfDb
+    this.smoother.setLevel(params.smooth)
     this.comp.threshold.value = Math.max(-60, Math.min(0, thresholdDb))
     this.comp.ratio.value = Math.min(20, ratio)
     this.comp.attack.value = Math.max(0.001, params.attackMs / 1000)
@@ -184,14 +204,14 @@ export class LiveMasteringEngine {
     }
     this.makeup.gain.value = makeupGain
     this.ceiling.gain.value = dbToLinear(Math.min(0, params.ceilingDb))
-    if (params.softClip) {
-      this.softClip.curve = softClipCurve()
+
+    if (params.softClip && params.saturation > 0.05) {
+      this.softClip.curve = softClipCurve(params.saturation)
     } else {
-      const linear = new Float32Array(2) as Float32Array<ArrayBuffer>
-      linear[0] = -1
-      linear[1] = 1
-      this.softClip.curve = linear
+      this.softClip.curve = linearCurve()
     }
+
+    this.widener.setWidth(params.stereoWidth)
   }
 
   setAbMode(mode: AbMode) {
@@ -241,6 +261,17 @@ export class LiveMasteringEngine {
     this.playing = false
   }
 
+  /** Перемотка: при воспроизведении продолжает с новой позиции. */
+  async seek(seconds: number) {
+    if (!this.buffer) return
+    const next = Math.max(0, Math.min(seconds, Math.max(0, this.buffer.duration - 0.01)))
+    const wasPlaying = this.playing
+    this.offset = next
+    if (wasPlaying) {
+      await this.play()
+    }
+  }
+
   stop() {
     this.stopSourceOnly()
     this.playing = false
@@ -275,10 +306,13 @@ export class LiveMasteringEngine {
     this.wetGain = null
     this.hpf = null
     this.lf = null
+    this.mf = null
     this.hf = null
+    this.smoother = null
     this.comp = null
     this.makeup = null
     this.softClip = null
+    this.widener = null
     this.ceiling = null
   }
 }

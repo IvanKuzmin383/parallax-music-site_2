@@ -1,8 +1,18 @@
 import {
   densityCompTweaks,
+  smoothSettings,
   targetRmsDb,
   type MasteringParams,
 } from "@/lib/tools-mastering-params"
+import {
+  applyMonoBass,
+  applySoftClipAndCeiling,
+  applySoftNoiseGate,
+  applyStereoWidth,
+  createSmoothingChain,
+  softClipCurve,
+  linearCurve,
+} from "@/lib/tools-mastering-dsp"
 
 function dbToLinear(db: number): number {
   return Math.pow(10, db / 20)
@@ -23,47 +33,6 @@ function measureRms(buffer: AudioBuffer): number {
   }
   if (count === 0) return 0
   return Math.sqrt(sum / count)
-}
-
-function applySoftClipAndCeiling(buffer: AudioBuffer, ceilingDb: number, softClip: boolean): void {
-  const ceiling = dbToLinear(Math.min(0, ceilingDb))
-  const softStart = ceiling * 0.85
-  const channels = buffer.numberOfChannels
-  for (let c = 0; c < channels; c++) {
-    const data = buffer.getChannelData(c)
-    for (let i = 0; i < data.length; i++) {
-      let s = data[i]
-      if (softClip && Math.abs(s) > softStart) {
-        const sign = s < 0 ? -1 : 1
-        const over = Math.abs(s) - softStart
-        const room = Math.max(1e-6, ceiling - softStart)
-        s = sign * (softStart + room * Math.tanh(over / room))
-      }
-      if (s > ceiling) s = ceiling
-      if (s < -ceiling) s = -ceiling
-      data[i] = s
-    }
-  }
-}
-
-function applyMonoBass(buffer: AudioBuffer, sampleRate: number, cutoffHz = 120): void {
-  if (buffer.numberOfChannels < 2) return
-  const left = buffer.getChannelData(0)
-  const right = buffer.getChannelData(1)
-  const rc = 1 / (2 * Math.PI * cutoffHz)
-  const dt = 1 / sampleRate
-  const alpha = dt / (rc + dt)
-  let lpL = 0
-  let lpR = 0
-  for (let i = 0; i < left.length; i++) {
-    lpL += alpha * (left[i] - lpL)
-    lpR += alpha * (right[i] - lpR)
-    const mono = (lpL + lpR) * 0.5
-    const hpL = left[i] - lpL
-    const hpR = right[i] - lpR
-    left[i] = mono + hpL
-    right[i] = mono + hpR
-  }
 }
 
 function encodeWav(buffer: AudioBuffer): Blob {
@@ -121,7 +90,7 @@ async function decodeAudioFile(file: File): Promise<AudioBuffer> {
 }
 
 /**
- * Браузерный offline-мастеринг: EQ → компрессор → makeup → ceiling/soft-clip → WAV.
+ * Браузерный offline-мастеринг: EQ → компрессор → makeup → soft-clip → width → mono-bass → ceiling.
  * Работает только в браузере (Web Audio OfflineAudioContext).
  */
 export async function renderMasteredWav(
@@ -162,10 +131,19 @@ export async function renderMasteredWav(
   lf.frequency.value = 120
   lf.gain.value = params.lfShelfDb
 
+  const mf = offline.createBiquadFilter()
+  mf.type = "peaking"
+  mf.frequency.value = 2000
+  mf.Q.value = 0.8
+  mf.gain.value = params.mfPeakDb
+
   const hf = offline.createBiquadFilter()
   hf.type = "highshelf"
   hf.frequency.value = 8000
   hf.gain.value = params.hfShelfDb
+
+  const smoother = createSmoothingChain(offline)
+  smoother.setLevel(params.smooth)
 
   const comp = offline.createDynamicsCompressor()
   comp.threshold.value = Math.max(-60, Math.min(0, thresholdDb))
@@ -177,20 +155,37 @@ export async function renderMasteredWav(
   const makeup = offline.createGain()
   makeup.gain.value = makeupGain
 
+  const softClip = offline.createWaveShaper()
+  softClip.oversample = "2x"
+  if (params.softClip && params.saturation > 0.05) {
+    softClip.curve = softClipCurve(params.saturation)
+  } else {
+    softClip.curve = linearCurve()
+  }
+
   source.connect(hpf)
   hpf.connect(lf)
-  lf.connect(hf)
-  hf.connect(comp)
+  lf.connect(mf)
+  mf.connect(hf)
+  hf.connect(smoother.input)
+  smoother.output.connect(comp)
   comp.connect(makeup)
-  makeup.connect(offline.destination)
+  makeup.connect(softClip)
+  softClip.connect(offline.destination)
 
   source.start(0)
   const rendered = await offline.startRendering()
 
+  applyStereoWidth(rendered, params.stereoWidth)
   if (params.monoBass) {
     applyMonoBass(rendered, rendered.sampleRate)
   }
-  applySoftClipAndCeiling(rendered, params.ceilingDb, params.softClip)
+  const smooth = smoothSettings(params.smooth)
+  if (smooth.enabled) {
+    applySoftNoiseGate(rendered, smooth.gateThresholdDb, smooth.gateRatio)
+  }
+  // Сатурация уже в WaveShaper; здесь только ceiling (как gain+hard limit в live).
+  applySoftClipAndCeiling(rendered, params.ceilingDb, false, params.saturation)
 
   const baseName = file.name.replace(/\.wav$/i, "").replace(/[^\w\-а-яА-ЯёЁ ]+/gi, "_").slice(0, 80)
   const blob = encodeWav(rendered)

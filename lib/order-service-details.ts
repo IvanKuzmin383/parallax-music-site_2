@@ -30,6 +30,10 @@ export type OrderServiceDetails = {
   videoDirection?: string
   /** Ссылка на исходники / референсы (создание видеошота). */
   referencesUrl?: string
+  /** Код ISRC трека (видеошот и т.п.). */
+  isrc?: string
+  /** Код UPC релиза (видеошот и т.п.). */
+  upc?: string
   /** Применённый купон геймификации */
   couponCode?: string
   couponId?: string
@@ -78,6 +82,10 @@ export function stringifyServiceDetails(
   const referencesUrl = details.referencesUrl?.trim()
   if (videoDirection) out.videoDirection = videoDirection
   if (referencesUrl) out.referencesUrl = referencesUrl
+  const isrc = details.isrc?.trim()
+  const upc = details.upc?.trim()
+  if (isrc) out.isrc = isrc
+  if (upc) out.upc = upc
   const couponCode = details.couponCode?.trim()
   const couponId = details.couponId?.trim()
   if (couponCode) out.couponCode = couponCode

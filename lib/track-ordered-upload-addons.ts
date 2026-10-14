@@ -44,6 +44,13 @@ export function uploadAddonBundleItemsApplyingToTrack(
     if (a?.yandexVideoshotCreation?.enabled) items.push({ type: "yandex_videoshot_creation", quantity: 1 })
     if (a?.yandexVideoavatar?.enabled) items.push({ type: "yandex_videoavatar", quantity: 1 })
     if (a?.spotifyVideoshot?.enabled) items.push({ type: "spotify_videoshot", quantity: 1 })
+    if (a?.lyricsSync?.enabled) {
+      const n = Math.max(1, Number(a.lyricsSync.tracksCount ?? 1))
+      const albumTracks = Array.isArray(payload.albumTracks) ? payload.albumTracks : []
+      const idx = albumTracks.findIndex((t) => norm(`${t.trackName ?? ""}`) === norm(track.trackName))
+      if (idx >= 0 && idx < n) items.push({ type: "lyrics_sync", quantity: 1 })
+      else if (albumTracks.length === 0) items.push({ type: "lyrics_sync", quantity: 1 })
+    }
     return items
   }
 

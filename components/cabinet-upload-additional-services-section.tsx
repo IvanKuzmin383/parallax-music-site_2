@@ -30,7 +30,9 @@ import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
+import { LYRICS_SYNC_PRICE_RUB } from "@/lib/lyrics-sync-pricing"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import Link from "next/link"
 import { CabinetAudioPlayer } from "@/components/cabinet/shared/cabinet-audio-player"
 
 export type CabinetUploadAddonInfoKey =
@@ -235,6 +237,9 @@ export type CabinetUploadAddonSelectionState = {
   addonYandexVideoshotCreation: boolean
   addonYandexVideoavatar: boolean
   addonSpotifyVideoshot: boolean
+  addonLyricsSync: boolean
+  /** Число треков для тарифа синхронизации (по умолчанию 1). */
+  addonLyricsSyncCount?: number
 }
 
 /** Сумма доп. услуг для UI и проверки «нужна ли оплата» (совпадает с расчётом на странице одного трека). */
@@ -247,6 +252,8 @@ export function computeSelectedUploadAddonsTotalRub(s: CabinetUploadAddonSelecti
   const yandexVideoshotCreationAddonTotal = s.addonYandexVideoshotCreation ? YANDEX_VIDEOSHOT_CREATION_PRICE_RUB : 0
   const yandexVideoavatarAddonTotal = s.addonYandexVideoavatar ? YANDEX_VIDEOAVATAR_PRICE_RUB : 0
   const spotifyVideoshotAddonTotal = s.addonSpotifyVideoshot ? SPOTIFY_VIDEOSHOT_PRICE_RUB : 0
+  const lyricsSyncCount = Math.max(1, Number(s.addonLyricsSyncCount ?? 1))
+  const lyricsSyncAddonTotal = s.addonLyricsSync ? LYRICS_SYNC_PRICE_RUB * lyricsSyncCount : 0
   return (
     aiCoverAddonTotal +
     verticalVideoAddonTotal +
@@ -254,7 +261,8 @@ export function computeSelectedUploadAddonsTotalRub(s: CabinetUploadAddonSelecti
     yandexVideoshotAddonTotal +
     yandexVideoshotCreationAddonTotal +
     yandexVideoavatarAddonTotal +
-    spotifyVideoshotAddonTotal
+    spotifyVideoshotAddonTotal +
+    lyricsSyncAddonTotal
   )
 }
 
@@ -285,6 +293,10 @@ export type CabinetUploadAdditionalServicesSectionProps = {
   setAddonYandexVideoavatar: (v: boolean) => void
   addonSpotifyVideoshot: boolean
   setAddonSpotifyVideoshot: (v: boolean) => void
+  addonLyricsSync: boolean
+  setAddonLyricsSync: (v: boolean) => void
+  /** Число треков для тарифа (сингл - 1, альбом - число треков). */
+  addonLyricsSyncCount?: number
   /** Подсказка под итогом: «трек» или «альбом» */
   afterPaymentSubject: "трек" | "альбом"
   sectionClassName?: string
@@ -318,6 +330,9 @@ export function CabinetUploadAdditionalServicesSection({
   setAddonYandexVideoavatar,
   addonSpotifyVideoshot,
   setAddonSpotifyVideoshot,
+  addonLyricsSync,
+  setAddonLyricsSync,
+  addonLyricsSyncCount = 1,
   afterPaymentSubject,
   sectionClassName,
   layout = "card",
@@ -346,7 +361,12 @@ export function CabinetUploadAdditionalServicesSection({
     addonYandexVideoshotCreation,
     addonYandexVideoavatar,
     addonSpotifyVideoshot,
+    addonLyricsSync,
+    addonLyricsSyncCount,
   })
+
+  const lyricsSyncTracks = Math.max(1, Number(addonLyricsSyncCount || 1))
+  const lyricsSyncAddonTotal = addonLyricsSync ? LYRICS_SYNC_PRICE_RUB * lyricsSyncTracks : 0
 
   const openAddonInfo = (key: CabinetUploadAddonInfoKey) => {
     setAddonInfoKey(key)
@@ -592,6 +612,36 @@ export function CabinetUploadAdditionalServicesSection({
                 </Button>
               </div>
             </div>
+            <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
+              <label className="flex min-w-0 flex-1 items-start gap-2 text-sm">
+                <Checkbox
+                  className={ADDON_CHECKBOX_CLASS}
+                  checked={addonLyricsSync}
+                  onCheckedChange={(v) => setAddonLyricsSync(v === true)}
+                  disabled={formDisabled}
+                />
+                <span>Синхронизация текста</span>
+              </label>
+              <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
+                <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
+                  {LYRICS_SYNC_PRICE_RUB.toLocaleString("ru-RU")} руб. / трек
+                </span>
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href="/cabinet/design/lyrics-sync" target="_blank" rel="noopener noreferrer">
+                    Подробнее
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            {addonLyricsSync ? (
+              <p className="text-xs text-muted-foreground">
+                Стоимость: {LYRICS_SYNC_PRICE_RUB.toLocaleString("ru-RU")} руб. / трек
+                {lyricsSyncTracks > 1
+                  ? ` × ${lyricsSyncTracks} = ${lyricsSyncAddonTotal.toLocaleString("ru-RU")} руб.`
+                  : null}
+                . Текст берётся из карточки трека.
+              </p>
+            ) : null}
             <div className="flex flex-col gap-2 rounded-md bg-green-500/5 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <p className="text-base font-semibold text-foreground md:text-lg">Итоговая стоимость выбранных доп услуг:</p>
               <span className="text-base font-semibold tabular-nums text-green-500 sm:text-right md:text-lg">
@@ -604,7 +654,8 @@ export function CabinetUploadAdditionalServicesSection({
             addonYandexVideoshot ||
             addonYandexVideoshotCreation ||
             addonYandexVideoavatar ||
-            addonSpotifyVideoshot ? (
+            addonSpotifyVideoshot ||
+            addonLyricsSync ? (
               <p className="text-xs text-muted-foreground">
                 После отправки формы откроется оплата выбранных услуг. После оплаты {afterPaymentSubject} будет отправлен
                 на модерацию.

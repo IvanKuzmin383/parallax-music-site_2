@@ -40,10 +40,18 @@ type FieldErrors = {
   trackUrl?: string
   demoUrl?: string
   fileUrl?: string
+  isrc?: string
+  upc?: string
   wishes?: string
   referencesUrl?: string
   contactValue?: string
   form?: string
+}
+
+const CODE_MAX_LEN = 32
+
+function normalizeCode(value: string): string {
+  return value.trim().toUpperCase()
 }
 
 const EXAMPLE_VIDEOS = [
@@ -251,6 +259,8 @@ function YandexVideoshotLandingInner() {
   const [trackUrl, setTrackUrl] = useState("")
   const [demoUrl, setDemoUrl] = useState("")
   const [fileUrl, setFileUrl] = useState("")
+  const [isrc, setIsrc] = useState("")
+  const [upc, setUpc] = useState("")
   const [wishes, setWishes] = useState("")
   const [comment, setComment] = useState("")
   const [videoDirection, setVideoDirection] = useState<VideoDirectionValue>("team")
@@ -265,6 +275,8 @@ function YandexVideoshotLandingInner() {
   const trackUrlRef = useRef<HTMLInputElement>(null)
   const demoUrlRef = useRef<HTMLInputElement>(null)
   const fileUrlRef = useRef<HTMLInputElement>(null)
+  const isrcRef = useRef<HTMLInputElement>(null)
+  const upcRef = useRef<HTMLInputElement>(null)
   const wishesRef = useRef<HTMLTextAreaElement>(null)
   const contactValueRef = useRef<HTMLInputElement>(null)
 
@@ -350,6 +362,13 @@ function YandexVideoshotLandingInner() {
     if (!contact || contact.length < 2) {
       errors.contactValue = "Укажите контакт для связи"
     }
+    const isrcNorm = normalizeCode(isrc)
+    const upcNorm = normalizeCode(upc)
+    if (!isrcNorm) errors.isrc = "Укажите ISRC трека"
+    else if (isrcNorm.length > CODE_MAX_LEN) errors.isrc = `ISRC не длиннее ${CODE_MAX_LEN} символов`
+    if (!upcNorm) errors.upc = "Укажите UPC релиза"
+    else if (upcNorm.length > CODE_MAX_LEN) errors.upc = `UPC не длиннее ${CODE_MAX_LEN} символов`
+
     if (mode === "ready") {
       const track = trackUrl.trim()
       const file = fileUrl.trim()
@@ -395,6 +414,14 @@ function YandexVideoshotLandingInner() {
         return
       }
     }
+    if (errors.isrc) {
+      isrcRef.current?.focus()
+      return
+    }
+    if (errors.upc) {
+      upcRef.current?.focus()
+      return
+    }
     if (errors.contactValue) contactValueRef.current?.focus()
   }
 
@@ -413,6 +440,10 @@ function YandexVideoshotLandingInner() {
         mode === "create"
           ? "/api/cabinet/payments/yandex-videoshot-creation/create"
           : "/api/cabinet/payments/yandex-videoshot/create"
+      const codes = {
+        isrc: normalizeCode(isrc),
+        upc: normalizeCode(upc),
+      }
       const body =
         mode === "create"
           ? {
@@ -420,6 +451,7 @@ function YandexVideoshotLandingInner() {
               comment: wishes.trim(),
               videoDirection,
               referencesUrl: referencesUrl.trim() || undefined,
+              ...codes,
               contactType,
               contactValue: contactValue.trim(),
             }
@@ -427,6 +459,7 @@ function YandexVideoshotLandingInner() {
               trackTitle: trackUrl.trim(),
               fileUrl: fileUrl.trim(),
               comment: comment.trim() || undefined,
+              ...codes,
               contactType,
               contactValue: contactValue.trim(),
             }
@@ -533,14 +566,14 @@ function YandexVideoshotLandingInner() {
       <section id="yandex-videoshot-variants" className="scroll-mt-20 space-y-5">
         <div className="max-w-2xl space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
-            Два варианта. Один результат.
+            Два варианта. Один результат
           </p>
           <h2 className="text-2xl font-bold tracking-tight md:text-[1.75rem]">
             Видео уже есть? Или создадим его вместе?
           </h2>
           <p className="text-[15px] leading-relaxed text-[#B8AFBD]">
             Выберите нужный объём работы. В обоих вариантах проверим материал и передадим видеошот
-            для размещения в Яндекс Музыке.
+            для размещения в Яндекс Музыке
           </p>
         </div>
 
@@ -556,7 +589,7 @@ function YandexVideoshotLandingInner() {
             disabled={loading}
             onSelect={() => applyMode("ready")}
             title="У меня есть видео"
-            description="Передайте готовый видеошот. Мы проверим его и загрузим для вашего трека."
+            description="Передайте готовый видеошот. Мы проверим его и загрузим для вашего трека"
             bullets={["Проверка материала.", "Загрузка в Яндекс Музыку."]}
             price={`${YANDEX_VIDEOSHOT_PRICE_RUB} ₽ за один готовый видеошот`}
           />
@@ -567,7 +600,7 @@ function YandexVideoshotLandingInner() {
             disabled={loading}
             onSelect={() => applyMode("create")}
             title="Нужно создать видео"
-            description="Соберём видеоряд под ваш трек из готовых кадров, графики или абстракции."
+            description="Соберём видеоряд под ваш трек из готовых кадров, графики или абстракции"
             bullets={["Создание видеошота.", "Проверка и загрузка."]}
             price={`${YANDEX_VIDEOSHOT_CREATION_PRICE_RUB} ₽ за один видеошот`}
             badge="Публикация включена"
@@ -801,6 +834,69 @@ function YandexVideoshotLandingInner() {
                 ) : null}
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="yandex-videoshot-isrc">ISRC</Label>
+                  <Input
+                    id="yandex-videoshot-isrc"
+                    ref={isrcRef}
+                    value={isrc}
+                    onChange={(e) => {
+                      setIsrc(e.target.value)
+                      clearFieldError("isrc")
+                    }}
+                    placeholder="RU-ABC-25-00001"
+                    maxLength={CODE_MAX_LEN}
+                    disabled={loading}
+                    autoCapitalize="characters"
+                    aria-invalid={Boolean(fieldErrors.isrc)}
+                    aria-describedby={
+                      fieldErrors.isrc ? "yandex-videoshot-isrc-error" : undefined
+                    }
+                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  />
+                  {fieldErrors.isrc ? (
+                    <p
+                      id="yandex-videoshot-isrc-error"
+                      className="text-sm text-destructive"
+                      role="alert"
+                    >
+                      {fieldErrors.isrc}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="yandex-videoshot-upc">UPC</Label>
+                  <Input
+                    id="yandex-videoshot-upc"
+                    ref={upcRef}
+                    value={upc}
+                    onChange={(e) => {
+                      setUpc(e.target.value)
+                      clearFieldError("upc")
+                    }}
+                    placeholder="123456789012"
+                    maxLength={CODE_MAX_LEN}
+                    disabled={loading}
+                    inputMode="numeric"
+                    aria-invalid={Boolean(fieldErrors.upc)}
+                    aria-describedby={
+                      fieldErrors.upc ? "yandex-videoshot-upc-error" : undefined
+                    }
+                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  />
+                  {fieldErrors.upc ? (
+                    <p
+                      id="yandex-videoshot-upc-error"
+                      className="text-sm text-destructive"
+                      role="alert"
+                    >
+                      {fieldErrors.upc}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="yandex-videoshot-file-url">Ссылка на готовое видео</Label>
                 <Input
@@ -879,6 +975,69 @@ function YandexVideoshotLandingInner() {
                     {fieldErrors.demoUrl}
                   </p>
                 ) : null}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="yandex-videoshot-create-isrc">ISRC</Label>
+                  <Input
+                    id="yandex-videoshot-create-isrc"
+                    ref={mode === "create" ? isrcRef : undefined}
+                    value={isrc}
+                    onChange={(e) => {
+                      setIsrc(e.target.value)
+                      clearFieldError("isrc")
+                    }}
+                    placeholder="RU-ABC-25-00001"
+                    maxLength={CODE_MAX_LEN}
+                    disabled={loading}
+                    autoCapitalize="characters"
+                    aria-invalid={Boolean(fieldErrors.isrc)}
+                    aria-describedby={
+                      fieldErrors.isrc ? "yandex-videoshot-create-isrc-error" : undefined
+                    }
+                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  />
+                  {fieldErrors.isrc ? (
+                    <p
+                      id="yandex-videoshot-create-isrc-error"
+                      className="text-sm text-destructive"
+                      role="alert"
+                    >
+                      {fieldErrors.isrc}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="yandex-videoshot-create-upc">UPC</Label>
+                  <Input
+                    id="yandex-videoshot-create-upc"
+                    ref={mode === "create" ? upcRef : undefined}
+                    value={upc}
+                    onChange={(e) => {
+                      setUpc(e.target.value)
+                      clearFieldError("upc")
+                    }}
+                    placeholder="123456789012"
+                    maxLength={CODE_MAX_LEN}
+                    disabled={loading}
+                    inputMode="numeric"
+                    aria-invalid={Boolean(fieldErrors.upc)}
+                    aria-describedby={
+                      fieldErrors.upc ? "yandex-videoshot-create-upc-error" : undefined
+                    }
+                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  />
+                  {fieldErrors.upc ? (
+                    <p
+                      id="yandex-videoshot-create-upc-error"
+                      className="text-sm text-destructive"
+                      role="alert"
+                    >
+                      {fieldErrors.upc}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div className="space-y-1.5">

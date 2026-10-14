@@ -16,6 +16,11 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
   const theme = track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME
   const linksList = getOrderedSmartlinkLinks(track.platformLinks, theme)
 
+  const previewAudioSrc =
+    theme.previewAudioEnabled && track.audioPath?.trim()
+      ? `/api/smartlink/${encodeURIComponent(slug)}/audio`
+      : null
+
   return (
     <SmartlinkLanding
       title={track.trackName}
@@ -23,6 +28,7 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
       coverUrl={coverUrl}
       links={linksList}
       theme={theme}
+      previewAudioSrc={previewAudioSrc}
     />
   )
 }

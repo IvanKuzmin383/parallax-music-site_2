@@ -36,6 +36,12 @@ export function addonBundleItemsFromUploadDraftPayload(payload: UploadDraftPaylo
   }
   if (priced.addons?.yandexVideoavatar?.enabled) items.push({ type: "yandex_videoavatar", quantity: 1 })
   if (priced.addons?.spotifyVideoshot?.enabled) items.push({ type: "spotify_videoshot", quantity: 1 })
+  if (priced.addons?.lyricsSync?.enabled) {
+    items.push({
+      type: "lyrics_sync",
+      quantity: Math.max(1, Number(priced.addons.lyricsSync.tracksCount ?? 1)),
+    })
+  }
   if (Boolean(priced.requestAiCover) && !items.some((i) => i.type === "track_cover")) {
     items.push({ type: "track_cover", quantity: 1 })
   }

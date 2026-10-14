@@ -505,6 +505,30 @@ export async function getAiTracksResultAudioForUser(params: {
   }
 }
 
+export async function getAiTracksResultBundleForUser(params: {
+  userId: string
+  resultId: string
+}): Promise<{
+  result: AiTracksResultDto
+  settings: AiTracksSettingsSnapshot
+  storageKey: string | null
+  format: string | null
+} | null> {
+  const row = await queryOne<ResultRow>(
+    `SELECT * FROM ai_tracks_results WHERE id = ? AND user_id = ?`,
+    [params.resultId, params.userId]
+  )
+  if (!row) return null
+  const job = await queryOne<JobRow>(`SELECT * FROM ai_tracks_jobs WHERE id = ?`, [row.job_id])
+  const settings = job ? parseSettings(job.settings_json) : toSettingsSnapshot(normalizeAiTracksDraft({}))
+  return {
+    result: mapResult(row, settings),
+    settings,
+    storageKey: row.audio_storage_key,
+    format: row.audio_format,
+  }
+}
+
 /** Активные задачи пользователя (для восстановления UI после reload). */
 export async function listActiveAiTracksJobs(userId: string): Promise<AiTracksJobDto[]> {
   const rows = await query<JobRow>(

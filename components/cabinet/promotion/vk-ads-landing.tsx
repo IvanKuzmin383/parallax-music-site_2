@@ -40,22 +40,22 @@ const INCLUDE_ITEMS = [
   {
     icon: Users,
     title: "Аудитории под вашу музыку",
-    body: "Подберём аудитории для тестирования с учётом жанра, проекта и цели кампании.",
+    body: "Подберём аудитории для тестирования с учётом жанра, проекта и цели кампании",
   },
   {
     icon: Megaphone,
     title: "Рекламная подача",
-    body: "Подготовим тексты и визуальные материалы, чтобы представить ваш релиз в рекламе.",
+    body: "Подготовим тексты и визуальные материалы, чтобы представить ваш релиз в рекламе",
   },
   {
     icon: FlaskConical,
     title: "Запуск и корректировки",
-    body: "Запустим кампанию, сравним варианты объявлений и скорректируем настройки по статистике.",
+    body: "Запустим кампанию, сравним варианты объявлений и скорректируем настройки по статистике",
   },
   {
     icon: LineChart,
     title: "Понятный разбор результатов",
-    body: "Покажем расход и доступные показатели кампании. Объясним, какие подходы сработали и что стоит проверить дальше.",
+    body: "Покажем расход и доступные показатели кампании. Объясним, какие подходы сработали и что стоит проверить дальше",
   },
 ] as const
 
@@ -63,52 +63,52 @@ const PROCESS_STEPS = [
   {
     num: "01",
     title: "Уточняем задачу",
-    body: "Вы присылаете ссылку и пожелания. В переписке согласуем цель, бюджет и условия работы.",
+    body: "Вы присылаете ссылку и пожелания. В переписке согласуем цель, бюджет и условия работы",
   },
   {
     num: "02",
     title: "Готовим и запускаем",
-    body: "Подбираем аудитории, готовим рекламные материалы и запускаем согласованную кампанию.",
+    body: "Подбираем аудитории, готовим рекламные материалы и запускаем согласованную кампанию",
   },
   {
     num: "03",
     title: "Следим и объясняем",
-    body: "Анализируем статистику, корректируем рекламу и разбираем с вами результаты.",
+    body: "Анализируем статистику, корректируем рекламу и разбираем с вами результаты",
   },
 ] as const
 
 const HERO_POINTS = [
-  { icon: AudioLines, label: "Под ваш релиз." },
-  { icon: FlaskConical, label: "Тестирование." },
-  { icon: BarChart3, label: "Разбор результатов." },
+  { icon: AudioLines, label: "Под ваш релиз" },
+  { icon: FlaskConical, label: "Тестирование" },
+  { icon: BarChart3, label: "Разбор результатов" },
 ] as const
 
 const ORDER_POINTS = [
-  "Согласованная задача и условия.",
-  "Материалы под ваш проект.",
-  "Анализ доступной статистики.",
+  "Согласованная задача и условия",
+  "Материалы под ваш проект",
+  "Анализ доступной статистики",
 ] as const
 
 const FAQ_ITEMS = [
   {
     q: "Какой бюджет нужен для старта?",
-    a: `Наша работа стоит ${VK_ADS_PRICE_LABEL}. Рекламный бюджет обсуждаем отдельно с учётом задачи и объёма кампании.`,
+    a: `Наша работа стоит ${VK_ADS_PRICE_LABEL}. Рекламный бюджет обсуждаем отдельно с учётом задачи и объёма кампании`,
   },
   {
     q: "Где будет показываться реклама?",
-    a: "Кампанию запускаем через VK Рекламу. Конкретные форматы и места показов подбираем под задачу и согласованные материалы.",
+    a: "Кампанию запускаем через VK Рекламу. Конкретные форматы и места показов подбираем под задачу и согласованные материалы",
   },
   {
     q: "Будет разбор результатов?",
-    a: "Покажем расход и доступные показатели кампании. Для разных задач важны разные показатели, поэтому обсуждаем их перед запуском.",
+    a: "Покажем расход и доступные показатели кампании. Для разных задач важны разные показатели, поэтому обсуждаем их перед запуском",
   },
   {
     q: "Вы гарантируете количество прослушиваний?",
-    a: "Фиксированное количество не гарантируем. Результат зависит от музыки, подачи, аудитории, бюджета и условий рекламной площадки.",
+    a: "Фиксированное количество не гарантируем. Результат зависит от музыки, подачи, аудитории, бюджета и условий рекламной площадки",
   },
   {
     q: "Как обсудить детали?",
-    a: "Укажите ссылку, цель и пожелания в форме. Детали кампании согласуем в переписке.",
+    a: "Укажите ссылку, цель и пожелания в форме. Детали кампании согласуем в переписке",
   },
 ] as const
 
@@ -369,8 +369,8 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
       </div>
 
       {/* 1. Hero */}
-      <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12 lg:items-center">
-        <div className="min-w-0 space-y-5">
+      <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12">
+        <div className="min-w-0 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
             Таргетированная реклама в VK
           </p>
@@ -380,37 +380,39 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
             <span className="text-[#F3264D]">слушателей</span>
             <span className="text-[#F7F5F8]"> со своей </span>
             <br className="hidden lg:block" />
-            <span className="text-[#F7F5F8]">музыкой.</span>
+            <span className="text-[#F7F5F8]">музыкой</span>
           </h1>
           <p className="max-w-xl text-[15px] leading-relaxed text-[#B3ADBC] md:text-base">
             Настроим рекламную кампанию под ваш трек или проект. Подготовим объявления, протестируем
-            аудитории и будем корректировать рекламу по результатам.
+            аудитории и будем корректировать рекламу по результатам
           </p>
 
-          <div className="space-y-1">
-            <p className="text-3xl font-bold tracking-tight text-[#F7F5F8] sm:text-4xl">{priceLabel}</p>
-            <p className="text-sm text-[#B3ADBC]">Работа Parallax. Рекламный бюджет - отдельно.</p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-3xl font-bold tracking-tight text-[#F7F5F8] sm:text-4xl">{priceLabel}</p>
+              <p className="text-sm text-[#B3ADBC]">Работа Parallax. Рекламный бюджет - отдельно</p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button
+                size="lg"
+                className="h-11 min-h-11 bg-[#F3264D] px-5 text-white hover:bg-[#F3264D]/90"
+                onClick={openOrderForm}
+              >
+                Заказать рекламу
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 min-h-11 border-[#303038] px-5"
+                onClick={() => scrollToId("vk-include")}
+              >
+                Что входит
+              </Button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Button
-              size="lg"
-              className="h-11 min-h-11 bg-[#F3264D] px-5 text-white hover:bg-[#F3264D]/90"
-              onClick={openOrderForm}
-            >
-              Заказать рекламу
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-11 min-h-11 border-[#303038] px-5"
-              onClick={() => scrollToId("vk-include")}
-            >
-              Что входит
-            </Button>
-          </div>
-
-          <ul className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-2">
+          <ul className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-2">
             {HERO_POINTS.map((item) => {
               const Icon = item.icon
               return (
@@ -432,14 +434,14 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
       <section className="space-y-5" aria-labelledby="vk-goals-heading">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
-            Начинаем с задачи.
+            Начинаем с задачи
           </p>
           <h2 id="vk-goals-heading" className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             Что нужно вашему проекту?
           </h2>
           <p className="max-w-2xl text-[15px] leading-relaxed text-[#B3ADBC]">
             Цель кампании влияет на аудитории, рекламную подачу и показатели, которые мы будем
-            оценивать.
+            оценивать
           </p>
         </div>
 
@@ -507,14 +509,14 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start lg:gap-10">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
-              Что входит в работу.
+              Что входит в работу
             </p>
             <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-              Кампания, которой занимаются.
+              Кампания, которой занимаются
             </h2>
             <p className="max-w-md text-[15px] leading-relaxed text-[#B3ADBC]">
               От первой рекламной гипотезы до анализа результатов. Вы передаёте материалы и задачу -
-              мы готовим и ведём рекламу.
+              мы готовим и ведём рекламу
             </p>
           </div>
 
@@ -544,13 +546,13 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
       <section className="space-y-5">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
-            Стоимость без путаницы.
+            Стоимость без путаницы
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-            Наша работа. Ваш рекламный бюджет.
+            Наша работа. Ваш рекламный бюджет
           </h2>
           <p className="max-w-2xl text-[15px] leading-relaxed text-[#B3ADBC]">
-            Две отдельные статьи расходов. Условия кампании согласуем перед запуском.
+            Две отдельные статьи расходов. Условия кампании согласуем перед запуском
           </p>
         </div>
 
@@ -561,14 +563,14 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
               <p className="text-2xl font-bold tracking-tight text-[#F7F5F8]">{priceLabel}</p>
               <p className="text-[13px] leading-relaxed text-[#B3ADBC]">
                 Подготовка, настройка, ведение и анализ кампании. Итоговая стоимость зависит от
-                согласованного объёма работы.
+                согласованного объёма работы
               </p>
             </div>
             <div className="space-y-2 px-5 py-5 md:px-6 md:py-6">
               <p className="text-sm font-medium text-[#B3ADBC]">Рекламный бюджет</p>
-              <p className="text-2xl font-bold tracking-tight text-[#F7F5F8]">отдельно</p>
+              <p className="text-2xl font-bold tracking-tight text-[#F7F5F8]">{priceLabel}</p>
               <p className="text-[13px] leading-relaxed text-[#B3ADBC]">
-                Средства на размещение рекламы. Размер подбираем под вашу задачу и возможности.
+                Средства на размещение рекламы. Размер подбираем под вашу задачу и возможности
               </p>
             </div>
           </div>
@@ -579,10 +581,10 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
       <section className="space-y-5">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
-            Как проходит работа.
+            Как проходит работа
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-            От вашего трека до рекламной кампании.
+            От вашего трека до рекламной кампании
           </h2>
         </div>
         <ol className="grid gap-4 md:grid-cols-3 md:gap-5">
@@ -607,14 +609,14 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
         <div className="min-w-0 space-y-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
-              Продвижение в VK.
+              Продвижение в VK
             </p>
             <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-              Начнём с вашей музыки.
+              Начнём с вашей музыки
             </h2>
             <p className="text-[15px] leading-relaxed text-[#B3ADBC]">
               Расскажите, что хотите продвигать. Поможем определить задачу кампании и согласуем
-              детали в переписке.
+              детали в переписке
             </p>
           </div>
 
@@ -637,7 +639,7 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
 
         <div className="min-w-0 space-y-4 rounded-[12px] border border-[#303038] bg-[#0F0F14] p-4 sm:p-5">
           <h3 className="text-lg font-semibold tracking-tight text-[#F7F5F8]">
-            Ваш релиз и задача.
+            Ваш релиз и задача
           </h3>
 
           <div className="space-y-1.5">
@@ -823,7 +825,7 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
             {submitting ? "Отправка..." : service.interestCtaLabel || "Отправить заявку"}
           </Button>
           <p className="text-xs leading-relaxed text-[#B3ADBC]">
-            Точную стоимость и условия согласуем перед оплатой. Сейчас деньги не списываются.
+            Точную стоимость и условия согласуем перед оплатой. Сейчас деньги не списываются
           </p>
           <p id={statusId} role="status" aria-live="polite" className="sr-only">
             {statusMessage || ""}
@@ -834,7 +836,7 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
       {/* 7. FAQ */}
       <section id="faq" className="scroll-mt-20 max-w-3xl space-y-5">
         <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-          Вопросы о продвижении.
+          Вопросы о продвижении
         </h2>
         <Accordion
           type="single"

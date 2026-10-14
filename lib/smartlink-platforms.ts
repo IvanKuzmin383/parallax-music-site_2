@@ -28,15 +28,15 @@ export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   deezer: "/platforms/deezer.png",
   yandex: "/platforms/yandex.svg",
   youtubeMusic: "/platforms/youtube-music.svg",
-  vk: "/platforms/vk.png",
+  vk: "/platforms/vk.svg?v=2",
   sberzvuk: "/platforms/sberzvuk.svg",
   kion: "/platforms/kion.svg",
-  amazonMusic: "/platforms/amazon-music.svg",
-  odnoklassniki: "/platforms/odnoklassniki.svg",
-  tidal: "/platforms/tidal.svg",
-  soundcloud: "/platforms/soundcloud.svg",
-  wink: "/platforms/wink.svg",
-  other: "/platforms/other.svg",
+  amazonMusic: "/platforms/amazon-music.svg?v=2",
+  odnoklassniki: "/platforms/odnoklassniki.svg?v=2",
+  tidal: "/platforms/tidal.svg?v=2",
+  soundcloud: "/platforms/soundcloud.svg?v=2",
+  wink: "/platforms/wink.svg?v=2",
+  other: "/platforms/other.svg?v=2",
 }
 
 export function isPlatformLinkKey(value: unknown): value is PlatformLinkKey {

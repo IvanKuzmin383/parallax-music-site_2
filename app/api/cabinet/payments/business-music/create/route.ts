@@ -4,8 +4,45 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
+import { getReleaseById } from "@/lib/releases"
+import { getTrackById } from "@/lib/tracks"
+import { getAlbumById } from "@/lib/albums"
+
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
-const PAYMENT_DESCRIPTION = "Музыка для бизнеса - размещение трека"
+
+async function resolveOwnedCatalogItem(userId: string, catalogId: string) {
+  const release = await getReleaseById(catalogId)
+  if (release && release.userId.toLowerCase() === userId.toLowerCase()) {
+    return {
+      releaseId: release.id,
+      trackTitle: release.title,
+      artistName: release.artistName,
+      source: "release" as const,
+    }
+  }
+
+  const track = await getTrackById(catalogId)
+  if (track && track.userId.toLowerCase() === userId.toLowerCase()) {
+    return {
+      releaseId: track.id,
+      trackTitle: track.trackName,
+      artistName: track.artistName ?? "",
+      source: "track" as const,
+    }
+  }
+
+  const album = await getAlbumById(catalogId)
+  if (album && album.userId.toLowerCase() === userId.toLowerCase()) {
+    return {
+      releaseId: album.id,
+      trackTitle: album.title,
+      artistName: album.artistName,
+      source: "album" as const,
+    }
+  }
+
+  return null
+}
 
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -27,15 +64,26 @@ export async function POST(request: NextRequest) {
   }
 
   const raw = body as Record<string, unknown>
-  const trackTitle = typeof raw.trackTitle === "string" ? raw.trackTitle.trim() : ""
-  const trackLink = typeof raw.trackLink === "string" ? raw.trackLink.trim() : ""
+  const releaseIdRaw = typeof raw.releaseId === "string" ? raw.releaseId.trim() : ""
   const comment = typeof raw.comment === "string" ? raw.comment.trim() : ""
   const contactType = typeof raw.contactType === "string" ? raw.contactType.trim().toLowerCase() : ""
   const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
 
-  if (!trackTitle) {
-    return NextResponse.json({ error: "Укажите название релиза или проекта" }, { status: 400 })
+  if (!releaseIdRaw) {
+    return NextResponse.json(
+      { error: "Выберите релиз из загруженных в кабинете" },
+      { status: 400 }
+    )
   }
+
+  const owned = await resolveOwnedCatalogItem(user.id, releaseIdRaw)
+  if (!owned) {
+    return NextResponse.json(
+      { error: "Релиз не найден или не принадлежит вашему аккаунту" },
+      { status: 400 }
+    )
+  }
+
   if (comment.length < 2) {
     return NextResponse.json({ error: "Поле «Комментарий» обязательно" }, { status: 400 })
   }
@@ -46,9 +94,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-
   const totalAmount = BUSINESS_MUSIC_PRICE_RUB.toFixed(2)
   const isTelegramContact = contactType === "telegram"
+  const displayTitle = owned.artistName
+    ? `${owned.artistName} - ${owned.trackTitle}`
+    : owned.trackTitle
+
   const order = await createOrder({
     orderType: "business_music",
     userId: user.id,
@@ -57,13 +108,14 @@ export async function POST(request: NextRequest) {
     contactEmail: isTelegramContact ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegramContact ? contactValue : undefined,
     serviceDetails: {
-      trackTitle,
-      comment: [comment, trackLink ? `Ссылка: ${trackLink}` : ""].filter(Boolean).join("\n"),
+      trackTitle: displayTitle,
+      releaseId: owned.releaseId,
+      catalogSource: owned.source,
+      comment,
       contactType,
       contactValue,
     },
   })
-
 
   return respondWithWalletPayment(order)
 }

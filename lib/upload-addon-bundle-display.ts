@@ -22,6 +22,8 @@ export function promotionTitleForUploadAddonType(
       return p.yandexVideoavatar.title
     case "spotify_videoshot":
       return p.spotifyVideoshot.title
+    case "lyrics_sync":
+      return "Синхронизация текста"
     default:
       return type
   }

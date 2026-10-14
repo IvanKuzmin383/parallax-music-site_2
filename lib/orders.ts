@@ -8,6 +8,7 @@ import { YANDEX_VIDEOSHOT_PRICE_RUB } from "./yandex-videoshot-pricing"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "./yandex-videoshot-creation-pricing"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "./yandex-videoavatar-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "./spotify-videoshot-pricing"
+import { LYRICS_SYNC_PRICE_RUB } from "./lyrics-sync-pricing"
 import {
   parseServiceDetails,
   stringifyServiceDetails,
@@ -150,6 +151,7 @@ export interface UploadAddonBundleItem {
     | "yandex_videoshot_creation"
     | "yandex_videoavatar"
     | "spotify_videoshot"
+    | "lyrics_sync"
   quantity: number
 }
 
@@ -717,6 +719,10 @@ export function calculateUploadAddonBundleAmount(items: UploadAddonBundleItem[])
     }
     if (item.type === "spotify_videoshot") {
       totalRub += SPOTIFY_VIDEOSHOT_PRICE_RUB * item.quantity
+      continue
+    }
+    if (item.type === "lyrics_sync") {
+      totalRub += LYRICS_SYNC_PRICE_RUB * item.quantity
     }
   }
   return { totalRub, aiMasteringTracksCount }

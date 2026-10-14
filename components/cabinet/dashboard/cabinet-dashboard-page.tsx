@@ -16,7 +16,6 @@ import {
   DashboardStatsPanel,
   DashboardTasks,
 } from "./dashboard-widgets"
-import { DashboardAchievementsCard } from "./dashboard-achievements-card"
 
 function CabinetDashboardPageContent() {
   const { user, loading: userLoading } = useCabinetSession()
@@ -55,8 +54,6 @@ function CabinetDashboardPageContent() {
         balance={walletBalance}
         royalty={royaltyBalance}
       />
-
-      <DashboardAchievementsCard />
 
       <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <DashboardStatsPanel />

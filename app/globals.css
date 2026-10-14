@@ -762,6 +762,36 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   }
 }
 
+@keyframes sl-hail {
+  0% {
+    opacity: 0;
+    transform: translateY(-56px) translateX(var(--sl-hail-x, 0px)) scale(0.82) rotate(-8deg);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(5px) translateX(0) scale(1.06) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes sl-pop-grid {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .sl-anim-rise {
   animation: sl-rise var(--sl-anim-ms, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -778,13 +808,85 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 .sl-anim-slide {
   animation: sl-slide var(--sl-anim-ms, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+.sl-anim-hail {
+  animation: sl-hail var(--sl-anim-ms, 900ms) cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  animation-delay: calc(var(--sl-anim-i, 0) * 55ms);
+}
+.sl-anim-popGrid {
+  animation: sl-pop-grid var(--sl-anim-ms, 700ms) cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  animation-delay: calc(var(--sl-anim-i, 0) * 60ms);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .sl-anim-rise,
   .sl-anim-fade,
   .sl-anim-cascade,
   .sl-anim-softPop,
-  .sl-anim-slide {
+  .sl-anim-slide,
+  .sl-anim-hail,
+  .sl-anim-popGrid {
     animation: none !important;
   }
+}
+
+/* Smartlink preset surfaces */
+.sl-film-grain {
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.sl-film-vignette {
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.sl-ticket-card {
+  background: #f7f1e6;
+  color: #161616;
+  border-radius: 6px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  background-image: radial-gradient(circle at left center, #0b0b0c 7px, transparent 7.5px),
+    radial-gradient(circle at right center, #0b0b0c 7px, transparent 7.5px);
+  background-size: 100% 22px;
+  background-repeat: repeat-y;
+  background-position: left center, right center;
+}
+
+.sl-ticket-stamp {
+  border: 2px solid color-mix(in srgb, var(--sl-accent) 80%, #161616);
+  border-radius: 4px;
+  background: color-mix(in srgb, #f7f1e6 70%, transparent);
+  letter-spacing: 0.18em;
+}
+
+.sl-carbon-bg {
+  background-color: #0d0d10;
+  background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.035) 0 1px,
+      transparent 1px 10px
+    ),
+    radial-gradient(70% 50% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 70%);
+}
+
+.sl-vinyl-disc {
+  box-shadow:
+    0 0 0 10px #111,
+    0 0 0 12px rgba(255, 255, 255, 0.08),
+    0 18px 40px rgba(0, 0, 0, 0.5);
+}
+
+.sl-inkblot {
+  border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'%3E%3Cpath fill='black' d='M2 18C6 6 18 2 32 4c10 2 14 10 28 10s18-8 28-10c12-2 20 4 22 14 2 12-6 20-20 20H22C8 38 0 30 2 18Z'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'%3E%3Cpath fill='black' d='M2 18C6 6 18 2 32 4c10 2 14 10 28 10s18-8 28-10c12-2 20 4 22 14 2 12-6 20-20 20H22C8 38 0 30 2 18Z'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.sl-neon-btn {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--sl-accent) 60%, transparent);
 }

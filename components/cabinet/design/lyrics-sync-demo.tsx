@@ -279,12 +279,12 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
           </div>
         </div>
 
-        <p className="mt-3 text-center text-xs text-[#B8AFBD]">
+        <p className="mt-3 text-center text-xs text-muted-foreground">
           Демонстрация подсветки · без звука
         </p>
 
         <div
-          className="mt-3 flex rounded-[12px] border border-[#302831] bg-[#151419] p-1"
+          className="mt-3 flex rounded-[12px] border border-border/80 bg-card/60 p-1"
           role="radiogroup"
           aria-labelledby={modeId}
         >
@@ -307,8 +307,8 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                 className={cn(
                   "h-10 min-h-10 flex-1 rounded-[10px] px-2 text-xs font-medium transition-colors",
                   selected
-                    ? "bg-[#F21D43]/15 text-[#F7F4F6]"
-                    : "text-[#B8AFBD] hover:text-[#F7F4F6]"
+                    ? "bg-primary/15 text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => setMode(opt.id)}
               >

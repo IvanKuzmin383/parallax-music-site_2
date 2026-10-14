@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -16,14 +16,21 @@ import {
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import {
   getCabinetServiceHubBackLabel,
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
+import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
 import { PUBLICKA_RATE_RUB, playsToEarningsRub } from "@/lib/publicka-shared"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
@@ -126,15 +133,6 @@ function formatPlays(value: number): string {
   return value.toLocaleString("ru-RU")
 }
 
-function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return url.protocol === "http:" || url.protocol === "https:"
-  } catch {
-    return false
-  }
-}
-
 function scrollToId(id: string) {
   const el = document.getElementById(id)
   if (!el) return
@@ -212,16 +210,23 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
   const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const paymentHandledRef = useRef(false)
 
-  const [projectName, setProjectName] = useState("")
-  const [trackLink, setTrackLink] = useState("")
+  const [releaseId, setReleaseId] = useState("")
   const [comment, setComment] = useState("")
   const [fieldErrors, setFieldErrors] = useState<{
-    projectName?: string
-    trackLink?: string
+    releaseId?: string
     comment?: string
   }>({})
   const [submitting, setSubmitting] = useState<"card" | "balance" | null>(null)
   const [playsPreset, setPlaysPreset] = useState<(typeof PLAY_PRESETS)[number]>(10_000)
+  const { releases, loading: releasesLoading } = useCabinetReleases()
+  const selectableReleases = useMemo(
+    () => releases.filter((r) => r.kind !== "draft"),
+    [releases]
+  )
+  const selectedRelease = useMemo(
+    () => selectableReleases.find((r) => r.id === releaseId) ?? null,
+    [selectableReleases, releaseId]
+  )
 
   const priceRub = BUSINESS_MUSIC_PRICE_RUB
   const priceDisplay = `${formatRub(priceRub)} ₽`
@@ -261,7 +266,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
     requestAnimationFrame(() => {
       scrollToId("bm-order")
       window.setTimeout(() => {
-        document.getElementById("bm-project")?.focus()
+        document.getElementById("bm-release")?.focus()
       }, 280)
     })
   }, [])
@@ -272,22 +277,16 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
       return
     }
 
-    const nextErrors: { projectName?: string; trackLink?: string; comment?: string } = {}
-    if (!projectName.trim()) {
-      nextErrors.projectName = "Укажите название трека / релиза"
-    }
-    const link = trackLink.trim()
-    if (link && !isHttpUrl(link)) {
-      nextErrors.trackLink = "Укажите корректную ссылку (http или https)"
+    const nextErrors: { releaseId?: string; comment?: string } = {}
+    if (!selectedRelease) {
+      nextErrors.releaseId = "Выберите релиз из загруженных в кабинете"
     }
     if (!comment.trim() || comment.trim().length < 2) {
       nextErrors.comment = "Заполните комментарий к заказу"
     }
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
-      toast.error(
-        nextErrors.projectName || nextErrors.trackLink || nextErrors.comment || "Заполните поля"
-      )
+      toast.error(nextErrors.releaseId || nextErrors.comment || "Заполните поля")
       scrollToId("bm-order")
       return
     }
@@ -299,9 +298,8 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          trackTitle: projectName.trim(),
-          trackLink: link || undefined,
-          fileUrl: link || undefined,
+          releaseId: selectedRelease!.id,
+          trackTitle: selectedRelease!.title,
           comment: comment.trim(),
           contactType: "telegram",
           contactValue: "@artist",
@@ -316,8 +314,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
       }
       if (data.paid === true) {
         toast.success("Оплата с баланса прошла успешно. Заказ принят в работу.")
-        setProjectName("")
-        setTrackLink("")
+        setReleaseId("")
         setComment("")
         setFieldErrors({})
         router.refresh()
@@ -329,8 +326,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
     } finally {
       setSubmitting(null)
     }
-  }, [service.paymentEndpoint, projectName, trackLink, comment, router])
-
+  }, [service.paymentEndpoint, selectedRelease, comment, router])
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1120px] space-y-10 pb-10 md:space-y-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -583,45 +579,51 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             <h3 className="text-lg font-semibold tracking-tight text-[#F7F4F6]">Ваш трек</h3>
 
             <div className="space-y-1.5">
-              <Label htmlFor="bm-project">Название трека / релиза</Label>
-              <Input
-                id="bm-project"
-                value={projectName}
-                onChange={(e) => {
-                  setProjectName(e.target.value)
-                  if (fieldErrors.projectName) {
-                    setFieldErrors((prev) => ({ ...prev, projectName: undefined }))
+              <Label htmlFor="bm-release">Релиз из кабинета</Label>
+              <Select
+                value={releaseId || undefined}
+                onValueChange={(value) => {
+                  setReleaseId(value)
+                  if (fieldErrors.releaseId) {
+                    setFieldErrors((prev) => ({ ...prev, releaseId: undefined }))
                   }
                 }}
-                placeholder="Мой сингл"
-                className="text-base md:text-sm"
-                aria-invalid={Boolean(fieldErrors.projectName)}
-                disabled={Boolean(submitting)}
-              />
-              {fieldErrors.projectName ? (
-                <p className="text-xs text-[#F21D43]">{fieldErrors.projectName}</p>
-              ) : null}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="bm-link">Ссылка на трек · если есть</Label>
-              <Input
-                id="bm-link"
-                value={trackLink}
-                onChange={(e) => {
-                  setTrackLink(e.target.value)
-                  if (fieldErrors.trackLink) {
-                    setFieldErrors((prev) => ({ ...prev, trackLink: undefined }))
-                  }
-                }}
-                placeholder="https://…"
-                className="text-base md:text-sm"
-                aria-invalid={Boolean(fieldErrors.trackLink)}
-                disabled={Boolean(submitting)}
-              />
-              {fieldErrors.trackLink ? (
-                <p className="text-xs text-[#F21D43]">{fieldErrors.trackLink}</p>
-              ) : null}
+                disabled={Boolean(submitting) || releasesLoading}
+              >
+                <SelectTrigger
+                  id="bm-release"
+                  className="w-full text-base md:text-sm"
+                  aria-invalid={Boolean(fieldErrors.releaseId)}
+                >
+                  <SelectValue
+                    placeholder={releasesLoading ? "Загрузка релизов..." : "Выберите релиз"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectableReleases.map((release) => (
+                    <SelectItem key={release.id} value={release.id}>
+                      {release.artist ? `${release.artist} - ${release.title}` : release.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldErrors.releaseId ? (
+                <p className="text-xs text-[#F21D43]">{fieldErrors.releaseId}</p>
+              ) : !releasesLoading && selectableReleases.length === 0 ? (
+                <p className="text-xs text-[#B0A9B6]">
+                  Нет загруженных релизов.{" "}
+                  <Link
+                    href="/cabinet/upload"
+                    className="text-[#F21D43] underline-offset-2 hover:underline"
+                  >
+                    Загрузить релиз
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-xs text-[#B0A9B6]">
+                  Выберите релиз, который уже загружен в кабинет.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -657,17 +659,11 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             <Button
               type="button"
               className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90"
-              disabled={Boolean(submitting)}
+              disabled={Boolean(submitting) || selectableReleases.length === 0}
               onClick={() => void handlePay()}
             >
               {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
             </Button>
-            <p className="text-xs text-[#B0A9B6]">
-              Оплата только с баланса.{" "}
-              <Link href="/cabinet/finance/balance" className="text-[#F21D43] underline-offset-2 hover:underline">
-                Пополнить картой
-              </Link>
-            </p>
           </div>
         </div>
       </section>

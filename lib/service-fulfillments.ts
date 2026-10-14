@@ -270,6 +270,12 @@ function extractUploadAddonDetails(payload: UploadDraftPayload): UploadAddonDeta
       comment: a.spotifyVideoshot.comment,
     })
   }
+  if (a.lyricsSync?.enabled) {
+    lines.push({
+      type: "lyrics_sync",
+      tracksCount: a.lyricsSync.tracksCount,
+    })
+  }
   if (payload.requestAiCover && !a.trackCover?.enabled) {
     lines.push({ type: "ai_cover" })
   }

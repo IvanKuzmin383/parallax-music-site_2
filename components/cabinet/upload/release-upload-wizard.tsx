@@ -197,6 +197,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const [addonYandexVideoshotCreation, setAddonYandexVideoshotCreation] = useState(false)
   const [addonYandexVideoavatar, setAddonYandexVideoavatar] = useState(false)
   const [addonSpotifyVideoshot, setAddonSpotifyVideoshot] = useState(false)
+  const [addonLyricsSync, setAddonLyricsSync] = useState(false)
 
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
@@ -236,6 +237,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       addonYandexVideoshotCreation,
       addonYandexVideoavatar,
       addonSpotifyVideoshot,
+      addonLyricsSync,
+      addonLyricsSyncCount: Math.max(1, tracks.length || 1),
     })
     const releaseDateRub = releaseDate ? getReleaseDateTierPriceRub(releaseDate) : 0
     return addonsRub + releaseDateRub
@@ -249,6 +252,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     addonYandexVideoshotCreation,
     addonYandexVideoavatar,
     addonSpotifyVideoshot,
+    addonLyricsSync,
+    tracks.length,
     releaseDate,
   ])
 
@@ -331,6 +336,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     setAddonYandexVideoshotCreation(Boolean(a?.yandexVideoshotCreation?.enabled))
     setAddonYandexVideoavatar(Boolean(a?.yandexVideoavatar?.enabled))
     setAddonSpotifyVideoshot(Boolean(a?.spotifyVideoshot?.enabled))
+    setAddonLyricsSync(Boolean(a?.lyricsSync?.enabled))
     if (r.coverPath && r.id) {
       setCoverPreview(`/api/cabinet/releases/${r.id}/cover?t=${Date.now()}`)
     }
@@ -448,6 +454,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       yandexVideoshotCreation: addonYandexVideoshotCreation ? { enabled: true } : undefined,
       yandexVideoavatar: addonYandexVideoavatar ? { enabled: true } : undefined,
       spotifyVideoshot: addonSpotifyVideoshot ? { enabled: true } : undefined,
+      lyricsSync: addonLyricsSync
+        ? { enabled: true, tracksCount: Math.max(1, tracks.length || 1) }
+        : undefined,
     },
   })
 
@@ -2307,6 +2316,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           setAddonYandexVideoavatar={setAddonYandexVideoavatar}
           addonSpotifyVideoshot={addonSpotifyVideoshot}
           setAddonSpotifyVideoshot={setAddonSpotifyVideoshot}
+          addonLyricsSync={addonLyricsSync}
+          setAddonLyricsSync={setAddonLyricsSync}
+          addonLyricsSyncCount={Math.max(1, tracks.length || 1)}
           afterPaymentSubject={kind === "album" ? "альбом" : "трек"}
           sectionClassName=""
         />

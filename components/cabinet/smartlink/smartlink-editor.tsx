@@ -25,12 +25,20 @@ import {
   SMARTLINK_ACCENT_SWATCHES,
   SMARTLINK_ANIMATION_META,
   SMARTLINK_ANIMATIONS,
+  SMARTLINK_ANIM_SPEED_MAX,
+  SMARTLINK_ANIM_SPEED_MIN,
   SMARTLINK_BUTTON_STYLES,
   SMARTLINK_COVER_SHAPES,
   SMARTLINK_FONTS,
   SMARTLINK_FONT_META,
+  SMARTLINK_PLATFORM_LAYOUTS,
+  SMARTLINK_PLATFORM_LAYOUT_META,
+  SMARTLINK_PRESET_BASE,
+  SMARTLINK_PRESET_LOOK,
   SMARTLINK_PRESET_META,
-  SMARTLINK_PRESETS,
+  SMARTLINK_PRESET_SIGNATURE,
+  SMARTLINK_PREVIEW_AUDIO_DURATION_SEC,
+  SMARTLINK_PREVIEW_AUDIO_START_MAX,
   getOrderedSmartlinkLinks,
   normalizeAccentHex,
   parseSmartlinkTheme,
@@ -39,6 +47,7 @@ import {
   type SmartlinkCoverShape,
   type SmartlinkExtraLink,
   type SmartlinkFont,
+  type SmartlinkPlatformLayout,
   type SmartlinkPreset,
   type SmartlinkTheme,
 } from "@/lib/smartlink-theme"
@@ -74,25 +83,142 @@ type SmartlinkApiPayload = {
   smartlinkSlug: string | null
   publicPath: string | null
   isPublic: boolean
+  defaultPreviewStartSec?: number
 }
 
 const BUTTON_LABELS: Record<SmartlinkButtonStyle, string> = {
-  solid: "Заливка",
-  outline: "Обводка",
-  soft: "Мягкие",
-  glass: "Glass",
+  solid: "Плотные",
+  outline: "Контур",
+  soft: "Приглушённые",
+  glass: "Матовые",
 }
 
 const COVER_LABELS: Record<SmartlinkCoverShape, string> = {
-  rounded: "Скругл.",
+  rounded: "Скругление",
   soft: "Мягкие",
   square: "Квадрат",
 }
 
 const SOCIAL_STYLE_LABELS: Record<SmartlinkSocialIconStyle, string> = {
-  glass: "Glass",
-  flat: "Flat",
-  bare: "Без обёртки",
+  glass: "Матовые",
+  flat: "Плитки",
+  bare: "Без фона",
+}
+
+function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: string }) {
+  const base = "relative h-12 w-full overflow-hidden rounded-lg border border-white/10"
+  if (preset === "sheet" || preset === "ticket") {
+    return (
+      <div className={cn(base, "bg-[#F3EFE6] p-2")}>
+        <div
+          className={cn(
+            "h-full w-full",
+            preset === "ticket" ? "rounded-sm border border-dashed border-black/30" : "rounded-full",
+          )}
+          style={{ backgroundColor: accent }}
+        />
+      </div>
+    )
+  }
+  if (preset === "neon") {
+    return (
+      <div className={cn(base, "bg-[#0B0B0C] p-2")}>
+        <div
+          className="h-full w-full rounded-full border-2 bg-transparent"
+          style={{
+            borderColor: accent,
+            boxShadow: `0 0 12px ${accent}`,
+          }}
+        />
+      </div>
+    )
+  }
+  if (preset === "vinyl" || preset === "grid") {
+    return (
+      <div className={cn(base, "flex items-center justify-center gap-1 bg-[#111] p-2")}>
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className={cn(
+              "h-5 w-5 border border-white/25",
+              preset === "vinyl" ? "rounded-full" : "rounded-md",
+            )}
+            style={{ backgroundColor: i === 1 ? accent : "rgba(255,255,255,0.12)" }}
+          />
+        ))}
+      </div>
+    )
+  }
+  if (preset === "sunset") {
+    return (
+      <div className={cn(base, "bg-[#0B0B0C] p-2")}>
+        <div
+          className="h-full w-full rounded-full"
+          style={{ backgroundImage: `linear-gradient(135deg, ${accent}, #0a0a0a)` }}
+        />
+      </div>
+    )
+  }
+  if (preset === "terminal") {
+    return (
+      <div className={cn(base, "bg-[#0B0B0C] px-2 py-1.5 font-mono text-[10px] text-white/70")}>
+        &gt; listen →
+      </div>
+    )
+  }
+  if (preset === "poster") {
+    return (
+      <div className={cn(base, "bg-[#111]")}>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+        <div className="absolute bottom-1 left-1.5 text-[9px] font-bold text-white">TITLE</div>
+      </div>
+    )
+  }
+  if (preset === "carbon") {
+    return (
+      <div
+        className={cn(base, "p-2")}
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(-45deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 8px), #121214",
+        }}
+      >
+        <div className="h-full w-full rounded-md bg-white/10" />
+      </div>
+    )
+  }
+  if (preset === "cinema") {
+    return (
+      <div className={cn(base, "bg-[#0B0B0C]")}>
+        <div className="absolute inset-x-0 top-0 h-2 bg-black" />
+        <div className="absolute inset-x-0 bottom-0 h-2 bg-black" />
+        <div className="absolute inset-x-3 top-1/2 h-3 -translate-y-1/2" style={{ backgroundColor: accent }} />
+      </div>
+    )
+  }
+  if (preset === "blur" || preset === "glass" || preset === "film") {
+    return (
+      <div className={cn(base, "bg-[#1a1a1e] p-2")}>
+        <div
+          className="h-full w-full rounded-full opacity-80 backdrop-blur"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${accent} 40%, rgba(255,255,255,0.2))`,
+          }}
+        />
+      </div>
+    )
+  }
+  return (
+    <div className={cn(base, "bg-[#0B0B0C] p-2")}>
+      <div
+        className={cn(
+          "h-full w-full",
+          preset === "capsule" ? "rounded-full" : preset === "inkblot" ? "rounded-[40%]" : "rounded-md",
+        )}
+        style={{ backgroundColor: accent }}
+      />
+    </div>
+  )
 }
 
 function Segmented<T extends string>({
@@ -110,7 +236,7 @@ function Segmented<T extends string>({
 }) {
   return (
     <div
-      className="grid gap-1"
+      className="grid gap-1.5"
       style={{ gridTemplateColumns: `repeat(${cols ?? Math.min(options.length, 4)}, minmax(0, 1fr))` }}
     >
       {options.map((option) => (
@@ -119,7 +245,7 @@ function Segmented<T extends string>({
           type="button"
           onClick={() => onChange(option)}
           className={cn(
-            "rounded-md border px-1.5 py-1.5 text-[11px] font-medium leading-tight transition-colors",
+            "rounded-lg border px-2.5 py-2.5 text-sm font-medium leading-snug transition-colors",
             value === option
               ? "border-primary bg-primary/10 text-foreground"
               : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -147,19 +273,19 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-md border border-border px-2.5 py-2 text-left text-xs"
+      className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-3 text-left text-sm"
     >
       <span>{label}</span>
       <span
         className={cn(
-          "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
           checked ? "bg-primary" : "bg-muted",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
-            checked ? "left-4" : "left-0.5",
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+            checked ? "left-[1.35rem]" : "left-0.5",
           )}
         />
       </span>
@@ -180,21 +306,21 @@ function EditorSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className="rounded-xl border border-border/80 bg-card/30">
-      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2">
+    <section className="rounded-2xl border border-border/80 bg-card/30">
+      <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left text-base font-semibold"
         >
           <ChevronDown
-            className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")}
+            className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")}
           />
           <span className="truncate">{title}</span>
         </button>
         {trailing}
       </div>
-      {open ? <div className="space-y-3 p-3">{children}</div> : null}
+      {open ? <div className="space-y-4 p-4">{children}</div> : null}
     </section>
   )
 }
@@ -222,7 +348,16 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
       }
       const json = (await res.json()) as SmartlinkApiPayload
       setData(json)
-      const nextTheme = parseSmartlinkTheme(json.theme)
+      const parsedTheme = parseSmartlinkTheme(json.theme)
+      const defaultStart =
+        typeof json.defaultPreviewStartSec === "number" ? json.defaultPreviewStartSec : 0
+      // Если хук ещё не настраивали - подставляем секунду из карточки релиза (TikTok)
+      const nextTheme =
+        !parsedTheme.previewAudioEnabled &&
+        parsedTheme.previewAudioStartSec === 0 &&
+        defaultStart > 0
+          ? { ...parsedTheme, previewAudioStartSec: defaultStart }
+          : parsedTheme
       setTheme(nextTheme)
       setCustomAccent(nextTheme.accent)
       setPlatformLinks(normalizePlatformLinks(json.platformLinks))
@@ -279,6 +414,11 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
 
   const patchTheme = <K extends keyof SmartlinkTheme>(key: K, value: SmartlinkTheme[K]) => {
     setTheme((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const applyPreset = (preset: SmartlinkPreset) => {
+    const look = SMARTLINK_PRESET_LOOK[preset]
+    setTheme((prev) => ({ ...prev, preset, ...look }))
   }
 
   const patchSocials = (partial: Partial<typeof socials>) => {
@@ -449,55 +589,55 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
   }
 
   return (
-    <div className="w-full max-w-none space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <Button variant="ghost" size="sm" asChild className="-ml-2 h-8">
+    <div className="flex w-full max-w-none flex-col gap-4 lg:h-[calc(100dvh-3.5rem-3rem)] lg:min-h-0 lg:overflow-hidden">
+      <div className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 h-9 text-sm">
             <Link href={`/cabinet/distribution/music/${releaseKey}`}>
               <ArrowLeft className="mr-1 h-4 w-4" />
               К релизу
             </Link>
           </Button>
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Смартлинк</p>
-            <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{data.title}</h1>
-            <p className="truncate text-sm text-muted-foreground">{data.artist}</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Смартлинк</p>
+            <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{data.title}</h1>
+            <p className="truncate text-base text-muted-foreground">{data.artist}</p>
           </div>
         </div>
-        <Button onClick={() => void onSave()} disabled={saving} className="shrink-0">
-          {saving ? <Spinner className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+        <Button onClick={() => void onSave()} disabled={saving} size="lg" className="shrink-0 text-base">
+          {saving ? <Spinner className="h-5 w-5" /> : <Save className="h-5 w-5" />}
           Сохранить
         </Button>
       </div>
 
       {!data.isPublic ? (
-        <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
+        <p className="shrink-0 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
           Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее.
         </p>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-3">
+      <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
+        <div className="min-h-0 space-y-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
           <EditorSection title="Адрес">
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-border bg-background px-2">
-                <span className="shrink-0 text-xs text-muted-foreground">/s/</span>
+            <div className="flex flex-col gap-2.5 sm:flex-row">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3">
+                <span className="shrink-0 text-sm text-muted-foreground">/s/</span>
                 <Input
                   value={slug}
                   onChange={(e) => setSlug(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
                   placeholder="my-release"
-                  className="h-8 border-0 px-0 text-sm shadow-none focus-visible:ring-0"
+                  className="h-11 border-0 px-0 text-base shadow-none focus-visible:ring-0"
                   maxLength={20}
                 />
               </div>
-              <div className="flex gap-1.5">
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => void onCopy()} disabled={!publicUrl}>
-                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="icon" className="h-11 w-11" onClick={() => void onCopy()} disabled={!publicUrl}>
+                  {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
                 {publicUrl ? (
-                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" asChild>
+                  <Button type="button" variant="outline" size="icon" className="h-11 w-11" asChild>
                     <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5" />
+                      <ExternalLink className="h-4 w-4" />
                     </a>
                   </Button>
                 ) : null}
@@ -505,8 +645,167 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
             </div>
           </EditorSection>
 
+          <EditorSection title="Стиль">
+            <div className="space-y-3">
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Базовые
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                  {SMARTLINK_PRESET_BASE.map((preset) => {
+                    const meta = SMARTLINK_PRESET_META[preset]
+                    const active = theme.preset === preset
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        className={cn(
+                          "rounded-xl border p-2 text-left transition-colors",
+                          active
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/40"
+                            : "border-border hover:border-primary/40",
+                        )}
+                      >
+                        <PresetSwatch preset={preset} accent={theme.accent} />
+                        <p className="mt-2 text-sm font-semibold">{meta.label}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Характер
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {SMARTLINK_PRESET_SIGNATURE.map((preset) => {
+                    const meta = SMARTLINK_PRESET_META[preset]
+                    const active = theme.preset === preset
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        className={cn(
+                          "rounded-xl border p-2 text-left transition-colors",
+                          active
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/40"
+                            : "border-border hover:border-primary/40",
+                        )}
+                      >
+                        <PresetSwatch preset={preset} accent={theme.accent} />
+                        <p className="mt-2 text-sm font-semibold">{meta.label}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {SMARTLINK_PRESET_META[theme.preset].description}
+              </p>
+              <div className="space-y-2">
+                <Label className="text-sm">Акцент</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {SMARTLINK_ACCENT_SWATCHES.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      aria-label={`Цвет ${hex}`}
+                      onClick={() => onAccentPick(hex)}
+                      className={cn(
+                        "h-9 w-9 rounded-full border-2",
+                        theme.accent.toUpperCase() === hex ? "border-primary" : "border-transparent",
+                      )}
+                      style={{ backgroundColor: hex }}
+                    />
+                  ))}
+                  <Input
+                    value={customAccent}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setCustomAccent(value)
+                      const normalized = normalizeAccentHex(value)
+                      if (normalized) patchTheme("accent", normalized)
+                    }}
+                    className="h-9 w-[110px] font-mono text-sm"
+                    maxLength={7}
+                  />
+                </div>
+              </div>
+            </div>
+          </EditorSection>
+
+          <EditorSection title="Звук на странице" defaultOpen={false}>
+            <Toggle
+              checked={theme.previewAudioEnabled}
+              onChange={(next) => {
+                setTheme((prev) => {
+                  const defaultStart =
+                    typeof data?.defaultPreviewStartSec === "number"
+                      ? data.defaultPreviewStartSec
+                      : 0
+                  return {
+                    ...prev,
+                    previewAudioEnabled: next,
+                    previewAudioStartSec:
+                      next && prev.previewAudioStartSec === 0 && defaultStart > 0
+                        ? defaultStart
+                        : prev.previewAudioStartSec,
+                  }
+                })
+              }}
+              label="Проигрывать хук при открытии"
+            />
+            {theme.previewAudioEnabled ? (
+              <div className="space-y-2">
+                <Label className="text-sm" htmlFor="smartlink-preview-start">
+                  Начало хука, сек
+                </Label>
+                <Input
+                  id="smartlink-preview-start"
+                  type="number"
+                  min={0}
+                  max={SMARTLINK_PREVIEW_AUDIO_START_MAX}
+                  step={1}
+                  value={theme.previewAudioStartSec}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === "") {
+                      patchTheme("previewAudioStartSec", 0)
+                      return
+                    }
+                    const n = Math.trunc(Number(raw))
+                    if (!Number.isFinite(n)) return
+                    patchTheme(
+                      "previewAudioStartSec",
+                      Math.min(SMARTLINK_PREVIEW_AUDIO_START_MAX, Math.max(0, n)),
+                    )
+                  }}
+                  className="h-11 max-w-[160px] text-base"
+                />
+                <p className="text-sm text-muted-foreground">
+                  На странице крутится короткий фрагмент ~{SMARTLINK_PREVIEW_AUDIO_DURATION_SEC} сек с
+                  этой секунды (не весь трек). Старт всегда без звука - слушатель включает сам.
+                  {typeof data?.defaultPreviewStartSec === "number" && data.defaultPreviewStartSec > 0
+                    ? ` В релизе для TikTok указано: ${data.defaultPreviewStartSec} сек.`
+                    : null}
+                </p>
+                {data && !data.isPublic ? (
+                  <p className="text-sm text-amber-700 dark:text-amber-200">
+                    Хук заработает на публичной странице после релиза.
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                По умолчанию выключено - страница без автозвука и без нагрузки на сервер.
+              </p>
+            )}
+          </EditorSection>
+
           <EditorSection title="Площадки">
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               {activePlatformKeys.map((key) => (
                 <div
                   key={key}
@@ -519,23 +818,23 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                     setDragKey(null)
                   }}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md border border-border bg-background/70 p-1.5",
+                    "flex items-center gap-2.5 rounded-xl border border-border bg-background/70 p-2.5",
                     dragKey === key && "opacity-50",
                   )}
                 >
-                  <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <GripVertical className="h-5 w-5 shrink-0 text-muted-foreground" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={PLATFORM_ICON_SRC[key]} alt="" className="h-5 w-5 rounded-[20%] object-contain" />
-                  <div className="min-w-0 flex-1 space-y-1">
+                  <img src={PLATFORM_ICON_SRC[key]} alt="" className="h-7 w-7 rounded-[20%] object-contain" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     {key === "other" ? (
                       <Input
                         value={theme.otherLabel ?? ""}
                         onChange={(e) => patchTheme("otherLabel", e.target.value.slice(0, 40))}
                         placeholder="Название"
-                        className="h-7 text-xs"
+                        className="h-9 text-sm"
                       />
                     ) : (
-                      <p className="truncate px-1 text-[11px] font-medium">{platformLabel(key)}</p>
+                      <p className="truncate px-1 text-sm font-medium">{platformLabel(key)}</p>
                     )}
                     <Input
                       value={platformLinks[key] ?? ""}
@@ -543,17 +842,17 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                         setPlatformLinks((prev) => ({ ...prev, [key]: e.target.value }))
                       }
                       placeholder="https://"
-                      className="h-7 font-mono text-xs"
+                      className="h-10 font-mono text-sm"
                     />
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0"
+                    className="h-10 w-10 shrink-0"
                     onClick={() => removePlatform(key)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
@@ -563,25 +862,24 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className="h-8 w-full justify-start gap-1.5 text-xs"
+                className="h-11 w-full justify-start gap-2 text-sm"
                 onClick={() => setAddPlatformOpen((v) => !v)}
                 disabled={availableToAdd.length === 0}
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 Добавить площадку
               </Button>
               {addPlatformOpen ? (
-                <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+                <div className="absolute z-20 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border border-border bg-popover p-1.5 shadow-lg">
                   {availableToAdd.map((p) => (
                     <button
                       key={p.key}
                       type="button"
                       onClick={() => addPlatform(p.key)}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-accent"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={PLATFORM_ICON_SRC[p.key]} alt="" className="h-5 w-5 rounded-[20%] object-contain" />
+                      <img src={PLATFORM_ICON_SRC[p.key]} alt="" className="h-6 w-6 rounded-[20%] object-contain" />
                       {p.label}
                     </button>
                   ))}
@@ -589,34 +887,34 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
               ) : null}
             </div>
 
-            <div className="space-y-1.5 border-t border-border/60 pt-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] text-muted-foreground">Доп. ссылки с произвольным названием</p>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={addExtraLink}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
+            <div className="space-y-2.5 border-t border-border/60 pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">Доп. ссылки с произвольным названием</p>
+                <Button type="button" variant="ghost" size="sm" className="h-9 text-sm" onClick={addExtraLink}>
+                  <Plus className="mr-1 h-4 w-4" />
                   Ещё
                 </Button>
               </div>
               {(theme.extraLinks ?? []).map((item) => (
-                <div key={item.id} className="flex items-start gap-1.5 rounded-md border border-border p-1.5">
+                <div key={item.id} className="flex items-start gap-2.5 rounded-xl border border-border p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={PLATFORM_ICON_SRC.other} alt="" className="mt-1 h-5 w-5" />
-                  <div className="min-w-0 flex-1 space-y-1">
+                  <img src={PLATFORM_ICON_SRC.other} alt="" className="mt-1.5 h-7 w-7" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     <Input
                       value={item.label}
                       onChange={(e) => updateExtraLink(item.id, { label: e.target.value.slice(0, 40) })}
-                      className="h-7 text-xs"
+                      className="h-9 text-sm"
                       placeholder="Название"
                     />
                     <Input
                       value={item.url}
                       onChange={(e) => updateExtraLink(item.id, { url: e.target.value })}
-                      className="h-7 font-mono text-xs"
+                      className="h-10 font-mono text-sm"
                       placeholder="https://"
                     />
                   </div>
-                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeExtraLink(item.id)}>
-                    <X className="h-3.5 w-3.5" />
+                  <Button type="button" variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeExtraLink(item.id)}>
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
@@ -625,6 +923,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
 
           <EditorSection
             title="Соцсети"
+            defaultOpen={false}
             trailing={
               <button
                 type="button"
@@ -632,14 +931,14 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 aria-checked={socials.enabled}
                 onClick={() => patchSocials({ enabled: !socials.enabled })}
                 className={cn(
-                  "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+                  "relative h-6 w-11 shrink-0 rounded-full transition-colors",
                   socials.enabled ? "bg-primary" : "bg-muted",
                 )}
               >
                 <span
                   className={cn(
-                    "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
-                    socials.enabled ? "left-4" : "left-0.5",
+                    "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+                    socials.enabled ? "left-[1.35rem]" : "left-0.5",
                   )}
                 />
               </button>
@@ -647,18 +946,18 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
           >
             {socials.enabled ? (
               <>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px]">Где на странице</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm">Расположение</Label>
                   <Segmented
                     value={socials.position}
                     options={["above", "below"] as const}
-                    labels={{ above: "Над обложкой", below: "Под обложкой" }}
+                    labels={{ above: "Сверху", below: "Снизу" }}
                     onChange={(next) => patchSocials({ position: next as SmartlinkSocialPosition })}
                     cols={2}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px]">Вид иконок</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm">Оформление значков</Label>
                   <Segmented
                     value={socials.iconStyle}
                     options={SMARTLINK_SOCIAL_ICON_STYLES}
@@ -667,21 +966,21 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                     cols={3}
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2.5">
                   {socials.items.map((item) => {
                     const meta = SMARTLINK_SOCIALS.find((s) => s.key === item.network)
                     return (
-                      <div key={item.network} className="flex items-center gap-1.5 rounded-md border border-border p-1.5">
+                      <div key={item.network} className="flex items-center gap-2.5 rounded-xl border border-border p-2.5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={SOCIAL_ICON_SRC[item.network]} alt="" className="h-5 w-5 rounded-md" />
+                        <img src={SOCIAL_ICON_SRC[item.network]} alt="" className="h-7 w-7 rounded-md" />
                         <Input
                           value={item.url}
                           onChange={(e) => updateSocialUrl(item.network, e.target.value)}
                           placeholder={`Ссылка · ${meta?.label ?? item.network}`}
-                          className="h-7 font-mono text-xs"
+                          className="h-10 font-mono text-sm"
                         />
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeSocial(item.network)}>
-                          <X className="h-3.5 w-3.5" />
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10" onClick={() => removeSocial(item.network)}>
+                          <X className="h-4 w-4" />
                         </Button>
                       </div>
                     )
@@ -691,25 +990,24 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-8 w-full justify-start gap-1.5 text-xs"
+                    className="h-11 w-full justify-start gap-2 text-sm"
                     onClick={() => setAddSocialOpen((v) => !v)}
                     disabled={availableSocials.length === 0}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4" />
                     Добавить соцсеть
                   </Button>
                   {addSocialOpen ? (
-                    <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-popover p-1 shadow-lg">
+                    <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-lg">
                       {availableSocials.map((s) => (
                         <button
                           key={s.key}
                           type="button"
                           onClick={() => addSocial(s.key)}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-accent"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={SOCIAL_ICON_SRC[s.key]} alt="" className="h-5 w-5 rounded-md" />
+                          <img src={SOCIAL_ICON_SRC[s.key]} alt="" className="h-6 w-6 rounded-md" />
                           {s.label}
                         </button>
                       ))}
@@ -718,65 +1016,14 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 </div>
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">Включите, чтобы добавить Telegram, TikTok и другие сети.</p>
+              <p className="text-sm text-muted-foreground">Включите, чтобы добавить Telegram, TikTok и другие сети.</p>
             )}
           </EditorSection>
 
-          <EditorSection title="Стиль">
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
-              {SMARTLINK_PRESETS.map((preset) => {
-                const meta = SMARTLINK_PRESET_META[preset]
-                const active = theme.preset === preset
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => patchTheme("preset", preset as SmartlinkPreset)}
-                    className={cn(
-                      "rounded-lg border px-2 py-2 text-left transition-colors",
-                      active ? "border-primary bg-primary/10" : "border-border hover:border-primary/40",
-                    )}
-                  >
-                    <p className="text-xs font-medium">{meta.label}</p>
-                    <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{meta.description}</p>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px]">Акцент</Label>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {SMARTLINK_ACCENT_SWATCHES.map((hex) => (
-                  <button
-                    key={hex}
-                    type="button"
-                    aria-label={`Цвет ${hex}`}
-                    onClick={() => onAccentPick(hex)}
-                    className={cn(
-                      "h-7 w-7 rounded-full border-2",
-                      theme.accent.toUpperCase() === hex ? "border-primary" : "border-transparent",
-                    )}
-                    style={{ backgroundColor: hex }}
-                  />
-                ))}
-                <Input
-                  value={customAccent}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setCustomAccent(value)
-                    const normalized = normalizeAccentHex(value)
-                    if (normalized) patchTheme("accent", normalized)
-                  }}
-                  className="h-7 w-[96px] font-mono text-xs"
-                  maxLength={7}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-[11px]">Кнопки</Label>
+          <EditorSection title="Детали" defaultOpen={false}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm">Кнопки</Label>
                 <Segmented
                   value={theme.buttons}
                   options={SMARTLINK_BUTTON_STYLES}
@@ -785,8 +1032,8 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                   cols={4}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[11px]">Обложка</Label>
+              <div className="space-y-2">
+                <Label className="text-sm">Обложка</Label>
                 <Segmented
                   value={theme.cover}
                   options={SMARTLINK_COVER_SHAPES}
@@ -797,11 +1044,31 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
               </div>
             </div>
 
-            <div className="grid gap-1.5 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label className="text-sm">Вид площадок</Label>
+              <Segmented
+                value={theme.platformLayout}
+                options={SMARTLINK_PLATFORM_LAYOUTS}
+                labels={{
+                  list: SMARTLINK_PLATFORM_LAYOUT_META.list.label,
+                  icons: SMARTLINK_PLATFORM_LAYOUT_META.icons.label,
+                }}
+                onChange={(next) => patchTheme("platformLayout", next as SmartlinkPlatformLayout)}
+                cols={2}
+              />
+              {(theme.preset === "vinyl" || theme.preset === "grid") &&
+              theme.platformLayout !== "icons" ? (
+                <p className="text-xs text-muted-foreground">
+                  Стиль «{SMARTLINK_PRESET_META[theme.preset].label}» лучше смотрится со значками
+                </p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3">
               <Toggle
                 checked={theme.buttonBorder}
                 onChange={(next) => patchTheme("buttonBorder", next)}
-                label="Обводка кнопок"
+                label="Контур кнопок"
               />
               <Toggle
                 checked={theme.buttonShadow}
@@ -815,8 +1082,8 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px]">Шрифт</Label>
+            <div className="space-y-2">
+              <Label className="text-sm">Шрифт</Label>
               <Segmented
                 value={theme.font}
                 options={SMARTLINK_FONTS}
@@ -829,12 +1096,11 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 onChange={(next) => patchTheme("font", next as SmartlinkFont)}
                 cols={4}
               />
-              <p className="text-[10px] text-muted-foreground">Только системные шрифты устройства - без внешних загрузок.</p>
             </div>
           </EditorSection>
 
-          <EditorSection title="Анимация появления" defaultOpen={false}>
-            <div className="flex flex-wrap gap-1">
+          <EditorSection title="Анимация входа" defaultOpen={false}>
+            <div className="flex flex-wrap gap-1.5">
               {SMARTLINK_ANIMATIONS.map((anim) => {
                 const meta = SMARTLINK_ANIMATION_META[anim]
                 const active = theme.animation === anim
@@ -844,10 +1110,10 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                     type="button"
                     onClick={() => patchTheme("animation", anim as SmartlinkAnimation)}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                      "rounded-full border px-3.5 py-2 text-sm font-medium",
                       active
-                        ? "border-transparent bg-foreground text-background"
-                        : "border-border text-muted-foreground hover:text-foreground",
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
                     )}
                   >
                     {meta.label}
@@ -855,37 +1121,34 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 )
               })}
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              {SMARTLINK_ANIMATION_META[theme.animation].description}. Только в браузере, сервер не грузит.
-            </p>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <Label className="text-[11px]">Скорость</Label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <Label className="text-sm">Скорость</Label>
                 <span className="text-muted-foreground">{theme.animationSpeed}%</span>
               </div>
               <input
                 type="range"
-                min={40}
-                max={140}
-                step={5}
+                min={SMARTLINK_ANIM_SPEED_MIN}
+                max={SMARTLINK_ANIM_SPEED_MAX}
+                step={1}
                 value={theme.animationSpeed}
                 onChange={(e) => patchTheme("animationSpeed", Number(e.target.value))}
-                className="w-full accent-[var(--primary)]"
+                className="h-2 w-full accent-[var(--primary)]"
                 disabled={theme.animation === "none"}
               />
             </div>
           </EditorSection>
         </div>
 
-        <aside className="xl:sticky xl:top-3 xl:self-start">
-          <div className="overflow-hidden rounded-[1.75rem] border border-border bg-black shadow-2xl ring-1 ring-white/10">
-            <div className="flex items-center justify-center border-b border-white/10 py-1.5">
-              <span className="h-1.5 w-10 rounded-full bg-white/20" />
+        <aside className="shrink-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch">
+          <div className="overflow-hidden rounded-[1.75rem] border border-border bg-black shadow-2xl ring-1 ring-white/10 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+            <div className="flex items-center justify-center border-b border-white/10 py-2">
+              <span className="h-1.5 w-12 rounded-full bg-white/20" />
             </div>
-            <div className="max-h-[620px] overflow-y-auto">
+            <div className="max-h-[min(680px,calc(100dvh-12rem))] overflow-y-auto lg:max-h-none">
               {data.coverUrl ? (
                 <SmartlinkLanding
-                  key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}`}
+                  key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}-${previewTheme.platformLayout}`}
                   title={data.title}
                   artist={data.artist}
                   coverUrl={data.coverUrl}
@@ -894,13 +1157,15 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                   preview
                 />
               ) : (
-                <div className="flex min-h-[480px] items-center justify-center bg-[#111] px-6 text-center text-sm text-white/60">
+                <div className="flex min-h-[520px] items-center justify-center bg-[#111] px-6 text-center text-base text-white/60">
                   Нужна обложка для превью
                 </div>
               )}
             </div>
           </div>
-          <p className="mt-2 text-center text-[11px] text-muted-foreground">Превью · анимация перезапускается при смене</p>
+          <p className="mt-2.5 shrink-0 text-center text-xs text-muted-foreground">
+            Превью · анимация перезапускается при смене
+          </p>
         </aside>
       </div>
     </div>

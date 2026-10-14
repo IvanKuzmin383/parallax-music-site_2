@@ -2,12 +2,13 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Download, Loader2, Pause, Play, Upload } from "lucide-react"
+import { ArrowLeft, CircleHelp, Download, Loader2, Pause, Play, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import {
   type DensityLevel,
   type LoudnessLevel,
   type MasteringParams,
+  type SmoothLevel,
 } from "@/lib/tools-mastering-params"
 import {
   TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
@@ -38,20 +40,44 @@ import { cn } from "@/lib/utils"
 type EntitlementState = ToolsMasteringEntitlement | null
 type LoadState = "idle" | "loading" | "ready" | "error"
 
+function HintIcon({ label, tip }: { label: string; tip: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex shrink-0 text-muted-foreground hover:text-foreground"
+          aria-label={`Подсказка: ${label}`}
+        >
+          <CircleHelp className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-balance">
+        {tip}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function LevelToggle<T extends string>({
   label,
+  tip,
   value,
   options,
   onChange,
 }: {
   label: string
+  tip: string
   value: T
   options: Array<{ id: T; label: string }>
   onChange: (v: T) => void
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">{label}</p>
+      <div className="flex items-center gap-1.5">
+        <p className="text-sm font-medium">{label}</p>
+        <HintIcon label={label} tip={tip} />
+      </div>
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => (
           <button
@@ -74,6 +100,7 @@ function LevelToggle<T extends string>({
 
 function ParamSlider({
   label,
+  tip,
   value,
   min,
   max,
@@ -82,6 +109,7 @@ function ParamSlider({
   onChange,
 }: {
   label: string
+  tip: string
   value: number
   min: number
   max: number
@@ -92,7 +120,10 @@ function ParamSlider({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2 text-sm">
-        <span className="font-medium">{label}</span>
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          {label}
+          <HintIcon label={label} tip={tip} />
+        </span>
         <span className="tabular-nums text-muted-foreground">
           {value}
           {unit ?? ""}
@@ -109,6 +140,28 @@ function ParamSlider({
   )
 }
 
+function HintCheckbox({
+  label,
+  tip,
+  checked,
+  onCheckedChange,
+}: {
+  label: string
+  tip: string
+  checked: boolean
+  onCheckedChange: (v: boolean) => void
+}) {
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <Checkbox checked={checked} onCheckedChange={(v) => onCheckedChange(v === true)} />
+      <span className="inline-flex items-center gap-1.5">
+        {label}
+        <HintIcon label={label} tip={tip} />
+      </span>
+    </label>
+  )
+}
+
 function formatTime(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return "0:00"
   const m = Math.floor(sec / 60)
@@ -120,6 +173,7 @@ function ToolsMasteringInner() {
   const { user, refresh: refreshSession } = useCabinetSession()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const engineRef = useRef<LiveMasteringEngine | null>(null)
+  const scrubbingRef = useRef(false)
 
   const [file, setFile] = useState<File | null>(null)
   const [params, setParams] = useState<MasteringParams>(DEFAULT_MASTERING_PARAMS)
@@ -177,7 +231,7 @@ function ToolsMasteringInner() {
     const tick = () => {
       const eng = engineRef.current
       if (eng) {
-        setPlayhead(eng.currentTime)
+        if (!scrubbingRef.current) setPlayhead(eng.currentTime)
         if (!eng.isPlaying) setPlaying(false)
       }
       raf = requestAnimationFrame(tick)
@@ -256,6 +310,18 @@ function ToolsMasteringInner() {
   const switchAb = (mode: AbMode) => {
     setAbMode(mode)
     engineRef.current?.setAbMode(mode)
+  }
+
+  const seekTo = async (seconds: number) => {
+    const eng = engineRef.current
+    if (!eng || loadState !== "ready" || duration <= 0) return
+    try {
+      await eng.seek(seconds)
+      setPlayhead(eng.currentTime)
+      setPlaying(eng.isPlaying)
+    } catch {
+      toast.error("Не удалось перемотать")
+    }
   }
 
   const triggerBlobDownload = (blob: Blob, fileName: string) => {
@@ -370,6 +436,7 @@ function ToolsMasteringInner() {
         </Link>
         <PageHeader
           title="Онлайн-мастеринг"
+          className="[&_p]:max-w-none"
           description="Обработка в браузере: пресеты, громкость, EQ, компрессор и лимитер. Предпрослушивание и A/B прямо во время настройки. AI-мастеринг на заказ - отдельно в разделе услуг."
         />
       </div>
@@ -418,49 +485,73 @@ function ToolsMasteringInner() {
 
           <section className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Пресет</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium">Пресет</p>
+                <HintIcon
+                  label="Пресет"
+                  tip="Готовый характер звука. Выберите стиль, затем при необходимости подкрутите громкость и сглаживание."
+                />
+              </div>
               <div className="flex flex-wrap gap-2">
                 {MASTERING_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
-                    className={
-                      params.presetId === preset.id
-                        ? "rounded-md border border-primary bg-primary/15 px-3 py-1.5 text-sm font-medium"
-                        : "rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/40"
-                    }
-                  >
-                    {preset.label}
-                  </button>
+                  <div key={preset.id} className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
+                      className={
+                        params.presetId === preset.id
+                          ? "rounded-md border border-primary bg-primary/15 px-3 py-1.5 text-sm font-medium"
+                          : "rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/40"
+                      }
+                    >
+                      {preset.label}
+                    </button>
+                    <HintIcon label={preset.label} tip={preset.hint} />
+                  </div>
                 ))}
               </div>
             </div>
 
             <LevelToggle<LoudnessLevel>
-              label="Loudness"
+              label="Громкость"
+              tip="Насколько громко звучит готовый мастер. High - ближе к стриминговому «громкому» звуку, Low - спокойнее и с большим запасом."
               value={params.loudness}
               options={[
-                { id: "low", label: "Low" },
-                { id: "med", label: "Med" },
-                { id: "high", label: "High" },
+                { id: "low", label: "Тише" },
+                { id: "med", label: "Норма" },
+                { id: "high", label: "Громче" },
               ]}
               onChange={(loudness) => patchParams({ loudness })}
             />
 
             <LevelToggle<DensityLevel>
-              label="Density"
+              label="Плотность"
+              tip="Насколько сильно сжимается динамика. Выше - трек ровнее и «плотнее», ниже - больше живых пиков и тихих мест."
               value={params.density}
               options={[
-                { id: "low", label: "Low" },
-                { id: "med", label: "Med" },
-                { id: "high", label: "High" },
+                { id: "low", label: "Легче" },
+                { id: "med", label: "Норма" },
+                { id: "high", label: "Плотнее" },
               ]}
               onChange={(density) => patchParams({ density })}
             />
 
+            <LevelToggle<SmoothLevel>
+              label="Сглаживание"
+              tip="Смягчает резкость, свистящие «с/ч» и шипение. В превью - резкость и свист; в скачанном файле также чуть тише шипение в паузах."
+              value={params.smooth}
+              options={[
+                { id: "off", label: "Выкл" },
+                { id: "low", label: "Лёгкое" },
+                { id: "med", label: "Норма" },
+                { id: "high", label: "Сильное" },
+              ]}
+              onChange={(smooth) => patchParams({ smooth })}
+            />
+
             <ParamSlider
-              label="Output gain"
+              label="Выходная громкость"
+              tip="Ручная подстройка громкости после автоподбора. Двигайте, если мастер слишком тихий или громкий."
               value={params.outputGainDb}
               min={-12}
               max={12}
@@ -469,20 +560,26 @@ function ToolsMasteringInner() {
               onChange={(outputGainDb) => patchParams({ outputGainDb })}
             />
 
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={params.magicMakeup}
-                onCheckedChange={(v) => patchParams({ magicMakeup: v === true })}
-              />
-              Magic Makeup (автоподбор громкости)
-            </label>
+            <HintCheckbox
+              label="Автогромкость"
+              tip="Сам подбирает уровень под выбранную громкость, чтобы разные треки звучали похоже по силе."
+              checked={params.magicMakeup}
+              onCheckedChange={(magicMakeup) => patchParams({ magicMakeup })}
+            />
           </section>
 
           <section className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
-            <p className="text-sm font-medium">Advanced</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium">Тонкая настройка</p>
+              <HintIcon
+                label="Тонкая настройка"
+                tip="Для тех, кто хочет подкрутить звук вручную. Если не уверены - оставьте пресет и сглаживание."
+              />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <ParamSlider
-                label="HPF"
+                label="Обрезка низа"
+                tip="Убирает лишний гул и шум ниже выбранной частоты. Чуть выше - чище низ, но можно потерять «тело» баса."
                 value={params.hpfHz}
                 min={20}
                 max={120}
@@ -491,7 +588,8 @@ function ToolsMasteringInner() {
                 onChange={(hpfHz) => patchParams({ hpfHz })}
               />
               <ParamSlider
-                label="LF shelf"
+                label="Низ"
+                tip="Поднимает или опускает бас и «тело» трека. В плюс - мощнее низ, в минус - легче и суше."
                 value={params.lfShelfDb}
                 min={-6}
                 max={6}
@@ -500,7 +598,18 @@ function ToolsMasteringInner() {
                 onChange={(lfShelfDb) => patchParams({ lfShelfDb })}
               />
               <ParamSlider
-                label="HF shelf"
+                label="Середина"
+                tip="Акцент на голосе и основных инструментах. В плюс - плотнее и ближе, в минус - мягче и дальше."
+                value={params.mfPeakDb}
+                min={-6}
+                max={6}
+                step={0.1}
+                unit=" dB"
+                onChange={(mfPeakDb) => patchParams({ mfPeakDb })}
+              />
+              <ParamSlider
+                label="Верх"
+                tip="Яркость и воздух. В плюс - звонче и детальнее, в минус - теплее и спокойнее."
                 value={params.hfShelfDb}
                 min={-6}
                 max={6}
@@ -509,7 +618,26 @@ function ToolsMasteringInner() {
                 onChange={(hfShelfDb) => patchParams({ hfShelfDb })}
               />
               <ParamSlider
-                label="Threshold"
+                label="Ширина стерео"
+                tip="1 - как в исходнике, выше - шире и объёмнее, ниже - уже, ближе к моно. Слишком широко может «плыть» на телефоне."
+                value={params.stereoWidth}
+                min={0}
+                max={2}
+                step={0.05}
+                onChange={(stereoWidth) => patchParams({ stereoWidth })}
+              />
+              <ParamSlider
+                label="Насыщенность"
+                tip="Добавляет плотность и «тепло» за счёт мягкого искажения. Сильнее - жирнее и горячее, но можно пережать."
+                value={params.saturation}
+                min={0}
+                max={5}
+                step={0.1}
+                onChange={(saturation) => patchParams({ saturation })}
+              />
+              <ParamSlider
+                label="Порог сжатия"
+                tip="С какого уровня включается компрессор. Ниже (например −20) - сильнее выравнивает громкость."
                 value={params.thresholdDb}
                 min={-40}
                 max={0}
@@ -518,7 +646,8 @@ function ToolsMasteringInner() {
                 onChange={(thresholdDb) => patchParams({ thresholdDb })}
               />
               <ParamSlider
-                label="Ratio"
+                label="Сила сжатия"
+                tip="Насколько сильно прижимаются громкие моменты. Выше - ровнее и плотнее, но меньше «живости»."
                 value={params.ratio}
                 min={1.1}
                 max={10}
@@ -526,7 +655,8 @@ function ToolsMasteringInner() {
                 onChange={(ratio) => patchParams({ ratio })}
               />
               <ParamSlider
-                label="Attack"
+                label="Атака"
+                tip="Как быстро срабатывает сжатие. Быстрее - плотнее и контролируемее, медленнее - больше остроты атак."
                 value={params.attackMs}
                 min={1}
                 max={100}
@@ -535,7 +665,8 @@ function ToolsMasteringInner() {
                 onChange={(attackMs) => patchParams({ attackMs })}
               />
               <ParamSlider
-                label="Release"
+                label="Восстановление"
+                tip="Как быстро компрессор отпускает после пика. Быстрее - живее, медленнее - ровнее и спокойнее."
                 value={params.releaseMs}
                 min={20}
                 max={400}
@@ -544,7 +675,8 @@ function ToolsMasteringInner() {
                 onChange={(releaseMs) => patchParams({ releaseMs })}
               />
               <ParamSlider
-                label="Limiter ceiling"
+                label="Потолок"
+                tip="Максимальная громкость на выходе, чтобы не было клиппинга. Чуть ниже нуля - безопаснее для площадок."
                 value={params.ceilingDb}
                 min={-3}
                 max={0}
@@ -554,20 +686,18 @@ function ToolsMasteringInner() {
               />
             </div>
             <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={params.softClip}
-                  onCheckedChange={(v) => patchParams({ softClip: v === true })}
-                />
-                Soft clip
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={params.monoBass}
-                  onCheckedChange={(v) => patchParams({ monoBass: v === true })}
-                />
-                Mono bass (в скачивании)
-              </label>
+              <HintCheckbox
+                label="Мягкий клип"
+                tip="Плавно ограничивает самые громкие пики вместо жёсткого обрезания - звук плотнее и без треска."
+                checked={params.softClip}
+                onCheckedChange={(softClip) => patchParams({ softClip })}
+              />
+              <HintCheckbox
+                label="Моно-бас (в скачивании)"
+                tip="Собирает низ в центр. Трек стабильнее на телефонах и в клубе. Действует в скачанном файле."
+                checked={params.monoBass}
+                onCheckedChange={(monoBass) => patchParams({ monoBass })}
+              />
             </div>
           </section>
         </div>
@@ -575,7 +705,13 @@ function ToolsMasteringInner() {
         <aside className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:self-start">
           <section className="space-y-4 rounded-lg border border-border bg-card/30 p-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">Предпрослушивание</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium">Предпрослушивание</p>
+                <HintIcon
+                  label="Предпрослушивание"
+                  tip="Слушайте результат до скачивания. A - исходник, B - с мастерингом. Ползунок перематывает трек."
+                />
+              </div>
               <div className="inline-flex rounded-md border border-border p-0.5">
                 <button
                   type="button"
@@ -628,9 +764,21 @@ function ToolsMasteringInner() {
                   <span>{formatTime(playhead)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
-                <Progress
-                  value={duration > 0 ? Math.min(100, (playhead / duration) * 100) : 0}
-                  className="h-1.5"
+                <Slider
+                  value={[Math.min(playhead, duration || 0)]}
+                  min={0}
+                  max={duration > 0 ? duration : 1}
+                  step={0.01}
+                  disabled={loadState !== "ready" || duration <= 0}
+                  aria-label="Позиция воспроизведения"
+                  onValueChange={(value) => {
+                    scrubbingRef.current = true
+                    setPlayhead(value[0] ?? 0)
+                  }}
+                  onValueCommit={(value) => {
+                    scrubbingRef.current = false
+                    void seekTo(value[0] ?? 0)
+                  }}
                 />
               </div>
             </div>

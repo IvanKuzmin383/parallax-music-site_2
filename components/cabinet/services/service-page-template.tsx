@@ -275,14 +275,6 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                 ? "Оплатить"
                 : "Оплатить с баланса"}
           </Button>
-          {!service.paymentStub ? (
-            <p className="text-xs text-muted-foreground">
-              Оплата только с баланса кабинета.{" "}
-              <Link href="/cabinet/finance/balance" className="text-primary underline-offset-2 hover:underline">
-                Пополнить картой
-              </Link>
-            </p>
-          ) : null}
         </div>
       </div>
     </div>

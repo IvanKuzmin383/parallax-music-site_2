@@ -119,6 +119,7 @@ export default function CabinetAchievementsPage() {
     <div className="w-full max-w-none space-y-6">
       <PageHeader
         title="Достижения"
+        className="[&_p]:max-w-none"
         description="Делаете действия в кабинете - получаете XP и открываете уровень. Часть ачивок даёт купон или деньги на баланс."
       />
 
