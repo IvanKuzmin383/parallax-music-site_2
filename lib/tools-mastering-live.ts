@@ -25,14 +25,15 @@ function measureRms(buffer: AudioBuffer): number {
   return Math.sqrt(sum / count)
 }
 
-function softClipCurve(amount = 2.5): Float32Array {
+/** WaveShaperNode.curve expects Float32Array backed by ArrayBuffer (not SharedArrayBuffer). */
+function softClipCurve(amount = 2.5): Float32Array<ArrayBuffer> {
   const n = 2048
   const curve = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / (n - 1) - 1
     curve[i] = Math.tanh(x * amount) / Math.tanh(amount)
   }
-  return curve
+  return curve as Float32Array<ArrayBuffer>
 }
 
 export type MasteringLoadProgress = {
@@ -186,7 +187,7 @@ export class LiveMasteringEngine {
     if (params.softClip) {
       this.softClip.curve = softClipCurve()
     } else {
-      const linear = new Float32Array(2)
+      const linear = new Float32Array(2) as Float32Array<ArrayBuffer>
       linear[0] = -1
       linear[1] = 1
       this.softClip.curve = linear
