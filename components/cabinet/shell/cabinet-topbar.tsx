@@ -220,7 +220,7 @@ export function CabinetTopbar() {
   }, [loadInbox, news, unreadEvents])
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/50 bg-background/55 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40 sm:px-4 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/50 bg-background/90 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75 sm:px-4 md:px-6">
       <div className="flex shrink-0 items-center md:hidden">
         <SidebarTrigger />
       </div>

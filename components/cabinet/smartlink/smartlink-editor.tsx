@@ -630,8 +630,8 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
   }
 
   return (
-    <div className="flex w-full max-w-none flex-col gap-3 lg:h-[calc(100dvh-3.5rem-3rem)] lg:min-h-0 lg:overflow-hidden">
-      <div className="sticky top-14 z-30 -mx-1 shrink-0 space-y-2 border-b border-border/50 bg-background/95 px-1 pb-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/85 lg:static lg:border-0 lg:bg-transparent lg:pb-0 lg:backdrop-blur-none">
+    <div className="flex w-full max-w-none flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <div className="sticky top-0 z-30 -mx-1 shrink-0 space-y-2 border-b border-border/50 bg-background/95 px-1 pb-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/85 lg:static lg:border-0 lg:bg-transparent lg:pb-0 lg:backdrop-blur-none">
         <Button variant="ghost" size="sm" asChild className="-ml-2 h-8 text-sm">
           <Link href={`/cabinet/distribution/music/${releaseKey}`}>
             <ArrowLeft className="mr-1 h-4 w-4" />

@@ -429,7 +429,7 @@ function ToolsMasteringInner() {
   })()
 
   return (
-    <div className="flex w-full min-w-0 max-w-none flex-col gap-6 xl:h-[calc(100dvh-5.5rem)] xl:min-h-0">
+    <div className="flex w-full min-w-0 max-w-none flex-col gap-6 xl:h-full xl:min-h-0">
       <div className="shrink-0 space-y-3">
         <Link
           href="/cabinet/tools"
