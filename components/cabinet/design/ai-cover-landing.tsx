@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { Suspense, useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
@@ -133,13 +133,13 @@ function HeroCovers() {
   const backRight = PORTFOLIO[2]
   return (
     <div className="relative mx-auto w-full max-w-[22rem] sm:max-w-[26rem]">
-      <p className="mb-3 text-center text-[11px] font-medium text-[#B2AAB8]">
+      <p className="mb-3 text-center text-[11px] font-medium text-muted-foreground">
         Примеры работ Parallax Music
       </p>
       <div className="relative mx-auto aspect-square w-full max-w-[20rem] sm:max-w-[22rem]">
         <div
           className={cn(
-            "absolute left-0 top-[8%] z-0 w-[58%] overflow-hidden rounded-[12px] border border-[#2B2630]",
+            "absolute left-0 top-[8%] z-0 w-[58%] overflow-hidden rounded-[12px] border border-border",
             "origin-bottom -rotate-[8deg] shadow-[0_18px_40px_-20px_rgba(0,0,0,0.8)]",
             "motion-safe:transition-transform",
           )}
@@ -155,7 +155,7 @@ function HeroCovers() {
         </div>
         <div
           className={cn(
-            "absolute right-0 top-[6%] z-0 w-[58%] overflow-hidden rounded-[12px] border border-[#2B2630]",
+            "absolute right-0 top-[6%] z-0 w-[58%] overflow-hidden rounded-[12px] border border-border",
             "origin-bottom rotate-[9deg] shadow-[0_18px_40px_-20px_rgba(0,0,0,0.8)]",
             "motion-safe:transition-transform",
           )}
@@ -172,7 +172,7 @@ function HeroCovers() {
         <div
           className={cn(
             "absolute left-1/2 top-[12%] z-10 w-[72%] -translate-x-1/2 overflow-hidden rounded-[14px]",
-            "border border-[#2B2630] shadow-[0_24px_48px_-18px_rgba(0,0,0,0.9)]",
+            "border border-border shadow-[0_24px_48px_-18px_rgba(0,0,0,0.9)]",
           )}
         >
           <img
@@ -388,14 +388,14 @@ function AiCoverLandingInner() {
         className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10"
       >
         <div className="min-w-0 space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B2AAB8]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             AI-обложка для вашего релиза
           </p>
           <h1 className="text-[2.15rem] font-bold leading-[1.1] tracking-tight sm:text-[2.75rem] md:text-[3.25rem]">
-            <span className="text-[#F7F4F6]">Обложка </span>
+            <span className="text-foreground">Обложка </span>
             <span className="text-[#F21D43]">под ваш звук.</span>
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#B2AAB8] md:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Подготовим 6-9 AI-вариантов по материалам вашего релиза и пожеланиям. Выберите один - мы
             согласуем оформление и подготовим финальную обложку 3000 x 3000 для стримингов.
           </p>
@@ -403,7 +403,7 @@ function AiCoverLandingInner() {
             <p className="text-3xl font-bold tracking-tight text-[#F21D43] sm:text-4xl">
               {AI_COVER_PRICE_RUB} {"\u20BD"}
             </p>
-            <p className="mt-1 text-sm text-[#B2AAB8]">За одну готовую обложку</p>
+            <p className="mt-1 text-sm text-muted-foreground">За одну готовую обложку</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
@@ -416,13 +416,13 @@ function AiCoverLandingInner() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 min-h-11 border-[#2B2630] bg-transparent"
+              className="h-11 min-h-11 border-border bg-transparent"
               onClick={() => scrollToId("ai-cover-gallery")}
             >
               Посмотреть работы
             </Button>
           </div>
-          <p className="text-sm text-[#B2AAB8]">6-9 вариантов на выбор · Один финальный файл</p>
+          <p className="text-sm text-muted-foreground">6-9 вариантов на выбор · Один финальный файл</p>
         </div>
 
         <HeroCovers />
@@ -430,10 +430,10 @@ function AiCoverLandingInner() {
 
       <section id="ai-cover-result" className="scroll-mt-20 space-y-5">
         <div className="max-w-2xl space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
             От идеи релиза до готовой обложки
           </h2>
-          <p className="text-[15px] text-[#B2AAB8]">
+          <p className="text-[15px] text-muted-foreground">
             Несколько вариантов для выбора. Один финальный образ для вашего трека.
           </p>
         </div>
@@ -441,13 +441,13 @@ function AiCoverLandingInner() {
           {RESULT_CARDS.map((card) => (
             <div
               key={card.title}
-              className="rounded-[14px] border border-[#2B2630] bg-[#151419] px-4 py-4"
+              className="rounded-[14px] border border-border bg-card px-4 py-4"
             >
               <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F21D43]/12 text-[#F21D43]">
                 <card.icon className="h-4 w-4" aria-hidden />
               </div>
-              <h3 className="text-base font-semibold tracking-tight text-[#F7F4F6]">{card.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B2AAB8]">{card.body}</p>
+              <h3 className="text-base font-semibold tracking-tight text-foreground">{card.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
             </div>
           ))}
         </div>
@@ -455,10 +455,10 @@ function AiCoverLandingInner() {
 
       <section id="ai-cover-gallery" className="scroll-mt-20 space-y-5">
         <div className="max-w-2xl space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
             Разные треки. Разные образы.
           </h2>
-          <p className="text-[15px] text-[#B2AAB8]">
+          <p className="text-[15px] text-muted-foreground">
             Примеры работ. Нажмите на обложку, чтобы рассмотреть её крупнее.
           </p>
         </div>
@@ -474,7 +474,7 @@ function AiCoverLandingInner() {
                   triggerRefs.current[portfolioIndex] = el
                 }}
                 className={cn(
-                  "group relative aspect-square overflow-hidden rounded-[12px] border border-[#2B2630] bg-[#151419]",
+                  "group relative aspect-square overflow-hidden rounded-[12px] border border-border bg-card",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090C]",
                 )}
                 aria-label={`Открыть просмотр: ${item.alt}`}
@@ -499,7 +499,7 @@ function AiCoverLandingInner() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 min-h-11 border-[#2B2630] bg-transparent"
+              className="h-11 min-h-11 border-border bg-transparent"
               onClick={() => setGalleryExpanded((v) => !v)}
             >
               {galleryExpanded
@@ -511,18 +511,18 @@ function AiCoverLandingInner() {
       </section>
 
       <section id="ai-cover-process" className="scroll-mt-20 space-y-5">
-        <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
           Вы выбираете образ. Мы готовим финал.
         </h2>
         <div className="grid gap-3 md:grid-cols-3">
           {PROCESS_STEPS.map((step) => (
             <div
               key={step.num}
-              className="rounded-[14px] border border-[#2B2630] bg-[#151419]/90 px-4 py-4"
+              className="rounded-[14px] border border-border bg-card px-4 py-4"
             >
               <p className="text-xs font-semibold tracking-[0.14em] text-[#F21D43]">{step.num}</p>
-              <h3 className="mt-2 text-sm font-semibold text-[#F7F4F6]">{step.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B2AAB8]">{step.body}</p>
+              <h3 className="mt-2 text-sm font-semibold text-foreground">{step.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </div>
           ))}
         </div>
@@ -530,28 +530,28 @@ function AiCoverLandingInner() {
 
       <section
         id="ai-cover-order"
-        className="scroll-mt-20 grid gap-6 rounded-[16px] border border-[#2B2630] bg-[#151419]/90 p-5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 md:p-6"
+        className="scroll-mt-20 grid gap-6 rounded-[16px] border border-border bg-card p-5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 md:p-6"
       >
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B2AAB8]">Заказ</p>
-            <h2 className="mt-1 text-xl font-bold text-[#F7F4F6] md:text-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Заказ</p>
+            <h2 className="mt-1 text-xl font-bold text-foreground md:text-2xl">
               Какой образ у вашего трека?
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#B2AAB8]">
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Расскажите про релиз и оставьте контакт. Менеджер уточнит материалы и пожелания для
               работы над обложкой.
             </p>
           </div>
 
-          <div className="rounded-[14px] border border-[#2B2630] bg-[#09090C]/70 p-4">
+          <div className="rounded-[14px] border border-border bg-muted p-4">
             <p className="text-3xl font-bold tracking-tight text-[#F21D43]">
               {AI_COVER_PRICE_RUB} {"\u20BD"}
             </p>
-            <p className="mt-1 text-sm text-[#B2AAB8]">За одну финальную обложку</p>
+            <p className="mt-1 text-sm text-muted-foreground">За одну финальную обложку</p>
           </div>
 
-          <ul className="space-y-2 text-sm text-[#B2AAB8]">
+          <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex gap-2">
               <span className="text-[#F21D43]" aria-hidden>
                 ·
@@ -571,16 +571,16 @@ function AiCoverLandingInner() {
               Финальный файл 3000 x 3000.
             </li>
           </ul>
-          <p className="flex items-start gap-2 text-xs leading-relaxed text-[#B2AAB8]">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FFB4C5]" aria-hidden />
+          <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F21D43]" aria-hidden />
             Текст на обложке - по желанию, без доплаты.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <h3 className="text-base font-semibold text-[#F7F4F6]">Заказать обложку</h3>
+          <h3 className="text-base font-semibold text-foreground">Заказать обложку</h3>
 
-          <div className="flex items-start gap-3 rounded-md border border-[#2B2630] p-3">
+          <div className="flex items-start gap-3 rounded-md border border-border p-3">
             <Checkbox
               id="ai-cover-include-text"
               checked={includeTextOnCover}
@@ -590,7 +590,7 @@ function AiCoverLandingInner() {
             />
             <label
               htmlFor="ai-cover-include-text"
-              className="cursor-pointer text-sm font-normal leading-snug text-[#F7F4F6]"
+              className="cursor-pointer text-sm font-normal leading-snug text-foreground"
             >
               Добавить на обложку имя артиста и название релиза
             </label>
@@ -660,7 +660,7 @@ function AiCoverLandingInner() {
                   ) : null}
                 </div>
               </div>
-              <p id={textHintId} className="text-xs text-[#B2AAB8]">
+              <p id={textHintId} className="text-xs text-muted-foreground">
                 Используем это написание на обложке
               </p>
             </div>
@@ -694,7 +694,7 @@ function AiCoverLandingInner() {
                 {fieldErrors.comment}
               </p>
             ) : (
-              <p id={commentHintId} className="text-xs text-[#B2AAB8]">
+              <p id={commentHintId} className="text-xs text-muted-foreground">
                 Если нет конкретной идеи, можно написать «На ваш вкус»
               </p>
             )}
@@ -752,7 +752,7 @@ function AiCoverLandingInner() {
             ) : null}
           </div>
 
-          <p className="text-sm font-semibold text-[#F7F4F6]">
+          <p className="text-sm font-semibold text-foreground">
             Итого: {AI_COVER_PRICE_RUB} {"\u20BD"}
           </p>
 
@@ -773,16 +773,16 @@ function AiCoverLandingInner() {
       </section>
 
       <section id="ai-cover-faq" className="scroll-mt-20 max-w-3xl space-y-5">
-        <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
           Частые вопросы
         </h2>
         <Accordion type="single" collapsible className="w-full">
           {FAQ_ITEMS.map((item, i) => (
-            <AccordionItem key={item.q} value={`ai-cover-faq-${i}`} className="border-[#2B2630]">
-              <AccordionTrigger className="text-left text-[#F7F4F6] hover:no-underline">
+            <AccordionItem key={item.q} value={`ai-cover-faq-${i}`} className="border-border">
+              <AccordionTrigger className="text-left text-foreground hover:no-underline">
                 {item.q}
               </AccordionTrigger>
-              <AccordionContent className="text-[#B2AAB8]">{item.a}</AccordionContent>
+              <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
@@ -795,22 +795,22 @@ function AiCoverLandingInner() {
         }}
       >
         <DialogContent
-          className="flex max-h-[min(92vh,900px)] w-[calc(100%-1.5rem)] max-w-lg flex-col gap-3 overflow-y-auto border-[#2B2630] bg-[#151419] p-4 sm:max-w-xl sm:p-5"
+          className="flex max-h-[min(92vh,900px)] w-[calc(100%-1.5rem)] max-w-lg flex-col gap-3 overflow-y-auto border-border bg-card p-4 sm:max-w-xl sm:p-5"
           showCloseButton={false}
           aria-describedby={undefined}
         >
           <DialogHeader className="space-y-1 pr-12 text-left">
-            <DialogTitle className="text-[#F7F4F6]">
+            <DialogTitle className="text-foreground">
               {previewItem?.alt ?? "Пример обложки"}
             </DialogTitle>
-            <DialogDescription className="text-[#B2AAB8]">
+            <DialogDescription className="text-muted-foreground">
               Пример работы Parallax Music
             </DialogDescription>
           </DialogHeader>
           <button
             ref={closePreviewRef}
             type="button"
-            className="absolute top-3 right-3 inline-flex h-11 min-h-11 min-w-11 items-center justify-center rounded-md border border-[#2B2630] bg-[#09090C] px-3 text-sm font-medium text-[#F7F4F6] hover:bg-[#1A181E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]"
+            className="absolute top-3 right-3 inline-flex h-11 min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-muted px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]"
             aria-label="Закрыть просмотр"
             onClick={closePreview}
           >

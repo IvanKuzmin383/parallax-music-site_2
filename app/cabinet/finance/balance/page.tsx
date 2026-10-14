@@ -332,7 +332,7 @@ export default function FinanceBalancePage() {
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Баланс кабинета
               </p>
-              <p className="text-2xl font-bold tabular-nums leading-none text-emerald-400">
+              <p className="text-2xl font-bold tabular-nums leading-none text-emerald-700 dark:text-emerald-400">
                 {walletBalance.toLocaleString("ru-RU")} ₽
               </p>
               <p className="text-xs text-muted-foreground">
@@ -353,7 +353,7 @@ export default function FinanceBalancePage() {
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Роялти
               </p>
-              <p className="text-2xl font-bold tabular-nums leading-none text-amber-400">
+              <p className="text-2xl font-bold tabular-nums leading-none text-amber-700 dark:text-amber-400">
                 {royaltyBalance.toLocaleString("ru-RU")} ₽
               </p>
               <p className="text-xs text-muted-foreground">
@@ -469,12 +469,12 @@ export default function FinanceBalancePage() {
                       </td>
                       <td
                         className={cn(
-                          "px-4 py-3 text-right font-mono tabular-nums",
+                          "px-4 py-3 text-right font-mono tabular-nums font-medium",
                           signed > 0
-                            ? "text-emerald-400"
+                            ? "text-emerald-700 dark:text-emerald-400"
                             : signed < 0
-                              ? "text-amber-300"
-                              : ""
+                              ? "text-amber-800 dark:text-amber-300"
+                              : "text-foreground"
                         )}
                       >
                         {signed > 0 ? "+" : ""}

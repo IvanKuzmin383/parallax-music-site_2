@@ -69,7 +69,29 @@ export function OrdersPageContent() {
                   {orders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}…</TableCell>
-                      <TableCell>{order.serviceName}</TableCell>
+                      <TableCell>
+                        <div className="min-w-0">
+                          <p className="font-medium">{order.serviceName}</p>
+                          {order.trackName || (order.addonLines && order.addonLines.length > 0) ? (
+                            <p className="truncate text-xs text-muted-foreground">
+                              {[
+                                order.trackName
+                                  ? order.artistName
+                                    ? `${order.trackName} · ${order.artistName}`
+                                    : order.trackName
+                                  : null,
+                                order.addonLines?.length
+                                  ? order.addonLines.length === 1
+                                    ? order.addonLines[0]
+                                    : `${order.addonLines[0]} +${order.addonLines.length - 1}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          ) : null}
+                        </div>
+                      </TableCell>
                       <TableCell className="capitalize">{order.category}</TableCell>
                       <TableCell>{format(new Date(order.createdAt), "d MMM yyyy", { locale: ru })}</TableCell>
                       <TableCell>{order.amount.toLocaleString("ru-RU")} ₽</TableCell>
@@ -90,7 +112,21 @@ export function OrdersPageContent() {
               <Card key={order.id}>
                 <CardContent className="pt-4 space-y-2">
                   <div className="flex justify-between items-start gap-2">
-                    <p className="font-medium">{order.serviceName}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium">{order.serviceName}</p>
+                      {order.trackName ? (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {order.artistName
+                            ? `${order.trackName} · ${order.artistName}`
+                            : order.trackName}
+                        </p>
+                      ) : null}
+                      {order.addonLines && order.addonLines.length > 0 ? (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {order.addonLines.join(", ")}
+                        </p>
+                      ) : null}
+                    </div>
                     <StatusBadge status={order.status} />
                   </div>
                   <p className="text-sm text-muted-foreground">

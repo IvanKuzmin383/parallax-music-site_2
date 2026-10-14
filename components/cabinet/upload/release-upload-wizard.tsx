@@ -374,6 +374,23 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }, [initialReleaseId, searchParams])
 
   useEffect(() => {
+    if (initialReleaseId) return
+    const raw = searchParams.get("date")?.trim()
+    if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return
+    const [y, m, d] = raw.split("-").map(Number)
+    const parsed = new Date(y, m - 1, d)
+    if (isReleaseDateWeekend(parsed) || !isReleaseDateSelectable(parsed)) {
+      toast.error(
+        isReleaseDateWeekend(parsed)
+          ? "Дата публикации не может приходиться на выходной"
+          : "Эта дата недоступна для релиза - выберите более поздний будний день"
+      )
+      return
+    }
+    setReleaseDate((prev) => prev ?? parsed)
+  }, [initialReleaseId, searchParams])
+
+  useEffect(() => {
     const payment = searchParams.get("payment")
     if (payment === "return" && releaseId && step === 6) {
       void (async () => {

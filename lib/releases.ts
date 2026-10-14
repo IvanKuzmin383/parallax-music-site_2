@@ -405,9 +405,15 @@ export async function deleteRelease(id: string): Promise<boolean> {
 }
 
 export function releasePayloadForPricing(release: Release): UploadDraftPayload {
+  const title = release.title.trim() || undefined
+  const artist = release.artistName.trim() || undefined
   return {
     addons: release.addons,
     requestAiCover: release.requestAiCover,
     releaseDate: release.releaseDate,
+    trackName: release.kind === "album" ? undefined : title,
+    artistName: artist,
+    albumTitle: release.kind === "album" ? title : undefined,
+    albumArtistName: release.kind === "album" ? artist : undefined,
   }
 }

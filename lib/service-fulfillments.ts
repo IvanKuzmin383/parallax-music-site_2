@@ -171,7 +171,8 @@ async function uploadAddonBundleDataForRow(
   orderType: string,
   draftId: string | null,
   orderId: string,
-  payloadSnapshotJson: string | null
+  payloadSnapshotJson: string | null,
+  releaseId: string | null = null
 ): Promise<{
   items: UploadAddonBundleItem[]
   aiCoverRequested: boolean
@@ -191,13 +192,32 @@ async function uploadAddonBundleDataForRow(
   const draft = draftId ? await getUploadDraftById(draftId) : null
   const resolvedDraft = draft ?? (await getUploadDraftByBundleOrderId(orderId))
   const payload = resolvedDraft?.payload ?? parseUploadAddonPayloadJson(payloadSnapshotJson)
+
+  let draftTrackName: string | null =
+    payload?.trackName?.trim() || payload?.albumTitle?.trim() || null
+  let draftArtistName: string | null =
+    payload?.artistName?.trim() || payload?.albumArtistName?.trim() || null
+
+  if ((!draftTrackName || !draftArtistName) && releaseId) {
+    try {
+      const { getReleaseById } = await import("./releases")
+      const release = await getReleaseById(releaseId)
+      if (release) {
+        draftTrackName = draftTrackName || release.title.trim() || null
+        draftArtistName = draftArtistName || release.artistName.trim() || null
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   if (!payload) {
     return {
       items: [],
       aiCoverRequested: false,
       details: [],
-      draftTrackName: null,
-      draftArtistName: null,
+      draftTrackName,
+      draftArtistName,
     }
   }
   return {
@@ -205,8 +225,8 @@ async function uploadAddonBundleDataForRow(
     aiCoverRequested:
       Boolean(payload.requestAiCover) || Boolean(payload.addons?.trackCover?.enabled),
     details: extractUploadAddonDetails(payload),
-    draftTrackName: payload.trackName?.trim() || payload.albumTitle?.trim() || null,
-    draftArtistName: payload.artistName?.trim() || payload.albumArtistName?.trim() || null,
+    draftTrackName,
+    draftArtistName,
   }
 }
 
@@ -293,6 +313,7 @@ function mapDbRowsBase(
     paid_at: string | null
     payment_id: string | null
     draft_id: string | null
+    release_id: string | null
     tracks_count: number | null
     user_id: string | null
     user_email: string | null
@@ -308,7 +329,8 @@ function mapDbRowsBase(
         r.order_type,
         r.draft_id,
         r.order_id,
-        r.upload_addon_bundle_payload_json
+        r.upload_addon_bundle_payload_json,
+        r.release_id
       )
       return {
         orderId: r.order_id,
@@ -355,6 +377,7 @@ export async function listServiceFulfillmentsForUser(
     paid_at: string | null
     payment_id: string | null
     draft_id: string | null
+    release_id: string | null
     tracks_count: number | null
     user_id: string | null
     user_email: string | null
@@ -364,7 +387,7 @@ export async function listServiceFulfillmentsForUser(
     service_details_json: string | null
   }>(
     `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
-            o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
+            o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.release_id, o.tracks_count,
             o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
             o.upload_addon_bundle_payload_json, o.service_details_json
      FROM orders o
@@ -398,6 +421,7 @@ export async function listServiceFulfillmentsAdmin(
     paid_at: string | null
     payment_id: string | null
     draft_id: string | null
+    release_id: string | null
     tracks_count: number | null
     user_id: string | null
     user_email: string | null
@@ -407,7 +431,7 @@ export async function listServiceFulfillmentsAdmin(
     service_details_json: string | null
   }>(
     `SELECT o.id AS order_id, o.order_type, o.status AS payment_status, sf.fulfillment_status,
-            o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.tracks_count,
+            o.total_amount, o.created_at, o.paid_at, o.payment_id, o.draft_id, o.release_id, o.tracks_count,
             o.user_id, cu.email AS user_email, o.user_email AS contact_email, o.telegram AS contact_telegram,
             o.upload_addon_bundle_payload_json, o.service_details_json
      FROM orders o

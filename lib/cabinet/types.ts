@@ -18,6 +18,11 @@ export interface OrderView {
   amount: number
   status: OrderDisplayStatus
   description?: string
+  /** Трек / релиз, к которому относится заказ. */
+  trackName?: string
+  artistName?: string
+  /** Состав доп. услуг (для upload_addon_bundle и подобных). */
+  addonLines?: string[]
   isMock?: boolean
 }
 

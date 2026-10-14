@@ -235,11 +235,13 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
     }
   }, [syncFromUser, userId])
 
-  const loadSlots = useCallback(async () => {
+  const resolvedUserId = str(user?.id) || userId
+
+  const loadSlots = useCallback(async (id: string) => {
     setSlotsLoading(true)
     try {
       const res = await fetch(
-        `/api/admin/cabinet-users/${encodeURIComponent(userId)}/artist-subscriptions`,
+        `/api/admin/cabinet-users/${encodeURIComponent(id)}/artist-subscriptions`,
         { credentials: "include" }
       )
       if (!res.ok) return
@@ -261,12 +263,20 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
     } finally {
       setSlotsLoading(false)
     }
-  }, [userId])
+  }, [])
 
   useEffect(() => {
     void load()
-    void loadSlots()
-  }, [load, loadSlots])
+  }, [load])
+
+  useEffect(() => {
+    const id = str(user?.id)
+    if (!id) return
+    void loadSlots(id)
+    if (id !== userId) {
+      router.replace(`/admin26081993/cabinet-users/${encodeURIComponent(id)}`)
+    }
+  }, [user, userId, loadSlots, router])
 
   const subscriptionStatus = useMemo(() => {
     const plan = str(user?.subscription_name)
@@ -291,7 +301,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
   const patch = async (body: Record<string, unknown>, okMsg: string) => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/cabinet-users/${encodeURIComponent(userId)}`, {
+      const res = await fetch(`/api/admin/cabinet-users/${encodeURIComponent(resolvedUserId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -400,7 +410,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
   const deleteUser = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/cabinet-users/${encodeURIComponent(userId)}`, {
+      const res = await fetch(`/api/admin/cabinet-users/${encodeURIComponent(resolvedUserId)}`, {
         method: "DELETE",
         credentials: "include",
       })
@@ -420,7 +430,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
     setSaving(true)
     try {
       const res = await fetch(
-        `/api/admin/cabinet-users/${encodeURIComponent(userId)}/artist-subscriptions`,
+        `/api/admin/cabinet-users/${encodeURIComponent(resolvedUserId)}/artist-subscriptions`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -442,7 +452,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
       }
       toast.success("Слот создан")
       setNewSlotArtist("")
-      await loadSlots()
+      await loadSlots(resolvedUserId)
     } finally {
       setSaving(false)
     }
@@ -452,7 +462,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
     setSaving(true)
     try {
       const res = await fetch(
-        `/api/admin/cabinet-users/${encodeURIComponent(userId)}/artist-subscriptions/${encodeURIComponent(slotId)}`,
+        `/api/admin/cabinet-users/${encodeURIComponent(resolvedUserId)}/artist-subscriptions/${encodeURIComponent(slotId)}`,
         { method: "DELETE", credentials: "include" }
       )
       if (!res.ok) {
@@ -460,7 +470,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
         return
       }
       toast.success("Слот удалён")
-      await loadSlots()
+      await loadSlots(resolvedUserId)
     } finally {
       setSaving(false)
     }
@@ -551,7 +561,7 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
                 {user.created_at
                   ? format(new Date(String(user.created_at)), "d MMMM yyyy, HH:mm", { locale: ru })
                   : "-"}
-                {" · "}ID: <span className="font-mono text-xs">{userId}</span>
+                {" · "}ID: <span className="font-mono text-xs">{resolvedUserId}</span>
               </p>
               {str(user.subscription_name) ? (
                 <p className="text-sm">

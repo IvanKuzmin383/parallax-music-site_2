@@ -208,8 +208,8 @@ export function YandexAdsAdPreview({
   return (
     <div className={cn("mx-auto w-full max-w-[415px]", className)}>
       <div className="mb-2.5 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-[#B3ADBC]">Яндекс Директ</p>
-        <p className="text-xs text-[#B3ADBC]">Пример объявления</p>
+        <p className="text-xs font-medium text-muted-foreground">Яндекс Директ</p>
+        <p className="text-xs text-muted-foreground">Пример объявления</p>
       </div>
 
       <div
@@ -234,8 +234,8 @@ export function YandexAdsAdPreview({
                 "h-10 min-h-10 flex-1 rounded-[10px] border px-3 text-sm font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3264D]/70",
                 active
-                  ? "border-[#F3264D]/55 bg-[#F3264D]/12 text-[#F7F5F8]"
-                  : "border-[#303038] bg-[#15151B] text-[#B3ADBC] hover:text-[#F7F5F8]",
+                  ? "border-[#F3264D]/55 bg-[#F3264D]/12 text-foreground"
+                  : "border-border bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
               {item.label}
@@ -258,10 +258,10 @@ export function YandexAdsAdPreview({
           )}
         </div>
 
-        <p className="mt-3 text-center text-[13px] text-[#B3ADBC]">
+        <p className="mt-3 text-center text-[13px] text-muted-foreground">
           После перехода → {object.destination}
         </p>
-        <figcaption className="mt-1.5 text-center text-xs text-[#B3ADBC]/90">
+        <figcaption className="mt-1.5 text-center text-xs text-muted-foreground">
           Подачу и страницу перехода подберём под вашу задачу.
         </figcaption>
       </figure>

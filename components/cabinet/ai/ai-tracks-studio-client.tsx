@@ -1,8 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useId, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import {
+  ArrowLeft,
   ChevronDown,
   Disc3,
   Download,
@@ -41,6 +43,10 @@ import {
   AI_TRACKS_VOCALS,
   type AiTracksPublicConfig,
 } from "@/lib/ai-tracks-config"
+import {
+  getCabinetServiceHubBackLabel,
+  getCabinetServiceHubHref,
+} from "@/lib/cabinet/service-back"
 import {
   AI_TRACKS_EXAMPLE_LYRICS,
   AI_TRACKS_STATUS_MESSAGES,
@@ -280,6 +286,9 @@ function ResultCard({
 
 export function AiTracksStudioClient() {
   const router = useRouter()
+  const pathname = usePathname()
+  const backHref = getCabinetServiceHubHref(pathname)
+  const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const formRef = useRef<HTMLDivElement | null>(null)
   const ideaId = useId()
   const lyricsId = useId()
@@ -564,6 +573,15 @@ export function AiTracksStudioClient() {
 
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-10 pb-16 pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
+          <Link href={backHref}>
+            <ArrowLeft className="h-4 w-4" />
+            {backLabel}
+          </Link>
+        </Button>
+      </div>
+
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">

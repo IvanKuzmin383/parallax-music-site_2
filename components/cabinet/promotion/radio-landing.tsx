@@ -107,13 +107,13 @@ function RadioVitrineSample() {
       <div className="relative overflow-visible px-2 py-3 sm:px-3">
         <div
           className={cn(
-            "relative origin-center rounded-[12px] border border-[#302730] bg-[#151317] p-4 text-[#F5F1F5]",
+            "relative origin-center rounded-[12px] border border-border bg-card p-4 text-foreground",
             "shadow-[0_18px_40px_-18px_rgba(0,0,0,0.7)]",
             "rotate-[1.5deg] sm:rotate-[2deg]",
           )}
         >
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ADA4B0]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Parallax / Радио
             </p>
             <span className="rounded-md border border-[#FFB4C3]/35 bg-[#F01F43]/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#FFB4C3]">
@@ -135,13 +135,13 @@ function RadioVitrineSample() {
 
           <div className="mt-4 space-y-1">
             <p className="truncate text-base font-semibold tracking-tight">Название трека</p>
-            <p className="truncate text-sm text-[#ADA4B0]">Имя артиста</p>
-            <p className="text-xs text-[#ADA4B0]/90">Радио-витрина Parallax Music</p>
+            <p className="truncate text-sm text-muted-foreground">Имя артиста</p>
+            <p className="text-xs text-muted-foreground/90">Радио-витрина Parallax Music</p>
           </div>
 
           <div
             className={cn(
-              "absolute -bottom-4 left-3 right-3 rounded-[10px] border border-[#302730] bg-[#1A161B] px-3 py-2.5",
+              "absolute -bottom-4 left-3 right-3 rounded-[10px] border border-border bg-card px-3 py-2.5",
               "shadow-[0_10px_24px_-16px_rgba(0,0,0,0.8)]",
             )}
           >
@@ -150,14 +150,14 @@ function RadioVitrineSample() {
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-[#F5F1F5]">Подтверждение размещения</p>
-                <p className="mt-0.5 text-[11px] text-[#ADA4B0]">Трек · Условия · Результат</p>
+                <p className="text-xs font-semibold text-foreground">Подтверждение размещения</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Трек · Условия · Результат</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <p className="mt-8 text-center text-xs text-[#ADA4B0]">Пример оформления результата</p>
+      <p className="mt-8 text-center text-xs text-muted-foreground">Пример оформления результата</p>
     </div>
   )
 }
@@ -273,15 +273,15 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
       {/* A. Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10">
         <div className="min-w-0 space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ADA4B0]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Радио-витрина Parallax Music
           </p>
           <h1 className="text-[2rem] font-bold leading-[1.08] tracking-tight break-words sm:text-4xl md:text-5xl lg:text-[3.25rem]">
-            <span className="text-[#F5F1F5]">Ваш трек - </span>
-            <span className="text-[#FFB4C3]">в радио-витрине </span>
-            <span className="text-[#F5F1F5]">Parallax Music.</span>
+            <span className="text-foreground">Ваш трек - </span>
+            <span className="text-[#F01F43]">в радио-витрине </span>
+            <span className="text-foreground">Parallax Music.</span>
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#ADA4B0] md:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Ещё одна точка знакомства с вашей музыкой. Подготовим материалы, разместим трек в
             радио-витрине Parallax Music и подтвердим выполнение.
           </p>
@@ -303,12 +303,12 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             </Button>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-[#ADA4B0]">
-              <span className="font-medium text-[#F5F1F5]">{priceLabel}</span>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{priceLabel}</span>
               {" "}
               за трек
             </p>
-            <p className="text-xs leading-relaxed text-[#ADA4B0]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Предварительная заявка. Оплата сейчас не списывается.
             </p>
           </div>
@@ -321,13 +321,13 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
       {/* B. Include */}
       <section id="radio-include" className="scroll-mt-20 space-y-5">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ADA4B0]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Что входит
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             От подготовки до размещения
           </h2>
-          <p className="max-w-2xl text-[15px] text-[#ADA4B0]">
+          <p className="max-w-2xl text-[15px] text-muted-foreground">
             Понятный состав услуги и подтверждение выполненной работы.
           </p>
         </div>
@@ -337,15 +337,15 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             return (
               <div
                 key={card.title}
-                className="rounded-[12px] border border-[#302730] bg-[#151317]/80 px-4 py-4"
+                className="rounded-[12px] border border-border bg-card/80 px-4 py-4"
               >
                 <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F01F43]/12 text-[#F01F43]">
                   <Icon className="h-4 w-4" aria-hidden />
                 </div>
-                <h3 className="text-base font-semibold tracking-tight text-[#F5F1F5]">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">
                   {card.title}
                 </h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#ADA4B0]">{card.body}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
               </div>
             )
           })}
@@ -368,16 +368,16 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
                   {index + 1}
                 </span>
                 <div className="min-w-0">
-                  <p className="font-medium text-[#F5F1F5]">{step.title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[#ADA4B0]">{step.body}</p>
+                  <p className="font-medium text-foreground">{step.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
                 </div>
               </li>
             ))}
           </ol>
 
-          <div className="rounded-[12px] border border-[#302730] bg-[#151317]/60 px-4 py-4">
-            <p className="text-sm font-semibold text-[#F5F1F5]">Что подготовить</p>
-            <ul className="mt-2 space-y-1.5 text-sm text-[#ADA4B0]">
+          <div className="rounded-[12px] border border-border bg-card/60 px-4 py-4">
+            <p className="text-sm font-semibold text-foreground">Что подготовить</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
               {PREPARE_ITEMS.map((item) => (
                 <li key={item} className="flex gap-2">
                   <span className="text-[#F01F43]" aria-hidden>
@@ -390,16 +390,16 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
           </div>
         </div>
 
-        <aside className="rounded-[12px] border border-[#F01F43]/25 bg-[#151317]/80 p-5 shadow-sm lg:sticky lg:top-4">
+        <aside className="rounded-[12px] border border-[#F01F43]/25 bg-card/80 p-5 shadow-sm lg:sticky lg:top-4">
           <div className="min-w-0">
-            <h3 className="text-lg font-semibold tracking-tight text-[#F5F1F5]">
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">
               Размещение в радио-витрине
             </h3>
             <p className="mt-2 text-2xl font-bold text-[#F01F43]">{priceLabel}</p>
-            <p className="mt-1 text-sm text-[#ADA4B0]">За один трек</p>
+            <p className="mt-1 text-sm text-muted-foreground">За один трек</p>
           </div>
 
-          <ul className="mt-5 space-y-2 border-t border-[#302730] pt-4 text-sm text-[#ADA4B0]">
+          <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
             {features.map((feature) => (
               <li key={feature} className="flex gap-2">
                 <span className="text-[#F01F43]" aria-hidden>
@@ -420,7 +420,7 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             >
               Оставить заявку
             </Button>
-            <p className="text-xs leading-relaxed text-[#ADA4B0]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Сейчас собираем предварительные заявки. Оплата не списывается. Мы свяжемся с вами для
               уточнения деталей.
             </p>
@@ -428,9 +428,9 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
 
           <div
             id={formPanelId}
-            className={cn("mt-5 space-y-3 border-t border-[#302730] pt-5", !formOpen && "hidden")}
+            className={cn("mt-5 space-y-3 border-t border-border pt-5", !formOpen && "hidden")}
           >
-            <h4 className="text-base font-semibold text-[#F5F1F5]">Заявка на услугу</h4>
+            <h4 className="text-base font-semibold text-foreground">Заявка на услугу</h4>
             <div className="space-y-1.5">
               <Label htmlFor="radio-project">Название релиза / проекта</Label>
               <Input
@@ -470,7 +470,7 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
               {fieldErrors.trackLink ? (
                 <p className="text-xs text-[#F01F43]">{fieldErrors.trackLink}</p>
               ) : (
-                <p className="text-xs text-[#ADA4B0]">Можно оставить пустым, если ссылки ещё нет.</p>
+                <p className="text-xs text-muted-foreground">Можно оставить пустым, если ссылки ещё нет.</p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -493,14 +493,14 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             >
               {submitting ? "Отправляем…" : service.interestCtaLabel || "Отправить заявку"}
             </Button>
-            <p className="text-xs leading-relaxed text-[#ADA4B0]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Это предварительная заявка. Оплата сейчас не списывается.
             </p>
             <div id={statusId} role="status" aria-live="polite" className="sr-only">
               {statusMessage}
             </div>
             {statusMessage ? (
-              <p className="rounded-[10px] border border-[#302730] bg-[#1A161B] px-3 py-2.5 text-sm leading-relaxed text-[#F5F1F5]">
+              <p className="rounded-[10px] border border-border bg-muted/60 px-3 py-2.5 text-sm leading-relaxed text-foreground">
                 {statusMessage}
               </p>
             ) : null}
@@ -511,7 +511,7 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
       {/* D. FAQ */}
       <section id="faq" className="scroll-mt-20 max-w-3xl space-y-5">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ADA4B0]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Перед оформлением
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
@@ -521,12 +521,12 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
         <Accordion
           type="single"
           collapsible
-          className="w-full rounded-[12px] border border-[#302730] px-4"
+          className="w-full rounded-[12px] border border-border px-4"
         >
           {FAQ_ITEMS.map((item, i) => (
             <AccordionItem key={item.q} value={`radio-faq-${i}`}>
               <AccordionTrigger className="text-left text-[15px]">{item.q}</AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-[#ADA4B0]">
+              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
                 {item.a}
               </AccordionContent>
             </AccordionItem>

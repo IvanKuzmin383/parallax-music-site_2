@@ -87,7 +87,34 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
         </Card>
       </div>
 
-      {order.description ? (
+      {order.trackName || order.artistName || (order.addonLines && order.addonLines.length > 0) ? (
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-3 px-3 py-2.5">
+            <p className="text-sm font-medium">Состав заказа</p>
+            {order.trackName || order.artistName ? (
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">Трек / релиз</p>
+                <p className="text-sm font-medium text-foreground">
+                  {order.trackName || "Без названия"}
+                  {order.artistName ? (
+                    <span className="font-normal text-muted-foreground"> · {order.artistName}</span>
+                  ) : null}
+                </p>
+              </div>
+            ) : null}
+            {order.addonLines && order.addonLines.length > 0 ? (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Услуги</p>
+                <ul className="list-disc space-y-0.5 pl-5 text-sm text-foreground">
+                  {order.addonLines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : order.description ? (
         <Card className="gap-0 py-0">
           <CardContent className="space-y-1.5 px-3 py-2.5">
             <p className="text-sm font-medium">Описание</p>

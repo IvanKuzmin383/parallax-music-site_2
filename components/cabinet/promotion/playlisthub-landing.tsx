@@ -130,9 +130,9 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
   }, [])
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1140px] space-y-12 pb-12 text-[#F7F5F8] md:space-y-16">
+    <div className="mx-auto w-full min-w-0 max-w-[1140px] space-y-12 pb-12 text-foreground md:space-y-16">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-[#F7F5F8]" asChild>
+        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
           <Link href={backHref}>
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -149,25 +149,25 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
       {/* 1. Hero */}
       <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center lg:gap-12">
         <div className="min-w-0 space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Плейлисты Яндекс Музыки.
           </p>
           <h1 className="text-[2rem] font-bold leading-[1.1] tracking-tight break-words sm:text-[2.15rem] md:text-[3.1rem] lg:text-[3.25rem] lg:leading-[1.08]">
-            <span className="text-[#F7F5F8]">Трек вышел.</span>
+            <span className="text-foreground">Трек вышел.</span>
             <br className="hidden lg:block" />{" "}
             <span className="text-[#F3264D]">Помогите людям</span>
             <br className="hidden lg:block" />{" "}
             <span className="text-[#F3264D]">его найти.</span>
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#B3ADBC] md:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Размещайте музыку в плейлистах своего жанра. Выберите подходящие подборки на PlaylistHub -
             нашем маркетплейсе плейлистов.
           </p>
 
           <div className="space-y-1">
-            <p className="text-3xl font-bold tracking-tight text-[#F7F5F8] sm:text-4xl">{priceLabel}</p>
-            <p className="text-sm font-medium text-[#F7F5F8]">{PLAYLISTHUB_VOLUME_PRICE_LABEL}</p>
-            <p className="text-sm text-[#B3ADBC]">
+            <p className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{priceLabel}</p>
+            <p className="text-sm font-medium text-foreground">{PLAYLISTHUB_VOLUME_PRICE_LABEL}</p>
+            <p className="text-sm text-muted-foreground">
               Один трек · скидка зависит от количества плейлистов.
             </p>
           </div>
@@ -186,20 +186,20 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
             <Button
               size="lg"
               variant="outline"
-              className="h-11 min-h-11 border-[#303038] px-5"
+              className="h-11 min-h-11 border-border px-5"
               type="button"
               onClick={openHowItWorks}
             >
               Как это работает
             </Button>
           </div>
-          <p className="text-xs text-[#B3ADBC]">Заказ и оплата - в PlaylistHub.</p>
+          <p className="text-xs text-muted-foreground">Заказ и оплата - в PlaylistHub.</p>
 
           <ul className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-2">
             {HERO_POINTS.map((item) => {
               const Icon = item.icon
               return (
-                <li key={item.label} className="flex items-center gap-2 text-sm text-[#B3ADBC]">
+                <li key={item.label} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Icon className="h-4 w-4 shrink-0 text-[#F3264D]" aria-hidden />
                   <span>{item.label}</span>
                 </li>
@@ -216,18 +216,18 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
       {/* 2. Benefits */}
       <section className="space-y-5">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Что даёт размещение.
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             Ещё один способ познакомить людей с вашей музыкой.
           </h2>
-          <p className="max-w-2xl text-[15px] leading-relaxed text-[#B3ADBC]">
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             Слушатели включают подборки под жанр и настроение. Размещение добавляет ваш трек в этот
             привычный сценарий прослушивания.
           </p>
         </div>
-        <ul className="divide-y divide-[#303038] border-y border-[#303038]">
+        <ul className="divide-y divide-[#303038] border-y border-border">
           {BENEFITS.map((item) => {
             const Icon = item.icon
             return (
@@ -239,8 +239,8 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#F7F5F8]">{item.title}</p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-[#B3ADBC]">{item.body}</p>
+                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{item.body}</p>
                 </div>
               </li>
             )
@@ -251,13 +251,13 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
       {/* 3. Steps */}
       <section id="playlisthub-steps" className="scroll-mt-20 space-y-5">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Как начать.
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             От ссылки на трек до размещения.
           </h2>
-          <p className="max-w-2xl text-[15px] leading-relaxed text-[#B3ADBC]">
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             Весь путь заказа проходит в PlaylistHub. На Parallax вы знакомитесь с услугой и переходите
             к выбору.
           </p>
@@ -266,11 +266,11 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
           {STEPS.map((step) => (
             <li
               key={step.num}
-              className="rounded-[12px] border border-[#303038] bg-[#15151B]/80 px-4 py-4"
+              className="rounded-[12px] border border-border bg-card/80 px-4 py-4"
             >
               <p className="text-xs font-semibold tracking-[0.12em] text-[#F3264D]">{step.num}</p>
-              <p className="mt-2 text-base font-semibold text-[#F7F5F8]">{step.title}</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B3ADBC]">{step.body}</p>
+              <p className="mt-2 text-base font-semibold text-foreground">{step.title}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -279,13 +279,13 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
       {/* 4. Pricing */}
       <section className="space-y-5">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B3ADBC]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Скидка за объём.
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             Больше плейлистов. Ниже цена размещения.
           </h2>
-          <p className="max-w-2xl text-[15px] leading-relaxed text-[#B3ADBC]">
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             От 350 до 210 ₽ за плейлист - в зависимости от количества выбранных размещений.
           </p>
         </div>
@@ -325,7 +325,7 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-[#8A8A8A]">
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
             Цена за размещение одного трека в одном плейлисте. Итоговый заказ рассчитывается в
             PlaylistHub.
           </p>
@@ -346,29 +346,29 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
       </section>
 
       {/* 5. Final CTA */}
-      <section className="scroll-mt-20 space-y-5 border border-[#303038] bg-[#15151B]/90 p-5 md:p-8">
+      <section className="scroll-mt-20 space-y-5 border border-border bg-card p-5 md:p-8">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="text-sm font-bold tracking-[0.08em] text-white">PLAYLISTHUB</p>
-          <p className="text-xs text-[#B3ADBC]">Сервис Parallax Music</p>
+          <p className="text-xs text-muted-foreground">Сервис Parallax Music</p>
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             Выбирайте, где зазвучит ваш трек.
           </h2>
-          <p className="max-w-2xl text-[15px] leading-relaxed text-[#B3ADBC]">
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             Откройте каталог и подберите плейлисты для своей музыки. Актуальные цены и условия
             размещения - в PlaylistHub.
           </p>
         </div>
         <ul className="space-y-2">
           {FINAL_POINTS.map((item) => (
-            <li key={item} className="flex items-start gap-2 text-sm text-[#B3ADBC]">
+            <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#F3264D]" aria-hidden />
               <span>{item}</span>
             </li>
           ))}
         </ul>
-        <p className="text-lg font-semibold text-[#F7F5F8]">{PLAYLISTHUB_FINAL_PRICE_LABEL}</p>
+        <p className="text-lg font-semibold text-foreground">{PLAYLISTHUB_FINAL_PRICE_LABEL}</p>
         <div className="space-y-2">
           <Button
             size="lg"
@@ -380,7 +380,7 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
               <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
             </a>
           </Button>
-          <p className="text-xs text-[#B3ADBC]">Каталог откроется в новой вкладке.</p>
+          <p className="text-xs text-muted-foreground">Каталог откроется в новой вкладке.</p>
         </div>
       </section>
 
@@ -392,14 +392,14 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
         <Accordion
           type="single"
           collapsible
-          className="w-full rounded-[12px] border border-[#303038] bg-[#15151B]/60 px-4"
+          className="w-full rounded-[12px] border border-border bg-card/60 px-4"
         >
           {FAQ_ITEMS.map((item, i) => (
-            <AccordionItem key={item.q} value={`ph-faq-${i}`} className="border-[#303038]">
-              <AccordionTrigger className="text-left text-[15px] text-[#F7F5F8]">
+            <AccordionItem key={item.q} value={`ph-faq-${i}`} className="border-border">
+              <AccordionTrigger className="text-left text-[15px] text-foreground">
                 {item.q}
               </AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-[#B3ADBC]">
+              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
                 {item.a}
               </AccordionContent>
             </AccordionItem>

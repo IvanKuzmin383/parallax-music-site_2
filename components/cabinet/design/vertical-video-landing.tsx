@@ -166,7 +166,7 @@ function PlatformChrome({ platform }: { platform: PlatformId }) {
           </div>
         </div>
         <div className="pointer-events-none absolute bottom-14 right-2.5 z-20 flex flex-col items-center gap-3.5 text-white">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-[#151419]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-card">
             <span className="text-[10px] font-bold">{EXAMPLE_HANDLE.slice(0, 1).toUpperCase()}</span>
           </div>
           <Heart className="h-6 w-6 fill-white/10" aria-hidden />
@@ -268,7 +268,7 @@ function PhoneShell({
     >
       <p
         className={cn(
-          "mb-2 text-center font-medium text-[#B2AAB8]",
+          "mb-2 text-center font-medium text-muted-foreground",
           isMobile || isCenter ? "text-[11px]" : "text-[10px]",
         )}
       >
@@ -296,7 +296,7 @@ function PhoneShell({
         />
         <div
           className={cn(
-            "relative overflow-hidden bg-[#09090C]",
+            "relative overflow-hidden bg-muted",
             isMobile ? "rounded-[28px]" : isCenter ? "rounded-[26px]" : "rounded-[24px]",
           )}
         >
@@ -378,7 +378,7 @@ function ExampleVideoPlayer({
         )}
       >
         <Film className="h-8 w-8 text-[#FFB4C5]/80" aria-hidden />
-        <p className="text-center text-[11px] leading-snug text-[#B2AAB8]">
+        <p className="text-center text-[11px] leading-snug text-muted-foreground">
           Пример временно недоступен. Показан заменяемый постер монтажа.
         </p>
       </div>
@@ -430,7 +430,7 @@ function PhonesComposition({
 }) {
   return (
     <div className="w-full min-w-0">
-      <p className="mb-4 text-center text-sm font-medium text-[#F7F4F6]">
+      <p className="mb-4 text-center text-sm font-medium text-foreground">
         Ваш ролик в TikTok, Reels и Shorts
       </p>
 
@@ -450,7 +450,7 @@ function PhonesComposition({
       {/* Mobile: one phone + switcher */}
       <div className="md:hidden">
         <div
-          className="mb-4 flex rounded-xl border border-[#2B2630] bg-[#151419] p-1"
+          className="mb-4 flex rounded-xl border border-border bg-card p-1"
           role="tablist"
           aria-label="Площадка примера"
         >
@@ -466,7 +466,7 @@ function PhonesComposition({
                   "min-h-11 flex-1 rounded-lg px-2 text-[12px] font-medium transition-colors",
                   selected
                     ? "bg-[#F21D43] text-white"
-                    : "text-[#B2AAB8] hover:text-[#F7F4F6]",
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => onPlatformChange(p.id)}
               >
@@ -480,7 +480,7 @@ function PhonesComposition({
         </PhoneShell>
       </div>
 
-      <p className="mt-4 text-center text-xs text-[#B2AAB8]">Пример отображения на площадках</p>
+      <p className="mt-4 text-center text-xs text-muted-foreground">Пример отображения на площадках</p>
     </div>
   )
 }
@@ -660,14 +660,14 @@ function VerticalVideoLandingInner() {
       {/* Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10">
         <div className="min-w-0 space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B2AAB8]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Монтаж вертикальных видео
           </p>
           <h1 className="text-[2.25rem] font-bold leading-[1.08] tracking-tight sm:text-[2.75rem] md:text-[3.25rem] lg:text-[3.5rem]">
-            <span className="block text-[#F7F4F6]">Видеонарезки</span>
+            <span className="block text-foreground">Видеонарезки</span>
             <span className="block text-[#F21D43]">под ваш трек.</span>
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#B2AAB8] md:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Подберём общедоступные видео из интернета, нарежем и склеим их фрагменты под вашу музыку.
             Вы получите готовые вертикальные ролики для TikTok, Reels и Shorts.
           </p>
@@ -675,7 +675,7 @@ function VerticalVideoLandingInner() {
             {["TikTok", "Reels", "Shorts"].map((name) => (
               <span
                 key={name}
-                className="rounded-md border border-[#2B2630] bg-[#151419] px-2.5 py-1 text-[11px] font-medium text-[#B2AAB8]"
+                className="rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
               >
                 {name}
               </span>
@@ -685,7 +685,7 @@ function VerticalVideoLandingInner() {
             <p className="text-2xl font-bold tracking-tight text-[#F21D43] sm:text-3xl">
               {VERTICAL_VIDEO_PRICE_TIER_3_RUB}-{VERTICAL_VIDEO_PRICE_TIER_1_RUB} ₽ за видео
             </p>
-            <p className="mt-1 text-sm text-[#B2AAB8]">
+            <p className="mt-1 text-sm text-muted-foreground">
               Цена зависит от количества. Одно видео - {formatVerticalVideoRub(VERTICAL_VIDEO_PRICE_TIER_1_RUB)}.
             </p>
           </div>
@@ -700,7 +700,7 @@ function VerticalVideoLandingInner() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 min-h-11 border-[#2B2630] bg-transparent"
+              className="h-11 min-h-11 border-border bg-transparent"
               onClick={() => scrollToId("vv-process")}
             >
               Как это работает
@@ -714,10 +714,10 @@ function VerticalVideoLandingInner() {
       {/* Include */}
       <section id="vv-include" className="scroll-mt-20 space-y-5">
         <div className="max-w-2xl space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
             Готовый видеоряд. Монтаж под музыку.
           </h2>
-          <p className="text-[15px] text-[#B2AAB8]">
+          <p className="text-[15px] text-muted-foreground">
             Подбор фрагментов, нарезка и склейка в вертикальные ролики.
           </p>
         </div>
@@ -725,13 +725,13 @@ function VerticalVideoLandingInner() {
           {INCLUDE_CARDS.map((card) => (
             <div
               key={card.title}
-              className="rounded-[14px] border border-[#2B2630] bg-[#151419] px-4 py-4"
+              className="rounded-[14px] border border-border bg-card px-4 py-4"
             >
               <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F21D43]/12 text-[#F21D43]">
                 <card.icon className="h-4 w-4" aria-hidden />
               </div>
-              <h3 className="text-sm font-semibold text-[#F7F4F6]">{card.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B2AAB8]">{card.body}</p>
+              <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
             </div>
           ))}
         </div>
@@ -739,18 +739,18 @@ function VerticalVideoLandingInner() {
 
       {/* Process */}
       <section id="vv-process" className="scroll-mt-20 space-y-5">
-        <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
           От трека до готовых нарезок.
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {PROCESS_STEPS.map((step) => (
             <div
               key={step.num}
-              className="rounded-[14px] border border-[#2B2630] bg-[#151419]/90 px-4 py-4"
+              className="rounded-[14px] border border-border bg-card px-4 py-4"
             >
               <p className="text-xs font-semibold tracking-[0.14em] text-[#F21D43]">{step.num}</p>
-              <h3 className="mt-2 text-sm font-semibold text-[#F7F4F6]">{step.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B2AAB8]">{step.body}</p>
+              <h3 className="mt-2 text-sm font-semibold text-foreground">{step.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </div>
           ))}
         </div>
@@ -759,10 +759,10 @@ function VerticalVideoLandingInner() {
       {/* Pricing + order */}
       <section id="vv-pricing" className="scroll-mt-20 space-y-6">
         <div className="max-w-2xl space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
             Выберите объём серии
           </h2>
-          <p className="text-[15px] text-[#B2AAB8]">
+          <p className="text-[15px] text-muted-foreground">
             От 1 до 500 видео. Стоимость за ролик зависит от количества в заказе.
           </p>
         </div>
@@ -780,17 +780,17 @@ function VerticalVideoLandingInner() {
                   "rounded-[14px] border px-4 py-4 text-left transition-colors",
                   active
                     ? "border-[#F21D43] bg-[#F21D43]/10"
-                    : "border-[#2B2630] bg-[#151419] hover:border-[#F21D43]/40",
+                    : "border-border bg-card hover:border-[#F21D43]/40",
                 )}
                 onClick={() => {
                   syncCount(tier.preset)
                   scrollToId("vv-order")
                 }}
               >
-                <span className="block text-xs text-[#B2AAB8]">
+                <span className="block text-xs text-muted-foreground">
                   {tier.min}-{tier.max} · {formatVerticalVideoRub(tier.unitPrice)} за видео
                 </span>
-                <span className="mt-2 block text-lg font-bold text-[#F7F4F6]">
+                <span className="mt-2 block text-lg font-bold text-foreground">
                   {formatVerticalVideoRub(tier.unitPrice)}
                 </span>
                 <span className="mt-3 inline-flex min-h-10 items-center text-sm font-medium text-[#F21D43]">
@@ -803,15 +803,15 @@ function VerticalVideoLandingInner() {
 
         <div
           id="vv-order"
-          className="scroll-mt-20 grid gap-6 rounded-[16px] border border-[#2B2630] bg-[#151419]/90 p-5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 md:p-6"
+          className="scroll-mt-20 grid gap-6 rounded-[16px] border border-border bg-card p-5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 md:p-6"
         >
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B2AAB8]">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Ваша серия
               </p>
-              <h3 className="mt-1 text-xl font-bold text-[#F7F4F6]">Ваш трек. Готовый видеоряд.</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#B2AAB8]">
+              <h3 className="mt-1 text-xl font-bold text-foreground">Ваш трек. Готовый видеоряд.</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 Укажите количество видео и выберите трек. После оплаты уточним пожелания к подбору и
                 монтажу видеоряда в переписке.
               </p>
@@ -820,17 +820,17 @@ function VerticalVideoLandingInner() {
             <div
               id={totalLiveId}
               aria-live="polite"
-              className="rounded-[14px] border border-[#2B2630] bg-[#09090C]/70 p-4"
+              className="rounded-[14px] border border-border bg-muted p-4"
             >
               {validCount ? (
                 <>
                   <p className="text-3xl font-bold tracking-tight text-[#F21D43]">
                     {formatVerticalVideoRub(total)}
                   </p>
-                  <p className="mt-1 text-sm text-[#B2AAB8]">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {videosCount} {videoWord(videosCount)} × {formatVerticalVideoRub(unitPrice)}
                   </p>
-                  <p className="mt-1 text-xs text-[#B2AAB8]">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Тариф для {activeTier.min}-{activeTier.max} видео
                   </p>
                 </>
@@ -841,7 +841,7 @@ function VerticalVideoLandingInner() {
               )}
             </div>
 
-            <ul className="space-y-2 text-sm text-[#B2AAB8]">
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="text-[#F21D43]" aria-hidden>
                   ·
@@ -861,13 +861,13 @@ function VerticalVideoLandingInner() {
                 Монтаж под выбранный трек.
               </li>
             </ul>
-            <p className="text-xs leading-relaxed text-[#B2AAB8]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Услуга включает монтаж роликов из готового видеоряда для публикации в ваших соцсетях.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="text-base font-semibold text-[#F7F4F6]">Оформление заказа</h3>
+            <h3 className="text-base font-semibold text-foreground">Оформление заказа</h3>
 
             <div className="space-y-2">
               <Label htmlFor="vertical-video-count">Количество видео</Label>
@@ -876,7 +876,7 @@ function VerticalVideoLandingInner() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 shrink-0 border-[#2B2630]"
+                  className="h-11 w-11 shrink-0 border-border"
                   disabled={loading || videosCount <= VERTICAL_VIDEO_MIN_COUNT}
                   aria-label="Уменьшить количество"
                   onClick={() => syncCount((videosCount || 1) - 1)}
@@ -901,7 +901,7 @@ function VerticalVideoLandingInner() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-11 w-11 shrink-0 border-[#2B2630]"
+                  className="h-11 w-11 shrink-0 border-border"
                   disabled={loading || videosCount >= VERTICAL_VIDEO_MAX_COUNT}
                   aria-label="Увеличить количество"
                   onClick={() => syncCount((videosCount || 0) + 1)}
@@ -909,7 +909,7 @@ function VerticalVideoLandingInner() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-[#B2AAB8]">
+              <p className="text-xs text-muted-foreground">
                 Целое число от {VERTICAL_VIDEO_MIN_COUNT} до {VERTICAL_VIDEO_MAX_COUNT}
               </p>
             </div>
@@ -997,16 +997,16 @@ function VerticalVideoLandingInner() {
 
       {/* FAQ */}
       <section id="vv-faq" className="scroll-mt-20 max-w-3xl space-y-5">
-        <h2 className="text-2xl font-bold tracking-tight text-[#F7F4F6] md:text-[1.75rem]">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem]">
           Перед заказом
         </h2>
         <Accordion type="single" collapsible className="w-full">
           {FAQ_ITEMS.map((item, i) => (
-            <AccordionItem key={item.q} value={`vv-faq-${i}`} className="border-[#2B2630]">
-              <AccordionTrigger className="text-left text-[#F7F4F6] hover:no-underline">
+            <AccordionItem key={item.q} value={`vv-faq-${i}`} className="border-border">
+              <AccordionTrigger className="text-left text-foreground hover:no-underline">
                 {item.q}
               </AccordionTrigger>
-              <AccordionContent className="text-[#B2AAB8]">{item.a}</AccordionContent>
+              <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>

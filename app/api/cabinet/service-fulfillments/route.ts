@@ -35,6 +35,10 @@ export async function GET(request: NextRequest) {
       aiMasteringAudioFiles: r.aiMasteringAudioFiles,
       uploadAddonBundleItems: r.uploadAddonBundleItems,
       uploadAddonAiCoverRequested: r.uploadAddonAiCoverRequested,
+      uploadAddonDetails: r.uploadAddonDetails,
+      draftTrackName: r.draftTrackName,
+      draftArtistName: r.draftArtistName,
+      serviceDetails: r.serviceDetails,
     })),
   })
 }

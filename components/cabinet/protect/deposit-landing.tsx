@@ -14,6 +14,15 @@ import {
   FolderOpen,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
@@ -182,6 +191,7 @@ export function DepositLanding({ service }: { service: ServiceCatalogEntry }) {
 
   const [scenario, setScenario] = useState<ScenarioId>("release")
   const [prepareOpen, setPrepareOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const activeScenario = SCENARIOS.find((s) => s.id === scenario) ?? SCENARIOS[0]
@@ -210,6 +220,7 @@ export function DepositLanding({ service }: { service: ServiceCatalogEntry }) {
         toast.error(data.error || "Не удалось отправить заявку")
         return
       }
+      setConfirmOpen(false)
       toast.success(
         typeof data.message === "string" && data.message
           ? data.message
@@ -429,7 +440,7 @@ export function DepositLanding({ service }: { service: ServiceCatalogEntry }) {
             <Button
               className="h-11 min-h-11 w-full"
               disabled={submitting}
-              onClick={() => void submitInterest()}
+              onClick={() => setConfirmOpen(true)}
             >
               {submitting ? "Отправка..." : "Оформить депонирование"}
             </Button>
@@ -499,11 +510,40 @@ export function DepositLanding({ service }: { service: ServiceCatalogEntry }) {
         <Button
           className="h-11 min-h-11"
           disabled={submitting}
-          onClick={() => void submitInterest()}
+          onClick={() => setConfirmOpen(true)}
         >
           {submitting ? "Отправка..." : "Оформить депонирование"}
         </Button>
       </section>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (submitting) return
+          setConfirmOpen(open)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Оформить депонирование?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {service.interestOnly
+                ? `Подтвердите, что вам нужна эта услуга. Сейчас отправится заявка интереса (${interestLabel}) - оплата не списывается. Мы напишем, когда депонирование станет доступно.`
+                : "Подтвердите, что вам нужна услуга депонирования. После подтверждения заявка будет отправлена."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Отмена</AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={submitting}
+              onClick={() => void submitInterest()}
+            >
+              {submitting ? "Отправка..." : "Да, нужна услуга"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

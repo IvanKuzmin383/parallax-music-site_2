@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import {
   addDays,
   addMonths,
@@ -67,6 +68,8 @@ import {
   releaseDetailHref,
 } from "@/lib/cabinet/release-presenters"
 import type { MusicStatsResponse } from "@/lib/music-stats-shared"
+import { isReleaseDateWeekend } from "@/lib/release-date-validation"
+import { isReleaseDateSelectable } from "@/lib/release-date-tiers"
 import { cn } from "@/lib/utils"
 
 function formatRub(amount: number): string {
@@ -161,13 +164,13 @@ export function DashboardMetricCards({
       <Link href="/cabinet/finance/balance" className={metricCardClass}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/25">
-            <Wallet className="h-5 w-5 text-emerald-400" />
+            <Wallet className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               Баланс
             </p>
-            <p className="text-2xl font-semibold tabular-nums leading-tight text-emerald-400">
+            <p className="text-2xl font-semibold tabular-nums leading-tight text-emerald-700 dark:text-emerald-400">
               {formatRub(balance)}
             </p>
           </div>
@@ -183,13 +186,13 @@ export function DashboardMetricCards({
       >
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 ring-1 ring-inset ring-amber-500/25">
-            <Banknote className="h-5 w-5 text-amber-400" />
+            <Banknote className="h-5 w-5 text-amber-700 dark:text-amber-400" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               Роялти
             </p>
-            <p className="text-2xl font-semibold tabular-nums leading-tight text-amber-400">
+            <p className="text-2xl font-semibold tabular-nums leading-tight text-amber-700 dark:text-amber-400">
               {formatRub(royalty)}
             </p>
           </div>
@@ -623,7 +626,9 @@ export function DashboardTasks({
 }
 
 export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[] }) {
+  const router = useRouter()
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
+  const [pendingDate, setPendingDate] = useState<Date | null>(null)
 
   const byDate = useMemo(() => {
     const map = new Map<string, ReleaseView[]>()
@@ -648,6 +653,22 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
   }, [month])
 
   const weekdays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
+
+  const openUploadForDate = () => {
+    if (!pendingDate) return
+    const day = pendingDate
+    setPendingDate(null)
+    if (isReleaseDateWeekend(day)) {
+      toast.error("Дата публикации не может приходиться на выходной")
+      return
+    }
+    if (!isReleaseDateSelectable(day)) {
+      toast.error("Эта дата недоступна для релиза - выберите более поздний будний день")
+      return
+    }
+    const key = format(day, "yyyy-MM-dd")
+    router.push(`/cabinet/upload?date=${encodeURIComponent(key)}`)
+  }
 
   return (
     <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
@@ -698,6 +719,7 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
               ? releaseContinueHref(items[0])
               : releaseDetailHref(items[0])
             : null
+          const isFree = items.length === 0
 
           const cell = (
             <div
@@ -705,7 +727,8 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
                 "relative flex aspect-square flex-col items-center justify-start rounded-lg p-1 text-xs",
                 inMonth ? "bg-muted/15" : "opacity-35",
                 today && "ring-1 ring-primary/50",
-                items.length > 0 && "bg-muted/30"
+                items.length > 0 && "bg-muted/30",
+                isFree && "cursor-pointer transition-colors hover:bg-muted/40 hover:ring-1 hover:ring-primary/40"
               )}
             >
               <span
@@ -733,15 +756,55 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
             </div>
           )
 
-          return href ? (
-            <Link key={key} href={href} className="block hover:opacity-90">
-              {cell}
-            </Link>
-          ) : (
-            <div key={key}>{cell}</div>
-          )
+          if (href) {
+            return (
+              <Link key={key} href={href} className="block hover:opacity-90">
+                {cell}
+              </Link>
+            )
+          }
+
+          if (isFree) {
+            return (
+              <button
+                key={key}
+                type="button"
+                className="block w-full text-left"
+                onClick={() => setPendingDate(day)}
+                aria-label={`Загрузить релиз на ${format(day, "d MMMM yyyy", { locale: ru })}`}
+              >
+                {cell}
+              </button>
+            )
+          }
+
+          return <div key={key}>{cell}</div>
         })}
       </div>
+
+      <AlertDialog
+        open={pendingDate !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDate(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Загрузить релиз?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDate
+                ? `Откроется форма создания релиза с датой ${format(pendingDate, "d MMMM yyyy", { locale: ru })}.`
+                : "Откроется форма создания релиза."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <Button type="button" onClick={openUploadForDate}>
+              Да
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   )
 }

@@ -1174,6 +1174,18 @@ export default function TracksPageClient() {
     }
     window.open(getSmartlinkUrl(slug), "_blank", "noopener,noreferrer")
   }
+  const handleOpenCabinetUser = (userId: string | null | undefined) => {
+    const id = userId?.trim()
+    if (!id) {
+      toast.error("У трека нет пользователя")
+      return
+    }
+    window.open(
+      `/admin26081993/cabinet-users/${encodeURIComponent(id)}`,
+      "_blank",
+      "noopener,noreferrer"
+    )
+  }
   const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
     const trimmed = upc.trim()
     if (!trimmed) {
@@ -1979,6 +1991,17 @@ export default function TracksPageClient() {
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
+                                    title="Карточка пользователя"
+                                    aria-label="Карточка пользователя"
+                                    disabled={!track.userId?.trim()}
+                                    onClick={() => handleOpenCabinetUser(track.userId)}
+                                  >
+                                    <Users className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
                                     title="Подробнее"
                                     aria-label="Подробнее"
                                     onClick={() => handleViewDetails(track)}
@@ -2027,10 +2050,9 @@ export default function TracksPageClient() {
     return null
   }
   return (
-    <div className="flex min-h-screen flex-col bg-background pt-4 lg:h-[100dvh] lg:overflow-hidden">
-      <div className="mx-auto flex w-full max-w-none flex-1 flex-col gap-4 px-4 pb-4 lg:min-h-0">
+    <div className="flex min-h-screen flex-col bg-background pt-2 lg:h-[100dvh] lg:overflow-hidden">
+      <div className="mx-auto flex w-full max-w-none flex-1 flex-col gap-2 px-4 pb-3 lg:min-h-0">
         <AdminSectionNav active="tracks" />
-        <h1 className="shrink-0 text-2xl font-bold">Модерация треков</h1>
         {userIdFilterRaw ? (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
             <p className="text-muted-foreground">
@@ -2366,18 +2388,15 @@ export default function TracksPageClient() {
                       onValueChange={(value) => setTracksTab(value as "grouped" | "simple")}
                       className="w-full"
                     >
-              <TabsContent value="grouped" className="space-y-4 mt-0">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Алфавит артистов</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+              <TabsContent value="grouped" className="mt-0 space-y-3">
+                <Card className="gap-0 py-0">
+                  <CardContent className="px-3 py-2">
                     {artistsIndexLoading ? (
                       <p className="text-sm text-muted-foreground">Загрузка артистов…</p>
                     ) : availableArtistLetters.length === 0 ? (
                       <p className="text-sm text-muted-foreground">Нет треков по текущему фильтру</p>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {availableArtistLetters.map((letter) => {
                           const count = artistsByLetter.get(letter)?.length ?? 0
                           const isActive = !artistSearchNorm && groupedLetter === letter
@@ -2385,8 +2404,9 @@ export default function TracksPageClient() {
                             <Button
                               key={letter}
                               type="button"
+                              size="sm"
                               variant={isActive ? "default" : "outline"}
-                              className="min-w-11"
+                              className="h-8 min-w-9 px-2"
                               onClick={() => {
                                 setArtistSearchQuery("")
                                 setGroupedLetter(letter)
@@ -2396,7 +2416,7 @@ export default function TracksPageClient() {
                               <span className="font-semibold">{letter}</span>
                               <span
                                 className={cn(
-                                  "ml-1.5 text-xs",
+                                  "ml-1 text-[11px]",
                                   isActive ? "text-primary-foreground/80" : "text-muted-foreground"
                                 )}
                               >
@@ -2490,20 +2510,20 @@ export default function TracksPageClient() {
                   </Card>
                 ) : null}
               </TabsContent>
-              <TabsContent value="simple">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Треки простым списком</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Показано {simpleListTracksVisible.length} из {simpleListTracks.length}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <TabsContent value="simple" className="mt-0">
+                <Card className="gap-0 py-0">
+                  <CardHeader className="gap-2 px-3 py-2 pb-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+                      <span>
+                        Показано {simpleListTracksVisible.length} из {simpleListTracks.length}
+                      </span>
+                      <span className="hidden sm:inline text-border">|</span>
                       <span>Сортировка:</span>
                       <Select
                         value={trackListSortField}
                         onValueChange={(value) => setTrackListSortField(value as TrackListSortField)}
                       >
-                        <SelectTrigger className="w-[220px] bg-background">
+                        <SelectTrigger className="h-8 w-[200px] bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -2515,7 +2535,7 @@ export default function TracksPageClient() {
                         value={trackListSortDirection}
                         onValueChange={(value) => setTrackListSortDirection(value as "asc" | "desc")}
                       >
-                        <SelectTrigger className="w-[180px] bg-background">
+                        <SelectTrigger className="h-8 w-[160px] bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -2525,18 +2545,16 @@ export default function TracksPageClient() {
                       </Select>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 overflow-x-auto">
-                    <Table className="min-w-[980px]">
+                  <CardContent className="overflow-x-auto px-3 pb-3 pt-0">
+                    <Table className="min-w-[820px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="min-w-[200px]">Артист / трек</TableHead>
                           <TableHead className="min-w-[100px]">Тип релиза</TableHead>
                           <TableHead className="min-w-[130px]">Даты</TableHead>
-                          <TableHead className="min-w-[100px]">Артикул</TableHead>
-                          <TableHead className="min-w-[100px]">ISRC</TableHead>
-                          <TableHead className="min-w-[100px]">UPC</TableHead>
+                          <TableHead className="min-w-[140px]">Коды</TableHead>
                           <TableHead className="min-w-[170px]">Статус</TableHead>
-                          <TableHead className="min-w-[220px] text-right">Действия</TableHead>
+                          <TableHead className="min-w-[250px] text-right">Действия</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2584,9 +2602,22 @@ export default function TracksPageClient() {
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="align-top">{track.catalogNumber?.trim() ? track.catalogNumber : "-"}</TableCell>
-                            <TableCell className="align-top">{track.isrc?.trim() ? track.isrc : "-"}</TableCell>
-                            <TableCell className="align-top">{track.upc?.trim() ? track.upc : "-"}</TableCell>
+                            <TableCell className="align-top whitespace-normal text-sm">
+                              <div className="space-y-0.5 leading-snug font-mono text-xs">
+                                <p>
+                                  <span className="text-muted-foreground font-sans">Арт: </span>
+                                  {track.catalogNumber?.trim() || "-"}
+                                </p>
+                                <p>
+                                  <span className="text-muted-foreground font-sans">ISRC: </span>
+                                  {track.isrc?.trim() || "-"}
+                                </p>
+                                <p>
+                                  <span className="text-muted-foreground font-sans">UPC: </span>
+                                  {track.upc?.trim() || "-"}
+                                </p>
+                              </div>
+                            </TableCell>
                             <TableCell
                               className="align-top"
                               onClick={(e) => e.stopPropagation()}
@@ -2671,6 +2702,17 @@ export default function TracksPageClient() {
                                   onClick={() => handleOpenSmartlink(track)}
                                 >
                                   <Link2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  title="Карточка пользователя"
+                                  aria-label="Карточка пользователя"
+                                  disabled={!track.userId?.trim()}
+                                  onClick={() => handleOpenCabinetUser(track.userId)}
+                                >
+                                  <Users className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -2783,10 +2825,10 @@ export default function TracksPageClient() {
                         Закрыть
                       </Button>
                     </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <span
                         className={cn(
-                          "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+                          "inline-flex shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
                           adminStatusHeaderTone(
                             selectedTrack ? trackDraft.status : uploadDraftRowStatus
                           )
@@ -2800,43 +2842,42 @@ export default function TracksPageClient() {
                             )?.label || uploadDraftRowStatus}
                       </span>
                       {trackEditorDirty ? (
-                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200 ring-1 ring-inset ring-amber-500/30">
+                        <span className="shrink-0 rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200 ring-1 ring-inset ring-amber-500/30">
                           Есть несохранённые изменения
                         </span>
+                      ) : null}
+                      {selectedTrack ? (
+                        <audio
+                          key={selectedTrack.id}
+                          controls
+                          preload="metadata"
+                          className="admin-audio-compact min-w-0 flex-1"
+                          src={`/api/admin/uploads/audio/${selectedTrack.id}`}
+                          onPlay={(e) => {
+                            const current = e.currentTarget
+                            document.querySelectorAll("audio").forEach((el) => {
+                              if (el !== current) el.pause()
+                            })
+                          }}
+                        />
+                      ) : selectedUploadDraft?.audioRelPath ? (
+                        <audio
+                          key={selectedUploadDraft.id}
+                          controls
+                          preload="metadata"
+                          className="admin-audio-compact min-w-0 flex-1"
+                          src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
+                          onPlay={(e) => {
+                            const current = e.currentTarget
+                            document.querySelectorAll("audio").forEach((el) => {
+                              if (el !== current) el.pause()
+                            })
+                          }}
+                        />
                       ) : null}
                     </div>
                   </div>
                 </div>
-
-                {selectedTrack ? (
-                  <audio
-                    key={selectedTrack.id}
-                    controls
-                    preload="metadata"
-                    className="admin-audio-compact w-full"
-                    src={`/api/admin/uploads/audio/${selectedTrack.id}`}
-                    onPlay={(e) => {
-                      const current = e.currentTarget
-                      document.querySelectorAll("audio").forEach((el) => {
-                        if (el !== current) el.pause()
-                      })
-                    }}
-                  />
-                ) : selectedUploadDraft?.audioRelPath ? (
-                  <audio
-                    key={selectedUploadDraft.id}
-                    controls
-                    preload="metadata"
-                    className="admin-audio-compact w-full"
-                    src={`/api/admin/upload-drafts/${encodeURIComponent(selectedUploadDraft.id)}/audio`}
-                    onPlay={(e) => {
-                      const current = e.currentTarget
-                      document.querySelectorAll("audio").forEach((el) => {
-                        if (el !== current) el.pause()
-                      })
-                    }}
-                  />
-                ) : null}
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {selectedTrack ? (
@@ -3874,14 +3915,10 @@ export default function TracksPageClient() {
                         variant="outline"
                         className="shrink-0"
                         disabled={!trackDraft.userId.trim()}
-                        onClick={() =>
-                          router.push(
-                            `/admin26081993/cabinet-users?userId=${encodeURIComponent(trackDraft.userId.trim())}&label=${encodeURIComponent(trackDraft.userId.trim())}`
-                          )
-                        }
+                        onClick={() => handleOpenCabinetUser(trackDraft.userId)}
                       >
                         <Users className="h-4 w-4 mr-1" />
-                        Пользователь ЛК
+                        Карточка пользователя
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">

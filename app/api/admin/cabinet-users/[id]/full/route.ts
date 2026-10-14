@@ -23,10 +23,17 @@ export async function GET(
 
   const { id } = await params
 
-  const user = await queryOne<Record<string, unknown>>(
+  // Треки часто хранят email в user_id - принимаем и UUID, и email.
+  let user = await queryOne<Record<string, unknown>>(
     "SELECT * FROM cabinet_users WHERE id = ?",
     [id]
   )
+  if (!user) {
+    user = await queryOne<Record<string, unknown>>(
+      "SELECT * FROM cabinet_users WHERE LOWER(email) = LOWER(?)",
+      [id]
+    )
+  }
   if (!user) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   }

@@ -59,14 +59,16 @@ function StatCard({ label, count, unit = "tracks", active, onClick, className, t
       onClick={onClick}
       title={title}
       className={cn(
-        "rounded-lg border px-3 py-2.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "rounded-md border px-2.5 py-1.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border bg-card",
         className
       )}
     >
-      <p className="text-xs text-muted-foreground leading-tight line-clamp-2">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{count}</p>
-      <p className="text-xs text-muted-foreground">{countLabel(count, unit)}</p>
+      <p className="text-[11px] leading-tight text-muted-foreground line-clamp-1">{label}</p>
+      <p className="mt-0.5 flex items-baseline gap-1">
+        <span className="text-lg font-semibold tabular-nums leading-none">{count}</span>
+        <span className="text-[11px] text-muted-foreground">{countLabel(count, unit)}</span>
+      </p>
     </button>
   )
 }
@@ -83,7 +85,7 @@ export function AdminTracksStatsBar({
   onViewFilterChange,
 }: AdminTracksStatsBarProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-2">
+    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10">
       <StatCard
         label="Все треки"
         count={stats.total}

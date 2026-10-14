@@ -188,7 +188,7 @@ function BiznesZvukCatalogSample() {
           {["Кафе", "Магазины", "Фитнес"].map((label) => (
             <span
               key={label}
-              className="rounded-md border border-[#2A272F] bg-[#151419]/90 px-2.5 py-1 text-[11px] font-medium text-[#B0A9B6]"
+              className="rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
             >
               {label}
             </span>
@@ -344,17 +344,17 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
       {/* 1. Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,0.45fr)] lg:gap-10">
         <div className="min-w-0 space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B0A9B6]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Музыка для бизнеса · БизнесЗвук
           </p>
           <h1 className="text-[2.25rem] font-bold leading-[1.08] tracking-tight break-words sm:text-4xl md:text-5xl lg:text-[3.4rem]">
-            <span className="text-[#F7F4F6]">Ваш трек - </span>
+            <span className="text-foreground">Ваш трек - </span>
             <br className="hidden md:block" />
-            <span className="text-[#F7F4F6]">в музыке </span>
+            <span className="text-foreground">в музыке </span>
             <br className="hidden md:block" />
             <span className="text-[#F21D43]">для бизнеса.</span>
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#B0A9B6] md:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Откройте для музыки ещё один канал использования. Добавим трек в каталог фоновой музыки
             БизнесЗвука после проверки прав - со статистикой и начислением роялти.
           </p>
@@ -363,7 +363,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             <p className="text-3xl font-bold tracking-tight text-[#F21D43] sm:text-4xl">
               {priceDisplay}
             </p>
-            <p className="text-sm text-[#B0A9B6]">за размещение одного трека</p>
+            <p className="text-sm text-muted-foreground">за размещение одного трека</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -384,7 +384,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             </Button>
           </div>
 
-          <p className="text-xs leading-relaxed text-[#B0A9B6]">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Проверка прав · Размещение в каталоге · Статистика и роялти
           </p>
         </div>
@@ -400,7 +400,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             Что вы получаете
           </h2>
-          <p className="max-w-2xl text-[15px] text-[#B0A9B6]">Один трек. Три составляющие услуги.</p>
+          <p className="max-w-2xl text-[15px] text-muted-foreground">Один трек. Три составляющие услуги.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           {INCLUDE_CARDS.map((card) => {
@@ -408,15 +408,15 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             return (
               <div
                 key={card.title}
-                className="rounded-[14px] border border-[#2A272F] bg-[#151419]/90 px-4 py-4"
+                className="rounded-[14px] border border-border bg-card px-4 py-4"
               >
                 <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F21D43]/12 text-[#F21D43]">
                   <Icon className="h-4 w-4" aria-hidden />
                 </div>
-                <h3 className="text-base font-semibold tracking-tight text-[#F7F4F6]">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">
                   {card.title}
                 </h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#B0A9B6]">{card.body}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
               </div>
             )
           })}
@@ -425,7 +425,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
 
       {/* 3. Usage examples */}
       <section id="bm-examples" className="scroll-mt-20 space-y-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B0A9B6]">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Где может звучать фоновая музыка · примеры
         </p>
         <div className="grid gap-3 md:grid-cols-3">
@@ -434,24 +434,24 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             return (
               <div
                 key={item.title}
-                className="relative overflow-hidden rounded-[14px] border border-[#2A272F] bg-[#151419]/90 px-4 py-4"
+                className="relative overflow-hidden rounded-[14px] border border-border bg-card px-4 py-4"
               >
                 <div
                   className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#F21D43]/10"
                   aria-hidden
                 />
                 <div
-                  className="pointer-events-none absolute -bottom-8 left-8 h-16 w-16 rotate-12 rounded-lg border border-[#2A272F]/80"
+                  className="pointer-events-none absolute -bottom-8 left-8 h-16 w-16 rotate-12 rounded-lg border border-border/80"
                   aria-hidden
                 />
                 <div className="relative">
-                  <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A272F] text-[#FFB4C5]">
+                  <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F21D43]/12 text-[#F21D43]">
                     <Icon className="h-4 w-4" aria-hidden />
                   </div>
-                  <h3 className="text-base font-semibold tracking-tight text-[#F7F4F6]">
+                  <h3 className="text-base font-semibold tracking-tight text-foreground">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-[#B0A9B6]">{item.body}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
                 </div>
               </div>
             )
@@ -462,23 +462,23 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
       {/* 4. Royalty calculator */}
       <section
         id="bm-royalty"
-        className="scroll-mt-20 grid gap-6 rounded-[16px] border border-[#2A272F] bg-[#151419]/70 p-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-center md:gap-8 md:p-6"
+        className="scroll-mt-20 grid gap-6 rounded-[16px] border border-border bg-card p-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-center md:gap-8 md:p-6"
       >
         <div className="min-w-0 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#FFB4C5]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {rateLabel} ₽ за прослушивание
           </p>
           <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
             Музыка используется. Роялти начисляются.
           </h2>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#B0A9B6]">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
             Начисления зависят от числа учитываемых прослушиваний. Посмотрите простой пример расчёта
             по ставке услуги.
           </p>
         </div>
 
-        <div className="rounded-[14px] border border-[#2A272F] bg-[#09090C]/70 p-4">
-          <p className="text-xs font-medium text-[#B0A9B6]">Пример · количество прослушиваний</p>
+        <div className="rounded-[14px] border border-border bg-muted p-4">
+          <p className="text-xs font-medium text-muted-foreground">Пример · количество прослушиваний</p>
           <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Количество прослушиваний">
             {PLAY_PRESETS.map((plays) => {
               const selected = playsPreset === plays
@@ -501,14 +501,14 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             })}
           </div>
           <div className="mt-4 space-y-1" aria-live="polite">
-            <p className="text-2xl font-bold tracking-tight text-[#F7F4F6]">
+            <p className="text-2xl font-bold tracking-tight text-foreground">
               {formatRub(earnings)} ₽
             </p>
-            <p className="text-sm text-[#B0A9B6]">
+            <p className="text-sm text-muted-foreground">
               {formatPlays(playsPreset)} × {rateLabel} ₽
             </p>
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-[#B0A9B6]">
+          <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
             Пример расчёта по ставке услуги. Не гарантия дохода и не сумма к выводу.
           </p>
         </div>
@@ -525,14 +525,14 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
               key={step.num}
               className={cn(
                 "min-w-0 md:px-4",
-                index > 0 && "md:border-l md:border-[#2A272F]",
+                index > 0 && "md:border-l md:border-border",
                 index === 0 && "md:pl-0",
                 index === PROCESS_STEPS.length - 1 && "md:pr-0"
               )}
             >
               <p className="text-xs font-semibold tracking-[0.14em] text-[#F21D43]">{step.num}</p>
-              <p className="mt-2 font-semibold text-[#F7F4F6]">{step.title}</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B0A9B6]">{step.body}</p>
+              <p className="mt-2 font-semibold text-foreground">{step.title}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -541,18 +541,18 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
       {/* 6. Order */}
       <section
         id="bm-order"
-        className="scroll-mt-20 overflow-hidden rounded-[16px] border border-[#2A272F] bg-[#151419]/90"
+        className="scroll-mt-20 overflow-hidden rounded-[16px] border border-border bg-card"
       >
         <div className="grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className="space-y-5 border-b border-[#2A272F] p-5 md:p-6 lg:border-b-0 lg:border-r">
+          <div className="space-y-5 border-b border-border p-5 md:p-6 lg:border-b-0 lg:border-r">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B0A9B6]">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Размещение в БизнесЗвуке
               </p>
               <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
                 Дайте треку новый контекст.
               </h2>
-              <p className="text-[15px] leading-relaxed text-[#B0A9B6]">
+              <p className="text-[15px] leading-relaxed text-muted-foreground">
                 Оформите размещение в каталоге фоновой музыки. Менеджер свяжется с вами для
                 уточнения деталей.
               </p>
@@ -560,10 +560,10 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
 
             <div className="space-y-1">
               <p className="text-3xl font-bold text-[#F21D43]">{priceDisplay}</p>
-              <p className="text-sm text-[#B0A9B6]">за один трек</p>
+              <p className="text-sm text-muted-foreground">за один трек</p>
             </div>
 
-            <ul className="space-y-2 border-t border-[#2A272F] pt-4 text-sm text-[#B0A9B6]">
+            <ul className="space-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
               {ORDER_INCLUDES.map((item) => (
                 <li key={item} className="flex gap-2">
                   <span className="text-[#F21D43]" aria-hidden>
@@ -576,7 +576,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
           </div>
 
           <div className="space-y-3 p-5 md:p-6">
-            <h3 className="text-lg font-semibold tracking-tight text-[#F7F4F6]">Ваш трек</h3>
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">Ваш трек</h3>
 
             <div className="space-y-1.5">
               <Label htmlFor="bm-release">Релиз из кабинета</Label>
@@ -610,7 +610,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
               {fieldErrors.releaseId ? (
                 <p className="text-xs text-[#F21D43]">{fieldErrors.releaseId}</p>
               ) : !releasesLoading && selectableReleases.length === 0 ? (
-                <p className="text-xs text-[#B0A9B6]">
+                <p className="text-xs text-muted-foreground">
                   Нет загруженных релизов.{" "}
                   <Link
                     href="/cabinet/upload"
@@ -620,7 +620,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
                   </Link>
                 </p>
               ) : (
-                <p className="text-xs text-[#B0A9B6]">
+                <p className="text-xs text-muted-foreground">
                   Выберите релиз, который уже загружен в кабинет.
                 </p>
               )}
@@ -646,13 +646,13 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
               {fieldErrors.comment ? (
                 <p className="text-xs text-[#F21D43]">{fieldErrors.comment}</p>
               ) : (
-                <p className="text-xs text-[#B0A9B6]">
+                <p className="text-xs text-muted-foreground">
                   Нужен для оформления заказа (действующая серверная проверка).
                 </p>
               )}
             </div>
 
-            <p className="pt-1 text-sm font-medium text-[#F7F4F6]">
+            <p className="pt-1 text-sm font-medium text-foreground">
               1 трек · размещение в каталоге - {priceDisplay}
             </p>
 
@@ -674,12 +674,12 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
         <Accordion
           type="single"
           collapsible
-          className="w-full rounded-[12px] border border-[#2A272F] px-4"
+          className="w-full rounded-[12px] border border-border px-4"
         >
           {FAQ_ITEMS.map((item, i) => (
             <AccordionItem key={item.q} value={`bm-faq-${i}`}>
               <AccordionTrigger className="text-left text-[15px]">{item.q}</AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-[#B0A9B6]">
+              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
                 {item.a}
               </AccordionContent>
             </AccordionItem>

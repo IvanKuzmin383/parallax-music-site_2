@@ -184,9 +184,9 @@ function ModeCard({
   return (
     <label
       className={cn(
-        "relative flex cursor-pointer flex-col rounded-[16px] border bg-[#151419] p-5 transition-colors",
+        "relative flex cursor-pointer flex-col rounded-[16px] border bg-card p-5 transition-colors",
         "focus-within:outline-none focus-within:ring-2 focus-within:ring-[#F21D43] focus-within:ring-offset-2 focus-within:ring-offset-[#09090C]",
-        selected ? "border-[#F21D43]" : "border-[#302831] hover:border-[#4a3f4d]",
+        selected ? "border-[#F21D43]" : "border-border hover:border-primary/40",
         disabled && "pointer-events-none opacity-60",
       )}
     >
@@ -201,22 +201,22 @@ function ModeCard({
       />
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-lg font-semibold text-[#F7F4F6]">{title}</p>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#B8AFBD]">{description}</p>
+          <p className="text-lg font-semibold text-foreground">{title}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
         </div>
         <span
           className={cn(
             "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
             selected
               ? "border-[#F21D43] bg-[#F21D43] text-white"
-              : "border-[#302831] bg-[#09090C] text-transparent",
+              : "border-border bg-muted text-transparent",
           )}
           aria-hidden
         >
           <Check className="h-3.5 w-3.5" />
         </span>
       </div>
-      <ul className="mt-4 space-y-1.5 text-sm text-[#B8AFBD]">
+      <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
         {bullets.map((item) => (
           <li key={item} className="flex gap-2">
             <span className="text-[#F21D43]" aria-hidden>
@@ -491,30 +491,30 @@ function YandexVideoshotLandingInner() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1180px] space-y-14 pb-10 text-[#F7F4F6] md:space-y-16">
+    <div className="mx-auto w-full min-w-0 max-w-[1180px] space-y-14 pb-10 text-foreground md:space-y-16">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
           asChild
-          className="h-11 w-11 shrink-0 text-[#F7F4F6] hover:bg-[#151419]"
+          className="h-11 w-11 shrink-0 text-foreground hover:bg-card"
         >
           <Link href={backHref} aria-label={backLabel}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <p className="text-sm text-[#B8AFBD]">{backLabel}</p>
+        <p className="text-sm text-muted-foreground">{backLabel}</p>
       </div>
 
       <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
         <div className="min-w-0 space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Видеошот в Яндекс Музыке
           </p>
           <h1 className="text-[2.1rem] font-bold leading-[1.12] tracking-tight sm:text-[2.6rem] md:text-[3rem]">
             Дайте треку <span className="text-[#F21D43]">движе{"\u00AD"}ние</span>.
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-[#B8AFBD] md:text-base">
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Короткий видеоряд передаёт настроение вашей музыки во время прослушивания. Загрузим ваш
             готовый ролик или создадим видеошот под трек.
           </p>
@@ -522,7 +522,7 @@ function YandexVideoshotLandingInner() {
             <p className="text-4xl font-bold tracking-tight text-[#F21D43]">
               от {YANDEX_VIDEOSHOT_PRICE_RUB} {"\u20BD"}
             </p>
-            <ul className="mt-2 space-y-1 text-sm text-[#B8AFBD]">
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
               <li>Загрузка - {YANDEX_VIDEOSHOT_PRICE_RUB} {"\u20BD"}.</li>
               <li>
                 Создание и загрузка - {YANDEX_VIDEOSHOT_CREATION_PRICE_RUB} {"\u20BD"}.
@@ -540,13 +540,13 @@ function YandexVideoshotLandingInner() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 min-h-11 border-[#302831] bg-transparent text-[#F7F4F6] hover:bg-[#151419]"
+              className="h-11 min-h-11 border-border bg-transparent text-foreground hover:bg-card"
               onClick={() => scrollToId("yandex-videoshot-examples")}
             >
               Посмотреть примеры
             </Button>
           </div>
-          <p className="text-sm text-[#B8AFBD]">
+          <p className="text-sm text-muted-foreground">
             Вертикальный ролик · В плеере трека · Под вашу музыку
           </p>
         </div>
@@ -559,19 +559,19 @@ function YandexVideoshotLandingInner() {
             size="hero"
             caption="Настроение вашего трека"
           />
-          <p className="text-xs text-[#B8AFBD]">До 15 сек.</p>
+          <p className="text-xs text-muted-foreground">До 15 сек.</p>
         </div>
       </section>
 
       <section id="yandex-videoshot-variants" className="scroll-mt-20 space-y-5">
         <div className="max-w-2xl space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Два варианта. Один результат
           </p>
           <h2 className="text-2xl font-bold tracking-tight md:text-[1.75rem]">
             Видео уже есть? Или создадим его вместе?
           </h2>
-          <p className="text-[15px] leading-relaxed text-[#B8AFBD]">
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
             Выберите нужный объём работы. В обоих вариантах проверим материал и передадим видеошот
             для размещения в Яндекс Музыке
           </p>
@@ -608,9 +608,9 @@ function YandexVideoshotLandingInner() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[#B8AFBD]" aria-live="polite">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
             Выбрано:{" "}
-            <span className="font-medium text-[#F7F4F6]">
+            <span className="font-medium text-foreground">
               {mode === "ready" ? "У меня есть видео" : "Нужно создать видео"} · {price} {"\u20BD"}
             </span>
           </p>
@@ -623,7 +623,7 @@ function YandexVideoshotLandingInner() {
             Оформить за {price} {"\u20BD"}
           </Button>
         </div>
-        <p className="text-xs leading-relaxed text-[#B8AFBD]">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           В {YANDEX_VIDEOSHOT_CREATION_PRICE_RUB} {"\u20BD"} входят создание, проверка и публикация
           одного видеошота. Это полная стоимость выбранного варианта.
         </p>
@@ -631,13 +631,13 @@ function YandexVideoshotLandingInner() {
 
       <section id="yandex-videoshot-examples" className="scroll-mt-20 space-y-5">
         <div className="max-w-2xl space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Примеры отображения
           </p>
           <h2 className="text-2xl font-bold tracking-tight md:text-[1.75rem]">
             Звучит музыка. Работает образ.
           </h2>
-          <p className="text-[15px] leading-relaxed text-[#B8AFBD]">
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
             Клип, атмосферный визуал или выступление - у каждого трека своё настроение.
           </p>
         </div>
@@ -663,15 +663,15 @@ function YandexVideoshotLandingInner() {
           {steps.map((step) => (
             <div
               key={`${mode}-${step.num}`}
-              className="rounded-[14px] border border-[#302831] bg-[#151419]/90 px-4 py-4"
+              className="rounded-[14px] border border-border bg-card px-4 py-4"
             >
               <p className="text-xs font-semibold tracking-[0.14em] text-[#F21D43]">{step.num}</p>
               <h3 className="mt-2 text-sm font-semibold">{step.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#B8AFBD]">{step.body}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-[#B8AFBD]">
+        <p className="text-xs text-muted-foreground">
           {mode === "ready"
             ? "Для готового ролика: вертикальное видео 5-15 секунд."
             : "Для создания: целевая длительность ролика 6-15 секунд."}
@@ -680,30 +680,30 @@ function YandexVideoshotLandingInner() {
 
       <section
         id="yandex-videoshot-order"
-        className="scroll-mt-20 grid gap-6 rounded-[16px] border border-[#302831] bg-[#151419]/90 p-5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 md:p-6"
+        className="scroll-mt-20 grid gap-6 rounded-[16px] border border-border bg-card p-5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 md:p-6"
       >
         <div className="space-y-4" aria-live="polite">
           {mode === "ready" ? (
             <>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Загрузка готового видеошота
                 </p>
                 <h2 className="mt-1 text-xl font-bold md:text-2xl">Видео готово? Добавим к треку.</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#B8AFBD]">
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   Передайте видео и ссылку на трек. Менеджер уточнит детали в переписке, а мы
                   проверим материал и отправим его для размещения.
                 </p>
               </div>
-              <div className="rounded-[14px] border border-[#302831] bg-[#09090C]/70 p-4">
+              <div className="rounded-[14px] border border-border bg-muted p-4">
                 <p className="text-3xl font-bold tracking-tight text-[#F21D43]">
                   {YANDEX_VIDEOSHOT_PRICE_RUB} {"\u20BD"}
                 </p>
-                <p className="mt-1 text-sm text-[#B8AFBD]">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Проверка и загрузка одного готового ролика.
                 </p>
               </div>
-              <ul className="space-y-2 text-sm text-[#B8AFBD]">
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex gap-2">
                   <span className="text-[#F21D43]" aria-hidden>
                     ·
@@ -721,24 +721,24 @@ function YandexVideoshotLandingInner() {
           ) : (
             <>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Создание видеошота с публикацией
                 </p>
                 <h2 className="mt-1 text-xl font-bold md:text-2xl">Как выглядит ваша музыка?</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#B8AFBD]">
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   Пришлите трек и пожелания к образу. Менеджер уточнит детали в переписке, а команда
                   создаст видеошот и передаст его для размещения.
                 </p>
               </div>
-              <div className="rounded-[14px] border border-[#302831] bg-[#09090C]/70 p-4">
+              <div className="rounded-[14px] border border-border bg-muted p-4">
                 <p className="text-3xl font-bold tracking-tight text-[#F21D43]">
                   {YANDEX_VIDEOSHOT_CREATION_PRICE_RUB} {"\u20BD"}
                 </p>
-                <p className="mt-1 text-sm text-[#B8AFBD]">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Создание, проверка и публикация одного видеошота.
                 </p>
               </div>
-              <ul className="space-y-2 text-sm text-[#B8AFBD]">
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex gap-2">
                   <span className="text-[#F21D43]" aria-hidden>
                     ·
@@ -766,8 +766,8 @@ function YandexVideoshotLandingInner() {
                 className={cn(
                   "flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 text-center text-sm",
                   mode === "ready"
-                    ? "border-[#F21D43] bg-[#F21D43]/10 text-[#F7F4F6]"
-                    : "border-[#302831] bg-[#09090C] text-[#B8AFBD]",
+                    ? "border-[#F21D43] bg-[#F21D43]/10 text-foreground"
+                    : "border-border bg-muted text-muted-foreground",
                 )}
               >
                 <input
@@ -784,8 +784,8 @@ function YandexVideoshotLandingInner() {
                 className={cn(
                   "flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 text-center text-sm",
                   mode === "create"
-                    ? "border-[#F21D43] bg-[#F21D43]/10 text-[#F7F4F6]"
-                    : "border-[#302831] bg-[#09090C] text-[#B8AFBD]",
+                    ? "border-[#F21D43] bg-[#F21D43]/10 text-foreground"
+                    : "border-border bg-muted text-muted-foreground",
                 )}
               >
                 <input
@@ -821,7 +821,7 @@ function YandexVideoshotLandingInner() {
                   aria-describedby={
                     fieldErrors.trackUrl ? "yandex-videoshot-track-url-error" : undefined
                   }
-                  className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  className="h-11 border-border bg-muted text-base md:text-sm"
                 />
                 {fieldErrors.trackUrl ? (
                   <p
@@ -853,7 +853,7 @@ function YandexVideoshotLandingInner() {
                     aria-describedby={
                       fieldErrors.isrc ? "yandex-videoshot-isrc-error" : undefined
                     }
-                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                    className="h-11 border-border bg-muted text-base md:text-sm"
                   />
                   {fieldErrors.isrc ? (
                     <p
@@ -883,7 +883,7 @@ function YandexVideoshotLandingInner() {
                     aria-describedby={
                       fieldErrors.upc ? "yandex-videoshot-upc-error" : undefined
                     }
-                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                    className="h-11 border-border bg-muted text-base md:text-sm"
                   />
                   {fieldErrors.upc ? (
                     <p
@@ -915,9 +915,9 @@ function YandexVideoshotLandingInner() {
                   aria-describedby={
                     fieldErrors.fileUrl ? "yandex-videoshot-file-url-error" : formHintId
                   }
-                  className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  className="h-11 border-border bg-muted text-base md:text-sm"
                 />
-                <p id={formHintId} className="text-xs text-[#B8AFBD]">
+                <p id={formHintId} className="text-xs text-muted-foreground">
                   Откройте доступ к просмотру и скачиванию файла.
                 </p>
                 {fieldErrors.fileUrl ? (
@@ -940,7 +940,7 @@ function YandexVideoshotLandingInner() {
                   rows={3}
                   disabled={loading}
                   placeholder="Пожелания к проверке или размещению"
-                  className="border-[#302831] bg-[#09090C]"
+                  className="border-border bg-muted"
                 />
               </div>
             </>
@@ -964,7 +964,7 @@ function YandexVideoshotLandingInner() {
                   aria-describedby={
                     fieldErrors.demoUrl ? "yandex-videoshot-demo-url-error" : undefined
                   }
-                  className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  className="h-11 border-border bg-muted text-base md:text-sm"
                 />
                 {fieldErrors.demoUrl ? (
                   <p
@@ -996,7 +996,7 @@ function YandexVideoshotLandingInner() {
                     aria-describedby={
                       fieldErrors.isrc ? "yandex-videoshot-create-isrc-error" : undefined
                     }
-                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                    className="h-11 border-border bg-muted text-base md:text-sm"
                   />
                   {fieldErrors.isrc ? (
                     <p
@@ -1026,7 +1026,7 @@ function YandexVideoshotLandingInner() {
                     aria-describedby={
                       fieldErrors.upc ? "yandex-videoshot-create-upc-error" : undefined
                     }
-                    className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                    className="h-11 border-border bg-muted text-base md:text-sm"
                   />
                   {fieldErrors.upc ? (
                     <p
@@ -1045,7 +1045,7 @@ function YandexVideoshotLandingInner() {
                 <select
                   id="yandex-videoshot-direction"
                   className={cn(
-                    "flex h-11 w-full rounded-md border border-[#302831] bg-[#09090C] px-3 text-sm",
+                    "flex h-11 w-full rounded-md border border-border bg-muted px-3 text-sm",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]",
                   )}
                   value={videoDirection}
@@ -1079,9 +1079,9 @@ function YandexVideoshotLandingInner() {
                       ? "yandex-videoshot-wishes-error"
                       : "yandex-videoshot-wishes-hint"
                   }
-                  className="border-[#302831] bg-[#09090C]"
+                  className="border-border bg-muted"
                 />
-                <p id="yandex-videoshot-wishes-hint" className="text-xs text-[#B8AFBD]">
+                <p id="yandex-videoshot-wishes-hint" className="text-xs text-muted-foreground">
                   Если конкретной идеи нет, напишите «На ваш вкус».
                 </p>
                 {fieldErrors.wishes ? (
@@ -1116,9 +1116,9 @@ function YandexVideoshotLandingInner() {
                       ? "yandex-videoshot-references-error"
                       : "yandex-videoshot-references-hint"
                   }
-                  className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                  className="h-11 border-border bg-muted text-base md:text-sm"
                 />
-                <p id="yandex-videoshot-references-hint" className="text-xs text-[#B8AFBD]">
+                <p id="yandex-videoshot-references-hint" className="text-xs text-muted-foreground">
                   Можно передать позже в переписке.
                 </p>
                 {fieldErrors.referencesUrl ? (
@@ -1140,7 +1140,7 @@ function YandexVideoshotLandingInner() {
               <select
                 id="yandex-videoshot-contact-type"
                 className={cn(
-                  "flex h-11 w-full rounded-md border border-[#302831] bg-[#09090C] px-3 text-sm",
+                  "flex h-11 w-full rounded-md border border-border bg-muted px-3 text-sm",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]",
                 )}
                 value={contactType}
@@ -1168,7 +1168,7 @@ function YandexVideoshotLandingInner() {
                 aria-describedby={
                   fieldErrors.contactValue ? "yandex-videoshot-contact-value-error" : undefined
                 }
-                className="h-11 border-[#302831] bg-[#09090C] text-base md:text-sm"
+                className="h-11 border-border bg-muted text-base md:text-sm"
               />
               {fieldErrors.contactValue ? (
                 <p
@@ -1207,14 +1207,14 @@ function YandexVideoshotLandingInner() {
         <Accordion
           type="single"
           collapsible
-          className="rounded-[14px] border border-[#302831] bg-[#151419] px-4"
+          className="rounded-[14px] border border-border bg-card px-4"
         >
           {FAQ_ITEMS.map((item, index) => (
             <AccordionItem key={item.q} value={`faq-${index}`}>
-              <AccordionTrigger className="text-left text-[#F7F4F6] hover:no-underline">
+              <AccordionTrigger className="text-left text-foreground hover:no-underline">
                 {item.q}
               </AccordionTrigger>
-              <AccordionContent className="text-[#B8AFBD]">{item.a}</AccordionContent>
+              <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
@@ -1256,7 +1256,7 @@ function YandexVideoshotLandingInner() {
 
 export default function YandexVideoshotLanding() {
   return (
-    <Suspense fallback={<div className="min-h-[50vh] bg-[#09090C] p-4" />}>
+    <Suspense fallback={<div className="min-h-[50vh] bg-muted p-4" />}>
       <YandexVideoshotLandingInner />
     </Suspense>
   )
