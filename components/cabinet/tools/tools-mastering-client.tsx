@@ -43,6 +43,14 @@ import {
   type ToolsMasteringEntitlement,
 } from "@/lib/tools-mastering-pricing"
 import { LiveMasteringEngine, type AbMode } from "@/lib/tools-mastering-live"
+import {
+  formatLufs,
+  formatTruePeak,
+  lufsBarLevel,
+  silentMeterReading,
+  truePeakBarLevel,
+  type MeterReading,
+} from "@/lib/tools-mastering-meter"
 import { renderMasteredWav } from "@/lib/tools-mastering-render"
 import { cn } from "@/lib/utils"
 
@@ -329,6 +337,90 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`
 }
 
+function MeterBar({
+  label,
+  tip,
+  valueText,
+  fill,
+  hot,
+}: {
+  label: string
+  tip: string
+  valueText: string
+  fill: number
+  hot?: boolean
+}) {
+  const pct = Math.round(Math.min(1, Math.max(0, fill)) * 100)
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          {label}
+          <HintIcon label={label} tip={tip} />
+        </span>
+        <span
+          className={cn(
+            "tabular-nums text-xs font-semibold tracking-tight",
+            hot ? "text-primary" : "text-foreground"
+          )}
+        >
+          {valueText}
+        </span>
+      </div>
+      <div className="relative h-2 overflow-hidden rounded-full border border-border/60 bg-background/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)]">
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full transition-[width] duration-75 ease-out",
+            hot
+              ? "bg-gradient-to-r from-primary via-primary to-orange-400 shadow-[0_0_12px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
+              : "bg-gradient-to-r from-primary/70 via-primary to-primary/90"
+          )}
+          style={{ width: `${pct}%` }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(90deg, transparent 0 6px, rgba(255,255,255,0.35) 6px 7px)",
+          }}
+          aria-hidden
+        />
+      </div>
+    </div>
+  )
+}
+
+function LoudnessMeters({ reading, live }: { reading: MeterReading; live: boolean }) {
+  const lufsFill = live ? lufsBarLevel(reading.lufs) : 0
+  const tpFill = live ? truePeakBarLevel(reading.truePeakDb) : 0
+  const tpHot = live && reading.truePeakDb > -1
+  return (
+    <div className="space-y-3 rounded-xl border border-border/70 bg-gradient-to-b from-card/55 to-card/20 p-3">
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Уровень
+        </p>
+        <span className="text-[10px] text-muted-foreground">
+          {live ? "live · текущий A/B" : "нажмите Play"}
+        </span>
+      </div>
+      <MeterBar
+        label="LUFS"
+        tip="Моментальная громкость (примерно как на стриминге). Ориентир Spotify/Apple - около −14 LUFS."
+        valueText={formatLufs(reading.lufs, live)}
+        fill={lufsFill}
+      />
+      <MeterBar
+        label="True Peak"
+        tip="Пик с запасом (dBTP). Держите ниже −1 dBTP, чтобы на площадках не клиповало."
+        valueText={formatTruePeak(reading.truePeakDb, live)}
+        fill={tpFill}
+        hot={tpHot}
+      />
+    </div>
+  )
+}
+
 function ToolsMasteringInner() {
   const { user, refresh: refreshSession } = useCabinetSession()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -350,8 +442,10 @@ function ToolsMasteringInner() {
   const [abMode, setAbMode] = useState<AbMode>("B")
   const [playhead, setPlayhead] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [meter, setMeter] = useState<MeterReading>(() => silentMeterReading())
   const [presetsOpen, setPresetsOpen] = useState(true)
   const [fineTuneOpen, setFineTuneOpen] = useState(true)
+  const meterFrameRef = useRef(0)
 
   const walletBalance = user?.walletBalance ?? 0
 
@@ -388,13 +482,24 @@ function ToolsMasteringInner() {
   }, [params])
 
   useEffect(() => {
-    if (!playing) return
+    if (!playing) {
+      setMeter(silentMeterReading())
+      return
+    }
     let raf = 0
+    meterFrameRef.current = 0
     const tick = () => {
       const eng = engineRef.current
       if (eng) {
         if (!scrubbingRef.current) setPlayhead(eng.currentTime)
-        if (!eng.isPlaying) setPlaying(false)
+        if (!eng.isPlaying) {
+          setPlaying(false)
+        } else {
+          meterFrameRef.current += 1
+          if (meterFrameRef.current % 2 === 0) {
+            setMeter(eng.getMeterReading())
+          }
+        }
       }
       raf = requestAnimationFrame(tick)
     }
@@ -779,7 +884,7 @@ function ToolsMasteringInner() {
                     </KnobGroup>
 
                     <KnobGroup
-                      title="Выход"
+                      title="Громкость"
                       hint="Финальная громкость мастера и автоподбор уровня под выбранную громкость."
                     >
                       <RotaryKnob
@@ -849,7 +954,7 @@ function ToolsMasteringInner() {
                 <div className="space-y-4 border-t border-border px-4 py-4">
                   <p className="text-xs text-muted-foreground">
                     Тяните крутилки вверх/вниз или крутите колесом мыши. Группы как в VST: тон,
-                    динамика, окрас, выход.
+                    динамика, окрас, лимитер.
                   </p>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <KnobGroup
@@ -968,7 +1073,7 @@ function ToolsMasteringInner() {
                     </KnobGroup>
 
                     <KnobGroup
-                      title="Выход"
+                      title="Лимитер"
                       hint="Потолок громкости и финальные опции перед скачиванием."
                     >
                       <RotaryKnob
@@ -1082,6 +1187,8 @@ function ToolsMasteringInner() {
                 />
               </div>
             </div>
+
+            <LoudnessMeters reading={meter} live={playing && loadState === "ready"} />
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

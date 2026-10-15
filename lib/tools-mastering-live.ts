@@ -9,6 +9,12 @@ import {
   linearCurve,
   softClipCurve,
 } from "@/lib/tools-mastering-dsp"
+import {
+  createMeterTap,
+  silentMeterReading,
+  type MeterReading,
+  type MeterTap,
+} from "@/lib/tools-mastering-meter"
 
 function dbToLinear(db: number): number {
   return Math.pow(10, db / 20)
@@ -58,6 +64,8 @@ export class LiveMasteringEngine {
   private softClip: WaveShaperNode | null = null
   private widener: ReturnType<typeof createStereoWidener> | null = null
   private ceiling: GainNode | null = null
+  private dryMeter: MeterTap | null = null
+  private wetMeter: MeterTap | null = null
   private startedAt = 0
   private offset = 0
   private playing = false
@@ -149,6 +157,10 @@ export class LiveMasteringEngine {
     this.softClip.oversample = "2x"
     this.widener = createStereoWidener(ctx)
     this.ceiling = ctx.createGain()
+    this.dryMeter?.dispose()
+    this.wetMeter?.dispose()
+    this.dryMeter = createMeterTap(ctx)
+    this.wetMeter = createMeterTap(ctx)
 
     this.hpf.connect(this.lf)
     this.lf.connect(this.mf)
@@ -163,7 +175,16 @@ export class LiveMasteringEngine {
 
     this.dryGain.connect(ctx.destination)
     this.wetGain.connect(ctx.destination)
+    this.dryGain.connect(this.dryMeter.input)
+    this.wetGain.connect(this.wetMeter.input)
     this.applyAbGains()
+  }
+
+  /** Live LUFS / true-peak for the active A/B path. */
+  getMeterReading(): MeterReading {
+    if (!this.playing) return silentMeterReading()
+    const tap = this.ab === "A" ? this.dryMeter : this.wetMeter
+    return tap?.read() ?? silentMeterReading()
   }
 
   applyParams(params: MasteringParams) {
@@ -314,5 +335,9 @@ export class LiveMasteringEngine {
     this.softClip = null
     this.widener = null
     this.ceiling = null
+    this.dryMeter?.dispose()
+    this.wetMeter?.dispose()
+    this.dryMeter = null
+    this.wetMeter = null
   }
 }
