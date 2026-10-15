@@ -28,9 +28,9 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
     if (!el) return
 
     el.loop = true
-    el.playsInline = true
     el.preload = "auto"
     el.volume = 0.9
+    el.setAttribute("playsinline", "true")
     // Подгружаем файл заранее, пока пользователь видит вопрос
     try {
       el.load()
