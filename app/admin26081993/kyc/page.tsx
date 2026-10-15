@@ -188,7 +188,7 @@ export default function AdminKycPage() {
 
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="mx-auto w-full max-w-5xl px-4 space-y-6 pb-10">
+      <div className="mx-auto w-full max-w-none px-4 space-y-6 pb-10">
         <AdminSectionNav active="kyc" />
 
         <div>

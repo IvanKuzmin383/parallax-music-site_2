@@ -1,11 +1,20 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { ru, enUS } from "date-fns/locale"
-import { ClipboardList, Clock, CheckCircle, CircleDot, Download } from "lucide-react"
+import {
+  ClipboardList,
+  Clock,
+  CheckCircle,
+  CircleDot,
+  Download,
+  Search,
+  ExternalLink,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -88,6 +97,48 @@ function serviceTitle(orderType: string, t: CabinetMessages): string {
   }
 }
 
+function formatMoney(amount: string, locale: string): string {
+  return `${parseFloat(amount).toLocaleString(locale === "en" ? "en-US" : "ru-RU")} ₽`
+}
+
+function formatCompactDate(value: string | null | undefined, dateLocale: typeof ru): string {
+  if (!value) return "—"
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return "—"
+  return format(d, "dd.MM.yy HH:mm", { locale: dateLocale })
+}
+
+function orderCompositionLine(
+  item: AdminServiceItem,
+  cabinet: CabinetMessages
+): string {
+  if (item.orderType === "upload_addon_bundle") {
+    const lines = (item.uploadAddonBundleItems ?? []).map((line) =>
+      formatUploadAddonBundleLine(line, cabinet.promotion)
+    )
+    if (item.uploadAddonAiCoverRequested) {
+      lines.push(cabinet.promotion.aiCover.title)
+    }
+    if (lines.length > 0) return lines.join(" · ")
+    return ""
+  }
+
+  const sd = item.serviceDetails
+  const parts: string[] = []
+  if (item.draftArtistName || sd?.artistName) {
+    parts.push(String(item.draftArtistName || sd?.artistName))
+  }
+  if (item.draftTrackName || sd?.trackTitle) {
+    parts.push(String(item.draftTrackName || sd?.trackTitle))
+  }
+  if (sd?.videosCount) parts.push(`${sd.videosCount} видео`)
+  if (item.tracksCount && item.tracksCount > 1) parts.push(`${item.tracksCount} шт.`)
+  if (item.aiMasteringAudioFiles?.length) {
+    parts.push(`${item.aiMasteringAudioFiles.length} WAV`)
+  }
+  return parts.join(" · ")
+}
+
 export default function AdminServiceFulfillmentsPage() {
   const router = useRouter()
   const { t, locale } = useI18n()
@@ -98,6 +149,7 @@ export default function AdminServiceFulfillmentsPage() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [filter, setFilter] = useState<FilterKey>("all")
+  const [query, setQuery] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [detailsItem, setDetailsItem] = useState<AdminServiceItem | null>(null)
 
@@ -154,12 +206,57 @@ export default function AdminServiceFulfillmentsPage() {
 
   const statusBadge = (status: FulfillmentStatus) => {
     if (status === "done") {
-      return { label: mt.adminStatusDone, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950" }
+      return {
+        label: mt.adminStatusDone,
+        icon: CheckCircle,
+        color: "text-emerald-700 dark:text-emerald-400",
+        bg: "bg-emerald-500/15",
+        ring: "ring-emerald-500/25",
+      }
     }
     if (status === "in_progress") {
-      return { label: mt.adminStatusInProgress, icon: CircleDot, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950" }
+      return {
+        label: mt.adminStatusInProgress,
+        icon: CircleDot,
+        color: "text-sky-700 dark:text-sky-400",
+        bg: "bg-sky-500/15",
+        ring: "ring-sky-500/25",
+      }
     }
-    return { label: mt.adminStatusNew, icon: Clock, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950" }
+    return {
+      label: mt.adminStatusNew,
+      icon: Clock,
+      color: "text-amber-700 dark:text-amber-400",
+      bg: "bg-amber-500/15",
+      ring: "ring-amber-500/25",
+    }
+  }
+
+  const visibleItems = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return items
+    return items.filter((item) => {
+      const title = serviceTitle(item.orderType, t.cabinet).toLowerCase()
+      const composition = orderCompositionLine(item, t.cabinet).toLowerCase()
+      const email = (item.userEmail ?? "").toLowerCase()
+      const telegram = (item.contactTelegram ?? "").toLowerCase()
+      const orderId = item.orderId.toLowerCase()
+      return (
+        title.includes(q) ||
+        composition.includes(q) ||
+        email.includes(q) ||
+        telegram.includes(q) ||
+        orderId.includes(q)
+      )
+    })
+  }, [items, query, t.cabinet])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-4 flex items-center justify-center">
+        <p>{locale === "en" ? "Loading…" : "Загрузка…"}</p>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -175,28 +272,35 @@ export default function AdminServiceFulfillmentsPage() {
     )
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-4 flex items-center justify-center">
-        <p>{locale === "en" ? "Loading…" : "Загрузка…"}</p>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background pt-4">
-      <div className="mx-auto w-full max-w-none px-4 space-y-6">
+      <div className="mx-auto w-full max-w-none px-4 space-y-4 pb-8">
         <AdminSectionNav active="service-fulfillments" />
 
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <ClipboardList className="h-8 w-8" />
-            {mt.adminPageTitle}
-          </h1>
-          <p className="text-muted-foreground mt-1">{mt.adminPageDescription}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <ClipboardList className="h-6 w-6" />
+              {mt.adminPageTitle}
+              <span className="rounded-md bg-muted px-2 py-0.5 text-sm font-semibold text-muted-foreground">
+                {visibleItems.length}
+                {query.trim() && visibleItems.length !== items.length ? ` / ${items.length}` : ""}
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{mt.adminPageDescription}</p>
+          </div>
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={locale === "en" ? "Search email, service, order…" : "Поиск: email, услуга, заказ…"}
+              className="h-9 pl-8"
+            />
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {(
             [
               ["all", mt.filterAll],
@@ -208,6 +312,7 @@ export default function AdminServiceFulfillmentsPage() {
               key={key}
               variant={filter === key ? "default" : "outline"}
               size="sm"
+              className="h-8"
               onClick={() => setFilter(key)}
             >
               {label}
@@ -216,113 +321,132 @@ export default function AdminServiceFulfillmentsPage() {
         </div>
 
         {items.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg">
-            <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <div className="text-center py-10 border rounded-lg">
+            <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">{mt.adminEmpty}</p>
           </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="text-center py-10 border rounded-lg">
+            <p className="text-muted-foreground">
+              {locale === "en" ? "Nothing matches the search" : "Ничего не найдено по запросу"}
+            </p>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {items.map((item) => {
-              const cfg = statusBadge(item.fulfillmentStatus)
-              const StatusIcon = cfg.icon
-              const paid = item.paidAt ? new Date(item.paidAt) : null
-              const created = item.createdAt ? new Date(item.createdAt) : null
-              return (
-                <div
-                  key={item.orderId}
-                  className="border rounded-lg p-6 space-y-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${cfg.bg}`}>
-                          <StatusIcon className={`h-4 w-4 ${cfg.color}`} />
-                          <span className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</span>
-                        </div>
-                        <span className="text-xl font-bold">
-                          {parseFloat(item.totalAmount).toLocaleString(locale === "en" ? "en-US" : "ru-RU")} ₽
-                        </span>
-                      </div>
-                      <p className="font-medium">{serviceTitle(item.orderType, t.cabinet)}</p>
-                      {item.orderType === "upload_addon_bundle" ? (
-                        (item.uploadAddonBundleItems ?? []).length > 0 || item.uploadAddonAiCoverRequested ? (
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">{mt.uploadAddonBundleComposition}</p>
-                            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
-                              {(item.uploadAddonBundleItems ?? []).map((line, idx) => (
-                                <li key={`${line.type}-${line.quantity}-${idx}`}>
-                                  {formatUploadAddonBundleLine(line, t.cabinet.promotion)}
-                                </li>
-                              ))}
-                              {item.uploadAddonAiCoverRequested ? <li>{t.cabinet.promotion.aiCover.title}</li> : null}
-                            </ul>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-amber-600 dark:text-amber-500">{mt.uploadAddonBundleCompositionUnavailable}</p>
-                        )
-                      ) : null}
-                      <div className="grid md:grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">{mt.adminUser}</p>
-                          <p className="font-medium break-all">{item.userEmail ?? item.userId ?? "-"}</p>
-                        </div>
-                        {created ? (
-                          <div>
-                            <p className="text-muted-foreground">{mt.createdLabel}</p>
-                            <p className="font-medium">
-                              {format(created, "d MMMM yyyy, HH:mm", { locale: dateLocale })}
-                            </p>
-                          </div>
-                        ) : null}
-                        {paid ? (
-                          <div>
-                            <p className="text-muted-foreground">{mt.paidLabel}</p>
-                            <p className="font-medium">
-                              {format(paid, "d MMMM yyyy, HH:mm", { locale: dateLocale })}
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
+          <div className="overflow-hidden rounded-lg border">
+            <div className="hidden md:grid md:grid-cols-[88px_minmax(0,1.4fr)_minmax(0,1fr)_100px_88px_150px_40px] gap-2 border-b bg-muted/40 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span>{locale === "en" ? "Status" : "Статус"}</span>
+              <span>{locale === "en" ? "Service" : "Услуга"}</span>
+              <span>{mt.adminUser}</span>
+              <span>{mt.paidLabel}</span>
+              <span className="text-right">{locale === "en" ? "Amount" : "Сумма"}</span>
+              <span>{locale === "en" ? "Change" : "Сменить"}</span>
+              <span className="sr-only">{locale === "en" ? "Details" : "Подробнее"}</span>
+            </div>
+            <ul className="divide-y">
+              {visibleItems.map((item) => {
+                const cfg = statusBadge(item.fulfillmentStatus)
+                const StatusIcon = cfg.icon
+                const title = serviceTitle(item.orderType, t.cabinet)
+                const composition = orderCompositionLine(item, t.cabinet)
+                const email = item.userEmail ?? item.userId ?? "—"
+                return (
+                  <li
+                    key={item.orderId}
+                    className="grid grid-cols-1 gap-2 px-3 py-2.5 transition-colors hover:bg-muted/35 md:grid-cols-[88px_minmax(0,1.4fr)_minmax(0,1fr)_100px_88px_150px_40px] md:items-center md:gap-2"
+                  >
+                    <div>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${cfg.bg} ${cfg.color} ${cfg.ring}`}
+                      >
+                        <StatusIcon className="h-3 w-3 shrink-0" />
+                        {cfg.label}
+                      </span>
                     </div>
-                    <div className="flex flex-col gap-2 min-w-[220px]">
-                      <label className="text-sm font-medium">{mt.adminStatusLabel}</label>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold leading-tight">{title}</p>
+                      {composition ? (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground" title={composition}>
+                          {composition}
+                        </p>
+                      ) : item.orderType === "upload_addon_bundle" ? (
+                        <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">
+                          {mt.uploadAddonBundleCompositionUnavailable}
+                        </p>
+                      ) : null}
+                      <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/80" title={item.orderId}>
+                        {item.orderId}
+                      </p>
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium" title={email}>
+                        {email}
+                      </p>
+                      {item.contactTelegram ? (
+                        <p className="truncate text-xs text-muted-foreground" title={item.contactTelegram}>
+                          {item.contactTelegram}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="text-xs text-muted-foreground md:text-[11px]">
+                      <span className="md:hidden text-muted-foreground/80">{mt.paidLabel}: </span>
+                      {formatCompactDate(item.paidAt ?? item.createdAt, dateLocale)}
+                    </div>
+
+                    <div className="text-sm font-semibold tabular-nums md:text-right">
+                      {formatMoney(item.totalAmount, locale)}
+                    </div>
+
+                    <div>
                       <Select
                         value={item.fulfillmentStatus}
                         onValueChange={(v) => handleStatusChange(item.orderId, v as FulfillmentStatus)}
                         disabled={updatingId === item.orderId}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="new">
                             <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-amber-600" />
+                              <Clock className="h-3.5 w-3.5 text-amber-600" />
                               {mt.adminStatusNew}
                             </div>
                           </SelectItem>
                           <SelectItem value="in_progress">
                             <div className="flex items-center gap-2">
-                              <CircleDot className="h-4 w-4 text-blue-600" />
+                              <CircleDot className="h-3.5 w-3.5 text-sky-600" />
                               {mt.adminStatusInProgress}
                             </div>
                           </SelectItem>
                           <SelectItem value="done">
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
                               {mt.adminStatusDone}
                             </div>
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button variant="outline" onClick={() => setDetailsItem(item)}>
-                        {locale === "en" ? "Details" : "Подробнее"}
+                    </div>
+
+                    <div className="flex md:justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={locale === "en" ? "Details" : "Подробнее"}
+                        onClick={() => setDetailsItem(item)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
-                </div>
-              )
-            })}
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         )}
       </div>

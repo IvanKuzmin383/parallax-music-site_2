@@ -57,7 +57,7 @@ export type StoryVideoTextLayout = (typeof STORY_VIDEO_TEXT_LAYOUTS)[number]
 export const STORY_VIDEO_TEXT_ALIGNS = ["left", "center", "right"] as const
 export type StoryVideoTextAlign = (typeof STORY_VIDEO_TEXT_ALIGNS)[number]
 
-/** Бейджи «слушайте на…» - можно выбрать несколько, рисуются столбиком без наложений. */
+/** Бейджи «слушайте на…» - можно выбрать несколько, рисуются сеткой по 2 в ряд. */
 export const STORY_VIDEO_BADGE_IDS = ["spotify", "appleMusic", "yandex", "vk"] as const
 export type StoryVideoBadgeId = (typeof STORY_VIDEO_BADGE_IDS)[number]
 
@@ -162,7 +162,7 @@ export const DEFAULT_STORY_VIDEO_PROJECT: StoryVideoProject = {
   startSec: 0,
   durationSec: STORY_VIDEO_DURATION_SEC,
   motionSpeed: 100,
-  showWaveform: true,
+  showWaveform: false,
   showText: true,
   showTextLine: true,
   badges: [],
@@ -220,16 +220,16 @@ export type StoryVideoTemplateLook = Pick<
 >
 
 export const STORY_VIDEO_TEMPLATE_LOOK: Record<StoryVideoTemplate, StoryVideoTemplateLook> = {
-  blurPulse: { motion: "breathe", filter: "clean", textLayout: "titleArtist", showWaveform: true },
+  blurPulse: { motion: "breathe", filter: "clean", textLayout: "titleArtist", showWaveform: false },
   poster: { motion: "kenBurnsIn", filter: "warm", textLayout: "titleArtist", showWaveform: false },
   filmGrain: { motion: "kenBurnsOut", filter: "grain", textLayout: "titleArtist", showWaveform: false },
-  lyricCard: { motion: "kenBurnsIn", filter: "clean", textLayout: "bigHook", showWaveform: true },
-  vinyl: { motion: "kenBurnsIn", filter: "warm", textLayout: "titleArtist", showWaveform: true },
-  cassette: { motion: "breathe", filter: "warm", textLayout: "titleArtist", showWaveform: true },
-  neon: { motion: "snapZoom", filter: "clean", textLayout: "titleArtist", showWaveform: true },
+  lyricCard: { motion: "kenBurnsIn", filter: "clean", textLayout: "bigHook", showWaveform: false },
+  vinyl: { motion: "kenBurnsIn", filter: "warm", textLayout: "titleArtist", showWaveform: false },
+  cassette: { motion: "breathe", filter: "warm", textLayout: "titleArtist", showWaveform: false },
+  neon: { motion: "snapZoom", filter: "clean", textLayout: "titleArtist", showWaveform: false },
   noir: { motion: "kenBurnsIn", filter: "clean", textLayout: "titleArtist", showWaveform: false },
   ticket: { motion: "breathe", filter: "warm", textLayout: "bigHook", showWaveform: false },
-  orbit: { motion: "breathe", filter: "clean", textLayout: "titleArtist", showWaveform: true },
+  orbit: { motion: "breathe", filter: "clean", textLayout: "titleArtist", showWaveform: false },
 }
 
 export const STORY_VIDEO_ACCENT_SWATCHES = [

@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
   const chartTrackIds = parseIdList(searchParams, "trackId")
   const compareTrackIdsRaw = parseIdList(searchParams, "compareTrackId")
   const compareTrackIds = compareTrackIdsRaw.slice(0, CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS)
+  const dateFrom = searchParams.get("from")?.trim() || null
+  const dateTo = searchParams.get("to")?.trim() || null
 
   if (compareTrackIdsRaw.length > CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS) {
     return NextResponse.json(
@@ -55,6 +57,8 @@ export async function GET(request: NextRequest) {
       platformKeys,
       chartTrackIds: chartTrackIds.length > 0 ? chartTrackIds : null,
       compareTrackIds,
+      dateFrom,
+      dateTo,
     })
     const durationMs = Date.now() - started
 

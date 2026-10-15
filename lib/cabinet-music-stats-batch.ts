@@ -37,6 +37,8 @@ export async function getMusicStatsBatchForCabinetUser(
     platformKeys: MusicPlatformKey[]
     chartTrackIds?: string[] | null
     compareTrackIds?: string[]
+    dateFrom?: string | null
+    dateTo?: string | null
   }
 ): Promise<CabinetMusicStatsBatchResult> {
   const platformKeys = options.platformKeys.filter((k) => PLATFORM_SET.has(k))
@@ -58,6 +60,8 @@ export async function getMusicStatsBatchForCabinetUser(
     cabinetUserEmail,
     platformKeys,
     filters: { trackIds: chartFilter },
+    dateFrom: options.dateFrom,
+    dateTo: options.dateTo,
   })
 
   const compare: CabinetMusicStatsBatchResult["compare"] = []

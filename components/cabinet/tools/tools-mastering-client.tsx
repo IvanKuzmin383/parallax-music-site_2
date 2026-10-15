@@ -31,6 +31,7 @@ import { useCabinetSession } from "@/lib/cabinet/hooks/cabinet-session-provider"
 import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import {
   applyPreset,
+  applyPresetAmount,
   DEFAULT_MASTERING_PARAMS,
   MASTERING_PRESETS,
   type DensityLevel,
@@ -688,7 +689,7 @@ function ToolsMasteringInner() {
     if (!entitlement) return "Скачать master WAV"
     if (entitlement.freeAvailable) return "Скачать master WAV бесплатно"
     if (needsPurchase) {
-      return `Купить скачивание за ${downloadPriceRub} ₽ с баланса`
+      return `Скачать (${downloadPriceRub} р)`
     }
     return "Скачать master WAV"
   })()
@@ -794,50 +795,69 @@ function ToolsMasteringInner() {
                   <div className="grid gap-3 lg:grid-cols-2">
                     <KnobGroup
                       title="Характер"
-                      hint="Готовый стиль мастеринга. Выберите пресет, затем при необходимости подкрутите уровни справа."
+                      hint="Готовый стиль мастеринга. Интенсивность подмешивает пресет к нейтрали: 100% - полный характер, 40% - мягче."
                     >
-                      <div className="grid w-full grid-cols-2 gap-2">
-                        {MASTERING_PRESETS.map((preset) => {
-                          const active = params.presetId === preset.id
-                          return (
-                            <div
-                              key={preset.id}
-                              className={cn(
-                                "group relative flex min-h-[3.25rem] items-start gap-1 rounded-xl border px-2.5 py-2.5 transition-all",
-                                active
-                                  ? "border-primary bg-primary/15 shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent),0_10px_24px_-14px_var(--primary)]"
-                                  : "border-border/70 bg-background/35 hover:border-primary/40 hover:bg-muted/30"
-                              )}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
-                                className="absolute inset-0 rounded-xl"
-                                aria-pressed={active}
-                                aria-label={`Пресет ${preset.label}`}
-                              />
-                              <span
+                      <div className="flex w-full flex-col gap-3">
+                        <div className="grid w-full grid-cols-2 gap-2">
+                          {MASTERING_PRESETS.map((preset) => {
+                            const active = params.presetId === preset.id
+                            return (
+                              <div
+                                key={preset.id}
                                 className={cn(
-                                  "pointer-events-none relative z-[1] flex-1 px-0.5 text-left text-[13px] font-medium leading-snug",
+                                  "group relative flex min-h-[3.25rem] items-start gap-1 rounded-xl border px-2.5 py-2.5 transition-all",
                                   active
-                                    ? "text-foreground"
-                                    : "text-muted-foreground group-hover:text-foreground"
+                                    ? "border-primary bg-primary/15 shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent),0_10px_24px_-14px_var(--primary)]"
+                                    : "border-border/70 bg-background/35 hover:border-primary/40 hover:bg-muted/30"
                                 )}
                               >
-                                {preset.label}
-                              </span>
-                              <span className="relative z-[1] mt-0.5 shrink-0">
-                                <HintIcon label={preset.label} tip={preset.hint} />
-                              </span>
-                              {active ? (
-                                <span
-                                  className="pointer-events-none absolute inset-x-3 bottom-1.5 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent"
-                                  aria-hidden
+                                <button
+                                  type="button"
+                                  onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
+                                  className="absolute inset-0 rounded-xl"
+                                  aria-pressed={active}
+                                  aria-label={`Пресет ${preset.label}`}
                                 />
-                              ) : null}
-                            </div>
-                          )
-                        })}
+                                <span
+                                  className={cn(
+                                    "pointer-events-none relative z-[1] flex-1 px-0.5 text-left text-[13px] font-medium leading-snug",
+                                    active
+                                      ? "text-foreground"
+                                      : "text-muted-foreground group-hover:text-foreground"
+                                  )}
+                                >
+                                  {preset.label}
+                                </span>
+                                <span className="relative z-[1] mt-0.5 shrink-0">
+                                  <HintIcon label={preset.label} tip={preset.hint} />
+                                </span>
+                                {active ? (
+                                  <span
+                                    className="pointer-events-none absolute inset-x-3 bottom-1.5 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <div className="flex items-center justify-center gap-4 border-t border-border/40 pt-3 sm:justify-start">
+                          <RotaryKnob
+                            label="Интенсивность"
+                            tip="Насколько сильно применён выбранный характер. 100% - как в пресете, 40% - мягче, ближе к нейтрали."
+                            value={params.presetAmount}
+                            min={0}
+                            max={100}
+                            step={1}
+                            unit="%"
+                            onChange={(presetAmount) =>
+                              setParams((prev) => applyPresetAmount(prev, presetAmount))
+                            }
+                          />
+                          <p className="max-w-[12rem] text-[11px] leading-snug text-muted-foreground">
+                            Подмешивание характера к нейтральной обработке.
+                          </p>
+                        </div>
                       </div>
                     </KnobGroup>
 

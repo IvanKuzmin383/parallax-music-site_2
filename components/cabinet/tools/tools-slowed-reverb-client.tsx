@@ -77,7 +77,7 @@ function WaveformCanvas({
     if (!canvas) return
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     const cssW = canvas.clientWidth || 640
-    const cssH = canvas.clientHeight || 120
+    const cssH = canvas.clientHeight || 44
     canvas.width = Math.floor(cssW * dpr)
     canvas.height = Math.floor(cssH * dpr)
     const ctx = canvas.getContext("2d")
@@ -87,12 +87,14 @@ function WaveformCanvas({
 
     const mid = cssH / 2
     const n = peaks.length || 1
-    const gap = 1.5
-    const barW = Math.max(1.5, (cssW - gap * (n - 1)) / n)
+    const gap = 1
+    const barW = Math.max(1.2, (cssW - gap * (n - 1)) / n)
     const t = Math.max(0, Math.min(1, progress))
 
     for (let i = 0; i < n; i++) {
-      const h = Math.max(2, (peaks[i] ?? 0) * (cssH * 0.88))
+      // sqrt - визуально плотнее, без «тонкой нитки» в центре
+      const amp = Math.sqrt(Math.max(0, peaks[i] ?? 0))
+      const h = Math.max(3, amp * (cssH * 0.92))
       const x = i * (barW + gap)
       const y = mid - h / 2
       const filled = i / n <= t
@@ -106,7 +108,7 @@ function WaveformCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="h-[120px] w-full rounded-lg bg-background/50"
+      className="h-11 w-full rounded-md bg-background/40"
       aria-hidden
     />
   )
@@ -394,7 +396,7 @@ function ToolsSlowedReverbInner() {
     if (!entitlement) return "Скачать WAV"
     if (entitlement.freeAvailable) return "Скачать WAV бесплатно"
     if (needsPurchase) {
-      return `Купить скачивание за ${downloadPriceRub} ₽ с баланса`
+      return `Скачать (${downloadPriceRub} р)`
     }
     return "Скачать WAV"
   })()
@@ -463,13 +465,13 @@ function ToolsSlowedReverbInner() {
                   <p className="text-xs text-muted-foreground">Локальный файл</p>
                 </div>
 
-                <div className="relative rounded-xl border border-border/60 bg-background/40 p-3">
-                  <div className="mb-3 flex items-center gap-3">
+                <div className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+                  <div className="flex items-center gap-2.5">
                     <Button
                       type="button"
                       variant="secondary"
                       size="icon"
-                      className="h-11 w-11 shrink-0 rounded-full"
+                      className="h-9 w-9 shrink-0 rounded-full"
                       aria-label={playing ? "Пауза" : "Воспроизвести"}
                       onClick={() => void togglePlay()}
                     >
@@ -479,8 +481,8 @@ function ToolsSlowedReverbInner() {
                       <WaveformCanvas peaks={peaks} progress={progress} />
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
+                  <div className="mt-2 space-y-1 px-0.5">
+                    <div className="flex justify-between text-[11px] tabular-nums text-muted-foreground">
                       <span>{formatTime(playhead)}</span>
                       <span>{formatTime(duration)}</span>
                     </div>

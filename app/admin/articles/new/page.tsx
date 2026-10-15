@@ -51,7 +51,7 @@ export default function NewArticlePage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-none space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Create New Article</h1>
           <p className="text-muted-foreground">Fill in the form below to create a new article</p>

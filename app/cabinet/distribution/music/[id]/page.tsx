@@ -235,25 +235,34 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         </Button>
 
         <section className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <div className="flex flex-col sm:flex-row gap-6 items-start min-w-0 flex-1">
-            <div className="relative h-48 w-48 sm:h-56 sm:w-56 shrink-0 rounded-xl overflow-hidden shadow-xl ring-1 ring-border">
+          <div className="flex flex-row gap-4 sm:gap-6 items-start min-w-0 flex-1">
+            <div className="relative h-28 w-28 min-[380px]:h-36 min-[380px]:w-36 sm:h-48 sm:w-48 md:h-56 md:w-56 shrink-0 rounded-xl overflow-hidden shadow-xl ring-1 ring-border">
               {coverUrl ? (
-                <Image src={coverUrl} alt="" fill className="object-cover" unoptimized sizes="224px" />
+                <Image
+                  src={coverUrl}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="(max-width: 379px) 112px, (max-width: 639px) 144px, (max-width: 767px) 192px, 224px"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-muted">
-                  <Music className="h-12 w-12 text-muted-foreground" />
+                  <Music className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
                 </div>
               )}
             </div>
-            <div className="space-y-3 min-w-0 flex-1">
+            <div className="space-y-2 sm:space-y-3 min-w-0 flex-1">
               <div>
-                <p className="text-sm text-muted-foreground uppercase tracking-widest">
+                <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-widest">
                   {isAlbum ? "Альбом" : "Сингл"}
                 </p>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
-                <p className="text-lg text-muted-foreground mt-1">{artist}</p>
+                <h1 className="text-xl min-[380px]:text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
+                  {title}
+                </h1>
+                <p className="text-base sm:text-lg text-muted-foreground mt-0.5 sm:mt-1">{artist}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <StatusBadge status={statusLabel} kind="generic" />
                 {hasAiAnalysisText(aiAnalysisText) ? (
                   <AiAnalysisBadge onClick={() => setAiOpen(true)} />
@@ -265,7 +274,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
                 ) : null}
               </div>
               {releaseDate ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {format(new Date(releaseDate), "d MMMM yyyy", { locale: ru })}
                   {relativeDate ? ` · ${relativeDate}` : ""}
                 </p>

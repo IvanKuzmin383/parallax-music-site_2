@@ -1130,9 +1130,39 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--sl-accent) 50%, transparent);
 }
 
-/* Рейв: лёгкие плавающие кляксы (только transform/opacity) */
+/* Рейв: плавающие кляксы + параллакс от мыши (--sl-rave-mx/my, -1..1) */
 .sl-rave-blobs {
+  --sl-rave-mx: 0;
+  --sl-rave-my: 0;
   contain: layout paint;
+}
+
+.sl-rave-parallax {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translate3d(
+    calc(var(--sl-rave-mx, 0) * var(--sl-rave-depth, 28) * 1px),
+    calc(var(--sl-rave-my, 0) * var(--sl-rave-depth, 28) * 1px),
+    0
+  );
+  will-change: transform;
+}
+
+.sl-rave-parallax-a {
+  --sl-rave-depth: 42;
+}
+
+.sl-rave-parallax-b {
+  --sl-rave-depth: -34;
+}
+
+.sl-rave-parallax-c {
+  --sl-rave-depth: 56;
+}
+
+.sl-rave-parallax-d {
+  --sl-rave-depth: -24;
 }
 
 .sl-rave-blob {
@@ -1443,6 +1473,112 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
+/* Разрыв кнопки «как лист бумаги» (Лист / Билет / Зин) */
+.sl-paper-tear {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.sl-paper-tear-face {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  box-sizing: border-box;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Верхняя половина - зубчатый низ */
+.sl-paper-tear-a {
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 45%,
+    96% 51%,
+    92% 46%,
+    88% 52%,
+    84% 47%,
+    80% 53%,
+    76% 46%,
+    72% 52%,
+    68% 47%,
+    64% 53%,
+    60% 46%,
+    56% 52%,
+    52% 47%,
+    48% 53%,
+    44% 46%,
+    40% 52%,
+    36% 47%,
+    32% 53%,
+    28% 46%,
+    24% 52%,
+    20% 47%,
+    16% 53%,
+    12% 46%,
+    8% 52%,
+    4% 47%,
+    0% 51%
+  );
+}
+
+/* Нижняя половина - зубчатый верх (стык с верхней) */
+.sl-paper-tear-b {
+  clip-path: polygon(
+    0% 51%,
+    4% 47%,
+    8% 52%,
+    12% 46%,
+    16% 53%,
+    20% 47%,
+    24% 52%,
+    28% 46%,
+    32% 53%,
+    36% 47%,
+    40% 52%,
+    44% 46%,
+    48% 53%,
+    52% 47%,
+    56% 52%,
+    60% 46%,
+    64% 53%,
+    68% 47%,
+    72% 52%,
+    76% 46%,
+    80% 53%,
+    84% 47%,
+    88% 52%,
+    92% 46%,
+    96% 51%,
+    100% 45%,
+    100% 100%,
+    0% 100%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sl-paper-tear:hover .sl-paper-tear-a,
+  .sl-paper-tear:focus-visible .sl-paper-tear-a {
+    transform: translate(-4px, -7px) rotate(-2.2deg);
+    z-index: 2;
+  }
+
+  .sl-paper-tear:hover .sl-paper-tear-b,
+  .sl-paper-tear:focus-visible .sl-paper-tear-b {
+    transform: translate(5px, 8px) rotate(2.6deg);
+    z-index: 2;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sl-vinyl-spin,
   .sl-cassette-spin,
@@ -1453,6 +1589,21 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   .sl-orbit-planet,
   .sl-rave-blob {
     animation: none !important;
+  }
+
+  .sl-rave-parallax {
+    transform: none !important;
+  }
+
+  .sl-paper-tear-face {
+    transition: none !important;
+  }
+
+  .sl-paper-tear:hover .sl-paper-tear-a,
+  .sl-paper-tear:focus-visible .sl-paper-tear-a,
+  .sl-paper-tear:hover .sl-paper-tear-b,
+  .sl-paper-tear:focus-visible .sl-paper-tear-b {
+    transform: none !important;
   }
 }
 

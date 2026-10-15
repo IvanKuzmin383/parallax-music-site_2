@@ -92,7 +92,7 @@ function UploadReleaseButton({
   artist?: string
 }) {
   const router = useRouter()
-  const { isVerified, openRequired, loading: kycLoading } = useCabinetKyc()
+  const { isVerified, openRequired, loading: kycLoading, ready: kycReady } = useCabinetKyc()
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -111,7 +111,7 @@ function UploadReleaseButton({
     })()
   }, [])
 
-  const busy = profileComplete === null || kycLoading
+  const busy = profileComplete === null || kycLoading || !kycReady
   const uploadHref = artist
     ? `/cabinet/upload?artist=${encodeURIComponent(artist)}`
     : "/cabinet/upload"
@@ -119,7 +119,6 @@ function UploadReleaseButton({
   const handleClick = () => {
     if (busy) return
     if (!isVerified) {
-      // Как у клипов: диалог «Заявка на проверке» / «Нужна верификация»
       openRequired()
       return
     }

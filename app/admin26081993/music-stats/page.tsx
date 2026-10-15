@@ -210,7 +210,13 @@ async function fetchPlatformStats(
 async function fetchTopTracksPage(
   platformKeys: MusicPlatformKey[],
   offset: number,
-  options?: { artist?: string | null; albumId?: string | null; trackId?: string | null },
+  options?: {
+    artist?: string | null
+    albumId?: string | null
+    trackId?: string | null
+    dateFrom?: string | null
+    dateTo?: string | null
+  },
 ): Promise<{ tracks: TopTrack[]; hasMore: boolean }> {
   const params = new URLSearchParams()
   params.set("platforms", platformKeys.join(","))
@@ -219,6 +225,8 @@ async function fetchTopTracksPage(
   if (options?.artist?.trim()) params.set("artist", options.artist.trim())
   if (options?.albumId?.trim()) params.set("albumId", options.albumId.trim())
   if (options?.trackId?.trim()) params.set("trackId", options.trackId.trim())
+  if (options?.dateFrom?.trim()) params.set("from", options.dateFrom.trim())
+  if (options?.dateTo?.trim()) params.set("to", options.dateTo.trim())
 
   const response = await fetch(`/api/admin/music-stats/top-tracks?${params.toString()}`, {
     credentials: "include",
@@ -423,12 +431,21 @@ export default function MusicStatsPage() {
     }
   }, [stats?.countryStatsByDate, chartData, customPeriodStart, customPeriodEnd])
 
+  const topTracksPeriod = useMemo(() => {
+    let startIso = customPeriodStart
+    let endIso = customPeriodEnd
+    if (startIso && endIso && startIso > endIso) {
+      const tmp = startIso
+      startIso = endIso
+      endIso = tmp
+    }
+    return { dateFrom: startIso || null, dateTo: endIso || null }
+  }, [customPeriodStart, customPeriodEnd])
+
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       setError(null)
-      setTopTracksRows([])
-      setTopTracksHasMore(false)
 
       try {
         const list = await Promise.all(
@@ -441,14 +458,6 @@ export default function MusicStatsPage() {
           ),
         )
         setStats(buildAllPlatformsChartStats(list))
-
-        const topPage = await fetchTopTracksPage(platformKeysForChart, 0, {
-          artist: artistFilter,
-          albumId: albumIdFilter,
-          trackId: trackIdFilter,
-        })
-        setTopTracksRows(topPage.tracks)
-        setTopTracksHasMore(topPage.hasMore)
       } catch (e) {
         const message = e instanceof Error ? e.message : "Неизвестная ошибка загрузки"
         const status = (e as any)?.status
@@ -458,8 +467,6 @@ export default function MusicStatsPage() {
         }
         setError(message)
         setStats(null)
-        setTopTracksRows([])
-        setTopTracksHasMore(false)
       } finally {
         setLoading(false)
       }
@@ -467,6 +474,48 @@ export default function MusicStatsPage() {
 
     void load()
   }, [platformKeysForChart, artistFilter, albumIdFilter, trackIdFilter, router])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadTop = async () => {
+      setTopTracksRows([])
+      setTopTracksHasMore(false)
+      try {
+        const topPage = await fetchTopTracksPage(platformKeysForChart, 0, {
+          artist: artistFilter,
+          albumId: albumIdFilter,
+          trackId: trackIdFilter,
+          dateFrom: topTracksPeriod.dateFrom,
+          dateTo: topTracksPeriod.dateTo,
+        })
+        if (cancelled) return
+        setTopTracksRows(topPage.tracks)
+        setTopTracksHasMore(topPage.hasMore)
+      } catch (e) {
+        if (cancelled) return
+        const status = (e as { status?: number })?.status
+        if (status === 401) {
+          router.replace("/admin26081993")
+          return
+        }
+        setTopTracksRows([])
+        setTopTracksHasMore(false)
+      }
+    }
+
+    void loadTop()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    platformKeysForChart,
+    artistFilter,
+    albumIdFilter,
+    trackIdFilter,
+    topTracksPeriod.dateFrom,
+    topTracksPeriod.dateTo,
+    router,
+  ])
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -570,6 +619,8 @@ export default function MusicStatsPage() {
         artist: artistFilter,
         albumId: albumIdFilter,
         trackId: trackIdFilter,
+        dateFrom: topTracksPeriod.dateFrom,
+        dateTo: topTracksPeriod.dateTo,
       })
       setTopTracksRows(topPage.tracks)
       setTopTracksHasMore(topPage.hasMore)
@@ -1168,6 +1219,8 @@ export default function MusicStatsPage() {
                                     artist: artistFilter,
                                     albumId: albumIdFilter,
                                     trackId: trackIdFilter,
+                                    dateFrom: topTracksPeriod.dateFrom,
+                                    dateTo: topTracksPeriod.dateTo,
                                   },
                                 )
                                 setTopTracksRows((prev) => [...prev, ...topPage.tracks])

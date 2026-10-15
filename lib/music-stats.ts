@@ -398,6 +398,10 @@ async function ensureCabinetMusicTrackMapForPlatform(platformKey: MusicPlatformK
   rebuiltCabinetTrackMapPlatforms.add(platformKey)
 }
 
+function isStatsDateYmd(value: string | null | undefined): value is string {
+  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
 /**
  * Пагинация рейтинга треков для админки: из `music_platform_track_daily_plays`, а не из урезанной `music_platform_top_tracks`.
  */
@@ -405,6 +409,8 @@ export async function getAdminMusicStatsTopTracksPage(args: {
   platformKeys: MusicPlatformKey[]
   artist?: string
   filters?: { albumId?: string | null; trackId?: string | null; trackTitle?: string | null }
+  dateFrom?: string | null
+  dateTo?: string | null
   offset: number
   limit: number
 }): Promise<{ tracks: TopTrack[]; hasMore: boolean }> {
@@ -420,6 +426,13 @@ export async function getAdminMusicStatsTopTracksPage(args: {
   const albumId = args.filters?.albumId?.trim() ? args.filters!.albumId!.trim() : null
   const trackId = args.filters?.trackId?.trim() ? args.filters!.trackId!.trim() : null
   const directTrackTitle = args.filters?.trackTitle?.trim() ? args.filters!.trackTitle!.trim() : null
+  let dateFrom = isStatsDateYmd(args.dateFrom) ? args.dateFrom : null
+  let dateTo = isStatsDateYmd(args.dateTo) ? args.dateTo : null
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    const tmp = dateFrom
+    dateFrom = dateTo
+    dateTo = tmp
+  }
 
   const trackTitleFromTrackId =
     !directTrackTitle && trackId
@@ -468,6 +481,14 @@ export async function getAdminMusicStatsTopTracksPage(args: {
   if (albumId) {
     whereParts.push("c.album_id = ?")
     params.push(albumId)
+  }
+  if (dateFrom) {
+    whereParts.push("d.stat_date >= ?")
+    params.push(dateFrom)
+  }
+  if (dateTo) {
+    whereParts.push("d.stat_date <= ?")
+    params.push(dateTo)
   }
 
   const whereSql = whereParts.join(" AND ")
@@ -758,6 +779,8 @@ export async function getCabinetMusicStatsTopTracks(args: {
   cabinetUserEmail: string
   platformKeys: MusicPlatformKey[]
   filters?: { albumId?: string | null; trackIds?: string[] | null }
+  dateFrom?: string | null
+  dateTo?: string | null
 }): Promise<TopTrack[]> {
   const email = args.cabinetUserEmail.trim()
   const platformKeys = [...new Set(args.platformKeys)].filter((k) => k in MUSIC_PLATFORM_LABELS)
@@ -770,6 +793,13 @@ export async function getCabinetMusicStatsTopTracks(args: {
   const albumId = args.filters?.albumId?.trim() ? args.filters.albumId.trim() : null
   const trackIds = (args.filters?.trackIds ?? []).map((id) => id.trim()).filter((id) => id.length > 0)
   const userId = email.toLowerCase()
+  let dateFrom = isStatsDateYmd(args.dateFrom) ? args.dateFrom : null
+  let dateTo = isStatsDateYmd(args.dateTo) ? args.dateTo : null
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    const tmp = dateFrom
+    dateFrom = dateTo
+    dateTo = tmp
+  }
 
   const whereParts: string[] = []
   const params: string[] = []
@@ -791,6 +821,14 @@ export async function getCabinetMusicStatsTopTracks(args: {
   } else if (albumId) {
     whereParts.push("c.album_id = ?")
     params.push(albumId)
+  }
+  if (dateFrom) {
+    whereParts.push("d.stat_date >= ?")
+    params.push(dateFrom)
+  }
+  if (dateTo) {
+    whereParts.push("d.stat_date <= ?")
+    params.push(dateTo)
   }
 
   const whereSql = whereParts.join(" AND ")

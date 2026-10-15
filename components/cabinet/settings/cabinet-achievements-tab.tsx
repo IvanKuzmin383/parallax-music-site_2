@@ -116,7 +116,7 @@ export function CabinetAchievementsTab() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <p className="text-sm text-muted-foreground max-w-3xl">
+      <p className="w-full text-sm text-muted-foreground">
         Совершайте действия в кабинете - получаете XP и открываете новые уровни. Некоторые ачивки
         дают купон или деньги на баланс
       </p>

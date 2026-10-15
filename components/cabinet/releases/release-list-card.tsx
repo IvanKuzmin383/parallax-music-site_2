@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ExternalLink, Link2, Megaphone, Music, Trash2, Undo2 } from "lucide-react"
+import { Link2, Megaphone, Music, Trash2, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -102,12 +102,8 @@ export function ReleaseListCard({
   const canRecall = isOnModerationRelease(release)
   const router = useRouter()
   const canPromote = isReleasedRelease(release)
-  const smartlinkSlug = release.smartlinkSlug?.trim() || ""
-  const canOpenSmartlink =
-    Boolean(smartlinkSlug) &&
-    (isReleasedRelease(release) || release.smartlinkPublic === true)
-  const canSetupPromoSmartlink =
-    !isReleasedRelease(release) && isPromoSmartlinkEligible(release)
+  const canShowSmartlink =
+    isReleasedRelease(release) || isPromoSmartlinkEligible(release)
   const smartlinkEditHref = `/cabinet/distribution/music/${release.id}/smartlink`
   const aiAnalysis = release.aiAnalysisText?.trim() || ""
   const showAiAnalysis = hasAiAnalysisText(aiAnalysis)
@@ -200,13 +196,11 @@ export function ReleaseListCard({
       <div
         className={cn(
           "flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5",
-          canPromote || canOpenSmartlink || canSetupPromoSmartlink || canDelete || canRecall
+          canPromote || canShowSmartlink || canDelete || canRecall
             ? "pb-11 pr-2 sm:pb-0 sm:pr-[22rem]"
             : "pr-2 sm:pr-36",
           showAiAnalysis && "pt-7 sm:pt-0",
-          showAiAnalysis &&
-            (canPromote || canOpenSmartlink || canSetupPromoSmartlink) &&
-            "sm:pr-[26rem]",
+          showAiAnalysis && (canPromote || canShowSmartlink) && "sm:pr-[26rem]",
         )}
       >
         <div className="space-y-1">
@@ -327,28 +321,12 @@ export function ReleaseListCard({
             </Link>
           </Button>
         ) : null}
-        {canSetupPromoSmartlink ? (
+        {canShowSmartlink ? (
           <Button size="sm" variant="outline" asChild>
             <Link href={smartlinkEditHref}>
               <Link2 className="h-4 w-4" />
-              <span className="ml-1.5">Промо-смартлинк</span>
+              <span className="ml-1.5">Смартлинк</span>
             </Link>
-          </Button>
-        ) : null}
-        {canOpenSmartlink ? (
-          <Button size="sm" variant="outline" asChild>
-            <a
-              href={`/s/${encodeURIComponent(smartlinkSlug)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="h-4 w-4" />
-              <span className="ml-1.5">
-                {release.smartlinkPublic && !isReleasedRelease(release)
-                  ? "Открыть промо"
-                  : "Смартлинк"}
-              </span>
-            </a>
           </Button>
         ) : null}
         <Button size="sm" variant={primary ? "default" : "outline"} asChild>

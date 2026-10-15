@@ -156,7 +156,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-none space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Admin Panel</h1>

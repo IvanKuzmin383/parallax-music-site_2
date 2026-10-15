@@ -11,7 +11,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -23,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import Link from "next/link"
-import { Check, Crown, Loader2, Wallet, X } from "lucide-react"
+import { Check, Crown, Loader2, X } from "lucide-react"
 import {
   cabinetUserToProfileFormValues,
   type ProfileFormValues,
@@ -63,7 +62,6 @@ export function CabinetProfileTab() {
     purchasedTracksBalance?: number
     createdAt?: string
   } | null>(null)
-  const [streamingBalance, setStreamingBalance] = useState<number>(0)
   const [uploadedTracksCount, setUploadedTracksCount] = useState(0)
   const [profileCompleteForUpload, setProfileCompleteForUpload] = useState(true)
   const [autopayInfo, setAutopayInfo] = useState<AutopayApiResponse | null>(null)
@@ -100,7 +98,6 @@ export function CabinetProfileTab() {
           purchasedTracksBalance: u.purchasedTracksBalance,
           createdAt: u.createdAt,
         })
-        setStreamingBalance(u.streamingBalance ?? 0)
         setUploadedTracksCount(
           typeof data.uploadedTracksCount === "number" ? data.uploadedTracksCount : 0
         )
@@ -152,27 +149,22 @@ export function CabinetProfileTab() {
 
   return (
     <div className="w-full max-w-none space-y-4">
-        <Card className="py-4 gap-3">
-          <CardHeader className="pb-2 gap-1">
-            <CardTitle>Верификация</CardTitle>
-            <CardDescription>
-              Нужна для загрузки релизов, клипов и вывода роялти
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CabinetKycStatusBadge className="max-w-sm" />
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <Card id="cabinet-tariff" className="scroll-mt-20 border-primary/20 bg-primary/5 py-4 gap-3">
-            <CardHeader className="pb-2 gap-1">
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-primary" />
+        <Card id="cabinet-tariff" className="scroll-mt-20 py-4 gap-3">
+          <CardContent className="grid gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="space-y-2 min-w-0">
+              <div>
+                <p className="text-base font-semibold leading-none">Верификация</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Нужна для загрузки релизов, клипов и вывода роялти
+                </p>
+              </div>
+              <CabinetKycStatusBadge className="max-w-sm" />
+            </div>
+            <div className="space-y-1 min-w-0 sm:border-l sm:border-border sm:pl-6">
+              <p className="flex items-center gap-2 text-base font-semibold leading-none">
+                <Crown className="h-4 w-4 text-primary" />
                 Тариф
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
+              </p>
               {subscription?.subscriptionName ? (
                 <>
                   <div className="font-semibold text-lg">{subscription.subscriptionName}</div>
@@ -180,7 +172,8 @@ export function CabinetProfileTab() {
                     <div className="text-sm text-muted-foreground">
                       {fixUsesWalletModel ? (
                         <>
-                          Оплачено слотов: {effectiveLimit} (доступно для загрузки: {fixTracksAvailable})
+                          Оплачено слотов: {effectiveLimit} (доступно для загрузки:{" "}
+                          {fixTracksAvailable})
                         </>
                       ) : (
                         <>
@@ -203,35 +196,9 @@ export function CabinetProfileTab() {
               ) : (
                 <div className="text-sm text-muted-foreground">Тариф не выбран</div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card
-            className="border-green-500/20 bg-green-500/5 py-4 gap-3 cursor-pointer transition-colors hover:bg-green-500/10"
-            role="link"
-            tabIndex={0}
-            onClick={() => router.push("/cabinet/finance/balance")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault()
-                router.push("/cabinet/finance/balance")
-              }
-            }}
-          >
-            <CardHeader className="pb-2 gap-1">
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-green-600" />
-                Баланс
-              </CardTitle>
-              <CardDescription>Доходы от стриминга · подробнее во вкладке «Финансы»</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {streamingBalance.toLocaleString("ru-RU")} ₽
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {subscription?.subscriptionName && subscription.subscriptionName !== "Fix" ? (
           <>

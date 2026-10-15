@@ -176,11 +176,17 @@ export function CabinetKycFormDialog({
         ) : null}
 
         {status === "verified" ? (
-          <p className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-950 ring-1 ring-inset ring-emerald-600/35 dark:bg-emerald-500/10 dark:text-emerald-100 dark:ring-emerald-500/30">
-            Аккаунт верифицирован
-          </p>
+          <div className="space-y-3">
+            <p className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-950 ring-1 ring-inset ring-emerald-600/35 dark:bg-emerald-500/10 dark:text-emerald-100 dark:ring-emerald-500/30">
+              Аккаунт верифицирован
+            </p>
+            <Button type="button" className="w-full" onClick={() => onOpenChange(false)}>
+              Закрыть
+            </Button>
+          </div>
         ) : null}
 
+        {status === "verified" ? null : (
         <form className="space-y-3" onSubmit={(e) => void handleSubmit(e)}>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -289,6 +295,7 @@ export function CabinetKycFormDialog({
             </Button>
           ) : null}
         </form>
+        )}
       </DialogContent>
     </Dialog>
   )

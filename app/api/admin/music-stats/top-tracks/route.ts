@@ -41,11 +41,15 @@ export async function GET(request: NextRequest) {
   const artist = url.searchParams.get("artist")?.trim() || undefined
   const albumId = url.searchParams.get("albumId")?.trim() || undefined
   const trackId = url.searchParams.get("trackId")?.trim() || undefined
+  const dateFrom = url.searchParams.get("from")?.trim() || undefined
+  const dateTo = url.searchParams.get("to")?.trim() || undefined
 
   const page = await getAdminMusicStatsTopTracksPage({
     platformKeys,
     artist,
     filters: { albumId, trackId },
+    dateFrom,
+    dateTo,
     offset,
     limit,
   })

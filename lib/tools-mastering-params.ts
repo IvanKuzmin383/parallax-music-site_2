@@ -5,6 +5,8 @@ export type SmoothLevel = "off" | "low" | "med" | "high"
 
 export type MasteringParams = {
   presetId: string
+  /** Интенсивность характера: 0 = нейтрально, 100 = полный пресет */
+  presetAmount: number
   loudness: LoudnessLevel
   density: DensityLevel
   /** Сглаживание резкости, свиста и шипения */
@@ -29,14 +31,39 @@ export type MasteringParams = {
   monoBass: boolean
 }
 
+export type MasteringPresetTone = Omit<
+  MasteringParams,
+  | "presetId"
+  | "presetAmount"
+  | "loudness"
+  | "density"
+  | "smooth"
+  | "outputGainDb"
+  | "magicMakeup"
+>
+
 export type MasteringPreset = {
   id: string
   label: string
   hint: string
-  params: Omit<
-    MasteringParams,
-    "presetId" | "loudness" | "density" | "smooth" | "outputGainDb" | "magicMakeup"
-  >
+  params: MasteringPresetTone
+}
+
+/** Нейтраль для подмешивания характера (0% интенсивности). */
+export const PRESET_NEUTRAL: MasteringPresetTone = {
+  hpfHz: 20,
+  lfShelfDb: 0,
+  mfPeakDb: 0,
+  hfShelfDb: 0,
+  thresholdDb: -24,
+  ratio: 1.2,
+  attackMs: 20,
+  releaseMs: 160,
+  ceilingDb: -0.1,
+  softClip: false,
+  saturation: 0,
+  stereoWidth: 1,
+  monoBass: false,
 }
 
 export const MASTERING_PRESETS: MasteringPreset[] = [
@@ -204,12 +231,38 @@ export const MASTERING_PRESETS: MasteringPreset[] = [
 
 export const DEFAULT_MASTERING_PARAMS: MasteringParams = {
   presetId: "universal",
+  presetAmount: 100,
   loudness: "med",
   density: "med",
   smooth: "off",
   outputGainDb: 0,
   magicMakeup: true,
   ...MASTERING_PRESETS[0].params,
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t
+}
+
+/** Смешать нейтраль и пресет. amountPct: 0…100. */
+export function blendPresetTone(preset: MasteringPresetTone, amountPct: number): MasteringPresetTone {
+  const t = Math.min(1, Math.max(0, amountPct / 100))
+  const n = PRESET_NEUTRAL
+  return {
+    hpfHz: lerp(n.hpfHz, preset.hpfHz, t),
+    lfShelfDb: lerp(n.lfShelfDb, preset.lfShelfDb, t),
+    mfPeakDb: lerp(n.mfPeakDb, preset.mfPeakDb, t),
+    hfShelfDb: lerp(n.hfShelfDb, preset.hfShelfDb, t),
+    thresholdDb: lerp(n.thresholdDb, preset.thresholdDb, t),
+    ratio: lerp(n.ratio, preset.ratio, t),
+    attackMs: lerp(n.attackMs, preset.attackMs, t),
+    releaseMs: lerp(n.releaseMs, preset.releaseMs, t),
+    ceilingDb: lerp(n.ceilingDb, preset.ceilingDb, t),
+    saturation: lerp(n.saturation, preset.saturation, t),
+    stereoWidth: lerp(n.stereoWidth, preset.stereoWidth, t),
+    softClip: t >= 0.4 ? preset.softClip : n.softClip,
+    monoBass: t >= 0.55 ? preset.monoBass : n.monoBass,
+  }
 }
 
 /** EQ + soft gate for «Сглаживание». Cuts only - no compressor makeup. */
@@ -264,13 +317,24 @@ export function smoothSettings(level: SmoothLevel): {
   }
 }
 
-export function applyPreset(presetId: string, current: MasteringParams): MasteringParams {
+export function applyPreset(
+  presetId: string,
+  current: MasteringParams,
+  amountPct: number = current.presetAmount
+): MasteringParams {
   const preset = MASTERING_PRESETS.find((p) => p.id === presetId) ?? MASTERING_PRESETS[0]
+  const amount = Math.min(100, Math.max(0, amountPct))
   return {
     ...current,
     presetId: preset.id,
-    ...preset.params,
+    presetAmount: amount,
+    ...blendPresetTone(preset.params, amount),
   }
+}
+
+/** Только крутилка интенсивности - пересчитывает тон текущего характера. */
+export function applyPresetAmount(current: MasteringParams, amountPct: number): MasteringParams {
+  return applyPreset(current.presetId, current, amountPct)
 }
 
 /** Целевой RMS (дБ относительно full scale) для Magic Makeup. */

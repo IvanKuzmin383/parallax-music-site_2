@@ -235,12 +235,16 @@ type CabinetMusicStatsBatchPayload = {
 async function fetchMusicStatsBatch(options: {
   platformKeys: MusicPlatformKey[]
   chartTrackIds: string[] | null
+  dateFrom?: string | null
+  dateTo?: string | null
 }): Promise<CabinetMusicStatsBatchPayload> {
   const params = new URLSearchParams()
   params.set("platforms", options.platformKeys.join(","))
   if (options.chartTrackIds?.length) {
     for (const id of options.chartTrackIds) params.append("trackId", id)
   }
+  if (options.dateFrom?.trim()) params.set("from", options.dateFrom.trim())
+  if (options.dateTo?.trim()) params.set("to", options.dateTo.trim())
 
   const response = await fetch(`/api/cabinet/music-stats/batch?${params}`, {
     credentials: "include",
@@ -568,6 +572,17 @@ function CabinetMusicStatsPageContent() {
     }
   }, [stats?.countryStatsByDate, chartData, customPeriodStart, customPeriodEnd])
 
+  const topTracksPeriod = useMemo(() => {
+    let startIso = customPeriodStart
+    let endIso = customPeriodEnd
+    if (startIso && endIso && startIso > endIso) {
+      const tmp = startIso
+      startIso = endIso
+      endIso = tmp
+    }
+    return { dateFrom: startIso || null, dateTo: endIso || null }
+  }, [customPeriodStart, customPeriodEnd])
+
   const topTracksForTable = useMemo(() => stats?.topTracks ?? [], [stats])
 
   useEffect(() => {
@@ -605,6 +620,8 @@ function CabinetMusicStatsPageContent() {
         const batch = await fetchMusicStatsBatch({
           platformKeys: platformKeysForChart,
           chartTrackIds,
+          dateFrom: topTracksPeriod.dateFrom,
+          dateTo: topTracksPeriod.dateTo,
         })
 
         if (cancelled) return
@@ -643,6 +660,8 @@ function CabinetMusicStatsPageContent() {
     selectedTrackIds,
     isAllArtists,
     artistScopedTrackIds,
+    topTracksPeriod.dateFrom,
+    topTracksPeriod.dateTo,
     router,
   ])
 

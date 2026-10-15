@@ -1120,7 +1120,7 @@ export function StoryVideoClient() {
             onOpenChange={(v) => setPanel("badge", v)}
           >
             <p className="text-xs text-muted-foreground">
-              Можно выбрать несколько - встанут столбиком без наложений.
+              Можно выбрать несколько - по 2 в ряд, без наложений.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {STORY_VIDEO_BADGE_IDS.map((id) => (

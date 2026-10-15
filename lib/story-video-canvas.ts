@@ -635,12 +635,12 @@ function drawTemplate(
       const reelCy = winY + winH * 0.55
       const leftReelCx = winX + winW * 0.06 + reelR
       const rightReelCx = winX + winW * 0.94 - reelR
-      // ~3.2s на оборот как в смартлинке
+      // Play: лента L→R, вид спереди - левая CCW (−), правая CW (+)
       const reelRot = (timeSec / 3.2) * Math.PI * 2
-      drawCassetteReel(ctx, leftReelCx, reelCy, reelR, reelRot)
-      drawCassetteReel(ctx, rightReelCx, reelCy, reelR, -reelRot)
+      drawCassetteReel(ctx, leftReelCx, reelCy, reelR, -reelRot)
+      drawCassetteReel(ctx, rightReelCx, reelCy, reelR, reelRot)
 
-      // нижний лейбл
+      // нижний лейбл (пустая плашка - текст рисуется отдельно и двигается)
       const labX = cassX + cassW * 0.1
       const labY = cassY + cassH * 0.78
       const labW = cassW * 0.8
@@ -650,17 +650,6 @@ function drawTemplate(
       ctx.fill()
       ctx.strokeStyle = "rgba(255,255,255,0.12)"
       ctx.stroke()
-      if (project.showText !== false && project.textLayout !== "bigHook") {
-        ctx.save()
-        ctx.textAlign = "center"
-        ctx.fillStyle = "rgba(255,255,255,0.92)"
-        ctx.font = `700 ${Math.round(width * 0.028)}px system-ui, sans-serif`
-        ctx.fillText((project.title || "Трек").slice(0, 28), width / 2, labY + labH * 0.42)
-        ctx.fillStyle = "rgba(255,255,255,0.65)"
-        ctx.font = `500 ${Math.round(width * 0.022)}px system-ui, sans-serif`
-        ctx.fillText((project.artist || "").slice(0, 32), width / 2, labY + labH * 0.72)
-        ctx.restore()
-      }
 
       // винты по углам
       const screwR = Math.max(3, width * 0.007)
@@ -805,7 +794,7 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
 
   drawTemplate(ctx, width, height, project.template, cover, scale, timeSec, project.accent, project)
 
-  // ticket / lyricCard / cassette рисуют свой текст внутри шаблона
+  // ticket / lyricCard рисуют свой текст внутри шаблона; кассета - обычный подвижный оверлей
   if (project.template === "ticket") {
     if (
       project.showText !== false &&
@@ -818,11 +807,6 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
       ctx.textAlign = "center"
       ctx.fillText(project.hookText.slice(0, 42), width / 2, height * 0.9)
       ctx.restore()
-    }
-  } else if (project.template === "cassette") {
-    // title/artist уже на лейбле кассеты; bigHook - ниже корпуса
-    if (project.showText !== false && project.textLayout === "bigHook") {
-      drawBigHook(ctx, width, height, project)
     }
   } else if (project.template !== "lyricCard") {
     drawTextOverlay(ctx, width, height, project)
@@ -927,7 +911,7 @@ function drawOnePlatformBadge(
   ctx.restore()
 }
 
-/** Стопка бейджей по вертикали вокруг якоря badgeX/badgeY - без наложений. */
+/** Сетка бейджей 2 в ряд вокруг якоря badgeX/badgeY - без наложений. */
 function drawPlatformBadges(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -939,29 +923,45 @@ function drawPlatformBadges(
   if (badges.length === 0) return
 
   const count = badges.length
-  // Чуть компактнее при нескольких бейджах
-  const badgeH = Math.max(30, width * (count >= 3 ? 0.072 : 0.085))
-  const gapY = badgeH * 0.22
-  const stackH = count * badgeH + (count - 1) * gapY
+  const cols = Math.min(2, count)
+  const rows = Math.ceil(count / cols)
+
+  const sideMargin = width * 0.04
+  const gapX = width * 0.025
+  const badgeH = Math.max(28, width * (count >= 3 ? 0.068 : 0.08))
+  const gapY = badgeH * 0.28
+
+  // Ширина ячейки: влезают 2 колонки; одиночный бейдж - не шире половины кадра
+  const maxCellW =
+    cols === 1
+      ? Math.min(width * 0.72, width - sideMargin * 2)
+      : (width - sideMargin * 2 - gapX) / 2
+  const naturalW = Math.max(...badges.map((b) => measureBadgeWidth(ctx, b, badgeH)))
+  const badgeW = Math.min(naturalW, maxCellW)
+
+  const gridW = cols * badgeW + (cols - 1) * gapX
+  const gridH = rows * badgeH + (rows - 1) * gapY
 
   const xPct = Math.max(4, Math.min(96, project.badgeX ?? 50))
   const yPct = Math.max(4, Math.min(96, project.badgeY ?? 88))
-  const cx = (xPct / 100) * width
-  let stackTop = (yPct / 100) * height - stackH / 2
+  let gridLeft = (xPct / 100) * width - gridW / 2
+  let gridTop = (yPct / 100) * height - gridH / 2
 
-  // Не выходим за края кадра
-  const margin = height * 0.03
-  if (stackTop < margin) stackTop = margin
-  if (stackTop + stackH > height - margin) stackTop = Math.max(margin, height - margin - stackH)
-
-  // Одна ширина на все бейджи - ровная стопка без наложений
-  const badgeW = Math.max(...badges.map((b) => measureBadgeWidth(ctx, b, badgeH)))
-  let left = cx - badgeW / 2
-  left = Math.max(width * 0.03, Math.min(left, width - width * 0.03 - badgeW))
+  const marginX = sideMargin
+  const marginY = height * 0.03
+  gridLeft = Math.max(marginX, Math.min(gridLeft, width - marginX - gridW))
+  gridTop = Math.max(marginY, Math.min(gridTop, height - marginY - gridH))
 
   for (let i = 0; i < badges.length; i++) {
     const badge = badges[i]
-    const top = stackTop + i * (badgeH + gapY)
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    // Нечётный последний ряд (1 бейдж) - по центру сетки
+    const rowCount = row === rows - 1 ? count - row * cols : cols
+    const rowOffsetX =
+      rowCount < cols ? (gridW - (rowCount * badgeW + (rowCount - 1) * gapX)) / 2 : 0
+    const left = gridLeft + rowOffsetX + col * (badgeW + gapX)
+    const top = gridTop + row * (badgeH + gapY)
     drawOnePlatformBadge(
       ctx,
       width,

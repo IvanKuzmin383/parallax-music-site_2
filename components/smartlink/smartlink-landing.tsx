@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 import { SmartlinkPreviewAudio } from "@/components/smartlink/smartlink-preview-audio"
+import { SmartlinkRaveBlobs } from "@/components/smartlink/smartlink-rave-blobs"
 import {
   SOCIAL_ICON_SRC,
   SMARTLINK_SOCIALS,
@@ -184,8 +185,10 @@ export function SmartlinkLanding({
   const iconsOnly = forceIcons || theme.platformLayout === "icons"
 
   const shellClass = cn(
-    "relative flex min-h-full w-full flex-col items-center justify-center overflow-hidden",
-    preview ? "min-h-[520px] px-3 py-6" : "min-h-screen p-4 sm:p-6",
+    // overflow-y-auto: длинный список площадок должен скроллиться, не обрезаться
+    // justify-start + py: контент сверху при длинной странице; короткий всё ещё читается нормально
+    "relative flex min-h-full w-full flex-col items-center justify-start overflow-x-hidden overflow-y-auto",
+    preview ? "min-h-[520px] px-3 py-6" : "min-h-screen px-4 py-6 sm:px-6 sm:py-8",
     isSheet ? "bg-[#F3EFE6] text-[#161616]" : "bg-[#0B0B0C] text-[#F5F5F5]",
     isCarbon && "sl-carbon-bg",
     isGraffiti && "sl-graffiti-bg",
@@ -203,7 +206,8 @@ export function SmartlinkLanding({
   )
 
   const cardClass = cn(
-    "relative z-[1] flex w-full flex-col items-center gap-4",
+    // my-auto: короткий контент по центру экрана; длинный - просто скроллится
+    "relative z-[1] my-auto flex w-full shrink-0 flex-col items-center gap-4",
     preview ? "max-w-[280px]" : "max-w-md",
     isSheet && !isDiary && !isZine && "rounded-2xl bg-white/90 px-4 py-6 shadow-[0_18px_50px_rgba(20,16,10,0.12)]",
     isSignal && "rounded-2xl border border-white/10 bg-black/35 px-4 py-6 backdrop-blur-md",
@@ -226,9 +230,12 @@ export function SmartlinkLanding({
   )
 
   const useIcons = iconsOnly
+  /** Разрыв «как бумага» на hover - лист / билет / зин, только список кнопок. */
+  const usePaperTear = !useIcons && (preset === "sheet" || preset === "ticket" || preset === "zine")
 
   const buttonBase = cn(
     "inline-flex items-center font-medium no-underline transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]",
+    usePaperTear && "hover:!scale-100 active:!scale-100",
     useIcons && !isVinyl && !isOrbit
       ? "h-12 w-12 shrink-0 justify-center"
       : isVinyl || isOrbit
@@ -610,20 +617,9 @@ export function SmartlinkLanding({
         {links.map((link, linkIndex) => {
           const i = animIndex++
           const platformKey = link.key.startsWith("extra:") ? "other" : link.key
-          return (
-            <a
-              key={link.key}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={link.label}
-              aria-label={link.label}
-              className={cn(buttonClassFor(linkIndex), animClass(theme))}
-              style={{
-                ...buttonVisualStyle(platformKey),
-                ...animStyle(theme, i),
-              }}
-            >
+          const visual = buttonVisualStyle(platformKey)
+          const faceContent = (
+            <>
               {isTerminal ? (
                 <span className="opacity-50" aria-hidden>
                   &gt;
@@ -655,6 +651,57 @@ export function SmartlinkLanding({
                   →
                 </span>
               ) : null}
+            </>
+          )
+          const faceStyle: CSSProperties = {
+            backgroundColor: visual.backgroundColor,
+            backgroundImage: visual.backgroundImage,
+            backgroundSize: visual.backgroundSize,
+            color: visual.color,
+            border: visual.border,
+            borderLeft: visual.borderLeft,
+            borderBottom: visual.borderBottom,
+            boxShadow: visual.boxShadow,
+            backdropFilter: visual.backdropFilter,
+            WebkitBackdropFilter: visual.WebkitBackdropFilter,
+          }
+          return (
+            <a
+              key={link.key}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={link.label}
+              aria-label={link.label}
+              className={cn(
+                buttonClassFor(linkIndex),
+                animClass(theme),
+                usePaperTear && "sl-paper-tear",
+              )}
+              style={
+                usePaperTear
+                  ? {
+                      color: visual.color,
+                      ...animStyle(theme, i),
+                    }
+                  : {
+                      ...visual,
+                      ...animStyle(theme, i),
+                    }
+              }
+            >
+              {usePaperTear ? (
+                <>
+                  <span className="sl-paper-tear-face sl-paper-tear-a" aria-hidden style={faceStyle}>
+                    {faceContent}
+                  </span>
+                  <span className="sl-paper-tear-face sl-paper-tear-b" aria-hidden style={faceStyle}>
+                    {faceContent}
+                  </span>
+                </>
+              ) : (
+                faceContent
+              )}
             </a>
           )
         })}
@@ -847,10 +894,11 @@ export function SmartlinkLanding({
           className="sl-cassette-window absolute left-[9%] right-[9%] top-[30%] h-[40%] overflow-hidden rounded-[3px]"
         >
           <div className="sl-cassette-tape absolute inset-x-[18%] top-[55%] h-[38%] -translate-y-1/2 rounded-sm" />
-          <div className="sl-cassette-reel sl-cassette-spin absolute left-[6%] top-[55%] aspect-square w-[30%] -translate-y-1/2 rounded-full">
+          {/* Play: лента слева направо - левая CCW, правая CW (вид спереди) */}
+          <div className="sl-cassette-reel sl-cassette-spin-rev absolute left-[6%] top-[55%] aspect-square w-[30%] -translate-y-1/2 rounded-full">
             <span className="sl-cassette-hub" />
           </div>
-          <div className="sl-cassette-reel sl-cassette-spin-rev absolute right-[6%] top-[55%] aspect-square w-[30%] -translate-y-1/2 rounded-full">
+          <div className="sl-cassette-reel sl-cassette-spin absolute right-[6%] top-[55%] aspect-square w-[30%] -translate-y-1/2 rounded-full">
             <span className="sl-cassette-hub" />
           </div>
         </div>
@@ -972,14 +1020,7 @@ export function SmartlinkLanding({
       {isFilm ? <div aria-hidden className="sl-film-vignette pointer-events-none absolute inset-0 z-[2]" /> : null}
       {isVhs ? <div aria-hidden className="sl-vhs-scanlines pointer-events-none absolute inset-0 z-[2]" /> : null}
       {isHolo ? <div aria-hidden className="sl-holo-sheen pointer-events-none absolute inset-0 z-[2]" /> : null}
-      {isRave ? (
-        <div aria-hidden className="sl-rave-blobs pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          <span className="sl-rave-blob sl-rave-blob-a" />
-          <span className="sl-rave-blob sl-rave-blob-b" />
-          <span className="sl-rave-blob sl-rave-blob-c" />
-          <span className="sl-rave-blob sl-rave-blob-d" />
-        </div>
-      ) : null}
+      {isRave ? <SmartlinkRaveBlobs /> : null}
 
       {isCinema ? (
         <>
