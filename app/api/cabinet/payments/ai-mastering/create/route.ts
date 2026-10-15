@@ -5,7 +5,8 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
+import { MAX_AI_MASTERING_TRACKS } from "@/lib/ai-mastering-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 import { getUploadsBasePath } from "@/lib/tracks"
 import { validateWavStereoFromPrefix } from "@/lib/wav-parse-stereo"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
@@ -126,7 +127,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Некорректный Telegram" }, { status: 400 })
       }
 
-      const totalAmount = (tracksCount * AI_MASTERING_PRICE_RUB).toFixed(2)
+      const unitPrice = await getServicePriceRub("ai_mastering")
+      const totalAmount = (tracksCount * unitPrice).toFixed(2)
       const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
 
       const order = await createOrder({

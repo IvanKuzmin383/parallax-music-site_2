@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { getReleaseById } from "@/lib/releases"
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  const totalAmount = BUSINESS_MUSIC_PRICE_RUB.toFixed(2)
+  const totalAmount = (await getServicePriceRub("business_music")).toFixed(2)
   const isTelegramContact = contactType === "telegram"
   const displayTitle = owned.artistName
     ? `${owned.artistName} - ${owned.trackTitle}`

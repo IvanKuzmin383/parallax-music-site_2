@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { getEffectiveTrackLimit } from "@/lib/subscription-plans"
 import { listActiveCabinetArtistSubscriptionsByUserId } from "@/lib/cabinet-artist-subscriptions"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
@@ -81,6 +82,10 @@ export async function POST(request: NextRequest) {
     const profileGate = checkProfileCompleteForUpload(user)
     if (profileGate) {
       return NextResponse.json(profileGate.body, { status: profileGate.status })
+    }
+    const kycGate = checkKycVerifiedForDistribution(user)
+    if (kycGate) {
+      return NextResponse.json(kycGate.body, { status: kycGate.status })
     }
 
     const multipart = await parseMultipartRequestStream(request, {

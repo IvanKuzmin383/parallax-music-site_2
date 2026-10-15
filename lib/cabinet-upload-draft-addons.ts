@@ -1,6 +1,7 @@
 import type { UploadDraftPayload } from "./upload-drafts"
 import { calculateUploadAddonBundleAmount, getOrderById, type UploadAddonBundleItem } from "./orders"
 import { getReleaseDateTierPriceRubFromIso } from "./release-date-tiers"
+import { getServicePriceRubMap } from "./service-prices"
 
 /** Не считать `addons.trackCover` дважды, если сингл уже заказал AI через `requestAiCover`. */
 export function payloadForUploadDraftPricing(payload: UploadDraftPayload): UploadDraftPayload {
@@ -48,13 +49,15 @@ export function addonBundleItemsFromUploadDraftPayload(payload: UploadDraftPaylo
   return items
 }
 
-export function uploadDraftAddonBundleTotalRub(payload: UploadDraftPayload): number {
-  return calculateUploadAddonBundleAmount(addonBundleItemsFromUploadDraftPayload(payload)).totalRub
+export async function uploadDraftAddonBundleTotalRub(payload: UploadDraftPayload): Promise<number> {
+  const prices = await getServicePriceRubMap()
+  return calculateUploadAddonBundleAmount(addonBundleItemsFromUploadDraftPayload(payload), prices)
+    .totalRub
 }
 
 /** Сумма к оплате перед finalize: допы из `addons` + ИИ-обложка сингла (`requestAiCover`) + тариф даты релиза. */
-export function uploadDraftRequiredPaymentRub(payload: UploadDraftPayload): number {
-  const addonsRub = uploadDraftAddonBundleTotalRub(payloadForUploadDraftPricing(payload))
+export async function uploadDraftRequiredPaymentRub(payload: UploadDraftPayload): Promise<number> {
+  const addonsRub = await uploadDraftAddonBundleTotalRub(payloadForUploadDraftPricing(payload))
   const releaseDateRub = getReleaseDateTierPriceRubFromIso(payload.releaseDate)
   return addonsRub + releaseDateRub
 }
@@ -73,7 +76,7 @@ export async function assertUploadDraftBundlePayment(
   payload: UploadDraftPayload,
   bundleOrderId: string | null | undefined
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const requiredRub = uploadDraftRequiredPaymentRub(payload)
+  const requiredRub = await uploadDraftRequiredPaymentRub(payload)
   if (requiredRub <= 0) {
     return { ok: true }
   }
@@ -98,7 +101,7 @@ export async function bundleOrderIdIfStillCoversPayload(
   payload: UploadDraftPayload
 ): Promise<string | null> {
   if (!bundleOrderId) return null
-  const requiredRub = uploadDraftRequiredPaymentRub(payload)
+  const requiredRub = await uploadDraftRequiredPaymentRub(payload)
   if (requiredRub <= 0) {
     const order = await getOrderById(bundleOrderId)
     if (!order || order.status !== "paid") return null

@@ -15,8 +15,10 @@ import {
   MessageSquare,
   Music,
   Scale,
+  ShieldCheck,
   Users,
   Wallet,
+  Tag,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -44,6 +46,8 @@ export type AdminSectionNavActive =
   | "music-track-map"
   | "publicka"
   | "video-clips"
+  | "service-prices"
+  | "kyc"
 
 interface AdminSectionNavProps {
   active: AdminSectionNavActive
@@ -89,6 +93,12 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
       },
       { id: "support", label: "Поддержка", href: "/admin26081993/support", icon: Headset },
       {
+        id: "kyc",
+        label: "Верификация",
+        href: "/admin26081993/kyc",
+        icon: ShieldCheck,
+      },
+      {
         id: "legal-acceptance",
         label: "Оферта",
         href: "/admin26081993/legal-acceptance",
@@ -125,6 +135,12 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         label: "Заказы услуг",
         href: "/admin26081993/service-fulfillments",
         icon: ClipboardList,
+      },
+      {
+        id: "service-prices",
+        label: "Цены",
+        href: "/admin26081993/service-prices",
+        icon: Tag,
       },
     ],
   },

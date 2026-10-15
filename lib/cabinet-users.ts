@@ -67,6 +67,12 @@ export interface CabinetUser {
   referralCode?: string | null
   /** Кто пригласил (user id). */
   referredByUserId?: string | null
+  /** Статус KYC-верификации. */
+  kycStatus?: "unverified" | "pending" | "verified" | "rejected"
+  kycVerifiedAt?: string | null
+  kycRejectedAt?: string | null
+  kycRejectionReason?: string | null
+  kycBirthDate?: string | null
 }
 
 interface CabinetUserRow {
@@ -123,6 +129,11 @@ interface CabinetUserRow {
   totp_pending_secret?: string | null
   referral_code?: string | null
   referred_by_user_id?: string | null
+  kyc_status?: string | null
+  kyc_verified_at?: string | null
+  kyc_rejected_at?: string | null
+  kyc_rejection_reason?: string | null
+  kyc_birth_date?: string | null
 }
 
 interface CabinetUserDeletionRow {
@@ -194,6 +205,16 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     totpPendingSecret: row.totp_pending_secret ?? null,
     referralCode: row.referral_code ?? null,
     referredByUserId: row.referred_by_user_id ?? null,
+    kycStatus:
+      row.kyc_status === "pending" ||
+      row.kyc_status === "verified" ||
+      row.kyc_status === "rejected"
+        ? row.kyc_status
+        : "unverified",
+    kycVerifiedAt: row.kyc_verified_at ?? null,
+    kycRejectedAt: row.kyc_rejected_at ?? null,
+    kycRejectionReason: row.kyc_rejection_reason ?? null,
+    kycBirthDate: row.kyc_birth_date ? String(row.kyc_birth_date).slice(0, 10) : null,
   }
 }
 

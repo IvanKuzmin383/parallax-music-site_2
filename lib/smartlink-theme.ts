@@ -176,7 +176,7 @@ export const SMARTLINK_PRESET_META: Record<
   cinema: { label: "Кино", description: "Letterbox и широкие кнопки" },
   capsule: { label: "Капсула", description: "Вытянутые pills со стрелкой" },
   grid: { label: "Сетка", description: "Значки в тонких рамках" },
-  cassette: { label: "Кассета", description: "Кассета с крутящимися катушками" },
+  cassette: { label: "Кассета", description: "Обложка на корпусе, крутящиеся катушки" },
   graffiti: { label: "Граффити", description: "Рэп / хип-хоп, жирные стикеры" },
   stage: { label: "Сцена", description: "Рок-сцена и металл" },
   rave: { label: "Рейв", description: "Электроника, сетка и пульс" },
@@ -777,4 +777,83 @@ export function smartlinkAnimationDurationMs(speed: number, baseMs = 900): numbe
 
 export function isLightSmartlinkPreset(preset: SmartlinkPreset): boolean {
   return preset === "sheet" || preset === "diary" || preset === "zine"
+}
+
+/** Какие поля «Деталей» можно менять для пресета (остальное - характер стиля). */
+export type SmartlinkDetailKey =
+  | "buttons"
+  | "coverShape"
+  | "platformLayout"
+  | "buttonBorder"
+  | "buttonShadow"
+  | "coverShadow"
+  | "font"
+
+export type SmartlinkDetailCap = { enabled: true } | { enabled: false; reason: string }
+
+export type SmartlinkPresetDetailsCaps = Record<SmartlinkDetailKey, SmartlinkDetailCap>
+
+const DETAIL_ON = { enabled: true } as const satisfies SmartlinkDetailCap
+
+function detailOff(reason: string): SmartlinkDetailCap {
+  return { enabled: false, reason }
+}
+
+/** Пресеты, где вид кнопок целиком задан характером стиля. */
+const PRESETS_LOCK_BUTTONS = new Set<SmartlinkPreset>([
+  "neon",
+  "film",
+  "ticket",
+  "terminal",
+  "inkblot",
+  "carbon",
+  "sunset",
+  "grid",
+  "graffiti",
+  "stage",
+  "rave",
+  "arcade",
+  "vhs",
+  "zine",
+  "chrome",
+  "noir",
+  "stamp",
+  "holo",
+  "diary",
+  "polaroid",
+])
+
+const PRESETS_LOCK_COVER_SHAPE = new Set<SmartlinkPreset>([
+  "vinyl",
+  "orbit",
+  "cassette",
+  "cinema",
+  "poster",
+  "ticket",
+  "polaroid",
+])
+
+const PRESETS_FORCE_ICONS = new Set<SmartlinkPreset>(["vinyl", "grid", "rave", "orbit"])
+
+export function smartlinkPresetDetailsCaps(preset: SmartlinkPreset): SmartlinkPresetDetailsCaps {
+  const label = SMARTLINK_PRESET_META[preset].label
+  return {
+    buttons: PRESETS_LOCK_BUTTONS.has(preset)
+      ? detailOff(`Вид кнопок задаёт стиль «${label}»`)
+      : DETAIL_ON,
+    coverShape: PRESETS_LOCK_COVER_SHAPE.has(preset)
+      ? detailOff(`Форма обложки задана стилем «${label}»`)
+      : DETAIL_ON,
+    platformLayout: PRESETS_FORCE_ICONS.has(preset)
+      ? detailOff(`Стиль «${label}» - только значки`)
+      : DETAIL_ON,
+    buttonBorder: DETAIL_ON,
+    buttonShadow: DETAIL_ON,
+    coverShadow: DETAIL_ON,
+    font: DETAIL_ON,
+  }
+}
+
+export function smartlinkForcesIcons(preset: SmartlinkPreset): boolean {
+  return PRESETS_FORCE_ICONS.has(preset)
 }

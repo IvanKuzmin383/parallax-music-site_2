@@ -3,7 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import { TRACK_COVER_PRICE_RUB } from "@/lib/track-cover-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 
 /** Текст услуги в ЮKassa (как в чеке/описании платежа) */
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  const totalAmount = TRACK_COVER_PRICE_RUB.toFixed(2)
+  const totalAmount = (await getServicePriceRub("track_cover")).toFixed(2)
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "track_cover",

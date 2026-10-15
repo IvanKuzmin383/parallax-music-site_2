@@ -4,6 +4,7 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { validateAiCoverOrder } from "@/lib/ai-cover-order"
+import { getServicePriceRub } from "@/lib/service-prices"
 const YOOKASSA_PAYMENT_DESCRIPTION = "AI обложка для трека"
 
 export async function POST(request: NextRequest) {
@@ -42,11 +43,12 @@ export async function POST(request: NextRequest) {
   }
 
   const isTelegramContact = validated.contactType === "telegram"
+  const priceRub = await getServicePriceRub("ai_cover")
   const order = await createOrder({
     orderType: "ai_cover",
     userId: user.id,
     tracksCount: 1,
-    totalAmount: validated.totalAmount,
+    totalAmount: priceRub.toFixed(2),
     contactEmail: isTelegramContact ? undefined : `${validated.contactType}: ${validated.contactValue}`,
     contactTelegram: isTelegramContact ? validated.contactValue : undefined,
     serviceDetails: validated.serviceDetails,

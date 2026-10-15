@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
-import { MUSIC_VIDEO_PRICE_RUB } from "@/lib/music-video-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 import { createOrder } from "@/lib/orders"
 import {
   applyCouponToOrderAmount,
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
+  }
+  const kycGate = checkKycVerifiedForDistribution(user)
+  if (kycGate) {
+    return NextResponse.json(kycGate.body, { status: kycGate.status })
   }
 
   let body: unknown
@@ -90,10 +95,11 @@ export async function POST(request: NextRequest) {
 
 
   const couponCode = typeof raw.couponCode === "string" ? raw.couponCode.trim() : ""
+  const basePriceRub = await getServicePriceRub("music_video")
   const priced = await applyCouponToOrderAmount({
     userId: user.id,
     orderType: "music_video",
-    amountRub: MUSIC_VIDEO_PRICE_RUB,
+    amountRub: basePriceRub,
     couponCode: couponCode || null,
   })
   if (priced.error) {

@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         createdAt: user.createdAt,
         artistName: user.artistName,
+        displayName: user.artistName || undefined,
         subscriptionName: user.subscriptionName,
         subscriptionExpiresAt: user.subscriptionExpiresAt,
         subscriptionTrackLimit: user.subscriptionTrackLimit,
@@ -32,6 +33,8 @@ export async function GET(request: NextRequest) {
         streamingBalance: user.streamingBalance || 0,
         walletBalance: user.walletBalance || 0,
         profileCompleteForUpload: cabinetProfileCompleteForUpload(user),
+        kycStatus: user.kycStatus ?? "unverified",
+        kycRejectionReason: user.kycRejectionReason ?? null,
         artistSubscriptions,
       },
     })

@@ -176,7 +176,7 @@ export async function submitReleaseToModeration(
   }
 
   const pricingPayload = releasePayloadForPricing(release)
-  const requiredRub = uploadDraftRequiredPaymentRub(pricingPayload)
+  const requiredRub = await uploadDraftRequiredPaymentRub(pricingPayload)
 
   if (requiredRub > 0 && !options?.skipPaymentCheck && !isResubmitAfterRevision) {
     const paymentGate = await assertUploadDraftBundlePayment(pricingPayload, release.bundleOrderId)

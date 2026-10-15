@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { getUploadArtistPolicyViolationWithSlots } from "@/lib/cabinet-upload-artist-policy"
 import {
   MAX_CABINET_COVER_BYTES,
@@ -37,6 +38,8 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   const profileGate = checkProfileCompleteForUpload(user)
   if (profileGate) return NextResponse.json(profileGate.body, { status: profileGate.status })
+  const kycGate = checkKycVerifiedForDistribution(user)
+  if (kycGate) return NextResponse.json(kycGate.body, { status: kycGate.status })
 
   try {
     const multipart = await parseMultipartRequestStream(request, {

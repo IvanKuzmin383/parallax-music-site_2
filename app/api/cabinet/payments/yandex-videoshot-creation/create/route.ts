@@ -3,7 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 import {
   VIDEO_DIRECTION_OPTIONS,
   videoDirectionLabel,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
   }
 
   const videoDirection = videoDirectionLabel(directionRaw as VideoDirectionValue)
-  const totalAmount = YANDEX_VIDEOSHOT_CREATION_PRICE_RUB.toFixed(2)
+  const totalAmount = (await getServicePriceRub("yandex_videoshot_creation")).toFixed(2)
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "yandex_videoshot_creation",

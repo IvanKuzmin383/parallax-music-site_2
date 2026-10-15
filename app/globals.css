@@ -986,50 +986,113 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   will-change: transform;
 }
 
-.sl-cassette-shell {
+/* Кассета: корпус = обложка, поверх лёгкий пластик (цвета обложки читаются) */
+.sl-cassette-wrap {
   background:
-    linear-gradient(180deg, #3a3a40 0%, #232328 45%, #1a1a1e 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 16%, transparent 70%, rgba(0, 0, 0, 0.38) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0%, transparent 14%, transparent 86%, rgba(0, 0, 0, 0.28) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
 }
 
 .sl-cassette-window {
-  background: linear-gradient(180deg, #0e0e12 0%, #18181e 100%);
+  background: rgba(8, 8, 10, 0.72);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 2px 8px rgba(0, 0, 0, 0.55);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 3px 10px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(1px);
 }
 
+.sl-cassette-tape {
+  background: linear-gradient(180deg, #2a2218 0%, #1a140e 50%, #0e0a08 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+  opacity: 0.9;
+}
+
+/* Катушка: спицы + ступица, без концентрических «спиралей» */
 .sl-cassette-reel {
   background:
-    repeating-radial-gradient(
-      circle at center,
-      #1a1a1a 0 2px,
-      #2e2e34 2px 4px
-    ),
-    #111;
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.12), transparent 40%),
+    conic-gradient(
+      from 10deg,
+      #3a3a42 0deg 14deg,
+      #16161a 14deg 45deg,
+      #3a3a42 45deg 59deg,
+      #16161a 59deg 90deg,
+      #3a3a42 90deg 104deg,
+      #16161a 104deg 135deg,
+      #3a3a42 135deg 149deg,
+      #16161a 149deg 180deg,
+      #3a3a42 180deg 194deg,
+      #16161a 194deg 225deg,
+      #3a3a42 225deg 239deg,
+      #16161a 239deg 270deg,
+      #3a3a42 270deg 284deg,
+      #16161a 284deg 315deg,
+      #3a3a42 315deg 329deg,
+      #16161a 329deg 360deg
+    );
   box-shadow:
-    inset 0 0 0 2px #0a0a0a,
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+    inset 0 0 0 2px #0a0a0c,
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.sl-cassette-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28%;
+  height: 28%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 40% 35%, #4a4a52, #1c1c22 55%, #0a0a0c 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 0 2px #0a0a0c;
+}
+
+.sl-cassette-label {
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 4px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.sl-cassette-screw {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 35% 30%, #6a6a72, #2a2a30 60%, #121214 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes sl-cassette-spin {
   from {
-    transform: rotate(0deg);
+    transform: translateY(-50%) rotate(0deg);
   }
   to {
-    transform: rotate(360deg);
+    transform: translateY(-50%) rotate(360deg);
   }
 }
 
 .sl-cassette-spin {
   animation: sl-cassette-spin 3.2s linear infinite;
+  will-change: transform;
 }
 
 .sl-cassette-spin-rev {
   animation: sl-cassette-spin 3.2s linear infinite reverse;
+  will-change: transform;
 }
 
 .sl-graffiti-bg {
@@ -1065,6 +1128,105 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 
 .sl-rave-cover {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--sl-accent) 50%, transparent);
+}
+
+/* Рейв: лёгкие плавающие кляксы (только transform/opacity) */
+.sl-rave-blobs {
+  contain: layout paint;
+}
+
+.sl-rave-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sl-accent) 42%, transparent);
+  filter: blur(28px);
+  opacity: 0.45;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.sl-rave-blob-a {
+  width: min(42vw, 220px);
+  height: min(42vw, 220px);
+  left: -8%;
+  top: 12%;
+  animation: sl-rave-float-a 16s ease-in-out infinite;
+}
+
+.sl-rave-blob-b {
+  width: min(36vw, 180px);
+  height: min(36vw, 180px);
+  right: -6%;
+  top: 28%;
+  background: color-mix(in srgb, var(--sl-accent) 28%, #7dd3fc);
+  animation: sl-rave-float-b 19s ease-in-out infinite;
+}
+
+.sl-rave-blob-c {
+  width: min(48vw, 260px);
+  height: min(48vw, 260px);
+  left: 18%;
+  bottom: -10%;
+  opacity: 0.35;
+  animation: sl-rave-float-c 22s ease-in-out infinite;
+}
+
+.sl-rave-blob-d {
+  width: min(28vw, 140px);
+  height: min(28vw, 140px);
+  right: 22%;
+  bottom: 18%;
+  background: color-mix(in srgb, var(--sl-accent) 35%, #f0abfc);
+  opacity: 0.4;
+  animation: sl-rave-float-d 14s ease-in-out infinite;
+}
+
+@keyframes sl-rave-float-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(12%, 18%, 0) scale(1.12);
+    opacity: 0.55;
+  }
+}
+
+@keyframes sl-rave-float-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(-14%, 10%, 0) scale(1.08);
+    opacity: 0.5;
+  }
+}
+
+@keyframes sl-rave-float-c {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate3d(8%, -16%, 0) scale(1.15);
+    opacity: 0.45;
+  }
+}
+
+@keyframes sl-rave-float-d {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(-10%, -12%, 0) scale(1.1);
+    opacity: 0.5;
+  }
 }
 
 .sl-polaroid-wall {
@@ -1142,9 +1304,78 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   filter: contrast(1.05);
 }
 
+.sl-noir-cover,
+.sl-noir-cover img {
+  filter: grayscale(1) contrast(1.25);
+  transition: filter 0.4s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sl-noir-cover:hover,
+  .sl-noir-cover:hover img {
+    filter: none;
+  }
+}
+
+.sl-noir-cover:focus-within,
+.sl-noir-cover:focus-within img {
+  filter: none;
+}
+
 .sl-orbit-ring {
   border: 1px dashed color-mix(in srgb, var(--sl-accent) 45%, transparent);
   opacity: 0.7;
+}
+
+/* Орбита: колесо площадок крутится вокруг обложки */
+@keyframes sl-orbit-wheel {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sl-orbit-wheel {
+  animation: sl-orbit-wheel 42s linear infinite;
+  will-change: transform;
+}
+
+.sl-orbit-slot {
+  margin-left: -1.375rem;
+  margin-top: -1.375rem;
+}
+
+/* Значок: медленно вокруг своей оси + пульс */
+@keyframes sl-orbit-planet {
+  0% {
+    transform: rotate(0deg) scale(1);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--sl-accent) 28%, transparent);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.12);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--sl-accent) 55%, transparent);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--sl-accent) 28%, transparent);
+  }
+}
+
+.sl-orbit-planet {
+  animation: sl-orbit-planet 9s ease-in-out infinite;
+  animation-delay: var(--sl-orbit-delay, 0s);
+  will-change: transform;
+}
+
+.sl-orbit:hover .sl-orbit-wheel,
+.sl-orbit:hover .sl-orbit-planet {
+  animation-play-state: paused;
+}
+
+.sl-orbit-planet:hover {
+  transform: scale(1.14);
 }
 
 .sl-stamp-bg {
@@ -1217,7 +1448,10 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   .sl-cassette-spin,
   .sl-cassette-spin-rev,
   .sl-holo-sheen,
-  .sl-holo-btn {
+  .sl-holo-btn,
+  .sl-orbit-wheel,
+  .sl-orbit-planet,
+  .sl-rave-blob {
     animation: none !important;
   }
 }
@@ -1234,6 +1468,11 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 }
 .sl-inkblot-3 {
   border-radius: 2.2rem 1.55rem 1.85rem 1.3rem;
+}
+
+/* Монохром иконок под контраст кнопки (VK/Deezer не сливаются с фоном) */
+.sl-inkblot-icon {
+  filter: var(--sl-ink-icon-filter, none);
 }
 
 .sl-neon-btn {

@@ -5,7 +5,7 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getSmartlinkById, isSmartlinkPubliclyActive } from "@/lib/cabinet-smartlinks"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 
 const bodySchema = z.object({
   smartlinkId: z.string().trim().min(1),
@@ -45,10 +45,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Смартлинк уже активен" }, { status: 400 })
   }
 
+  const priceRub = await getServicePriceRub("tools_smartlink")
   const order = await createOrder({
     orderType: "tools_smartlink",
     userId: user.id,
-    totalAmount: TOOLS_SMARTLINK_PRICE_RUB.toFixed(2),
+    totalAmount: priceRub.toFixed(2),
     releaseId: link.id,
   })
 

@@ -3,7 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const YOOKASSA_PAYMENT_DESCRIPTION = "Создание видеоаватара для Яндекс Музыки"
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  const totalAmount = YANDEX_VIDEOAVATAR_PRICE_RUB.toFixed(2)
+  const totalAmount = (await getServicePriceRub("yandex_videoavatar")).toFixed(2)
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "yandex_videoavatar",

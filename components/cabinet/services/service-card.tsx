@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight } from "lucide-react"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { ServicePriceText } from "@/components/cabinet/shared/service-price-text"
 
 interface ServiceCardProps {
   service: ServiceCatalogEntry
@@ -30,7 +31,16 @@ export function ServiceCard({ service, compact }: ServiceCardProps) {
           ) : null}
         </CardHeader>
         <CardContent className="flex items-center justify-between pt-0">
-          <span className="text-sm font-medium text-primary">{service.priceLabel}</span>
+          <span className="text-sm font-medium text-primary">
+            {service.priceKey ? (
+              <>
+                {service.pricePrefix ? <span>{service.pricePrefix}</span> : null}
+                <ServicePriceText priceKey={service.priceKey} fallback={service.priceLabel} />
+              </>
+            ) : (
+              service.priceLabel
+            )}
+          </span>
           <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
         </CardContent>
       </Card>

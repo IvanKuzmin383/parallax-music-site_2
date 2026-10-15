@@ -23,7 +23,7 @@ export async function POST(
   const user = await getCabinetUserByEmail(session.email)
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
 
-  const totalRub = uploadDraftRequiredPaymentRub(draft.payload)
+  const totalRub = await uploadDraftRequiredPaymentRub(draft.payload)
   if (totalRub <= 0) {
     await updateUploadDraft(draft.id, { status: "paid", bundleOrderId: null })
     return NextResponse.json({ ok: true, skippedPayment: true })

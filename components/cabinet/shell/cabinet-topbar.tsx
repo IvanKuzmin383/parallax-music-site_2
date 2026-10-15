@@ -21,6 +21,7 @@ import { CabinetProjectFilter } from "@/components/cabinet/shell/cabinet-project
 import { CabinetThemeToggle } from "@/components/cabinet/shell/cabinet-theme-toggle"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
+import { CabinetKycStatusBadge } from "@/components/cabinet/kyc/cabinet-kyc-status-badge"
 import { cn } from "@/lib/utils"
 
 function isSupportChatHref(href: string | null | undefined): boolean {
@@ -398,6 +399,9 @@ export function CabinetTopbar() {
                 <p className="truncate text-xs text-muted-foreground">{email}</p>
               ) : null}
             </DropdownMenuLabel>
+            <div className="px-2 pb-2">
+              <CabinetKycStatusBadge />
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/cabinet/finance/balance" className="cursor-pointer gap-2">

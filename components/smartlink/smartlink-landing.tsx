@@ -11,6 +11,7 @@ import {
   contrastTextOnAccent,
   isLightSmartlinkPreset,
   smartlinkAnimationDurationMs,
+  smartlinkForcesIcons,
   type SmartlinkLinkItem,
   type SmartlinkPreset,
   type SmartlinkTheme,
@@ -37,13 +38,7 @@ function coverRadiusClass(shape: SmartlinkTheme["cover"], preset: SmartlinkPrese
     preset === "cinema" ||
     preset === "poster" ||
     preset === "ticket" ||
-    preset === "polaroid" ||
-    preset === "vhs" ||
-    preset === "arcade" ||
-    preset === "zine" ||
-    preset === "noir" ||
-    preset === "stamp" ||
-    preset === "diary"
+    preset === "polaroid"
   ) {
     return "rounded-none"
   }
@@ -175,12 +170,7 @@ export function SmartlinkLanding({
   const isStage = preset === "stage"
   const isRave = preset === "rave"
 
-  const fontStack =
-    isTerminal || isTicket || isCassette || isRave || isArcade || isVhs || isStamp
-      ? SMARTLINK_FONT_META.mono.stack
-      : isDiary || isNoir || isPolaroid
-        ? SMARTLINK_FONT_META.serif.stack
-        : (SMARTLINK_FONT_META[theme.font]?.stack ?? SMARTLINK_FONT_META.sans.stack)
+  const fontStack = SMARTLINK_FONT_META[theme.font]?.stack ?? SMARTLINK_FONT_META.sans.stack
 
   const socials = theme.socials
   const socialItems =
@@ -190,7 +180,7 @@ export function SmartlinkLanding({
   const socialsAbove = socialItems.length > 0 && socials?.position === "above"
   const socialsBelow = socialItems.length > 0 && socials?.position !== "above"
 
-  const forceIcons = isVinyl || isGrid || isRave || isOrbit
+  const forceIcons = smartlinkForcesIcons(preset)
   const iconsOnly = forceIcons || theme.platformLayout === "icons"
 
   const shellClass = cn(
@@ -303,180 +293,231 @@ export function SmartlinkLanding({
   const buttonVisualStyle = (linkKey?: string): CSSProperties => {
     const drop = theme.buttonShadow ? "0 10px 28px rgba(0,0,0,0.28)" : undefined
 
+    /** Тень/контур из «Деталей» поверх характера стиля. */
+    const withDetails = (base: CSSProperties, opts?: { keepBorder?: boolean }): CSSProperties => {
+      const next: CSSProperties = { ...base }
+      if (!theme.buttonBorder && !opts?.keepBorder) {
+        if (next.border && next.border !== "none") next.border = "1px solid transparent"
+        if (next.borderBottom && typeof next.borderBottom === "string") {
+          next.borderBottom = "1px solid transparent"
+        }
+        if (next.borderLeft && typeof next.borderLeft === "string" && !isNoir) {
+          next.borderLeft = "1px solid transparent"
+        }
+      }
+      if (drop) {
+        const prev = next.boxShadow
+        next.boxShadow =
+          !prev || prev === "none" ? drop : `${String(prev)}, ${drop}`
+      } else if (next.boxShadow === undefined) {
+        next.boxShadow = "none"
+      }
+      return next
+    }
+
     if (isInkblot) {
       const fill = platformBrandColor(linkKey ?? "other", theme.accent)
       const inkText = contrastTextOnAccent(fill)
-      return {
-        backgroundColor: fill,
-        color: inkText,
-        border: `1px solid color-mix(in srgb, ${inkText} 12%, transparent)`,
-        boxShadow: "0 8px 22px rgba(0,0,0,0.28)",
-      }
+      return withDetails(
+        {
+          backgroundColor: fill,
+          color: inkText,
+          border: theme.buttonBorder
+            ? `1px solid color-mix(in srgb, ${inkText} 12%, transparent)`
+            : "1px solid transparent",
+          boxShadow: "0 8px 22px rgba(0,0,0,0.28)",
+          ["--sl-ink-icon-filter" as string]:
+            inkText === "#FAFAFA" ? "brightness(0) invert(1)" : "brightness(0)",
+        },
+        { keepBorder: true },
+      )
     }
 
     if (isGraffiti) {
-      return {
+      return withDetails({
         backgroundColor: theme.accent,
         color: accentText,
-        border: "2px solid #111",
+        border: theme.buttonBorder ? "2px solid #111" : "2px solid transparent",
         boxShadow: `4px 4px 0 #111, 0 0 0 1px color-mix(in srgb, ${theme.accent} 40%, transparent)`,
         transform: `rotate(${linkKey ? (((linkKey.charCodeAt(0) % 5) - 2) * 0.6) : 0}deg)`,
-      }
+      }, { keepBorder: true })
     }
 
     if (isStage) {
-      return {
+      return withDetails({
         backgroundColor: "rgba(20,20,22,0.85)",
         color: fgOnPage,
-        border: `1px solid color-mix(in srgb, ${theme.accent} 55%, #888)`,
+        border: theme.buttonBorder
+          ? `1px solid color-mix(in srgb, ${theme.accent} 55%, #888)`
+          : "1px solid transparent",
         boxShadow: `0 0 18px color-mix(in srgb, ${theme.accent} 25%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`,
-      }
+      }, { keepBorder: true })
     }
 
     if (isRave) {
-      return {
+      return withDetails({
         backgroundColor: "transparent",
         color: theme.accent,
-        border: `1px solid color-mix(in srgb, ${theme.accent} 70%, transparent)`,
+        border: theme.buttonBorder
+          ? `1px solid color-mix(in srgb, ${theme.accent} 70%, transparent)`
+          : "1px solid transparent",
         boxShadow: `0 0 14px color-mix(in srgb, ${theme.accent} 40%, transparent)`,
-      }
+      }, { keepBorder: true })
     }
 
     if (isArcade) {
-      return {
+      return withDetails({
         backgroundColor: theme.accent,
         color: accentText,
-        border: "3px solid #111",
+        border: theme.buttonBorder ? "3px solid #111" : "3px solid transparent",
         boxShadow: "inset -2px -2px 0 rgba(0,0,0,0.35), inset 2px 2px 0 rgba(255,255,255,0.35)",
         imageRendering: "pixelated",
-      }
+      }, { keepBorder: true })
     }
 
     if (isVhs) {
-      return {
+      return withDetails({
         backgroundColor: "rgba(10, 20, 40, 0.65)",
         color: "#9ad0ff",
-        border: "1px solid rgba(120, 180, 255, 0.45)",
+        border: theme.buttonBorder
+          ? "1px solid rgba(120, 180, 255, 0.45)"
+          : "1px solid transparent",
         boxShadow: "0 0 12px rgba(80, 140, 255, 0.25)",
-      }
+      }, { keepBorder: true })
     }
 
     if (isZine) {
       const tilt = linkKey ? ((linkKey.charCodeAt(0) % 5) - 2) * 0.8 : 0
-      return {
+      return withDetails({
         backgroundColor: "#111",
         color: "#f5f5f5",
-        border: `2px solid ${theme.accent}`,
+        border: theme.buttonBorder ? `2px solid ${theme.accent}` : "2px solid transparent",
         boxShadow: `3px 3px 0 ${theme.accent}`,
         transform: `rotate(${tilt}deg)`,
-      }
+      }, { keepBorder: true })
     }
 
     if (isChrome) {
-      return {
+      return withDetails({
         backgroundImage:
           "linear-gradient(145deg, #f5f5f5 0%, #b8b8c0 28%, #7a7a86 52%, #d8d8e0 78%, #9a9aa6 100%)",
         color: "#111",
-        border: "1px solid rgba(255,255,255,0.55)",
+        border: theme.buttonBorder
+          ? "1px solid rgba(255,255,255,0.55)"
+          : "1px solid transparent",
         boxShadow: "0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7)",
-      }
+      }, { keepBorder: true })
     }
 
     if (isNoir) {
-      return {
+      return withDetails({
         backgroundColor: "transparent",
         color: "#f0f0f0",
-        border: "1px solid rgba(240,240,240,0.55)",
+        border: theme.buttonBorder ? "1px solid rgba(240,240,240,0.55)" : "1px solid transparent",
         borderLeft: `3px solid ${theme.accent}`,
         boxShadow: "none",
-      }
+      }, { keepBorder: true })
     }
 
     if (isStamp) {
       const tilt = linkKey ? ((linkKey.charCodeAt(0) % 7) - 3) * 1.2 : 0
-      return {
+      return withDetails({
         backgroundColor: contentLight ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.06)",
         color: fgOnPage,
-        border: `2px dashed color-mix(in srgb, ${theme.accent} 70%, ${fgOnPage})`,
+        border: theme.buttonBorder
+          ? `2px dashed color-mix(in srgb, ${theme.accent} 70%, ${fgOnPage})`
+          : "2px solid transparent",
         boxShadow: `1px 1px 0 color-mix(in srgb, ${theme.accent} 40%, transparent)`,
         transform: `rotate(${tilt}deg)`,
-      }
+      }, { keepBorder: true })
     }
 
     if (isHolo) {
-      return {
+      return withDetails({
         backgroundImage:
           "linear-gradient(120deg, color-mix(in srgb, var(--sl-accent) 35%, transparent), rgba(255,255,255,0.18), color-mix(in srgb, var(--sl-accent) 25%, #7dd3fc))",
         color: fgOnPage,
-        border: "1px solid rgba(255,255,255,0.35)",
+        border: theme.buttonBorder
+          ? "1px solid rgba(255,255,255,0.35)"
+          : "1px solid transparent",
         boxShadow: "0 0 18px color-mix(in srgb, var(--sl-accent) 30%, transparent)",
         backgroundSize: "200% 200%",
-      }
+      }, { keepBorder: true })
     }
 
     if (isDiary) {
-      return {
+      return withDetails({
         backgroundColor: "rgba(255,255,255,0.55)",
         color: "#2a2a2a",
-        border: "1px solid rgba(40,40,40,0.18)",
+        border: theme.buttonBorder
+          ? "1px solid rgba(40,40,40,0.18)"
+          : "1px solid transparent",
         boxShadow: "1px 1px 0 rgba(40,40,40,0.08)",
-      }
+      }, { keepBorder: true })
     }
 
     if (isPolaroid) {
-      return {
+      return withDetails({
         backgroundColor: "rgba(255,255,255,0.92)",
         color: "#222",
-        border: "1px solid rgba(0,0,0,0.08)",
+        border: theme.buttonBorder
+          ? "1px solid rgba(0,0,0,0.08)"
+          : "1px solid transparent",
         boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
-      }
+      }, { keepBorder: true })
     }
 
     if (isNeon) {
-      return {
+      return withDetails({
         backgroundColor: "transparent",
         color: theme.accent,
-        border: `1.5px solid ${theme.accent}`,
+        border: theme.buttonBorder
+          ? `1.5px solid ${theme.accent}`
+          : `1.5px solid color-mix(in srgb, ${theme.accent} 35%, transparent)`,
         boxShadow: `0 0 16px color-mix(in srgb, ${theme.accent} 55%, transparent), inset 0 0 12px color-mix(in srgb, ${theme.accent} 18%, transparent)`,
-      }
+      }, { keepBorder: true })
     }
 
     if (isSunset) {
-      return {
+      return withDetails({
         backgroundImage: `linear-gradient(135deg, ${theme.accent}, #0a0a0a 85%)`,
         color: "#FAFAFA",
         border: "1px solid transparent",
         boxShadow: drop,
-      }
+      }, { keepBorder: true })
     }
 
     if (isTerminal) {
-      return {
+      return withDetails({
         backgroundColor: "transparent",
         color: fgOnPage,
-        borderBottom: `1px solid color-mix(in srgb, ${fgOnPage} 22%, transparent)`,
+        borderBottom: theme.buttonBorder
+          ? `1px solid color-mix(in srgb, ${fgOnPage} 22%, transparent)`
+          : "1px solid transparent",
         borderRadius: 0,
-      }
+      }, { keepBorder: true })
     }
 
     if (isGrid) {
-      return {
+      return withDetails({
         backgroundColor: "transparent",
         color: fgOnPage,
-        border: `1px solid color-mix(in srgb, ${fgOnPage} 28%, transparent)`,
+        border: theme.buttonBorder
+          ? `1px solid color-mix(in srgb, ${fgOnPage} 28%, transparent)`
+          : "1px solid transparent",
         boxShadow: "none",
-      }
+      }, { keepBorder: true })
     }
 
     if (isCarbon) {
-      return {
+      return withDetails({
         backgroundColor: "rgba(255,255,255,0.06)",
         color: fgOnPage,
         border: theme.buttonBorder
           ? "1px solid rgba(255,255,255,0.18)"
           : "1px solid transparent",
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-      }
+      }, { keepBorder: true })
     }
 
     if (useGlassButton) {
@@ -487,7 +528,7 @@ export function SmartlinkLanding({
           ? contentLight
             ? "1px solid rgba(22,22,22,0.14)"
             : "1px solid rgba(255,255,255,0.28)"
-          : "1px solid transparent",
+          : "none",
         boxShadow: drop
           ? `${drop}, inset 0 1px 0 rgba(255,255,255,0.25)`
           : "inset 0 1px 0 rgba(255,255,255,0.25)",
@@ -500,7 +541,7 @@ export function SmartlinkLanding({
       return {
         backgroundColor: "transparent",
         color: fgOnPage,
-        border: "1px solid transparent",
+        border: "none",
         boxShadow: "none",
       }
     }
@@ -509,9 +550,7 @@ export function SmartlinkLanding({
       return {
         backgroundColor: "transparent",
         color: fgOnPage,
-        border: theme.buttonBorder
-          ? `1.5px solid ${theme.accent}`
-          : `1.5px solid color-mix(in srgb, ${fgOnPage} 35%, transparent)`,
+        border: theme.buttonBorder ? `1.5px solid ${theme.accent}` : "none",
         boxShadow: drop,
       }
     }
@@ -524,7 +563,7 @@ export function SmartlinkLanding({
         color: fgOnPage,
         border: theme.buttonBorder
           ? `1px solid color-mix(in srgb, ${theme.accent} 45%, transparent)`
-          : "1px solid transparent",
+          : "none",
         boxShadow: drop,
       }
     }
@@ -534,7 +573,7 @@ export function SmartlinkLanding({
       color: accentText,
       border: theme.buttonBorder
         ? `1px solid color-mix(in srgb, ${accentText} 18%, transparent)`
-        : "1px solid transparent",
+        : "none",
       borderLeftWidth: !useIcons && isSignal && theme.buttonBorder ? 4 : undefined,
       borderLeftColor: !useIcons && isSignal && theme.buttonBorder ? theme.accent : undefined,
       boxShadow: drop,
@@ -600,6 +639,7 @@ export function SmartlinkLanding({
                   "shrink-0 object-contain",
                   useIcons ? "h-7 w-7" : "h-5 w-5",
                   isVinyl ? "rounded-full" : "rounded-[22%]",
+                  isInkblot && "sl-inkblot-icon",
                 )}
                 loading="lazy"
                 decoding="async"
@@ -703,52 +743,56 @@ export function SmartlinkLanding({
     >
       <div
         className={cn(
-          "absolute left-1/2 top-1/2 z-[1] aspect-square w-[48%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-black/30",
+          "absolute left-1/2 top-1/2 z-[2] aspect-square w-[48%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-black/30",
           theme.coverShadow && "shadow-[0_12px_32px_rgba(0,0,0,0.45)]",
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={coverUrl} alt={title} className="h-full w-full object-cover" sizes={preview ? "110px" : "150px"} />
       </div>
-      <div aria-hidden className="sl-orbit-ring pointer-events-none absolute inset-[8%] rounded-full" />
       {links.length === 0 ? (
         <p className="absolute inset-x-0 bottom-0 text-center text-xs opacity-60">Ссылки скоро</p>
       ) : (
-        links.map((link, linkIndex) => {
-          const pos = orbitPosition(linkIndex, links.length)
-          const i = animIndex++
-          return (
-            <a
-              key={link.key}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={link.label}
-              aria-label={link.label}
-              className={cn(
-                "absolute z-[2] flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/55 shadow-[0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-transform hover:scale-110",
-                animClass(theme),
-              )}
-              style={{
-                left: pos.left,
-                top: pos.top,
-                boxShadow: `0 0 14px color-mix(in srgb, ${theme.accent} 35%, transparent)`,
-                ...animStyle(theme, i),
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={link.iconSrc}
-                alt=""
-                width={26}
-                height={26}
-                className="h-6 w-6 rounded-full object-contain"
-                loading="lazy"
-                decoding="async"
-              />
-            </a>
-          )
-        })
+        <div className="sl-orbit-wheel absolute inset-0 z-[1]">
+          <div aria-hidden className="sl-orbit-ring pointer-events-none absolute inset-[8%] rounded-full" />
+          {links.map((link, linkIndex) => {
+            const pos = orbitPosition(linkIndex, links.length)
+            return (
+              <div
+                key={link.key}
+                className="sl-orbit-slot absolute z-[2] h-11 w-11"
+                style={{
+                  left: pos.left,
+                  top: pos.top,
+                  ["--sl-orbit-delay" as string]: `${linkIndex * 0.35}s`,
+                }}
+              >
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={link.label}
+                  aria-label={link.label}
+                  className="sl-orbit-planet flex h-full w-full items-center justify-center rounded-full border border-white/20 bg-black/55 shadow-[0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-sm"
+                  style={{
+                    boxShadow: `0 0 14px color-mix(in srgb, ${theme.accent} 35%, transparent)`,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={link.iconSrc}
+                    alt=""
+                    width={26}
+                    height={26}
+                    className="h-6 w-6 rounded-full object-contain"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </a>
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   ) : isPolaroid ? (
@@ -789,36 +833,35 @@ export function SmartlinkLanding({
       )}
       style={animStyle(theme, animIndex++)}
     >
-      <div className="sl-cassette relative aspect-[1.55/1] w-full overflow-hidden rounded-md">
-        <div aria-hidden className="sl-cassette-shell absolute inset-0" />
+      <div className="sl-cassette relative aspect-[1.55/1] w-full overflow-hidden rounded-lg">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={coverUrl}
+          alt={title}
+          className="absolute inset-0 h-full w-full object-cover"
+          sizes={preview ? "220px" : "300px"}
+        />
+        <div aria-hidden className="sl-cassette-wrap absolute inset-0" />
         <div
           aria-hidden
-          className="sl-cassette-window absolute left-[8%] right-[8%] top-[22%] h-[42%] overflow-hidden rounded-sm"
+          className="sl-cassette-window absolute left-[9%] right-[9%] top-[20%] h-[44%] overflow-hidden rounded-[3px]"
         >
-          <div className="sl-cassette-reel sl-cassette-spin absolute left-[8%] top-1/2 h-[78%] w-[28%] -translate-y-1/2 rounded-full" />
-          <div className="sl-cassette-reel sl-cassette-spin-rev absolute right-[8%] top-1/2 h-[78%] w-[28%] -translate-y-1/2 rounded-full" />
-        </div>
-        <div className="absolute left-1/2 top-[14%] z-[1] h-[58%] w-[36%] -translate-x-1/2 overflow-hidden rounded-sm border border-black/50 bg-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={coverUrl}
-            alt={title}
-            className="h-full w-full object-cover"
-            sizes={preview ? "90px" : "120px"}
-          />
+          <div className="sl-cassette-tape absolute inset-x-[18%] top-1/2 h-[38%] -translate-y-1/2 rounded-sm" />
+          <div className="sl-cassette-reel sl-cassette-spin absolute left-[6%] top-1/2 aspect-square w-[30%] -translate-y-1/2 rounded-full">
+            <span className="sl-cassette-hub" />
+          </div>
+          <div className="sl-cassette-reel sl-cassette-spin-rev absolute right-[6%] top-1/2 aspect-square w-[30%] -translate-y-1/2 rounded-full">
+            <span className="sl-cassette-hub" />
+          </div>
         </div>
         <div
           aria-hidden
-          className="absolute inset-x-[10%] bottom-[9%] h-[16%] rounded-sm border border-black/30 bg-black/35"
+          className="sl-cassette-label absolute inset-x-[10%] bottom-[8%] h-[18%] rounded-sm"
         />
-        <div
-          aria-hidden
-          className="absolute left-[6%] top-[8%] h-2 w-2 rounded-full bg-[#0a0a0a] ring-1 ring-white/15"
-        />
-        <div
-          aria-hidden
-          className="absolute right-[6%] top-[8%] h-2 w-2 rounded-full bg-[#0a0a0a] ring-1 ring-white/15"
-        />
+        <div aria-hidden className="sl-cassette-screw absolute left-[5%] top-[7%]" />
+        <div aria-hidden className="sl-cassette-screw absolute right-[5%] top-[7%]" />
+        <div aria-hidden className="sl-cassette-screw absolute left-[5%] bottom-[7%]" />
+        <div aria-hidden className="sl-cassette-screw absolute right-[5%] bottom-[7%]" />
       </div>
     </div>
   ) : (
@@ -827,7 +870,7 @@ export function SmartlinkLanding({
         "relative aspect-square w-full overflow-hidden bg-black/20",
         isPoster ? posterCoverMax : coverMax,
         coverRadiusClass(theme.cover, preset),
-        theme.coverShadow && !isCinema && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
+        theme.coverShadow && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
         isSignal && "ring-2 ring-[var(--sl-accent)]",
         isGraffiti && "rotate-[-1.5deg] border-2 border-white shadow-[5px_5px_0_#111]",
         isStage && "ring-1 ring-white/20",
@@ -835,7 +878,7 @@ export function SmartlinkLanding({
         isZine && "rotate-[-2deg] border-2 border-black shadow-[6px_6px_0_var(--sl-accent)]",
         isArcade && "border-4 border-black shadow-[4px_4px_0_var(--sl-accent)]",
         isVhs && "sl-vhs-cover",
-        isNoir && "grayscale contrast-125",
+        isNoir && "sl-noir-cover",
         isChrome && "sl-chrome-cover",
         isHolo && "sl-holo-cover",
         isDiary && "border border-black/15 shadow-[2px_2px_0_rgba(0,0,0,0.08)]",
@@ -855,7 +898,7 @@ export function SmartlinkLanding({
       <img
         src={coverUrl}
         alt={title}
-        className={cn("h-full w-full object-cover", isNoir && "grayscale")}
+        className="h-full w-full object-cover"
         sizes={preview ? "190px" : "280px"}
       />
       {isPoster ? (
@@ -929,6 +972,14 @@ export function SmartlinkLanding({
       {isFilm ? <div aria-hidden className="sl-film-vignette pointer-events-none absolute inset-0 z-[2]" /> : null}
       {isVhs ? <div aria-hidden className="sl-vhs-scanlines pointer-events-none absolute inset-0 z-[2]" /> : null}
       {isHolo ? <div aria-hidden className="sl-holo-sheen pointer-events-none absolute inset-0 z-[2]" /> : null}
+      {isRave ? (
+        <div aria-hidden className="sl-rave-blobs pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <span className="sl-rave-blob sl-rave-blob-a" />
+          <span className="sl-rave-blob sl-rave-blob-b" />
+          <span className="sl-rave-blob sl-rave-blob-c" />
+          <span className="sl-rave-blob sl-rave-blob-d" />
+        </div>
+      ) : null}
 
       {isCinema ? (
         <>

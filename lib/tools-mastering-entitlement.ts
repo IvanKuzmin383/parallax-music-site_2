@@ -1,4 +1,5 @@
 import { clientExecute, clientQuery, withTransaction, queryOne } from "@/lib/database"
+import { getServicePriceRub } from "@/lib/service-prices"
 import {
   TOOLS_MASTERING_CREDITS_PER_PURCHASE,
   TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
@@ -12,7 +13,10 @@ type EntitlementRow = {
   tools_mastering_credits: number | null
 }
 
-function rowToEntitlement(row: EntitlementRow | null | undefined): ToolsMasteringEntitlement {
+function rowToEntitlement(
+  row: EntitlementRow | null | undefined,
+  priceRub: number
+): ToolsMasteringEntitlement {
   const freeUsed = row?.tools_mastering_free_used === true
   const credits = Math.max(0, Number(row?.tools_mastering_credits ?? 0) || 0)
   return {
@@ -20,16 +24,27 @@ function rowToEntitlement(row: EntitlementRow | null | undefined): ToolsMasterin
     freeAvailable: !freeUsed,
     credits,
     canDownload: !freeUsed || credits > 0,
-    priceRub: TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
+    priceRub,
+  }
+}
+
+async function masteringPriceRub(): Promise<number> {
+  try {
+    return await getServicePriceRub("tools_mastering")
+  } catch {
+    return TOOLS_MASTERING_DOWNLOAD_PRICE_RUB
   }
 }
 
 export async function getToolsMasteringEntitlement(userId: string): Promise<ToolsMasteringEntitlement> {
-  const row = await queryOne<EntitlementRow>(
-    `SELECT tools_mastering_free_used, tools_mastering_credits FROM cabinet_users WHERE id = ?`,
-    [userId]
-  )
-  return rowToEntitlement(row)
+  const [row, priceRub] = await Promise.all([
+    queryOne<EntitlementRow>(
+      `SELECT tools_mastering_free_used, tools_mastering_credits FROM cabinet_users WHERE id = ?`,
+      [userId]
+    ),
+    masteringPriceRub(),
+  ])
+  return rowToEntitlement(row, priceRub)
 }
 
 export type ConsumeDownloadResult =
@@ -38,6 +53,7 @@ export type ConsumeDownloadResult =
 
 /** Списать 1 download: сначала бесплатный (навсегда), затем кредиты. */
 export async function consumeToolsMasteringDownload(userId: string): Promise<ConsumeDownloadResult> {
+  const priceRub = await masteringPriceRub()
   return withTransaction(async (client) => {
     const rows = await clientQuery<EntitlementRow>(
       client,
@@ -66,7 +82,7 @@ export async function consumeToolsMasteringDownload(userId: string): Promise<Con
           freeAvailable: false,
           credits,
           canDownload: credits > 0,
-          priceRub: TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
+          priceRub,
         },
       }
     }
@@ -75,7 +91,7 @@ export async function consumeToolsMasteringDownload(userId: string): Promise<Con
       return {
         ok: false,
         error: "payment_required",
-        entitlement: rowToEntitlement(row),
+        entitlement: rowToEntitlement(row, priceRub),
       }
     }
 
@@ -93,7 +109,7 @@ export async function consumeToolsMasteringDownload(userId: string): Promise<Con
         freeAvailable: false,
         credits: nextCredits,
         canDownload: nextCredits > 0,
-        priceRub: TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
+        priceRub,
       },
     }
   })
@@ -106,6 +122,7 @@ export async function addToolsMasteringCredits(
   const add = Math.max(0, Math.floor(addCredits))
   if (add <= 0) return getToolsMasteringEntitlement(userId)
 
+  const priceRub = await masteringPriceRub()
   return withTransaction(async (client) => {
     const rows = await clientQuery<EntitlementRow>(
       client,
@@ -126,7 +143,7 @@ export async function addToolsMasteringCredits(
       freeAvailable: row.tools_mastering_free_used !== true,
       credits,
       canDownload: row.tools_mastering_free_used !== true || credits > 0,
-      priceRub: TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
+      priceRub,
     }
   })
 }

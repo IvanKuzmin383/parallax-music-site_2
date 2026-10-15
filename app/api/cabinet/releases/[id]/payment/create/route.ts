@@ -33,7 +33,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
 
   const payload = releasePayloadForPricing(release)
-  const totalRub = uploadDraftRequiredPaymentRub(payload)
+  const totalRub = await uploadDraftRequiredPaymentRub(payload)
   if (totalRub <= 0) {
     return NextResponse.json({ ok: true, skippedPayment: true })
   }

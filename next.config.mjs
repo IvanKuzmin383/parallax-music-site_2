@@ -23,7 +23,9 @@ const cspDirectives = [
     'https://www.gstatic.com',
   ].join(' '),
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https: https://mc.yandex.ru",
+  // blob: - локальные превью в инструментах (сторис-видео, мастеринг и т.п.)
+  "img-src 'self' data: blob: https: https://mc.yandex.ru",
+  "media-src 'self' blob: data:",
   "font-src 'self' data:",
   [
     "connect-src 'self'",

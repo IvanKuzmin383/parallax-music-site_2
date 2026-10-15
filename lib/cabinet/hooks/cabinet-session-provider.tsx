@@ -8,10 +8,13 @@ interface CabinetUserResponse {
   user?: {
     email?: string
     displayName?: string
+    artistName?: string
     streamingBalance?: number
     walletBalance?: number
     subscriptionName?: string
     subscriptionExpiresAt?: string
+    kycStatus?: CabinetUserView["kycStatus"]
+    kycRejectionReason?: string | null
   }
 }
 
@@ -55,11 +58,13 @@ export function CabinetSessionProvider({ children }: { children: React.ReactNode
       }
       const view: CabinetUserView = {
         email: u.email,
-        displayName: u.displayName,
+        displayName: u.displayName || u.artistName,
         streamingBalance: u.streamingBalance ?? 0,
         walletBalance: u.walletBalance ?? 0,
         subscriptionName: u.subscriptionName,
         subscriptionExpiresAt: u.subscriptionExpiresAt,
+        kycStatus: u.kycStatus ?? "unverified",
+        kycRejectionReason: u.kycRejectionReason ?? null,
       }
       setUser(view)
       setAuthenticated(true)

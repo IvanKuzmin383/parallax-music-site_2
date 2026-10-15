@@ -22,7 +22,7 @@ import {
   normalizeAccentHex,
   parseSmartlinkTheme,
 } from "@/lib/smartlink-theme"
-import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 
 const optionalUrl = z.string().trim().max(2000).optional().nullable()
 const platformLinksSchema = z
@@ -42,7 +42,8 @@ const patchSchema = z.object({
   platformLinks: platformLinksSchema.optional(),
 })
 
-function toResponse(link: NonNullable<Awaited<ReturnType<typeof getSmartlinkById>>>) {
+async function toResponse(link: NonNullable<Awaited<ReturnType<typeof getSmartlinkById>>>) {
+  const priceRub = await getServicePriceRub("tools_smartlink")
   return {
     id: link.id,
     slug: link.slug,
@@ -57,7 +58,7 @@ function toResponse(link: NonNullable<Awaited<ReturnType<typeof getSmartlinkById
     paidUntil: link.paidUntil,
     publicPath: `/s/${link.slug}`,
     isPublic: isSmartlinkPubliclyActive(link),
-    priceRub: TOOLS_SMARTLINK_PRICE_RUB,
+    priceRub,
     needsPayment: link.status !== "active" || !isSmartlinkPubliclyActive(link),
   }
 }
@@ -83,7 +84,7 @@ export async function GET(
   const { id } = await params
   const owned = await requireOwned(id, session.email)
   if ("error" in owned && owned.error) return owned.error
-  return NextResponse.json(toResponse(owned.link!))
+  return NextResponse.json(await toResponse(owned.link!))
 }
 
 export async function PATCH(
@@ -148,7 +149,7 @@ export async function PATCH(
       platformLinks,
     })
     if (!updated) return NextResponse.json({ error: "Не удалось сохранить" }, { status: 500 })
-    return NextResponse.json(toResponse(updated))
+    return NextResponse.json(await toResponse(updated))
   } catch (e) {
     const msg = e instanceof Error ? e.message : ""
     if (msg === "slug_taken") {

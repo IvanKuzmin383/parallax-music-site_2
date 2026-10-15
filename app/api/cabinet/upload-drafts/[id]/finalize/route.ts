@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
+import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { getUploadDraftById } from "@/lib/upload-drafts"
 import { getClientIp, getUserAgent } from "@/lib/legal-acceptance"
 import { finalizeUploadDraftCore } from "@/lib/upload-draft-finalize"
@@ -12,6 +14,12 @@ export async function POST(
   const token = getCabinetToken(request)
   const session = getCabinetSession(token)
   if (!session) return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
+
+  const user = await getCabinetUserByEmail(session.email)
+  if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
+  const kycGate = checkKycVerifiedForDistribution(user)
+  if (kycGate) return NextResponse.json(kycGate.body, { status: kycGate.status })
+
   const { id } = await params
   const draft = await getUploadDraftById(id)
   if (!draft || draft.userId.toLowerCase() !== session.email.toLowerCase()) {

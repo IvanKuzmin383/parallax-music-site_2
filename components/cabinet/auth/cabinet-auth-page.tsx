@@ -24,10 +24,6 @@ import { CABINET_ACCOUNT_BLOCKED_LOGIN_MESSAGE } from "@/lib/cabinet-account-mes
 import { readReferralCodeFromCookie } from "@/components/referral-capture"
 import { getTurnstileSiteKeyClient, isTurnstileEnabledClient } from "@/lib/turnstile-config"
 
-const PRICING_PAGE_URL = "https://parallaxmusic.ru/#pricing"
-const SUBSCRIPTION_REQUIRED_REGISTER_MESSAGE =
-  "Сначала оплатите подписку или пакет треков Fix на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться."
-
 interface CabinetAuthPageProps {
   onAuthenticated: () => void
 }
@@ -50,10 +46,21 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
   const [registerConsentPrivacy, setRegisterConsentPrivacy] = useState(false)
   const [registerConsentTerms, setRegisterConsentTerms] = useState(false)
   const [authTab, setAuthTab] = useState<"login" | "register">("login")
-  const [subscriptionRequiredDialogOpen, setSubscriptionRequiredDialogOpen] = useState(false)
+  const [emailVerifyOpen, setEmailVerifyOpen] = useState(false)
+  const [emailVerifyCode, setEmailVerifyCode] = useState("")
+  const [emailVerifyLoading, setEmailVerifyLoading] = useState(false)
+  const [emailVerifyResendIn, setEmailVerifyResendIn] = useState(0)
+  const [emailVerifyTtlMin, setEmailVerifyTtlMin] = useState(20)
+  const emailCodeInputRef = useRef<HTMLInputElement>(null)
   const [mounted, setMounted] = useState(false)
   const turnstileEnabled = isTurnstileEnabledClient()
   const turnstileSiteKey = getTurnstileSiteKeyClient()
+
+  useEffect(() => {
+    if (emailVerifyResendIn <= 0) return
+    const t = window.setTimeout(() => setEmailVerifyResendIn((n) => Math.max(0, n - 1)), 1000)
+    return () => window.clearTimeout(t)
+  }, [emailVerifyResendIn])
 
   useEffect(() => {
     setMounted(true)
@@ -135,6 +142,85 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
     await submitLogin({ totpCode })
   }
 
+  const closeEmailVerify = () => {
+    if (emailVerifyLoading || registerLoading) return
+    setEmailVerifyOpen(false)
+    setEmailVerifyCode("")
+  }
+
+  const sendRegisterEmailCode = async (): Promise<boolean> => {
+    const response = await fetch("/api/cabinet/register/send-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: registerEmail.trim(),
+        captchaToken: turnstileEnabled ? registerCaptchaToken : undefined,
+      }),
+      credentials: "include",
+    })
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string
+      code?: string
+      ttlMinutes?: number
+      retryAfterSec?: number
+      devCode?: string
+    }
+    if (response.ok) {
+      if (typeof data.ttlMinutes === "number") setEmailVerifyTtlMin(data.ttlMinutes)
+      setEmailVerifyResendIn(Math.max(60, data.retryAfterSec ?? 60))
+      if (data.devCode) {
+        toast.message(`Dev-код: ${data.devCode}`)
+        setEmailVerifyCode(data.devCode)
+      } else {
+        toast.success("Код отправлен на почту")
+      }
+      return true
+    }
+    if (response.status === 429 && data.retryAfterSec) {
+      setEmailVerifyResendIn(data.retryAfterSec)
+    }
+    toast.error(data.error || "Не удалось отправить код")
+    return false
+  }
+
+  const completeRegister = async (emailCode: string) => {
+    setRegisterLoading(true)
+    try {
+      const response = await fetch("/api/cabinet/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: registerEmail.trim(),
+          password: registerPassword,
+          artistName: registerArtistName,
+          captchaToken: turnstileEnabled ? registerCaptchaToken : undefined,
+          emailCode: emailCode.replace(/\s+/g, "").trim(),
+          referralCode: readReferralCodeFromCookie() || undefined,
+          consentPersonalData: true,
+          consentPrivacyPolicy: true,
+          consentTermsOfUse: true,
+        }),
+        credentials: "include",
+      })
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string
+        code?: string
+      }
+      if (response.ok) {
+        toast.success("Регистрация выполнена успешно")
+        setEmailVerifyOpen(false)
+        setEmailVerifyCode("")
+        onAuthenticated()
+      } else {
+        toast.error(data.error || "Не удалось создать аккаунт")
+      }
+    } catch {
+      toast.error("Ошибка регистрации")
+    } finally {
+      setRegisterLoading(false)
+    }
+  }
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!registerEmail || !registerPassword || !registerPasswordConfirm) {
@@ -143,6 +229,10 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
     }
     if (registerPassword !== registerPasswordConfirm) {
       toast.error("Пароли не совпадают")
+      return
+    }
+    if (registerPassword.trim().length < 10) {
+      toast.error("Пароль должен быть не менее 10 символов")
       return
     }
     if (turnstileEnabled && !registerCaptchaToken) {
@@ -155,34 +245,40 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
     }
     setRegisterLoading(true)
     try {
-      const response = await fetch("/api/cabinet/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: registerEmail,
-          password: registerPassword,
-          artistName: registerArtistName,
-          captchaToken: turnstileEnabled ? registerCaptchaToken : undefined,
-          referralCode: readReferralCodeFromCookie() || undefined,
-          consentPersonalData: true,
-          consentPrivacyPolicy: true,
-          consentTermsOfUse: true,
-        }),
-        credentials: "include",
-      })
-      const data = await response.json().catch(() => ({}))
-      if (response.ok) {
-        toast.success("Регистрация выполнена успешно")
-        onAuthenticated()
-      } else if (response.status === 403 && data.code === "SUBSCRIPTION_REQUIRED") {
-        setSubscriptionRequiredDialogOpen(true)
-      } else {
-        toast.error(data.error || "Не удалось создать аккаунт")
-      }
+      const sent = await sendRegisterEmailCode()
+      if (!sent) return
+      setEmailVerifyCode("")
+      setEmailVerifyOpen(true)
+      window.setTimeout(() => emailCodeInputRef.current?.focus(), 50)
     } catch {
       toast.error("Ошибка регистрации")
     } finally {
       setRegisterLoading(false)
+    }
+  }
+
+  const handleEmailVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const code = emailVerifyCode.replace(/\s+/g, "").trim()
+    if (!/^\d{6}$/.test(code)) {
+      toast.error("Введите 6-значный код из письма")
+      return
+    }
+    setEmailVerifyLoading(true)
+    try {
+      await completeRegister(code)
+    } finally {
+      setEmailVerifyLoading(false)
+    }
+  }
+
+  const handleResendEmailCode = async () => {
+    if (emailVerifyResendIn > 0 || emailVerifyLoading || registerLoading) return
+    setEmailVerifyLoading(true)
+    try {
+      await sendRegisterEmailCode()
+    } finally {
+      setEmailVerifyLoading(false)
     }
   }
 
@@ -193,20 +289,9 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
           <Lock className="h-10 w-10 mx-auto text-muted-foreground" />
           <CardTitle className="text-2xl">Личный кабинет</CardTitle>
           <CardDescription>
-            {authTab === "register" ? (
-              <>
-                Регистрация доступна после оплаты тарифа -{" "}
-                <Link
-                  href="https://parallaxmusic.ru/#pricing"
-                  className="text-primary underline underline-offset-2"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  оформите подписку
-                </Link>
-                , затем создайте аккаунт на тот же email.
-              </>
-            ) : null}
+            {authTab === "register"
+              ? "Создайте аккаунт бесплатно. Тариф и дистрибуцию можно подключить уже в кабинете после верификации."
+              : "Войдите в аккаунт артиста"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -343,21 +428,76 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={subscriptionRequiredDialogOpen} onOpenChange={setSubscriptionRequiredDialogOpen}>
-        <DialogContent className="sm:max-w-[440px]">
+      <Dialog
+        open={emailVerifyOpen}
+        onOpenChange={(open) => {
+          if (!open) closeEmailVerify()
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Регистрация</DialogTitle>
-            <DialogDescription className="text-base text-foreground leading-relaxed">
-              {SUBSCRIPTION_REQUIRED_REGISTER_MESSAGE}
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              Подтвердите почту
+            </DialogTitle>
+            <DialogDescription>
+              Мы отправили код на{" "}
+              <span className="font-medium text-foreground">{registerEmail.trim()}</span>. Код
+              действует {emailVerifyTtlMin} минут. Проверьте папку «Спам», если письма нет.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button className="w-full" asChild>
-              <a href={PRICING_PAGE_URL} target="_blank" rel="noopener noreferrer">
-                Выбрать тариф
-              </a>
-            </Button>
-          </DialogFooter>
+          <form onSubmit={(e) => void handleEmailVerifySubmit(e)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="register-email-code">Код из письма</Label>
+              <Input
+                ref={emailCodeInputRef}
+                id="register-email-code"
+                type="text"
+                inputMode="numeric"
+                placeholder="6 цифр"
+                value={emailVerifyCode}
+                onChange={(e) =>
+                  setEmailVerifyCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))
+                }
+                disabled={emailVerifyLoading || registerLoading}
+                autoComplete="one-time-code"
+                maxLength={6}
+                className="text-center text-lg tracking-[0.35em] font-semibold"
+                autoFocus
+              />
+            </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={
+                  emailVerifyLoading || registerLoading || emailVerifyCode.trim().length !== 6
+                }
+              >
+                {registerLoading || emailVerifyLoading ? "Проверка..." : "Подтвердить и создать аккаунт"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={emailVerifyLoading || registerLoading || emailVerifyResendIn > 0}
+                onClick={() => void handleResendEmailCode()}
+              >
+                {emailVerifyResendIn > 0
+                  ? `Отправить снова через ${emailVerifyResendIn} сек.`
+                  : "Отправить код снова"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={emailVerifyLoading || registerLoading}
+                onClick={closeEmailVerify}
+              >
+                Назад
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

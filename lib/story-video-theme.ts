@@ -3,7 +3,11 @@
 export const STORY_VIDEO_WIDTH = 720
 export const STORY_VIDEO_HEIGHT = 1280
 export const STORY_VIDEO_FPS = 30
+/** Длина по умолчанию. */
 export const STORY_VIDEO_DURATION_SEC = 15
+/** Минимальная / максимальная длина отрывка (сек). */
+export const STORY_VIDEO_DURATION_MIN_SEC = 5
+export const STORY_VIDEO_DURATION_MAX_SEC = 30
 export const STORY_VIDEO_START_MAX_SEC = 600
 
 export const STORY_VIDEO_TEMPLATES = [
@@ -48,19 +52,92 @@ export type StoryVideoFilter = (typeof STORY_VIDEO_FILTERS)[number]
 export const STORY_VIDEO_TEXT_LAYOUTS = ["titleArtist", "bigHook"] as const
 export type StoryVideoTextLayout = (typeof STORY_VIDEO_TEXT_LAYOUTS)[number]
 
+export const STORY_VIDEO_TEXT_ALIGNS = ["left", "center", "right"] as const
+export type StoryVideoTextAlign = (typeof STORY_VIDEO_TEXT_ALIGNS)[number]
+
+/** Бейдж «слушайте на…» поверх ролика (прозрачный фон вокруг). */
+export const STORY_VIDEO_BADGES = ["none", "spotify", "appleMusic", "yandex", "vk"] as const
+export type StoryVideoBadge = (typeof STORY_VIDEO_BADGES)[number]
+
+export const STORY_VIDEO_BADGE_META: Record<
+  StoryVideoBadge,
+  { label: string; line1: string; line2: string; iconSrc: string | null }
+> = {
+  none: { label: "Без бейджа", line1: "", line2: "", iconSrc: null },
+  spotify: {
+    label: "Spotify",
+    line1: "Listen on",
+    line2: "Spotify",
+    iconSrc: "/platforms/spotify.svg",
+  },
+  appleMusic: {
+    label: "Apple Music",
+    line1: "Listen on",
+    line2: "MUSIC",
+    iconSrc: "/platforms/apple-music.svg",
+  },
+  yandex: {
+    label: "Яндекс Музыка",
+    line1: "Послушайте на",
+    line2: "Яндекс Музыке",
+    iconSrc: "/platforms/yandex.svg",
+  },
+  vk: {
+    label: "VK",
+    line1: "Слушайте",
+    line2: "ВКонтакте",
+    iconSrc: "/platforms/vk.svg?v=2",
+  },
+}
+
+/** Быстрые точки для сетки 3×3 (проценты кадра). */
+export const STORY_VIDEO_TEXT_POSITION_PRESETS: Array<{
+  id: string
+  label: string
+  textX: number
+  textY: number
+  textAlign: StoryVideoTextAlign
+}> = [
+  { id: "tl", label: "↖", textX: 12, textY: 14, textAlign: "left" },
+  { id: "tc", label: "↑", textX: 50, textY: 14, textAlign: "center" },
+  { id: "tr", label: "↗", textX: 88, textY: 14, textAlign: "right" },
+  { id: "ml", label: "←", textX: 12, textY: 48, textAlign: "left" },
+  { id: "mc", label: "·", textX: 50, textY: 48, textAlign: "center" },
+  { id: "mr", label: "→", textX: 88, textY: 48, textAlign: "right" },
+  { id: "bl", label: "↙", textX: 12, textY: 82, textAlign: "left" },
+  { id: "bc", label: "↓", textX: 50, textY: 82, textAlign: "center" },
+  { id: "br", label: "↘", textX: 88, textY: 82, textAlign: "right" },
+]
+
 export type StoryVideoProject = {
   template: StoryVideoTemplate
   motion: StoryVideoMotion
   filter: StoryVideoFilter
   textLayout: StoryVideoTextLayout
+  /** Горизонталь якоря текста, 0-100 (% ширины кадра). */
+  textX: number
+  /** Вертикаль якоря текста, 0-100 (% высоты кадра). */
+  textY: number
+  textAlign: StoryVideoTextAlign
   title: string
   artist: string
   hookText: string
   accent: string
   startSec: number
-  durationSec: typeof STORY_VIDEO_DURATION_SEC
+  /** Длина отрывка, сек (5-30). */
+  durationSec: number
   motionSpeed: number
   showWaveform: boolean
+  /** Рисовать title/artist или big hook. */
+  showText: boolean
+  /** Акцентная линия под текстом (Big Hook / Lyric Card). */
+  showTextLine: boolean
+  /** Бейдж площадки. */
+  badge: StoryVideoBadge
+  /** Горизонталь якоря бейджа, 0-100. */
+  badgeX: number
+  /** Вертикаль якоря бейджа, 0-100. */
+  badgeY: number
 }
 
 export const DEFAULT_STORY_VIDEO_PROJECT: StoryVideoProject = {
@@ -68,6 +145,9 @@ export const DEFAULT_STORY_VIDEO_PROJECT: StoryVideoProject = {
   motion: "kenBurnsIn",
   filter: "clean",
   textLayout: "titleArtist",
+  textX: 12,
+  textY: 82,
+  textAlign: "left",
   title: "Название трека",
   artist: "Имя артиста",
   hookText: "Слушай сейчас",
@@ -76,6 +156,11 @@ export const DEFAULT_STORY_VIDEO_PROJECT: StoryVideoProject = {
   durationSec: STORY_VIDEO_DURATION_SEC,
   motionSpeed: 100,
   showWaveform: true,
+  showText: true,
+  showTextLine: true,
+  badge: "none",
+  badgeX: 50,
+  badgeY: 92,
 }
 
 export const STORY_VIDEO_TEMPLATE_META: Record<
@@ -85,7 +170,7 @@ export const STORY_VIDEO_TEMPLATE_META: Record<
   blurPulse: { label: "Blur Pulse", description: "Размытый фон и обложка по центру" },
   poster: { label: "Poster", description: "Обложка почти на весь кадр" },
   filmGrain: { label: "Film Grain", description: "Кино, letterbox и зерно" },
-  lyricCard: { label: "Lyric Card", description: "Крупная фраза поверх трека" },
+  lyricCard: { label: "Lyric Card", description: "Цитата/хук крупно, обложка по центру" },
   vinyl: { label: "Vinyl", description: "Круглая обложка и виниловый вайб" },
   neon: { label: "Neon", description: "Тёмный фон и свечение акцента" },
   noir: { label: "Noir", description: "Ч/б с одной цветной линией" },
@@ -100,7 +185,7 @@ export const STORY_VIDEO_MOTION_META: Record<
   kenBurnsIn: { label: "Ken Burns In", description: "Медленный наезд" },
   kenBurnsOut: { label: "Ken Burns Out", description: "Медленный отъезд" },
   breathe: { label: "Breathe", description: "Мягкая пульсация" },
-  snapZoom: { label: "Snap Zoom", description: "Резкие акценты на хуке" },
+  snapZoom: { label: "Snap Zoom", description: "Резкий зум на 0, 5 и 10 сек" },
 }
 
 export const STORY_VIDEO_FILTER_META: Record<
@@ -117,7 +202,7 @@ export const STORY_VIDEO_TEXT_LAYOUT_META: Record<
   StoryVideoTextLayout,
   { label: string; description: string }
 > = {
-  titleArtist: { label: "Title / Artist", description: "Название и артист снизу" },
+  titleArtist: { label: "Title / Artist", description: "Название и артист" },
   bigHook: { label: "Big Hook", description: "Одна крупная фраза" },
 }
 
@@ -170,9 +255,64 @@ export function clampStoryVideoStartSec(value: number): number {
   return Math.max(0, Math.min(STORY_VIDEO_START_MAX_SEC, Math.floor(value)))
 }
 
+export function clampStoryVideoDurationSec(value: number): number {
+  if (!Number.isFinite(value)) return STORY_VIDEO_DURATION_SEC
+  return Math.max(
+    STORY_VIDEO_DURATION_MIN_SEC,
+    Math.min(STORY_VIDEO_DURATION_MAX_SEC, Math.round(value))
+  )
+}
+
+/** Нормализует пару [от, до] в startSec + durationSec с лимитом 5-30 сек. */
+export function normalizeStoryVideoRange(
+  fromSec: number,
+  toSec: number,
+  trackDurationSec?: number
+): { startSec: number; durationSec: number; endSec: number } {
+  let a = Math.floor(Number.isFinite(fromSec) ? fromSec : 0)
+  let b = Math.floor(Number.isFinite(toSec) ? toSec : a + STORY_VIDEO_DURATION_SEC)
+  if (b < a) {
+    const t = a
+    a = b
+    b = t
+  }
+  let duration = clampStoryVideoDurationSec(b - a)
+  let start = clampStoryVideoStartSec(a)
+  const trackMax = Number.isFinite(trackDurationSec)
+    ? Math.max(0, Math.floor(trackDurationSec as number))
+    : STORY_VIDEO_START_MAX_SEC + STORY_VIDEO_DURATION_MAX_SEC
+
+  if (start + duration > trackMax && trackMax > 0) {
+    start = Math.max(0, trackMax - duration)
+  }
+  if (start + duration > trackMax && trackMax > 0) {
+    duration = Math.max(STORY_VIDEO_DURATION_MIN_SEC, trackMax - start)
+    duration = clampStoryVideoDurationSec(duration)
+  }
+
+  return {
+    startSec: start,
+    durationSec: duration,
+    endSec: start + duration,
+  }
+}
+
 export function clampStoryVideoMotionSpeed(value: number): number {
   if (!Number.isFinite(value)) return 100
   return Math.max(70, Math.min(130, Math.round(value)))
+}
+
+export function clampStoryVideoTextAxis(value: number): number {
+  if (!Number.isFinite(value)) return 50
+  return Math.max(4, Math.min(96, Math.round(value)))
+}
+
+export function isStoryVideoTextAlign(v: unknown): v is StoryVideoTextAlign {
+  return typeof v === "string" && (STORY_VIDEO_TEXT_ALIGNS as readonly string[]).includes(v)
+}
+
+export function isStoryVideoBadge(v: unknown): v is StoryVideoBadge {
+  return typeof v === "string" && (STORY_VIDEO_BADGES as readonly string[]).includes(v)
 }
 
 export function normalizeAccentHex(value: string): string {

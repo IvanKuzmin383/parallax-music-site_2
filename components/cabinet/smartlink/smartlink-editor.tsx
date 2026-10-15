@@ -42,6 +42,7 @@ import {
   getOrderedSmartlinkLinks,
   normalizeAccentHex,
   parseSmartlinkTheme,
+  smartlinkPresetDetailsCaps,
   type SmartlinkAnimation,
   type SmartlinkButtonStyle,
   type SmartlinkCoverShape,
@@ -157,10 +158,16 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
   }
   if (preset === "cassette") {
     return (
-      <div className={cn(base, "flex items-center justify-center gap-1 bg-[#2a2a30] p-1")}>
-        <span className="h-3 w-3 rounded-full border border-white/20 bg-[#111]" />
-        <span className="h-4 w-5 rounded-sm" style={{ backgroundColor: accent }} />
-        <span className="h-3 w-3 rounded-full border border-white/20 bg-[#111]" />
+      <div
+        className={cn(base, "relative p-1")}
+        style={{
+          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.45)), linear-gradient(135deg, ${accent}, #222)`,
+        }}
+      >
+        <div className="absolute inset-x-1.5 top-[28%] flex h-[36%] items-center justify-between rounded-sm bg-black/55 px-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#2a2a30] ring-1 ring-white/20" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#2a2a30] ring-1 ring-white/20" />
+        </div>
       </div>
     )
   }
@@ -428,19 +435,22 @@ function Segmented<T extends string>({
   labels,
   onChange,
   cols,
+  disabled,
 }: {
   value: T
   options: readonly T[]
   labels: Record<T, string>
   onChange: (next: T) => void
   cols?: number
+  disabled?: boolean
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className={cn("flex flex-wrap gap-1.5", disabled && "pointer-events-none opacity-45")}>
       {options.map((option) => (
         <button
           key={option}
           type="button"
+          disabled={disabled}
           onClick={() => onChange(option)}
           className={cn(
             "rounded-lg border px-2.5 py-2 text-sm font-medium leading-snug whitespace-nowrap transition-colors",
@@ -461,18 +471,27 @@ function Toggle({
   checked,
   onChange,
   label,
+  disabled,
 }: {
   checked: boolean
   onChange: (next: boolean) => void
   label: string
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-3 text-left text-sm"
+      aria-disabled={disabled || undefined}
+      disabled={disabled}
+      onClick={() => {
+        if (!disabled) onChange(!checked)
+      }}
+      className={cn(
+        "flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-3 text-left text-sm",
+        disabled && "cursor-not-allowed opacity-45",
+      )}
     >
       <span>{label}</span>
       <span
@@ -601,6 +620,11 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
       platformOrder: activePlatformKeys,
     })
   }, [activePlatformKeys, customAccent, theme])
+
+  const detailsCaps = useMemo(
+    () => smartlinkPresetDetailsCaps(theme.preset),
+    [theme.preset],
+  )
 
   const previewLinks = useMemo(
     () => getOrderedSmartlinkLinks(platformLinks, previewTheme),
@@ -1283,7 +1307,11 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 labels={BUTTON_LABELS}
                 onChange={(next) => patchTheme("buttons", next)}
                 cols={5}
+                disabled={!detailsCaps.buttons.enabled}
               />
+              {!detailsCaps.buttons.enabled ? (
+                <p className="text-xs text-muted-foreground">{detailsCaps.buttons.reason}</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label className="text-sm">Обложка</Label>
@@ -1293,7 +1321,11 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 labels={COVER_LABELS}
                 onChange={(next) => patchTheme("cover", next)}
                 cols={3}
+                disabled={!detailsCaps.coverShape.enabled}
               />
+              {!detailsCaps.coverShape.enabled ? (
+                <p className="text-xs text-muted-foreground">{detailsCaps.coverShape.reason}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -1307,15 +1339,10 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 }}
                 onChange={(next) => patchTheme("platformLayout", next as SmartlinkPlatformLayout)}
                 cols={2}
+                disabled={!detailsCaps.platformLayout.enabled}
               />
-              {(theme.preset === "vinyl" ||
-                theme.preset === "grid" ||
-                theme.preset === "rave" ||
-                theme.preset === "orbit") &&
-              theme.platformLayout !== "icons" ? (
-                <p className="text-xs text-muted-foreground">
-                  Стиль «{SMARTLINK_PRESET_META[theme.preset].label}» лучше смотрится со значками
-                </p>
+              {!detailsCaps.platformLayout.enabled ? (
+                <p className="text-xs text-muted-foreground">{detailsCaps.platformLayout.reason}</p>
               ) : null}
             </div>
 
@@ -1324,16 +1351,19 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 checked={theme.buttonBorder}
                 onChange={(next) => patchTheme("buttonBorder", next)}
                 label="Контур кнопок"
+                disabled={!detailsCaps.buttonBorder.enabled}
               />
               <Toggle
                 checked={theme.buttonShadow}
                 onChange={(next) => patchTheme("buttonShadow", next)}
                 label="Тень кнопок"
+                disabled={!detailsCaps.buttonShadow.enabled}
               />
               <Toggle
                 checked={theme.coverShadow}
                 onChange={(next) => patchTheme("coverShadow", next)}
                 label="Тень обложки"
+                disabled={!detailsCaps.coverShadow.enabled}
               />
             </div>
 
@@ -1350,6 +1380,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 }}
                 onChange={(next) => patchTheme("font", next as SmartlinkFont)}
                 cols={4}
+                disabled={!detailsCaps.font.enabled}
               />
             </div>
           </EditorSection>

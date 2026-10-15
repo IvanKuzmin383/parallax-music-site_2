@@ -12,12 +12,16 @@ import { VK_ADS_PRICE_LABEL } from "@/lib/vk-ads-campaign"
 import { YANDEX_ADS_PRICE_LABEL } from "@/lib/yandex-ads-campaign"
 import { PLAYLISTHUB_BASE_PRICE_LABEL } from "@/lib/playlisthub-landing"
 import type { OrderCategory } from "./types"
+import type { ServicePriceKey } from "@/lib/service-prices"
 
 export interface ServiceCatalogEntry {
   slug: string
   title: string
   shortDescription: string
   priceLabel: string
+  /** Если задан - карточки подтягивают актуальную цену/скидку из админки. */
+  priceKey?: ServicePriceKey
+  pricePrefix?: string
   category: OrderCategory
   href: string
   features: string[]
@@ -311,6 +315,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     paymentStub: true,
     paymentEndpoint: "/api/cabinet/payments/radio/interest",
     interestCtaLabel: "Отправить заявку",
+    priceKey: "radio",
   },
   {
     ...mockService(
@@ -325,6 +330,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     hasBackend: true,
     paymentEndpoint: "/api/cabinet/payments/business-music/create",
     orderType: "business_music",
+    priceKey: "business_music",
     faq: [
       {
         q: "Что именно входит в 5 000 ₽?",
@@ -358,6 +364,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     shortDescription:
       "6-9 вариантов обложки по материалам релиза, одна финальная 3000 × 3000 для стримингов",
     priceLabel: "500 ₽",
+    priceKey: "ai_cover",
     category: "design",
     href: "/cabinet/design/covers",
     features: [
@@ -423,6 +430,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     shortDescription:
       "Дистрибуция и монетизация ваших видеоклипов на Apple Music, VK Музыке и Яндекс Музыке",
     priceLabel: `${MUSIC_VIDEO_PRICE_RUB.toLocaleString("ru-RU")} ₽ / клип`,
+    priceKey: "music_video",
     category: "design",
     href: "/cabinet/distribution/music-video/upload",
     features: [],
@@ -473,6 +481,8 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "Видеошот в Яндекс Музыке",
     shortDescription: "Загрузим готовый ролик или создадим видеошот под ваш трек",
     priceLabel: `от ${YANDEX_VIDEOSHOT_PRICE_RUB} ₽`,
+    priceKey: "yandex_videoshot",
+    pricePrefix: "от ",
     category: "design",
     href: "/cabinet/design/video-shots",
     features: [
@@ -501,6 +511,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "Видео-аватар",
     shortDescription: "Визуальный образ артиста для промо и соцсетей",
     priceLabel: `${YANDEX_VIDEOAVATAR_PRICE_RUB} ₽`,
+    priceKey: "yandex_videoavatar",
     category: "design",
     href: "/cabinet/design/video-avatar",
     features: ["Анимированный аватар", "Для Яндекс Музыки", "Промо-материал"],
@@ -516,6 +527,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "Создание видеошота",
     shortDescription: "Создаем видеошот под ваш трек и публикуем его в Яндекс Музыке",
     priceLabel: `${YANDEX_VIDEOSHOT_CREATION_PRICE_RUB.toLocaleString("ru-RU")} ₽ / шт`,
+    priceKey: "yandex_videoshot_creation",
     category: "design",
     href: "/cabinet/design/video-shots-publishing",
     features: [
@@ -542,6 +554,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "AI Мастеринг",
     shortDescription: "Быстрая обработка фонограммы с помощью AI-инструментов",
     priceLabel: `${AI_MASTERING_PRICE_RUB} ₽ / трек`,
+    priceKey: "ai_mastering",
     category: "design",
     href: "/cabinet/design/mastering",
     features: ["Обработка WAV", "До 50 треков в заказе", "Результат в кабинете"],
@@ -558,6 +571,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     shortDescription:
       "Строки текста привязаны к моментам исполнения в вашей финальной записи",
     priceLabel: `${LYRICS_SYNC_PRICE_LABEL} / трек`,
+    priceKey: "lyrics_sync",
     category: "design",
     href: "/cabinet/design/lyrics-sync",
     features: [

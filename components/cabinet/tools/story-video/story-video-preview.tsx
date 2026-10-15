@@ -10,6 +10,7 @@ type Props = {
   cover: HTMLImageElement | null
   peaks: Float32Array | null
   timeSec: number
+  badgeIcon?: HTMLImageElement | null
   className?: string
   /** Логическое разрешение canvas (превью меньше экспорта). */
   width?: number
@@ -21,6 +22,7 @@ export function StoryVideoPreview({
   cover,
   peaks,
   timeSec,
+  badgeIcon = null,
   className,
   width = 360,
   height = 640,
@@ -41,8 +43,10 @@ export function StoryVideoPreview({
       cover,
       peaks,
       frameIndex: Math.floor(timeSec * 30),
+      watermark: true,
+      badgeIcon,
     })
-  }, [project, cover, peaks, timeSec, width, height])
+  }, [project, cover, peaks, timeSec, badgeIcon, width, height])
 
   return (
     <div

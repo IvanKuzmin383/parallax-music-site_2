@@ -14,7 +14,7 @@ import { ArrowLeft, ChevronDown, CircleHelp, Download, Loader2, Pause, Play, Upl
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -84,67 +84,38 @@ function LevelToggle<T extends string>({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
-        <p className="text-sm font-medium">{label}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          {label}
+        </p>
         <HintIcon label={label} tip={tip} />
       </div>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            className={
-              value === opt.id
-                ? "rounded-md border border-primary bg-primary/15 px-3 py-1.5 text-sm font-medium"
-                : "rounded-md border border-border bg-card/40 px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/40"
-            }
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className="grid gap-1 rounded-xl border border-border/70 bg-background/40 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+        style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      >
+        {options.map((opt) => {
+          const active = value === opt.id
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => onChange(opt.id)}
+              className={cn(
+                "rounded-lg px-2 py-2 text-center text-xs font-medium transition-all sm:text-[13px]",
+                active
+                  ? "bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_55%,transparent),0_8px_18px_-10px_var(--primary)]"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              {opt.label}
+            </button>
+          )
+        })}
       </div>
-    </div>
-  )
-}
-
-function ParamSlider({
-  label,
-  tip,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  onChange,
-}: {
-  label: string
-  tip: string
-  value: number
-  min: number
-  max: number
-  step: number
-  unit?: string
-  onChange: (v: number) => void
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2 text-sm">
-        <span className="inline-flex items-center gap-1.5 font-medium">
-          {label}
-          <HintIcon label={label} tip={tip} />
-        </span>
-        <span className="tabular-nums text-muted-foreground">
-          {value}
-          {unit ?? ""}
-        </span>
-      </div>
-      <Slider
-        value={[value]}
-        min={min}
-        max={max}
-        step={step}
-        onValueChange={(v) => onChange(v[0] ?? value)}
-      />
     </div>
   )
 }
@@ -322,7 +293,7 @@ function KnobGroup({
         </p>
         <HintIcon label={title} tip={hint} />
       </div>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-4 sm:justify-start sm:gap-x-4">
+      <div className="flex w-full flex-wrap justify-center gap-x-3 gap-y-4 sm:justify-start sm:gap-x-4">
         {children}
       </div>
     </div>
@@ -607,11 +578,12 @@ function ToolsMasteringInner() {
   }
 
   const needsPurchase = Boolean(entitlement && !entitlement.canDownload)
+  const downloadPriceRub = entitlement?.priceRub ?? TOOLS_MASTERING_DOWNLOAD_PRICE_RUB
   const downloadLabel = (() => {
     if (!entitlement) return "Скачать master WAV"
     if (entitlement.freeAvailable) return "Скачать master WAV бесплатно"
     if (needsPurchase) {
-      return `Купить скачивание за ${TOOLS_MASTERING_DOWNLOAD_PRICE_RUB} ₽ с баланса`
+      return `Купить скачивание за ${downloadPriceRub} ₽ с баланса`
     }
     return "Скачать master WAV"
   })()
@@ -777,106 +749,163 @@ function ToolsMasteringInner() {
       <div className="space-y-6">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
             <section className="rounded-lg border border-border bg-card/30">
-              <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                  aria-expanded={presetsOpen}
+              <div
+                role="button"
+                tabIndex={0}
+                className="flex w-full cursor-pointer items-center gap-1.5 px-4 py-3 text-left hover:bg-muted/40"
+                aria-expanded={presetsOpen}
+                aria-label={
+                  presetsOpen ? "Свернуть пресеты и уровни" : "Развернуть пресеты и уровни"
+                }
+                onClick={() => setPresetsOpen((v) => !v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setPresetsOpen((v) => !v)
+                  }
+                }}
+              >
+                <span className="text-sm font-medium">Пресеты и уровни</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <span className="text-sm font-medium">Пресеты и уровни</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                      presetsOpen && "rotate-180"
-                    )}
-                    aria-hidden
+                  <HintIcon
+                    label="Пресеты и уровни"
+                    tip="Быстрый старт: выберите характер звука, громкость и плотность. Тонкую настройку крутилками можно открыть ниже."
                   />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="space-y-4 border-t border-border px-4 py-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium">Пресет</p>
-                <HintIcon
-                  label="Пресет"
-                  tip="Готовый характер звука. Выберите стиль, затем при необходимости подкрутите громкость и сглаживание."
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                    presetsOpen && "rotate-180"
+                  )}
+                  aria-hidden
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                {MASTERING_PRESETS.map((preset) => (
-                  <div key={preset.id} className="inline-flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
-                      className={
-                        params.presetId === preset.id
-                          ? "rounded-md border border-primary bg-primary/15 px-3 py-1.5 text-sm font-medium"
-                          : "rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:border-primary/40"
-                      }
+              <CollapsibleContent>
+                <div className="space-y-4 border-t border-border px-4 py-4">
+                  <p className="text-xs text-muted-foreground">
+                    Выберите характер, затем подкрутите уровни. Звук в превью меняется сразу.
+                  </p>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <KnobGroup
+                      title="Характер"
+                      hint="Готовый стиль мастеринга. Выберите пресет, затем при необходимости подкрутите уровни справа."
                     >
-                      {preset.label}
-                    </button>
-                    <HintIcon label={preset.label} tip={preset.hint} />
+                      <div className="grid w-full grid-cols-2 gap-2">
+                        {MASTERING_PRESETS.map((preset) => {
+                          const active = params.presetId === preset.id
+                          return (
+                            <div
+                              key={preset.id}
+                              className={cn(
+                                "group relative flex min-h-[3.25rem] items-start gap-1 rounded-xl border px-2.5 py-2.5 transition-all",
+                                active
+                                  ? "border-primary bg-primary/15 shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent),0_10px_24px_-14px_var(--primary)]"
+                                  : "border-border/70 bg-background/35 hover:border-primary/40 hover:bg-muted/30"
+                              )}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
+                                className="absolute inset-0 rounded-xl"
+                                aria-pressed={active}
+                                aria-label={`Пресет ${preset.label}`}
+                              />
+                              <span
+                                className={cn(
+                                  "pointer-events-none relative z-[1] flex-1 px-0.5 text-left text-[13px] font-medium leading-snug",
+                                  active
+                                    ? "text-foreground"
+                                    : "text-muted-foreground group-hover:text-foreground"
+                                )}
+                              >
+                                {preset.label}
+                              </span>
+                              <span className="relative z-[1] mt-0.5 shrink-0">
+                                <HintIcon label={preset.label} tip={preset.hint} />
+                              </span>
+                              {active ? (
+                                <span
+                                  className="pointer-events-none absolute inset-x-3 bottom-1.5 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent"
+                                  aria-hidden
+                                />
+                              ) : null}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </KnobGroup>
+
+                    <KnobGroup
+                      title="Уровни"
+                      hint="Громкость, плотность динамики и сглаживание резкости - три главных рычага без тонкой настройки."
+                    >
+                      <div className="flex w-full flex-col gap-3.5">
+                        <LevelToggle<LoudnessLevel>
+                          label="Громкость"
+                          tip="Насколько громко звучит готовый мастер. High - ближе к стриминговому «громкому» звуку, Low - спокойнее и с большим запасом."
+                          value={params.loudness}
+                          options={[
+                            { id: "low", label: "Тише" },
+                            { id: "med", label: "Норма" },
+                            { id: "high", label: "Громче" },
+                          ]}
+                          onChange={(loudness) => patchParams({ loudness })}
+                        />
+                        <LevelToggle<DensityLevel>
+                          label="Плотность"
+                          tip="Насколько сильно сжимается динамика. Выше - трек ровнее и «плотнее», ниже - больше живых пиков и тихих мест."
+                          value={params.density}
+                          options={[
+                            { id: "low", label: "Легче" },
+                            { id: "med", label: "Норма" },
+                            { id: "high", label: "Плотнее" },
+                          ]}
+                          onChange={(density) => patchParams({ density })}
+                        />
+                        <LevelToggle<SmoothLevel>
+                          label="Сглаживание"
+                          tip="Смягчает резкость, свистящие «с/ч» и шипение. В превью - резкость и свист; в скачанном файле также чуть тише шипение в паузах."
+                          value={params.smooth}
+                          options={[
+                            { id: "off", label: "Выкл" },
+                            { id: "low", label: "Лёгкое" },
+                            { id: "med", label: "Норма" },
+                            { id: "high", label: "Сильное" },
+                          ]}
+                          onChange={(smooth) => patchParams({ smooth })}
+                        />
+                      </div>
+                    </KnobGroup>
+
+                    <KnobGroup
+                      title="Выход"
+                      hint="Финальная громкость мастера и автоподбор уровня под выбранную громкость."
+                    >
+                      <RotaryKnob
+                        label="Громкость"
+                        tip="Ручная подстройка громкости после автоподбора. Крутите, если мастер слишком тихий или громкий."
+                        value={params.outputGainDb}
+                        min={-12}
+                        max={12}
+                        step={0.5}
+                        unit=" dB"
+                        onChange={(outputGainDb) => patchParams({ outputGainDb })}
+                      />
+                      <div className="flex min-w-[10rem] flex-col justify-center gap-3 self-center pl-1">
+                        <HintCheckbox
+                          label="Автогромкость"
+                          tip="Сам подбирает уровень под выбранную громкость, чтобы разные треки звучали похоже по силе."
+                          checked={params.magicMakeup}
+                          onCheckedChange={(magicMakeup) => patchParams({ magicMakeup })}
+                        />
+                      </div>
+                    </KnobGroup>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <LevelToggle<LoudnessLevel>
-              label="Громкость"
-              tip="Насколько громко звучит готовый мастер. High - ближе к стриминговому «громкому» звуку, Low - спокойнее и с большим запасом."
-              value={params.loudness}
-              options={[
-                { id: "low", label: "Тише" },
-                { id: "med", label: "Норма" },
-                { id: "high", label: "Громче" },
-              ]}
-              onChange={(loudness) => patchParams({ loudness })}
-            />
-
-            <LevelToggle<DensityLevel>
-              label="Плотность"
-              tip="Насколько сильно сжимается динамика. Выше - трек ровнее и «плотнее», ниже - больше живых пиков и тихих мест."
-              value={params.density}
-              options={[
-                { id: "low", label: "Легче" },
-                { id: "med", label: "Норма" },
-                { id: "high", label: "Плотнее" },
-              ]}
-              onChange={(density) => patchParams({ density })}
-            />
-
-            <LevelToggle<SmoothLevel>
-              label="Сглаживание"
-              tip="Смягчает резкость, свистящие «с/ч» и шипение. В превью - резкость и свист; в скачанном файле также чуть тише шипение в паузах."
-              value={params.smooth}
-              options={[
-                { id: "off", label: "Выкл" },
-                { id: "low", label: "Лёгкое" },
-                { id: "med", label: "Норма" },
-                { id: "high", label: "Сильное" },
-              ]}
-              onChange={(smooth) => patchParams({ smooth })}
-            />
-
-            <ParamSlider
-              label="Выходная громкость"
-              tip="Ручная подстройка громкости после автоподбора. Двигайте, если мастер слишком тихий или громкий."
-              value={params.outputGainDb}
-              min={-12}
-              max={12}
-              step={0.5}
-              unit=" dB"
-              onChange={(outputGainDb) => patchParams({ outputGainDb })}
-            />
-
-            <HintCheckbox
-              label="Автогромкость"
-              tip="Сам подбирает уровень под выбранную громкость, чтобы разные треки звучали похоже по силе."
-              checked={params.magicMakeup}
-              onCheckedChange={(magicMakeup) => patchParams({ magicMakeup })}
-            />
                 </div>
               </CollapsibleContent>
             </section>
@@ -1084,13 +1113,13 @@ function ToolsMasteringInner() {
             <DialogTitle>Скачивание мастера</DialogTitle>
             <DialogDescription>
               Бесплатное скачивание уже использовано. Оплатите{" "}
-              {TOOLS_MASTERING_DOWNLOAD_PRICE_RUB} ₽ с баланса кабинета за одно дополнительное
+              {downloadPriceRub} ₽ с баланса кабинета за одно дополнительное
               скачивание.
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
-            {walletBalance < TOOLS_MASTERING_DOWNLOAD_PRICE_RUB ? (
+            {walletBalance < downloadPriceRub ? (
               <>
                 {" "}
                 ·{" "}
@@ -1107,10 +1136,10 @@ function ToolsMasteringInner() {
             <Button
               type="button"
               onClick={() => void startPaymentFromBalance()}
-              disabled={paying || walletBalance < TOOLS_MASTERING_DOWNLOAD_PRICE_RUB}
+              disabled={paying || walletBalance < downloadPriceRub}
             >
               {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Оплатить {TOOLS_MASTERING_DOWNLOAD_PRICE_RUB} ₽ с баланса
+              Оплатить {downloadPriceRub} ₽ с баланса
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,7 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
-import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const YOOKASSA_PAYMENT_DESCRIPTION = "Видеошот для Spotify"
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  const totalAmount = SPOTIFY_VIDEOSHOT_PRICE_RUB.toFixed(2)
+  const totalAmount = (await getServicePriceRub("spotify_videoshot")).toFixed(2)
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "spotify_videoshot",

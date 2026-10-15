@@ -3,7 +3,9 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
-import { LYRICS_SYNC_PRICE_LABEL } from "@/lib/lyrics-sync-pricing"
+import { ServicePriceText } from "@/components/cabinet/shared/service-price-text"
+import type { ServicePriceKey } from "@/lib/service-prices"
+import { VERTICAL_VIDEO_PRICE_TIER_3_RUB } from "@/lib/vertical-video-pricing"
 
 type ToolItem = {
   label: string
@@ -11,46 +13,64 @@ type ToolItem = {
   description: string
   soon?: boolean
   priceLabel?: string
+  priceKey?: ServicePriceKey
+  pricePrefix?: string
 }
 
 const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
   {
     title: "Оформление и звук",
     items: [
-      { label: "Создание обложки", href: "/cabinet/design/covers", description: "AI-обложка для релиза" },
+      {
+        label: "Создание обложки",
+        href: "/cabinet/design/covers",
+        description: "AI-обложка для релиза",
+        priceKey: "track_cover",
+        priceLabel: "500 ₽",
+      },
       {
         label: "Онлайн-мастеринг",
         href: "/cabinet/tools/mastering",
         description: "Пресеты и параметры, 1 бесплатное скачивание",
+        priceKey: "tools_mastering",
+        pricePrefix: "далее ",
         priceLabel: "далее 100 ₽",
       },
       {
         label: "Смартлинки",
         href: "/cabinet/tools/smartlinks",
         description: "Страница со ссылками на площадки: промо до релиза или без дистрибуции",
+        priceKey: "tools_smartlink",
+        pricePrefix: "от ",
         priceLabel: "от 490 ₽ / год",
       },
       {
-        label: "Сторис из трека",
+        label: "Сниппет",
         href: "/cabinet/tools/story-video",
-        description: "15 сек для Reels / Shorts / TikTok: обложка, хук, шаблоны и скачивание в браузере",
+        description: "5-30 сек для Reels / Shorts / TikTok: обложка, хук, шаблоны. 1 скачивание бесплатно",
+        priceKey: "tools_story_video",
+        priceLabel: "100 ₽",
       },
       {
         label: "Вертикальные видео",
         href: "/cabinet/design/vertical-videos",
         description: "Монтаж со сток-видеорядом под трек (заказ)",
+        priceLabel: `от ${VERTICAL_VIDEO_PRICE_TIER_3_RUB.toLocaleString("ru-RU")} ₽`,
       },
       {
         label: "Видеошот в Яндекс Музыке",
         href: "/cabinet/design/video-shots",
         description: "Загрузим готовый ролик или создадим видеошот под ваш трек",
+        priceKey: "yandex_videoshot",
+        pricePrefix: "от ",
         priceLabel: "от 900 ₽",
       },
       {
         label: "Синхронизация текста",
         href: "/cabinet/design/lyrics-sync",
         description: "Строки текста привязаны к моментам исполнения в вашей записи",
-        priceLabel: LYRICS_SYNC_PRICE_LABEL,
+        priceKey: "lyrics_sync",
+        priceLabel: "1 500 ₽",
       },
     ],
   },
@@ -102,7 +122,17 @@ export default function CabinetToolsPage() {
                       ) : null}
                     </div>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
-                    {item.priceLabel ? (
+                    {item.priceKey ? (
+                      <p className="text-sm font-medium text-primary">
+                        {item.pricePrefix ? (
+                          <span>{item.pricePrefix}</span>
+                        ) : null}
+                        <ServicePriceText
+                          priceKey={item.priceKey}
+                          fallback={item.priceLabel ?? ""}
+                        />
+                      </p>
+                    ) : item.priceLabel ? (
                       <p className="text-sm font-medium text-primary">{item.priceLabel}</p>
                     ) : null}
                   </div>

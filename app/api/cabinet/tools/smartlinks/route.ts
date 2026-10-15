@@ -10,7 +10,7 @@ import {
   updateSmartlink,
 } from "@/lib/cabinet-smartlinks"
 import { resolveCabinetSmartlinkContext } from "@/lib/cabinet-smartlink"
-import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 
 const createSchema = z.object({
   title: z.string().trim().max(200).optional(),
@@ -27,9 +27,12 @@ export async function GET(request: NextRequest) {
   const user = await getCabinetUserByEmail(session.email)
   if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
 
-  const items = await listSmartlinksByUserId(user.id)
+  const [items, priceRub] = await Promise.all([
+    listSmartlinksByUserId(user.id),
+    getServicePriceRub("tools_smartlink"),
+  ])
   return NextResponse.json({
-    priceRub: TOOLS_SMARTLINK_PRICE_RUB,
+    priceRub,
     items: items.map((link) => ({
       id: link.id,
       slug: link.slug,

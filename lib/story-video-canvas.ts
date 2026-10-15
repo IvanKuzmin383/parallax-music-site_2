@@ -1,9 +1,11 @@
 import type {
+  StoryVideoBadge,
   StoryVideoFilter,
   StoryVideoMotion,
   StoryVideoProject,
   StoryVideoTemplate,
 } from "@/lib/story-video-theme"
+import { STORY_VIDEO_BADGE_META } from "@/lib/story-video-theme"
 
 export type StoryVideoDrawInput = {
   ctx: CanvasRenderingContext2D
@@ -17,6 +19,10 @@ export type StoryVideoDrawInput = {
   peaks?: Float32Array | null
   /** Seed для зерна (стабильный кадр при экспорте). */
   frameIndex?: number
+  /** Водяной знак превью (защита от записи экрана). В экспорт не передавать. */
+  watermark?: boolean
+  /** Иконка бейджа площадки (уже загруженный SVG/PNG). */
+  badgeIcon?: CanvasImageSource | null
 }
 
 function clamp01(n: number): number {
@@ -65,13 +71,19 @@ export function computeMotionScale(motion: StoryVideoMotion, timeSec: number, du
     case "breathe":
       return 1 + Math.sin(t * Math.PI * 0.85) * 0.028
     case "snapZoom": {
+      // Резкие «удары» зума на 0 / 5 / 10 сек (удобно под хук): быстрый набор + отскок
       const snaps = [0, 5, 10]
       let punch = 0
       for (const s of snaps) {
-        const d = Math.abs(timeSec - s)
-        if (d < 0.35) punch = Math.max(punch, (1 - d / 0.35) * 0.08)
+        const d = timeSec - s
+        if (d < -0.05 || d > 0.55) continue
+        // 0..0.12с - набор до пика, дальше спад
+        const attack = d <= 0.12 ? d / 0.12 : 1 - (d - 0.12) / 0.43
+        const shaped = Math.max(0, attack)
+        // ease-out для заметного удара (до ~22% масштаба)
+        punch = Math.max(punch, shaped * shaped * 0.22)
       }
-      return 1 + progress * 0.08 + punch
+      return 1 + progress * 0.05 + punch
     }
     default:
       return 1
@@ -206,29 +218,43 @@ function wrapText(
   return lines
 }
 
+function textAnchor(project: StoryVideoProject, width: number, height: number) {
+  const xPct = Math.max(4, Math.min(96, project.textX ?? 50))
+  const yPct = Math.max(4, Math.min(96, project.textY ?? 50))
+  return {
+    x: (xPct / 100) * width,
+    y: (yPct / 100) * height,
+    align: project.textAlign ?? "center",
+  }
+}
+
 function drawTitleArtist(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  title: string,
-  artist: string,
-  accent: string
+  project: StoryVideoProject
 ) {
-  const padX = width * 0.08
-  const bottom = height * 0.86
+  if (project.showText === false) return
+  const { x, y, align } = textAnchor(project, width, height)
+  const maxW = width * 0.78
   ctx.save()
-  ctx.textAlign = "left"
+  ctx.textAlign = align
   ctx.fillStyle = "#ffffff"
   ctx.font = `700 ${Math.round(width * 0.055)}px system-ui, sans-serif`
-  const titleLines = wrapText(ctx, title || "Трек", width - padX * 2, 2)
-  let y = bottom - titleLines.length * width * 0.06 - width * 0.04
+  const titleLines = wrapText(ctx, project.title || "Трек", maxW, 2)
+  const lineH = width * 0.062
+  const blockH = titleLines.length * lineH + width * 0.045
+  let ty = y - blockH / 2 + lineH * 0.85
   for (const line of titleLines) {
-    ctx.fillText(line, padX, y)
-    y += width * 0.062
+    ctx.strokeStyle = "rgba(0,0,0,0.35)"
+    ctx.lineWidth = Math.max(2, width * 0.006)
+    ctx.strokeText(line, x, ty)
+    ctx.fillText(line, x, ty)
+    ty += lineH
   }
-  ctx.fillStyle = accent
+  ctx.fillStyle = project.accent
   ctx.font = `600 ${Math.round(width * 0.032)}px system-ui, sans-serif`
-  ctx.fillText((artist || "Артист").slice(0, 48), padX, y + width * 0.01)
+  ctx.fillText((project.artist || "Артист").slice(0, 48), x, ty + width * 0.01)
   ctx.restore()
 }
 
@@ -236,26 +262,33 @@ function drawBigHook(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  hook: string,
-  accent: string
+  project: StoryVideoProject,
+  hookOverride?: string
 ) {
-  const padX = width * 0.1
+  if (project.showText === false) return
+  const { x, y, align } = textAnchor(project, width, height)
+  const maxW = width * 0.82
   ctx.save()
-  ctx.textAlign = "center"
+  ctx.textAlign = align
   ctx.fillStyle = "#ffffff"
   ctx.font = `800 ${Math.round(width * 0.08)}px system-ui, sans-serif`
-  const lines = wrapText(ctx, hook || "Слушай сейчас", width - padX * 2, 3)
+  const lines = wrapText(ctx, hookOverride || project.hookText || "Слушай сейчас", maxW, 3)
   const lineH = width * 0.095
-  let y = height * 0.42 - ((lines.length - 1) * lineH) / 2
+  let ty = y - ((lines.length - 1) * lineH) / 2
   for (const line of lines) {
     ctx.strokeStyle = "rgba(0,0,0,0.35)"
     ctx.lineWidth = Math.max(2, width * 0.008)
-    ctx.strokeText(line, width / 2, y)
-    ctx.fillText(line, width / 2, y)
-    y += lineH
+    ctx.strokeText(line, x, ty)
+    ctx.fillText(line, x, ty)
+    ty += lineH
   }
-  ctx.fillStyle = accent
-  ctx.fillRect(width * 0.35, y + width * 0.02, width * 0.3, Math.max(3, width * 0.008))
+  if (project.showTextLine !== false) {
+    const barW = width * 0.28
+    const barX =
+      align === "left" ? x : align === "right" ? x - barW : x - barW / 2
+    ctx.fillStyle = project.accent
+    ctx.fillRect(barX, ty + width * 0.015, barW, Math.max(3, width * 0.008))
+  }
   ctx.restore()
 }
 
@@ -265,10 +298,11 @@ function drawTextOverlay(
   height: number,
   project: StoryVideoProject
 ) {
+  if (project.showText === false) return
   if (project.textLayout === "bigHook") {
-    drawBigHook(ctx, width, height, project.hookText, project.accent)
+    drawBigHook(ctx, width, height, project)
   } else {
-    drawTitleArtist(ctx, width, height, project.title, project.artist, project.accent)
+    drawTitleArtist(ctx, width, height, project)
   }
 }
 
@@ -427,11 +461,29 @@ function drawTemplate(
       break
     }
     case "lyricCard": {
-      drawBlurredBackground(ctx, cover, width, height, scale * 1.02)
-      ctx.fillStyle = "rgba(0,0,0,0.35)"
+      // Идея: сторис-цитата - обложка якорь по центру сверху, хук крупно ниже (не маркер в углу)
+      drawBlurredBackground(ctx, cover, width, height, scale * 1.04)
+      const veil = ctx.createLinearGradient(0, 0, 0, height)
+      veil.addColorStop(0, "rgba(0,0,0,0.25)")
+      veil.addColorStop(0.45, "rgba(0,0,0,0.45)")
+      veil.addColorStop(1, "rgba(0,0,0,0.72)")
+      ctx.fillStyle = veil
       ctx.fillRect(0, 0, width, height)
-      const size = width * 0.28
-      drawRoundedCover(ctx, cover, width * 0.08, height * 0.12, size, width * 0.025, scale, true)
+
+      const size = width * 0.52
+      const coverY = height * 0.12
+      drawRoundedCover(ctx, cover, (width - size) / 2, coverY, size, width * 0.035, scale, true)
+
+      if (project.showText !== false) {
+        ctx.save()
+        ctx.textAlign = "center"
+        ctx.fillStyle = "rgba(255,255,255,0.72)"
+        ctx.font = `600 ${Math.round(width * 0.028)}px system-ui, sans-serif`
+        const meta = [project.artist, project.title].filter((s) => s.trim()).join(" · ")
+        ctx.fillText((meta || "Трек").slice(0, 42), width / 2, coverY + size + width * 0.055)
+        ctx.restore()
+        drawBigHook(ctx, width, height, project, project.hookText || project.title || "Слушай сейчас")
+      }
       break
     }
     case "vinyl": {
@@ -578,16 +630,22 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
 
   drawTemplate(ctx, width, height, project.template, cover, scale, timeSec, project.accent, project)
 
-  // Для ticket свой текст на карточке - bigHook/title всё равно можно показать снизу для hook
-  if (project.template !== "ticket") {
+  // ticket и lyricCard рисуют свой текст внутри шаблона
+  if (project.template === "ticket") {
+    if (
+      project.showText !== false &&
+      project.textLayout === "bigHook" &&
+      project.hookText.trim()
+    ) {
+      ctx.save()
+      ctx.fillStyle = "rgba(255,255,255,0.9)"
+      ctx.font = `700 ${Math.round(width * 0.04)}px system-ui, sans-serif`
+      ctx.textAlign = "center"
+      ctx.fillText(project.hookText.slice(0, 42), width / 2, height * 0.9)
+      ctx.restore()
+    }
+  } else if (project.template !== "lyricCard") {
     drawTextOverlay(ctx, width, height, project)
-  } else if (project.textLayout === "bigHook" && project.hookText.trim()) {
-    ctx.save()
-    ctx.fillStyle = "rgba(255,255,255,0.9)"
-    ctx.font = `700 ${Math.round(width * 0.04)}px system-ui, sans-serif`
-    ctx.textAlign = "center"
-    ctx.fillText(project.hookText.slice(0, 42), width / 2, height * 0.9)
-    ctx.restore()
   }
 
   if (project.showWaveform && peaks && peaks.length > 0) {
@@ -597,6 +655,142 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
   // Фильтры grain/vhs читают пиксели - после всей графики
   applyFilterOverlay(ctx, width, height, project.filter, frameIndex)
 
+  if (project.badge && project.badge !== "none") {
+    drawPlatformBadge(ctx, width, height, project, input.badgeIcon ?? null)
+  }
+
+  if (input.watermark) {
+    drawPreviewWatermark(ctx, width, height)
+  }
+
+  ctx.restore()
+}
+
+function drawPlatformBadge(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  project: StoryVideoProject,
+  icon: CanvasImageSource | null
+) {
+  const badge = project.badge as StoryVideoBadge
+  if (!badge || badge === "none") return
+  const meta = STORY_VIDEO_BADGE_META[badge]
+  const xPct = Math.max(4, Math.min(96, project.badgeX ?? 50))
+  const yPct = Math.max(4, Math.min(96, project.badgeY ?? 92))
+  const cx = (xPct / 100) * width
+  const cy = (yPct / 100) * height
+
+  const badgeH = Math.max(36, width * 0.09)
+  const padX = badgeH * 0.28
+  const iconSize = badgeH * 0.62
+  const gap = badgeH * 0.22
+
+  ctx.save()
+  ctx.font = `600 ${Math.round(badgeH * 0.26)}px system-ui, sans-serif`
+  const line1W = ctx.measureText(meta.line1).width
+  ctx.font = `800 ${Math.round(badgeH * 0.38)}px system-ui, sans-serif`
+  const line2W = ctx.measureText(meta.line2).width
+  const textW = Math.max(line1W, line2W)
+  const badgeW = padX + iconSize + gap + textW + padX * 1.15
+
+  const left = cx - badgeW / 2
+  const top = cy - badgeH / 2
+  const radius = badgeH * 0.28
+
+  // Тень
+  ctx.shadowColor = "rgba(0,0,0,0.45)"
+  ctx.shadowBlur = width * 0.02
+  ctx.shadowOffsetY = width * 0.006
+  roundRectPath(ctx, left, top, badgeW, badgeH, radius)
+  ctx.fillStyle = "#0a0a0a"
+  ctx.fill()
+  ctx.shadowColor = "transparent"
+
+  // Тонкая обводка как у официальных бейджей
+  roundRectPath(ctx, left, top, badgeW, badgeH, radius)
+  ctx.strokeStyle = "rgba(255,255,255,0.35)"
+  ctx.lineWidth = Math.max(1, width * 0.0025)
+  ctx.stroke()
+
+  const iconX = left + padX
+  const iconY = top + (badgeH - iconSize) / 2
+  if (icon) {
+    // Подложка только где SVG без своего фона (VK / при необходимости)
+    if (badge === "vk") {
+      roundRectPath(ctx, iconX, iconY, iconSize, iconSize, iconSize * 0.22)
+      ctx.fillStyle = "#fff"
+      ctx.fill()
+    }
+    ctx.drawImage(icon, iconX, iconY, iconSize, iconSize)
+  } else {
+    // Fallback без иконки - цветной кружок
+    ctx.beginPath()
+    ctx.arc(iconX + iconSize / 2, iconY + iconSize / 2, iconSize / 2, 0, Math.PI * 2)
+    ctx.fillStyle =
+      badge === "spotify"
+        ? "#1DB954"
+        : badge === "vk"
+          ? "#0077FF"
+          : badge === "yandex"
+            ? "#FED42B"
+            : "#FA243C"
+    ctx.fill()
+  }
+
+  const textX = iconX + iconSize + gap
+  ctx.textAlign = "left"
+  ctx.textBaseline = "alphabetic"
+  ctx.fillStyle = "#fff"
+  ctx.font = `600 ${Math.round(badgeH * 0.26)}px system-ui, sans-serif`
+  ctx.fillText(meta.line1, textX, top + badgeH * 0.38)
+  ctx.font = `800 ${Math.round(badgeH * 0.38)}px system-ui, sans-serif`
+  ctx.fillText(meta.line2, textX, top + badgeH * 0.78)
+  ctx.restore()
+}
+
+/** Плотный диагональный watermark - чтобы запись экрана была бесполезна для публикации. */
+function drawPreviewWatermark(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  ctx.save()
+  ctx.fillStyle = "rgba(0,0,0,0.22)"
+  ctx.fillRect(0, 0, width, height)
+
+  ctx.translate(width / 2, height / 2)
+  ctx.rotate((-28 * Math.PI) / 180)
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.font = `800 ${Math.round(width * 0.09)}px system-ui, sans-serif`
+  ctx.fillStyle = "rgba(255,255,255,0.22)"
+  ctx.strokeStyle = "rgba(0,0,0,0.18)"
+  ctx.lineWidth = Math.max(1, width * 0.004)
+
+  const label = "PREVIEW · PARALLAX"
+  const stepY = width * 0.22
+  const stepX = width * 0.55
+  for (let row = -4; row <= 4; row++) {
+    for (let col = -3; col <= 3; col++) {
+      const x = col * stepX + (row % 2 === 0 ? 0 : stepX / 2)
+      const y = row * stepY
+      ctx.strokeText(label, x, y)
+      ctx.fillText(label, x, y)
+    }
+  }
+  ctx.restore()
+
+  // Бейдж в углу
+  ctx.save()
+  const badgeW = width * 0.36
+  const badgeH = height * 0.045
+  const bx = width * 0.06
+  const by = height * 0.06
+  roundRectPath(ctx, bx, by, badgeW, badgeH, badgeH / 2)
+  ctx.fillStyle = "rgba(226,83,47,0.92)"
+  ctx.fill()
+  ctx.fillStyle = "#fff"
+  ctx.font = `700 ${Math.round(width * 0.028)}px system-ui, sans-serif`
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.fillText("ПРЕВЬЮ · без скачивания", bx + badgeW / 2, by + badgeH / 2)
   ctx.restore()
 }
 

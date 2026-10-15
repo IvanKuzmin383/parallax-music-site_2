@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { createReleaseFromAiTracksResult } from "@/lib/ai-tracks-to-release"
 
 export async function POST(
@@ -22,6 +23,10 @@ export async function POST(
   const profileGate = checkProfileCompleteForUpload(user)
   if (profileGate) {
     return NextResponse.json(profileGate.body, { status: profileGate.status })
+  }
+  const kycGate = checkKycVerifiedForDistribution(user)
+  if (kycGate) {
+    return NextResponse.json(kycGate.body, { status: kycGate.status })
   }
 
   const { id: resultId } = await context.params

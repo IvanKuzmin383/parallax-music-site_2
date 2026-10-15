@@ -103,6 +103,8 @@ export interface ReleaseView {
   smartlinkPublic?: boolean
 }
 
+export type CabinetKycStatusView = "unverified" | "pending" | "verified" | "rejected"
+
 export interface CabinetUserView {
   email: string
   displayName?: string
@@ -110,4 +112,6 @@ export interface CabinetUserView {
   walletBalance: number
   subscriptionName?: string
   subscriptionExpiresAt?: string
+  kycStatus?: CabinetKycStatusView
+  kycRejectionReason?: string | null
 }

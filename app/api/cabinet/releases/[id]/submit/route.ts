@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
+import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { uploadDraftRequiredPaymentRub } from "@/lib/cabinet-upload-draft-addons"
 import { getReleaseById, findUserReleaseOccupyingDate, releasePayloadForPricing, updateRelease } from "@/lib/releases"
 import { submitReleaseToModeration } from "@/lib/release-submit"
@@ -17,6 +19,11 @@ export async function POST(
   const session = getCabinetSession(token)
   if (!session) return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
 
+  const user = await getCabinetUserByEmail(session.email)
+  if (!user) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
+  const kycGate = checkKycVerifiedForDistribution(user)
+  if (kycGate) return NextResponse.json(kycGate.body, { status: kycGate.status })
+
   const { id } = await params
   const release = await getReleaseById(id)
   if (!release || release.userId.toLowerCase() !== session.email.toLowerCase()) {
@@ -24,7 +31,7 @@ export async function POST(
   }
 
   const body = (await request.json().catch(() => ({}))) as { action?: string }
-  const requiredRub = uploadDraftRequiredPaymentRub(releasePayloadForPricing(release))
+  const requiredRub = await uploadDraftRequiredPaymentRub(releasePayloadForPricing(release))
 
   if (release.releaseDate) {
     const occupying = await findUserReleaseOccupyingDate(

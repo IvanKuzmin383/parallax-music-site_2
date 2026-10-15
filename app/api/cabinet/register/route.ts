@@ -4,39 +4,26 @@ import { addMonths } from "date-fns"
 import {
   createCabinetUser,
   getCabinetUserByEmail,
-  getLastCabinetUserDeletionAt,
   setCabinetUserAutopay,
   updateCabinetUserSubscription,
 } from "@/lib/cabinet-users"
 import { escapeHtml } from "@/lib/telegram"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
 import { applyFixPackCreditsOnRegister } from "@/lib/fulfill-fix-pack-order"
-import { sumPendingFixCredits } from "@/lib/pending-fix-credits"
-import { getPaidFixPackOrdersByEmail, getPaidOrdersByEmail, type OrderFixPack } from "@/lib/orders"
-import { isPlanId, planIdToSubscriptionName, type PlanId } from "@/lib/plan-pricing"
+import {
+  checkCabinetRegisterEligibility,
+  isPaidSubscriptionOrder,
+} from "@/lib/cabinet-register-eligibility"
 import { createCabinetSession, CABINET_SESSION_COOKIE } from "@/lib/cabinet-auth"
 import { verifyTurnstileToken } from "@/lib/turnstile"
-import { deletePendingSubscriptionAutopay, getPendingSubscriptionAutopay } from "@/lib/pending-subscription-autopay"
+import {
+  deletePendingSubscriptionAutopay,
+  getPendingSubscriptionAutopay,
+} from "@/lib/pending-subscription-autopay"
 import { createCabinetArtistSubscriptionSlot } from "@/lib/cabinet-artist-subscriptions"
-import type { Order, OrderSubscription } from "@/lib/orders"
-
-function filterOrdersAfterDeletion<T extends { paidAt?: string; createdAt: string }>(
-  orders: T[],
-  deletedAt: string | null
-): T[] {
-  if (!deletedAt) return orders
-  return orders.filter((order) => {
-    const orderDateRaw = order.paidAt ?? order.createdAt
-    const orderDateTs = Date.parse(orderDateRaw)
-    const deletedAtTs = Date.parse(deletedAt)
-    if (Number.isNaN(orderDateTs) || Number.isNaN(deletedAtTs)) return false
-    return orderDateTs > deletedAtTs
-  })
-}
-
-function isPaidSubscriptionOrder(order: Order): order is OrderSubscription & { planId: PlanId } {
-  return order.orderType === "subscription" && isPlanId(order.planId)
-}
+import { planIdToSubscriptionName } from "@/lib/plan-pricing"
+import { consumeEmailVerificationCode } from "@/lib/email-verification"
+import { isEmailConfigured } from "@/lib/email"
 
 const registerSchema = z.object({
   email: z.string().email("Неверный формат email"),
@@ -44,6 +31,8 @@ const registerSchema = z.object({
   artistName: z.string().optional(),
   telegram: z.string().optional(),
   captchaToken: z.string().optional(),
+  /** 6-значный код из письма */
+  emailCode: z.string().trim().min(4).max(12),
   /** Код из ?ref= / cookie партнёрки */
   referralCode: z.string().max(40).optional(),
   consentPersonalData: z.literal(true, {
@@ -92,10 +81,7 @@ export async function POST(request: NextRequest) {
 
     const isHuman = await verifyTurnstileToken(parsed.data.captchaToken, clientIp)
     if (!isHuman) {
-      return NextResponse.json(
-        { error: "Подтвердите, что вы не робот" },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: "Подтвердите, что вы не робот" }, { status: 429 })
     }
 
     const existingUser = await getCabinetUserByEmail(parsed.data.email, { includeDisabled: true })
@@ -106,44 +92,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const email = parsed.data.email
-    const deletedAt = await getLastCabinetUserDeletionAt(email)
-    const eligiblePaidSubscriptions = filterOrdersAfterDeletion(
-      await getPaidOrdersByEmail(email),
-      deletedAt
-    )
-    const eligiblePaidFixPacks = filterOrdersAfterDeletion(
-      await getPaidFixPackOrdersByEmail(email),
-      deletedAt
-    ) as OrderFixPack[]
+    const email = parsed.data.email.trim().toLowerCase()
 
-    const hasPaidSubscription = eligiblePaidSubscriptions.some(
-      (o) => o.orderType === "subscription" && isPlanId(o.planId)
-    )
-    const hasPaidFixPack =
-      eligiblePaidFixPacks.length > 0 || (await sumPendingFixCredits(email)) > 0
+    const skipVerify =
+      !isEmailConfigured() && process.env.EMAIL_VERIFICATION_DEV_BYPASS === "1"
+    if (!skipVerify) {
+      const verified = await consumeEmailVerificationCode(email, parsed.data.emailCode)
+      if (!verified.ok) {
+        const message =
+          verified.error === "expired"
+            ? "Срок действия кода истёк. Запросите новый."
+            : verified.error === "too_many_attempts"
+              ? "Слишком много неверных попыток. Запросите новый код."
+              : "Неверный код подтверждения"
+        return NextResponse.json({ error: message, code: "EMAIL_CODE_INVALID" as const }, { status: 400 })
+      }
+    }
 
-    if (!hasPaidSubscription && !hasPaidFixPack) {
+    const eligibility = await checkCabinetRegisterEligibility(email)
+    if (!eligibility.ok) {
       return NextResponse.json(
-        {
-          error:
-            "Сначала оплатите подписку или пакет треков Fix на сайте, указав этот email. После успешной оплаты вы сможете зарегистрироваться.",
-          code: "SUBSCRIPTION_REQUIRED" as const,
-        },
-        { status: 403 }
+        { error: eligibility.error, code: eligibility.code },
+        { status: eligibility.status }
       )
     }
 
-    if (hasPaidSubscription && hasPaidFixPack) {
-      return NextResponse.json(
-        {
-          error:
-            "На этот email найдены и подписка, и оплата Fix. Обратитесь в поддержку для привязки аккаунта.",
-          code: "PAYMENT_CONFLICT" as const,
-        },
-        { status: 403 }
-      )
-    }
+    const { eligiblePaidSubscriptions, eligiblePaidFixPacks, hasPaidFixPack } = eligibility
 
     const user = await createCabinetUser({
       email,
@@ -278,10 +252,6 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error("Error registering cabinet user:", error)
-    return NextResponse.json(
-      { error: "Не удалось создать пользователя" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Не удалось создать пользователя" }, { status: 500 })
   }
 }
-

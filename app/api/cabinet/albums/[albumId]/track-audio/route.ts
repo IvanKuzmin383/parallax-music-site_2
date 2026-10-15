@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { getTrackById } from "@/lib/tracks"
 import { getAlbumById } from "@/lib/albums"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
@@ -47,6 +48,10 @@ export async function POST(
     const profileGate = checkProfileCompleteForUpload(user)
     if (profileGate) {
       return NextResponse.json(profileGate.body, { status: profileGate.status })
+    }
+    const kycGate = checkKycVerifiedForDistribution(user)
+    if (kycGate) {
+      return NextResponse.json(kycGate.body, { status: kycGate.status })
     }
 
     const album = await getAlbumById(albumId)

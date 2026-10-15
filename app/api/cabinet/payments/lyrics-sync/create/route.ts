@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
-import { LYRICS_SYNC_PRICE_RUB } from "@/lib/lyrics-sync-pricing"
+import { getServicePriceRub } from "@/lib/service-prices"
 import { createOrder } from "@/lib/orders"
 
 function isHttpUrl(value: string): boolean {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const totalAmount = LYRICS_SYNC_PRICE_RUB.toFixed(2)
+  const totalAmount = (await getServicePriceRub("lyrics_sync")).toFixed(2)
   const order = await createOrder({
     orderType: "lyrics_sync",
     userId: user.id,

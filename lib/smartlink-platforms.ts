@@ -25,10 +25,10 @@ export const PLATFORM_LINK_KEYS = SMARTLINK_PLATFORMS.map((p) => p.key) as Platf
 export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   spotify: "/platforms/spotify.svg",
   appleMusic: "/platforms/apple-music.svg",
-  deezer: "/platforms/deezer.png",
+  deezer: "/platforms/deezer.svg?v=2",
   yandex: "/platforms/yandex.svg",
   youtubeMusic: "/platforms/youtube-music.svg",
-  vk: "/platforms/vk.svg?v=2",
+  vk: "/platforms/vk.svg?v=3",
   sberzvuk: "/platforms/sberzvuk.svg",
   kion: "/platforms/kion.svg",
   amazonMusic: "/platforms/amazon-music.svg?v=2",

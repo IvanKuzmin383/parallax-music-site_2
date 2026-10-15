@@ -184,7 +184,7 @@ export async function PATCH(
           }
         }
 
-        const totalRub = uploadDraftRequiredPaymentRub(nextPayload)
+        const totalRub = await uploadDraftRequiredPaymentRub(nextPayload)
         const nextBundleOrderId = await bundleOrderIdIfStillCoversPayload(
           draft.bundleOrderId,
           nextPayload
@@ -237,7 +237,7 @@ export async function PATCH(
     partial.coverRelPath = null
   }
 
-  const totalRub = uploadDraftRequiredPaymentRub(nextPayload)
+  const totalRub = await uploadDraftRequiredPaymentRub(nextPayload)
   const nextBundleOrderId = await bundleOrderIdIfStillCoversPayload(draft.bundleOrderId, nextPayload)
   if ((draft.bundleOrderId ?? null) !== nextBundleOrderId) {
     partial.bundleOrderId = nextBundleOrderId

@@ -23,6 +23,7 @@ export type OrderType =
   | "tracks_topup"
   | "ai_mastering"
   | "tools_mastering_download"
+  | "tools_story_video_download"
   | "tools_smartlink"
   | "vertical_video"
   | "track_cover"
@@ -87,6 +88,14 @@ export interface OrderWalletTopup extends OrderBase {
 /** Покупка кредитов скачивания онлайн-мастеринга в Tools (tracksCount = число кредитов). */
 export interface OrderToolsMasteringDownload extends OrderBase {
   orderType: "tools_mastering_download"
+  userId: string
+  tracksCount: number
+  totalAmount: string
+}
+
+/** Покупка кредитов скачивания сниппета в Tools (tracksCount = число кредитов). */
+export interface OrderToolsStoryVideoDownload extends OrderBase {
+  orderType: "tools_story_video_download"
   userId: string
   tracksCount: number
   totalAmount: string
@@ -180,6 +189,7 @@ export type Order =
   | OrderTracksTopup
   | OrderWalletTopup
   | OrderToolsMasteringDownload
+  | OrderToolsStoryVideoDownload
   | OrderToolsSmartlink
   | OrderAiMastering
   | OrderVerticalVideo
@@ -193,6 +203,7 @@ export type CreateOrderInput =
   | Omit<OrderTracksTopup, "id" | "status" | "createdAt">
   | Omit<OrderWalletTopup, "id" | "status" | "createdAt">
   | Omit<OrderToolsMasteringDownload, "id" | "status" | "createdAt">
+  | Omit<OrderToolsStoryVideoDownload, "id" | "status" | "createdAt">
   | Omit<OrderToolsSmartlink, "id" | "status" | "createdAt">
   | Omit<OrderAiMastering, "id" | "status" | "createdAt">
   | Omit<OrderVerticalVideo, "id" | "status" | "createdAt">
@@ -276,6 +287,15 @@ function rowToOrder(row: OrderRow): Order {
     return {
       ...base,
       orderType: "tools_mastering_download",
+      userId: row.user_id ?? "",
+      tracksCount: row.tracks_count ?? 0,
+      totalAmount: row.total_amount,
+    }
+  }
+  if (row.order_type === "tools_story_video_download") {
+    return {
+      ...base,
+      orderType: "tools_story_video_download",
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       totalAmount: row.total_amount,
@@ -522,6 +542,31 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
   }
+  if (orderType === "tools_story_video_download") {
+    const o = order as Omit<OrderToolsStoryVideoDownload, "id" | "status" | "createdAt">
+    await execute(
+      `
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      [
+        id,
+        "tools_story_video_download",
+        null,
+        createdAt,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+      ]
+    )
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
+  }
   if (orderType === "tools_smartlink") {
     const o = order as Omit<OrderToolsSmartlink, "id" | "status" | "createdAt">
     await execute(
@@ -732,13 +777,37 @@ export async function hasPendingRecurringSubscriptionChargeToday(userEmail: stri
   return rows.some((r) => formatMoscowDateString(new Date(r.created_at)) === todayMoscow)
 }
 
-export function calculateUploadAddonBundleAmount(items: UploadAddonBundleItem[]): { totalRub: number; aiMasteringTracksCount: number } {
+/** `prices` - актуальные цены из админки; без них - дефолты из кода. */
+export function calculateUploadAddonBundleAmount(
+  items: UploadAddonBundleItem[],
+  prices?: Partial<
+    Record<
+      | "track_cover"
+      | "ai_mastering"
+      | "yandex_videoshot"
+      | "yandex_videoshot_creation"
+      | "yandex_videoavatar"
+      | "spotify_videoshot"
+      | "lyrics_sync",
+      number
+    >
+  >
+): { totalRub: number; aiMasteringTracksCount: number } {
+  const trackCover = prices?.track_cover ?? TRACK_COVER_PRICE_RUB
+  const aiMastering = prices?.ai_mastering ?? AI_MASTERING_PRICE_RUB
+  const yandexVideoshot = prices?.yandex_videoshot ?? YANDEX_VIDEOSHOT_PRICE_RUB
+  const yandexVideoshotCreation =
+    prices?.yandex_videoshot_creation ?? YANDEX_VIDEOSHOT_CREATION_PRICE_RUB
+  const yandexVideoavatar = prices?.yandex_videoavatar ?? YANDEX_VIDEOAVATAR_PRICE_RUB
+  const spotifyVideoshot = prices?.spotify_videoshot ?? SPOTIFY_VIDEOSHOT_PRICE_RUB
+  const lyricsSync = prices?.lyrics_sync ?? LYRICS_SYNC_PRICE_RUB
+
   let totalRub = 0
   let aiMasteringTracksCount = 0
   for (const item of items) {
     if (!item || item.quantity <= 0) continue
     if (item.type === "track_cover") {
-      totalRub += TRACK_COVER_PRICE_RUB
+      totalRub += trackCover
       continue
     }
     if (item.type === "vertical_video") {
@@ -748,27 +817,27 @@ export function calculateUploadAddonBundleAmount(items: UploadAddonBundleItem[])
     if (item.type === "ai_mastering") {
       const bounded = Math.min(item.quantity, MAX_AI_MASTERING_TRACKS)
       aiMasteringTracksCount += bounded
-      totalRub += AI_MASTERING_PRICE_RUB * bounded
+      totalRub += aiMastering * bounded
       continue
     }
     if (item.type === "yandex_videoshot") {
-      totalRub += YANDEX_VIDEOSHOT_PRICE_RUB * item.quantity
+      totalRub += yandexVideoshot * item.quantity
       continue
     }
     if (item.type === "yandex_videoshot_creation") {
-      totalRub += YANDEX_VIDEOSHOT_CREATION_PRICE_RUB * item.quantity
+      totalRub += yandexVideoshotCreation * item.quantity
       continue
     }
     if (item.type === "yandex_videoavatar") {
-      totalRub += YANDEX_VIDEOAVATAR_PRICE_RUB * item.quantity
+      totalRub += yandexVideoavatar * item.quantity
       continue
     }
     if (item.type === "spotify_videoshot") {
-      totalRub += SPOTIFY_VIDEOSHOT_PRICE_RUB * item.quantity
+      totalRub += spotifyVideoshot * item.quantity
       continue
     }
     if (item.type === "lyrics_sync") {
-      totalRub += LYRICS_SYNC_PRICE_RUB * item.quantity
+      totalRub += lyricsSync * item.quantity
     }
   }
   return { totalRub, aiMasteringTracksCount }

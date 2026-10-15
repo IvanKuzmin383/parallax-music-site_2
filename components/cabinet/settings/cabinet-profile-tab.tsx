@@ -34,6 +34,7 @@ import { shouldDeductFixPackCreditsOnUpload } from "@/lib/fix-pricing-legacy"
 import { getEffectiveTrackLimit } from "@/lib/subscription-plans"
 import { getFixRemainingUploadSlots } from "@/lib/subscription-track-limits"
 import type { CabinetUser } from "@/lib/cabinet-users"
+import { CabinetKycStatusBadge } from "@/components/cabinet/kyc/cabinet-kyc-status-badge"
 
 type AutopayApiResponse = {
   autopayEnabled: boolean
@@ -150,6 +151,18 @@ export function CabinetProfileTab() {
 
   return (
     <div className="w-full max-w-none space-y-4">
+        <Card className="py-4 gap-3">
+          <CardHeader className="pb-2 gap-1">
+            <CardTitle>Верификация</CardTitle>
+            <CardDescription>
+              Нужна для загрузки релизов, клипов и вывода роялти. Скан паспорта удаляется после проверки.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CabinetKycStatusBadge className="max-w-sm" />
+          </CardContent>
+        </Card>
+
         <div className="grid gap-3 md:grid-cols-2">
           <Card id="cabinet-tariff" className="scroll-mt-20 border-primary/20 bg-primary/5 py-4 gap-3">
             <CardHeader className="pb-2 gap-1">

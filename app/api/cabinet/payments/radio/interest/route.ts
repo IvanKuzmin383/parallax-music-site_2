@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
-import { RADIO_PRICE_LABEL } from "@/lib/radio-pricing"
+import { formatServicePriceCardLabel, getResolvedServicePrice } from "@/lib/service-prices"
 import { escapeHtml } from "@/lib/telegram"
 
 function isHttpUrl(value: string): boolean {
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const radioPrice = formatServicePriceCardLabel(await getResolvedServicePrice("radio"))
   const message = [
     "<b>Заявка на услугу: Радио</b>",
     "",
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     "",
     `<b>Аккаунт:</b> ${escapeHtml(user.email)}`,
     `<b>User ID:</b> ${escapeHtml(user.id)}`,
-    `<b>Ориентир цены:</b> ${escapeHtml(RADIO_PRICE_LABEL)} за трек`,
+    `<b>Ориентир цены:</b> ${escapeHtml(radioPrice)} за трек`,
     `<b>Название:</b> ${escapeHtml(trackTitle)}`,
     trackLink ? `<b>Ссылка:</b> ${escapeHtml(trackLink)}` : null,
     comment ? `<b>Комментарий:</b> ${escapeHtml(comment)}` : null,

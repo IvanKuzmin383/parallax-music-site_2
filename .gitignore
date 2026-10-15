@@ -61,6 +61,8 @@ scripts/export-*-csv.mjs
 data/app.db
 /data/app.db
 /data/reviews.json
+/data/kyc/
+data/kyc/
 *.db-journal
 *.db-wal
 *.db-shm

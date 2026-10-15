@@ -1,3 +1,4 @@
+import { loadStoryVideoBadgeIcon } from "@/lib/story-video-badge-icon"
 import {
   buildStoryVideoPeaks,
   drawStoryVideoFrame,
@@ -101,7 +102,10 @@ export async function exportStoryVideo(params: {
   report({ phase: "prepare", progress: 0.05, message: "Готовим обложку и аудио…" })
   if (signal?.aborted) throw new Error("Отменено")
 
-  const cover = await loadImage(coverUrl)
+  const [cover, badgeIcon] = await Promise.all([
+    loadImage(coverUrl),
+    loadStoryVideoBadgeIcon(project.badge ?? "none"),
+  ])
   const { context, buffer, peaks } = await decodeAudio(
     audioUrl,
     project.startSec,
@@ -141,6 +145,7 @@ export async function exportStoryVideo(params: {
       cover,
       peaks,
       frameIndex: 0,
+      badgeIcon,
     })
 
     videoStream = canvas.captureStream(fps)
@@ -204,6 +209,7 @@ export async function exportStoryVideo(params: {
         cover,
         peaks,
         frameIndex: frame,
+        badgeIcon,
       })
 
       const target = startedAt + (frame + 1) * frameDurationMs

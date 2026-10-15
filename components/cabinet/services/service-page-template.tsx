@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { getCabinetServiceHubHref } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { ServicePriceText } from "@/components/cabinet/shared/service-price-text"
 import { PLATFORM_ICON_SRC } from "@/lib/smartlink-platforms"
 import Link from "next/link"
 import Image from "next/image"
@@ -185,7 +186,17 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
       </div>
       <div className="space-y-2.5">
         <p className="text-sm font-medium">
-          Стоимость: <span className="text-primary">{service.priceLabel}</span>
+          Стоимость:{" "}
+          <span className="text-primary">
+            {service.priceKey ? (
+              <>
+                {service.pricePrefix ? <span>{service.pricePrefix}</span> : null}
+                <ServicePriceText priceKey={service.priceKey} fallback={service.priceLabel} />
+              </>
+            ) : (
+              service.priceLabel
+            )}
+          </span>
         </p>
         <Button onClick={() => void handlePay()} disabled={Boolean(submitting)} className="w-full">
           {submitting ? "Отправка..." : interestCta}
@@ -260,7 +271,17 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
           />
         </div>
         <div className="space-y-2 pt-1">
-          <p className="font-semibold">Итого: {service.priceLabel}</p>
+          <p className="font-semibold">
+            Итого:{" "}
+            {service.priceKey ? (
+              <>
+                {service.pricePrefix ? <span>{service.pricePrefix}</span> : null}
+                <ServicePriceText priceKey={service.priceKey} fallback={service.priceLabel} />
+              </>
+            ) : (
+              service.priceLabel
+            )}
+          </p>
           {service.paymentStub ? (
             <p className="text-sm text-muted-foreground">
               Оплата пока не списывается - заявка нужна, чтобы оценить спрос. Мы свяжемся с вами.
@@ -312,7 +333,14 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
         <CardContent className="px-4 py-3">
           <div className="min-w-0">
             <p className="text-xl font-bold leading-none text-primary sm:text-2xl">
-              {service.priceLabel}
+              {service.priceKey ? (
+                <>
+                  {service.pricePrefix ? <span>{service.pricePrefix}</span> : null}
+                  <ServicePriceText priceKey={service.priceKey} fallback={service.priceLabel} />
+                </>
+              ) : (
+                service.priceLabel
+              )}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Стоимость услуги</p>
           </div>

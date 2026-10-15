@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
+import { ServicePriceText } from "@/components/cabinet/shared/service-price-text"
 import { getVisibleServicesCatalog } from "@/lib/cabinet/services-catalog"
 import type { OrderCategory } from "@/lib/cabinet/types"
 import { cn } from "@/lib/utils"
@@ -49,7 +50,16 @@ export default function CabinetServicesPage() {
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
                 </div>
-                <p className={cn("text-sm font-medium text-primary mt-3")}>{service.priceLabel}</p>
+                <p className={cn("text-sm font-medium text-primary mt-3")}>
+                  {service.priceKey ? (
+                    <>
+                      {service.pricePrefix ? <span>{service.pricePrefix}</span> : null}
+                      <ServicePriceText priceKey={service.priceKey} fallback={service.priceLabel} />
+                    </>
+                  ) : (
+                    service.priceLabel
+                  )}
+                </p>
               </Link>
             ))}
           </div>

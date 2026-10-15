@@ -6,6 +6,7 @@ import {
 } from "@/lib/fix-pack-credits"
 import { deductAndMarkFixPackCreditsForTracks } from "@/lib/fix-pack-moderation-credits"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
+import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
 import { getTracksByAlbumId } from "@/lib/tracks"
 import { updateTrack } from "@/lib/tracks"
 import { getAlbumById } from "@/lib/albums"
@@ -56,6 +57,10 @@ export async function POST(
     const profileGate = checkProfileCompleteForUpload(user)
     if (profileGate) {
       return NextResponse.json(profileGate.body, { status: profileGate.status })
+    }
+    const kycGate = checkKycVerifiedForDistribution(user)
+    if (kycGate) {
+      return NextResponse.json(kycGate.body, { status: kycGate.status })
     }
 
     const album = await getAlbumById(albumId)

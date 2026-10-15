@@ -170,10 +170,16 @@ export function ReleaseListCard({
   }
 
   return (
-    <article className="relative flex items-stretch gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-4">
+    <article className="relative flex items-center gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-3.5">
+      {showAiAnalysis ? (
+        <div className="absolute right-3 top-3 z-10">
+          <AiAnalysisBadge onClick={() => setAiOpen(true)} />
+        </div>
+      ) : null}
+
       <Link
         href={href}
-        className="relative aspect-square shrink-0 self-stretch overflow-hidden rounded-lg bg-muted"
+        className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-lg bg-muted"
       >
         {release.coverUrl ? (
           <Image
@@ -182,24 +188,28 @@ export function ReleaseListCard({
             fill
             className="object-cover"
             unoptimized
-            sizes="160px"
+            sizes="96px"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <Music className="h-10 w-10 text-muted-foreground" />
+            <Music className="h-8 w-8 text-muted-foreground" />
           </div>
         )}
       </Link>
 
       <div
         className={cn(
-          "flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5",
-          canPromote || canOpenSmartlink || canSetupPromoSmartlink
-            ? "pb-14 sm:pr-[26rem]"
-            : "pb-10 sm:pr-52",
+          "flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5",
+          canPromote || canOpenSmartlink || canSetupPromoSmartlink || canDelete || canRecall
+            ? "pb-11 pr-2 sm:pb-0 sm:pr-[22rem]"
+            : "pr-2 sm:pr-36",
+          showAiAnalysis && "pt-7 sm:pt-0",
+          showAiAnalysis &&
+            (canPromote || canOpenSmartlink || canSetupPromoSmartlink) &&
+            "sm:pr-[26rem]",
         )}
       >
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div>
             <Link
               href={href}
@@ -224,10 +234,9 @@ export function ReleaseListCard({
           ) : null}
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={release.status} kind="generic" withIcon className="text-[11px]" />
-            {showAiAnalysis ? <AiAnalysisBadge onClick={() => setAiOpen(true)} /> : null}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+        <p className="text-xs text-muted-foreground leading-snug line-clamp-1">
           {releaseStatusHint(release)}
         </p>
       </div>
@@ -241,7 +250,7 @@ export function ReleaseListCard({
         />
       ) : null}
 
-      <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-2">
+      <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-1.5 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2">
         {canDelete ? (
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger asChild>
@@ -314,7 +323,7 @@ export function ReleaseListCard({
           <Button size="sm" variant="default" asChild>
             <Link href="/cabinet/promotion">
               <Megaphone className="h-4 w-4" />
-              <span className="ml-1.5">Заказать продвижение</span>
+              <span className="ml-1.5">Продвижение</span>
             </Link>
           </Button>
         ) : null}

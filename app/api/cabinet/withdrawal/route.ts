@@ -4,6 +4,7 @@ import { escapeHtml } from '@/lib/telegram'
 import { notifyStaffInBackground } from '@/lib/form-notifications'
 import { getCabinetToken, getCabinetSession } from '@/lib/cabinet-auth'
 import { getCabinetUserByEmail } from '@/lib/cabinet-users'
+import { checkKycVerifiedForDistribution } from '@/lib/cabinet-kyc-gate'
 import { createWithdrawalRequest } from '@/lib/withdrawal-requests'
 import {
   formatRub,
@@ -38,6 +39,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Пользователь не найден" },
         { status: 404 }
+      )
+    }
+
+    const kycGate = checkKycVerifiedForDistribution(user)
+    if (kycGate) {
+      return NextResponse.json(
+        { success: false, ...kycGate.body },
+        { status: kycGate.status }
       )
     }
 
