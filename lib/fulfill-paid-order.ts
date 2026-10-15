@@ -1,6 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import { getCabinetUserByEmail, getCabinetUserById, updateCabinetUserPurchasedTracks } from "@/lib/cabinet-users"
+import { activateSmartlinkPaid } from "@/lib/cabinet-smartlinks"
 import { addToolsMasteringCredits } from "@/lib/tools-mastering-entitlement"
 import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import type { Order } from "@/lib/orders"
@@ -220,6 +221,40 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       ].join("\n"),
       `[Parallax] Оплата онлайн-мастеринг: ${email}`,
       "tools_mastering_download",
+      provider
+    )
+    await notifyUserPaid(order, amount)
+    return
+  }
+
+  if (order.orderType === "tools_smartlink") {
+    const smartlinkId = order.releaseId?.trim()
+    if (smartlinkId) {
+      const activated = await activateSmartlinkPaid(smartlinkId)
+      if (!activated) {
+        console.error("[fulfill-paid-order] smartlink not found for tools_smartlink", {
+          orderId,
+          smartlinkId,
+        })
+      }
+    }
+    await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
+
+    const user = await getCabinetUserById(order.userId)
+    const email = user?.email ?? `userId=${order.userId}`
+    notifyStaff(
+      [
+        `<b>Оплата: смартлинк Tools (${provider})</b>`,
+        "",
+        `<b>Пользователь:</b> ${escapeHtml(email)}`,
+        `<b>Смартлинк:</b> ${escapeHtml(smartlinkId || "-")}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        "",
+        "#tools_smartlink #оплата #кабинет",
+      ].join("\n"),
+      `[Parallax] Оплата смартлинк: ${email}`,
+      "tools_smartlink",
       provider
     )
     await notifyUserPaid(order, amount)

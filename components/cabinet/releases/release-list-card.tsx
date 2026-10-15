@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Megaphone, Music, Trash2, Undo2 } from "lucide-react"
+import { ExternalLink, Link2, Megaphone, Music, Trash2, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -68,6 +68,24 @@ function isReleasedRelease(release: ReleaseView): boolean {
   )
 }
 
+/** Статусы, где можно включить бесплатный промо-смартлинк до релиза. */
+function isPromoSmartlinkEligible(release: ReleaseView): boolean {
+  const s = release.releaseStatus ?? ""
+  if (
+    s === "on_moderation" ||
+    s === "sent_to_platforms" ||
+    s === "approved_by_platforms"
+  ) {
+    return true
+  }
+  const label = release.status.toLowerCase()
+  return (
+    (label.includes("модерац") && !label.includes("доработ")) ||
+    label.includes("площадк") ||
+    label.includes("отправл")
+  )
+}
+
 export function ReleaseListCard({
   release,
   onDeleted,
@@ -84,6 +102,13 @@ export function ReleaseListCard({
   const canRecall = isOnModerationRelease(release)
   const router = useRouter()
   const canPromote = isReleasedRelease(release)
+  const smartlinkSlug = release.smartlinkSlug?.trim() || ""
+  const canOpenSmartlink =
+    Boolean(smartlinkSlug) &&
+    (isReleasedRelease(release) || release.smartlinkPublic === true)
+  const canSetupPromoSmartlink =
+    !isReleasedRelease(release) && isPromoSmartlinkEligible(release)
+  const smartlinkEditHref = `/cabinet/distribution/music/${release.id}/smartlink`
   const aiAnalysis = release.aiAnalysisText?.trim() || ""
   const showAiAnalysis = hasAiAnalysisText(aiAnalysis)
   const [deleting, setDeleting] = useState(false)
@@ -169,7 +194,9 @@ export function ReleaseListCard({
       <div
         className={cn(
           "flex min-w-0 flex-1 flex-col justify-between gap-1.5 py-0.5",
-          canPromote ? "pb-14 sm:pr-[22rem]" : "pb-10 sm:pr-52",
+          canPromote || canOpenSmartlink || canSetupPromoSmartlink
+            ? "pb-14 sm:pr-[26rem]"
+            : "pb-10 sm:pr-52",
         )}
       >
         <div className="space-y-1.5">
@@ -289,6 +316,30 @@ export function ReleaseListCard({
               <Megaphone className="h-4 w-4" />
               <span className="ml-1.5">Заказать продвижение</span>
             </Link>
+          </Button>
+        ) : null}
+        {canSetupPromoSmartlink ? (
+          <Button size="sm" variant="outline" asChild>
+            <Link href={smartlinkEditHref}>
+              <Link2 className="h-4 w-4" />
+              <span className="ml-1.5">Промо-смартлинк</span>
+            </Link>
+          </Button>
+        ) : null}
+        {canOpenSmartlink ? (
+          <Button size="sm" variant="outline" asChild>
+            <a
+              href={`/s/${encodeURIComponent(smartlinkSlug)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="ml-1.5">
+                {release.smartlinkPublic && !isReleasedRelease(release)
+                  ? "Открыть промо"
+                  : "Смартлинк"}
+              </span>
+            </a>
           </Button>
         ) : null}
         <Button size="sm" variant={primary ? "default" : "outline"} asChild>

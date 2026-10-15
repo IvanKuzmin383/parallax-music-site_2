@@ -206,6 +206,11 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
     ? streamingScopeShortLabel(tracks[0].streamingScope)
     : null
   const smartlinkSlug = tracks.map((t) => t.smartlinkSlug?.trim()).find(Boolean) || null
+  const promoStatuses = new Set(["on_moderation", "sent_to_platforms", "approved_by_platforms"])
+  const canPromoSmartlink =
+    Boolean(pipelineStatus) &&
+    promoStatuses.has(pipelineStatus!) &&
+    pipelineStatus !== "released"
   const platformLinks = (() => {
     const merged: PlatformLinks = {}
     for (const track of tracks) {
@@ -334,9 +339,13 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
                 <Link2 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium">Смартлинк</p>
+                <p className="font-medium">
+                  {canPromoSmartlink ? "Промо-смартлинк" : "Смартлинк"}
+                </p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Оформить страницу релиза и получить ссылку для фанатов
+                  {canPromoSmartlink
+                    ? "Открыть публичную страницу до релиза и оформить ссылки"
+                    : "Оформить страницу релиза и получить ссылку для фанатов"}
                 </p>
               </div>
             </div>

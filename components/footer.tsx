@@ -62,6 +62,11 @@ export function Footer() {
                 </a>
               </li>
               <li>
+                <a href="/smartlinks" className="transition-colors hover:text-primary">
+                  Смартлинки
+                </a>
+              </li>
+              <li>
                 <a href="/#contact" className="transition-colors hover:text-primary">
                   {t.header.contact}
                 </a>

@@ -186,6 +186,22 @@
     }
   }
 
+  @keyframes maintenance-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scaleX(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scaleX(1.35);
+    }
+  }
+
+  .maintenance-pulse {
+    animation: maintenance-pulse 2.4s ease-in-out infinite;
+  }
+
   @keyframes cabinet-dot-pulse {
     0%,
     100% {
@@ -970,8 +986,238 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   will-change: transform;
 }
 
+.sl-cassette-shell {
+  background:
+    linear-gradient(180deg, #3a3a40 0%, #232328 45%, #1a1a1e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.sl-cassette-window {
+  background: linear-gradient(180deg, #0e0e12 0%, #18181e 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+.sl-cassette-reel {
+  background:
+    repeating-radial-gradient(
+      circle at center,
+      #1a1a1a 0 2px,
+      #2e2e34 2px 4px
+    ),
+    #111;
+  box-shadow:
+    inset 0 0 0 2px #0a0a0a,
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+@keyframes sl-cassette-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sl-cassette-spin {
+  animation: sl-cassette-spin 3.2s linear infinite;
+}
+
+.sl-cassette-spin-rev {
+  animation: sl-cassette-spin 3.2s linear infinite reverse;
+}
+
+.sl-graffiti-bg {
+  background-color: #0c0c0e;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, color-mix(in srgb, var(--sl-accent) 28%, transparent), transparent 55%),
+    radial-gradient(ellipse at 90% 80%, rgba(255, 255, 255, 0.04), transparent 45%);
+}
+
+.sl-stage-bg {
+  background:
+    radial-gradient(60% 40% at 50% 0%, color-mix(in srgb, var(--sl-accent) 35%, transparent), transparent 70%),
+    radial-gradient(80% 60% at 50% 100%, rgba(0, 0, 0, 0.9), #0b0b0c 70%),
+    #0b0b0c;
+}
+
+.sl-rave-bg {
+  background-color: #050508;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--sl-accent) 18%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--sl-accent) 18%, transparent) 1px, transparent 1px),
+    radial-gradient(50% 40% at 50% 0%, color-mix(in srgb, var(--sl-accent) 30%, transparent), transparent 70%);
+  background-size:
+    28px 28px,
+    28px 28px,
+    auto;
+}
+
+.sl-rave-card {
+  border: 1px solid color-mix(in srgb, var(--sl-accent) 45%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--sl-accent) 20%, transparent);
+}
+
+.sl-rave-cover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sl-accent) 50%, transparent);
+}
+
+.sl-polaroid-wall {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06), transparent 50%),
+    #1a1714;
+}
+
+.sl-arcade-bg {
+  background-color: #0a0a12;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(50% 40% at 50% 0%, color-mix(in srgb, var(--sl-accent) 35%, transparent), transparent 70%);
+  background-size:
+    12px 12px,
+    12px 12px,
+    auto;
+}
+
+.sl-arcade-card {
+  border: 3px solid #111;
+  background: color-mix(in srgb, var(--sl-accent) 12%, #12121a);
+  box-shadow: 4px 4px 0 #111;
+}
+
+.sl-vhs-bg {
+  background:
+    radial-gradient(60% 50% at 50% 30%, rgba(40, 80, 160, 0.35), transparent 70%),
+    #050814;
+}
+
+.sl-vhs-scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.18) 2px 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sl-vhs-cover {
+  box-shadow:
+    0 0 0 1px rgba(120, 180, 255, 0.25),
+    0 0 24px rgba(60, 120, 220, 0.25);
+  filter: saturate(1.15) contrast(1.05);
+}
+
+.sl-zine-bg {
+  background-color: #ebe6dc;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(0, 0, 0, 0.04) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 80% 70%, rgba(0, 0, 0, 0.03) 0 1px, transparent 1.5px);
+}
+
+.sl-chrome-bg {
+  background:
+    radial-gradient(50% 40% at 50% 0%, rgba(255, 255, 255, 0.12), transparent 65%),
+    linear-gradient(180deg, #2a2a32 0%, #0c0c10 100%);
+}
+
+.sl-chrome-cover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 10px 28px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.sl-noir-bg {
+  background:
+    radial-gradient(55% 45% at 50% 0%, rgba(255, 255, 255, 0.08), transparent 70%),
+    #050505;
+  filter: contrast(1.05);
+}
+
+.sl-orbit-ring {
+  border: 1px dashed color-mix(in srgb, var(--sl-accent) 45%, transparent);
+  opacity: 0.7;
+}
+
+.sl-stamp-bg {
+  background-color: #101012;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.07) 1px,
+    transparent 0
+  );
+  background-size: 14px 14px;
+}
+
+.sl-holo-cover {
+  position: relative;
+}
+
+.sl-holo-sheen {
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    color-mix(in srgb, var(--sl-accent) 25%, transparent) 40%,
+    rgba(125, 211, 252, 0.2) 50%,
+    color-mix(in srgb, var(--sl-accent) 20%, transparent) 60%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: sl-holo-shift 6s ease-in-out infinite;
+  mix-blend-mode: soft-light;
+  opacity: 0.7;
+}
+
+@keyframes sl-holo-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.sl-holo-btn {
+  background-size: 200% 200%;
+  animation: sl-holo-shift 5s ease-in-out infinite;
+}
+
+.sl-diary-bg {
+  background-color: #f4efe4;
+  background-image: repeating-linear-gradient(
+    transparent 0 27px,
+    rgba(80, 120, 180, 0.22) 27px 28px
+  );
+}
+
+.sl-diary-card {
+  background: rgba(255, 252, 245, 0.72);
+  border: 1px solid rgba(40, 40, 40, 0.1);
+  box-shadow: 0 8px 24px rgba(40, 30, 10, 0.08);
+}
+
+.sl-diary-clip {
+  background: linear-gradient(180deg, #c8c8ce 0%, #8e8e96 45%, #b8b8c0 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .sl-vinyl-spin {
+  .sl-vinyl-spin,
+  .sl-cassette-spin,
+  .sl-cassette-spin-rev,
+  .sl-holo-sheen,
+  .sl-holo-btn {
     animation: none !important;
   }
 }

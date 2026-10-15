@@ -23,6 +23,7 @@ export type OrderType =
   | "tracks_topup"
   | "ai_mastering"
   | "tools_mastering_download"
+  | "tools_smartlink"
   | "vertical_video"
   | "track_cover"
   | "ai_cover"
@@ -89,6 +90,14 @@ export interface OrderToolsMasteringDownload extends OrderBase {
   userId: string
   tracksCount: number
   totalAmount: string
+}
+
+/** Активация standalone-смартлинка в Tools (releaseId = smartlink id). */
+export interface OrderToolsSmartlink extends OrderBase {
+  orderType: "tools_smartlink"
+  userId: string
+  totalAmount: string
+  releaseId: string
 }
 
 /** Контакты для связи хранятся в user_email / telegram колонках БД */
@@ -171,6 +180,7 @@ export type Order =
   | OrderTracksTopup
   | OrderWalletTopup
   | OrderToolsMasteringDownload
+  | OrderToolsSmartlink
   | OrderAiMastering
   | OrderVerticalVideo
   | OrderTrackCover
@@ -183,6 +193,7 @@ export type CreateOrderInput =
   | Omit<OrderTracksTopup, "id" | "status" | "createdAt">
   | Omit<OrderWalletTopup, "id" | "status" | "createdAt">
   | Omit<OrderToolsMasteringDownload, "id" | "status" | "createdAt">
+  | Omit<OrderToolsSmartlink, "id" | "status" | "createdAt">
   | Omit<OrderAiMastering, "id" | "status" | "createdAt">
   | Omit<OrderVerticalVideo, "id" | "status" | "createdAt">
   | Omit<OrderTrackCover, "id" | "status" | "createdAt">
@@ -268,6 +279,15 @@ function rowToOrder(row: OrderRow): Order {
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       totalAmount: row.total_amount,
+    }
+  }
+  if (row.order_type === "tools_smartlink") {
+    return {
+      ...base,
+      orderType: "tools_smartlink",
+      userId: row.user_id ?? "",
+      totalAmount: row.total_amount,
+      releaseId: row.release_id ?? "",
     }
   }
   if (row.order_type === "ai_mastering") {
@@ -498,6 +518,32 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         totalAmount,
         o.userId,
         o.tracksCount,
+      ]
+    )
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
+  }
+  if (orderType === "tools_smartlink") {
+    const o = order as Omit<OrderToolsSmartlink, "id" | "status" | "createdAt">
+    await execute(
+      `
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, release_id)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      [
+        id,
+        "tools_smartlink",
+        null,
+        createdAt,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        null,
+        o.releaseId,
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)

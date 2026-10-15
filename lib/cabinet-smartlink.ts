@@ -11,6 +11,7 @@ import {
   normalizePlatformLinks,
   type PlatformLinks,
 } from "@/lib/smartlink-platforms"
+import { SMARTLINK_PROMO_TRACK_STATUSES } from "@/lib/smartlink"
 import {
   DEFAULT_SMARTLINK_THEME,
   parseSmartlinkTheme,
@@ -28,6 +29,20 @@ export type CabinetSmartlinkContext = {
   theme: SmartlinkTheme
   platformLinks: PlatformLinks
   smartlinkSlug: string | null
+  smartlinkPublic: boolean
+  canEnablePromo: boolean
+}
+
+export function isTrackSmartlinkPubliclyVisible(track: Track): boolean {
+  if (!track.smartlinkSlug?.trim() || !track.coverPath?.trim()) return false
+  if (track.status === "released") return true
+  if (!track.smartlinkPublic) return false
+  return (SMARTLINK_PROMO_TRACK_STATUSES as readonly string[]).includes(track.status)
+}
+
+export function canEnableTrackSmartlinkPromo(track: Track): boolean {
+  if (track.status === "released") return false
+  return (SMARTLINK_PROMO_TRACK_STATUSES as readonly string[]).includes(track.status)
 }
 
 function mergePlatformLinks(tracks: Track[]): PlatformLinks {
@@ -90,6 +105,8 @@ export async function resolveCabinetSmartlinkContext(
       theme: parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME),
       platformLinks: resolveEditablePlatformLinks(track, tracks),
       smartlinkSlug: track.smartlinkSlug?.trim() || null,
+      smartlinkPublic: track.smartlinkPublic === true,
+      canEnablePromo: canEnableTrackSmartlinkPromo(track),
     }
   }
 
@@ -117,6 +134,8 @@ export async function resolveCabinetSmartlinkContext(
     theme: parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME),
     platformLinks: resolveEditablePlatformLinks(track, tracks),
     smartlinkSlug: track.smartlinkSlug?.trim() || null,
+    smartlinkPublic: track.smartlinkPublic === true,
+    canEnablePromo: canEnableTrackSmartlinkPromo(track),
   }
 }
 

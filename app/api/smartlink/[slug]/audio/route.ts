@@ -6,15 +6,14 @@ import {
   ensureSmartlinkPreviewAudio,
   SMARTLINK_PREVIEW_AUDIO_CACHE_CONTROL,
 } from "@/lib/smartlink-preview-audio"
-import { getReleasedSmartlinkTrack } from "@/lib/smartlink"
-import { DEFAULT_SMARTLINK_THEME, parseSmartlinkTheme } from "@/lib/smartlink-theme"
+import { getPublicSmartlink } from "@/lib/smartlink"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function parseByteRange(
   rangeHeader: string | null,
-  size: number,
+  size: number
 ): { start: number; end: number } | null {
   if (!rangeHeader || !rangeHeader.startsWith("bytes=") || size <= 0) return null
   const [rawStart, rawEnd] = rangeHeader.replace(/bytes=/, "").split("-", 2)
@@ -34,24 +33,23 @@ function parseByteRange(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> },
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params
-  const track = await getReleasedSmartlinkTrack(slug)
-  if (!track?.audioPath?.trim()) {
+  const pub = await getPublicSmartlink(slug)
+  if (!pub?.audioPath?.trim()) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const theme = parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME)
-  if (!theme.previewAudioEnabled) {
+  if (!pub.theme.previewAudioEnabled) {
     return NextResponse.json({ error: "Preview disabled" }, { status: 404 })
   }
 
   try {
     const preview = await ensureSmartlinkPreviewAudio({
-      trackId: track.id,
-      sourceWavPath: track.audioPath,
-      startSec: theme.previewAudioStartSec,
+      trackId: pub.cacheKey,
+      sourceWavPath: pub.audioPath,
+      startSec: pub.theme.previewAudioStartSec,
     })
     const { size } = await stat(preview.path)
     const range = parseByteRange(request.headers.get("range"), size)

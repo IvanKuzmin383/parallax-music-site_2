@@ -12,12 +12,13 @@ type SmartlinkPreviewAudioProps = {
 }
 
 /**
- * Автостарт muted (политика браузеров) + кнопка звука.
+ * Сначала пробуем автостарт со звуком.
+ * Если браузер блокирует - играем muted, кнопка включает звук.
  * src - короткий хук, не полный трек.
  */
 export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPreviewAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [muted, setMuted] = useState(true)
+  const [muted, setMuted] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -26,9 +27,9 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
     if (!el) return
     setFailed(false)
     setPlaying(false)
-    setMuted(true)
-    el.muted = true
-    el.defaultMuted = true
+    setMuted(false)
+    el.muted = false
+    el.defaultMuted = false
     el.volume = 0.9
 
     const onPlaying = () => setPlaying(true)
@@ -40,10 +41,21 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
     el.addEventListener("error", onError)
 
     const tryPlay = () => {
-      el.muted = true
-      void el.play().catch(() => {
-        // Ждём жест пользователя - кнопка разблокирует
-      })
+      el.muted = false
+      void el
+        .play()
+        .then(() => {
+          setMuted(false)
+          setPlaying(true)
+        })
+        .catch(() => {
+          // Автоплей со звуком запрещён - тихое воспроизведение + кнопка
+          el.muted = true
+          setMuted(true)
+          void el.play().catch(() => {
+            // Ждём жест пользователя
+          })
+        })
     }
 
     if (el.readyState >= 2) tryPlay()
@@ -70,12 +82,15 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
     const nextMuted = !muted
     el.muted = nextMuted
     setMuted(nextMuted)
-    void el.play().then(() => setPlaying(true)).catch(() => setFailed(true))
+    void el
+      .play()
+      .then(() => setPlaying(true))
+      .catch(() => setFailed(true))
   }
 
   return (
     <div className={cn("pointer-events-auto flex flex-col items-end gap-1", className)}>
-      <audio ref={audioRef} src={src} loop preload="auto" playsInline muted />
+      <audio ref={audioRef} src={src} loop preload="auto" playsInline muted={muted} />
       <button
         type="button"
         onClick={toggleMute}

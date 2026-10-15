@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getReleasedSmartlinkTrack, SMARTLINK_SLUG_REGEX, smartlinkOgImagePath } from "@/lib/smartlink"
+import { getPublicSmartlink, SMARTLINK_SLUG_REGEX, smartlinkOgImagePath } from "@/lib/smartlink"
 
 export async function GET(
   _request: NextRequest,
@@ -11,8 +11,8 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const track = await getReleasedSmartlinkTrack(slug)
-  if (!track) {
+  const pub = await getPublicSmartlink(slug)
+  if (!pub) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
@@ -20,10 +20,11 @@ export async function GET(
   const coverUrl = `${baseUrl}${smartlinkOgImagePath(slug)}`
 
   return NextResponse.json({
-    trackName: track.trackName,
-    artistName: track.artistName,
-    links: track.platformLinks ?? {},
+    trackName: pub.title,
+    artistName: pub.artistName,
+    links: pub.platformLinks ?? {},
     coverUrl,
-    theme: track.smartlinkTheme ?? null,
+    theme: pub.theme ?? null,
+    source: pub.source,
   })
 }

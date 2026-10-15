@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { connection } from "next/server"
-import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
+import { getPublicSmartlink, smartlinkOgImagePath } from "@/lib/smartlink"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 
@@ -11,14 +11,14 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
   await connection()
 
-  let track: Awaited<ReturnType<typeof getReleasedSmartlinkTrack>> = null
+  let pub: Awaited<ReturnType<typeof getPublicSmartlink>> = null
   try {
-    track = await getReleasedSmartlinkTrack(slug)
+    pub = await getPublicSmartlink(slug)
   } catch (error) {
     console.error("[smartlink] buildSmartlinkMetadata error:", error)
   }
 
-  if (!track) {
+  if (!pub) {
     return {
       title: "Не найдено",
       robots: { index: false, follow: false },
@@ -27,8 +27,8 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
 
   const pageUrl = new URL(`/s/${slug}`, siteUrl).href
   const coverPath = smartlinkOgImagePath(slug)
-  const title = `${track.trackName} - ${track.artistName} | Parallax Music`
-  const description = `Слушайте «${track.trackName}» от ${track.artistName} на всех платформах`
+  const title = `${pub.title} - ${pub.artistName} | Parallax Music`
+  const description = `Слушайте «${pub.title}» от ${pub.artistName} на всех платформах`
 
   return {
     title,
@@ -38,7 +38,7 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
       title,
       description,
       url: pageUrl,
-      images: [{ url: coverPath, width: 1200, height: 1200, alt: track.trackName }],
+      images: [{ url: coverPath, width: 1200, height: 1200, alt: pub.title }],
       type: "website",
     },
     twitter: {

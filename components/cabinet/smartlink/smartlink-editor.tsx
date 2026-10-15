@@ -83,6 +83,8 @@ type SmartlinkApiPayload = {
   smartlinkSlug: string | null
   publicPath: string | null
   isPublic: boolean
+  smartlinkPublic?: boolean
+  canEnablePromo?: boolean
   defaultPreviewStartSec?: number
 }
 
@@ -134,7 +136,7 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
       </div>
     )
   }
-  if (preset === "vinyl" || preset === "grid") {
+  if (preset === "vinyl" || preset === "grid" || preset === "rave") {
     return (
       <div className={cn(base, "flex items-center justify-center gap-0.5 bg-[#111] p-1")}>
         {[0, 1, 2].map((i) => (
@@ -144,9 +146,165 @@ function PresetSwatch({ preset, accent }: { preset: SmartlinkPreset; accent: str
               "h-3 w-3 border border-white/25",
               preset === "vinyl" ? "rounded-full" : "rounded-sm",
             )}
-            style={{ backgroundColor: i === 1 ? accent : "rgba(255,255,255,0.12)" }}
+            style={{
+              backgroundColor: i === 1 ? accent : "rgba(255,255,255,0.12)",
+              boxShadow: preset === "rave" && i === 1 ? `0 0 6px ${accent}` : undefined,
+            }}
           />
         ))}
+      </div>
+    )
+  }
+  if (preset === "cassette") {
+    return (
+      <div className={cn(base, "flex items-center justify-center gap-1 bg-[#2a2a30] p-1")}>
+        <span className="h-3 w-3 rounded-full border border-white/20 bg-[#111]" />
+        <span className="h-4 w-5 rounded-sm" style={{ backgroundColor: accent }} />
+        <span className="h-3 w-3 rounded-full border border-white/20 bg-[#111]" />
+      </div>
+    )
+  }
+  if (preset === "graffiti") {
+    return (
+      <div className={cn(base, "bg-[#111] p-1")}>
+        <div
+          className="h-full w-full -rotate-2 rounded-sm border-2 border-black"
+          style={{ backgroundColor: accent, boxShadow: "2px 2px 0 #000" }}
+        />
+      </div>
+    )
+  }
+  if (preset === "stage") {
+    return (
+      <div className={cn(base, "bg-[#0B0B0C] p-1")}>
+        <div
+          className="h-full w-full rounded-sm border"
+          style={{
+            borderColor: `color-mix(in srgb, ${accent} 60%, #888)`,
+            background: `linear-gradient(180deg, rgba(255,255,255,0.12), transparent), #161618`,
+          }}
+        />
+      </div>
+    )
+  }
+  if (preset === "polaroid") {
+    return (
+      <div className={cn(base, "bg-[#1a1714] p-1")}>
+        <div className="flex h-full w-full flex-col bg-[#f7f4ee] p-0.5">
+          <div className="min-h-0 flex-1" style={{ backgroundColor: accent }} />
+          <div className="mt-0.5 h-1 bg-[#e8e4dc]" />
+        </div>
+      </div>
+    )
+  }
+  if (preset === "arcade") {
+    return (
+      <div className={cn(base, "bg-[#0a0a12] p-1")}>
+        <div
+          className="h-full w-full border-2 border-black"
+          style={{ backgroundColor: accent, boxShadow: "2px 2px 0 #111" }}
+        />
+      </div>
+    )
+  }
+  if (preset === "vhs") {
+    return (
+      <div className={cn(base, "bg-[#050814] p-1")}>
+        <div className="relative h-full w-full bg-[#0a1430]">
+          <div className="absolute inset-x-0 top-1/3 h-px bg-cyan-400/40" />
+          <div className="absolute inset-x-0 top-2/3 h-px bg-cyan-400/25" />
+          <span className="absolute left-0.5 top-0.5 text-[6px] text-cyan-200">▶</span>
+        </div>
+      </div>
+    )
+  }
+  if (preset === "zine") {
+    return (
+      <div className={cn(base, "bg-[#ebe6dc] p-1")}>
+        <div
+          className="h-full w-full -rotate-2 border-2 border-black"
+          style={{ backgroundColor: accent, boxShadow: "2px 2px 0 #111" }}
+        />
+      </div>
+    )
+  }
+  if (preset === "chrome") {
+    return (
+      <div className={cn(base, "bg-[#1a1a22] p-1")}>
+        <div
+          className="h-full w-full rounded-full"
+          style={{
+            backgroundImage:
+              "linear-gradient(145deg, #f5f5f5 0%, #b8b8c0 35%, #7a7a86 60%, #d8d8e0 100%)",
+          }}
+        />
+      </div>
+    )
+  }
+  if (preset === "noir") {
+    return (
+      <div className={cn(base, "flex bg-[#050505] p-1")}>
+        <div className="w-0.5 shrink-0" style={{ backgroundColor: accent }} />
+        <div className="ml-1 h-full flex-1 bg-white/15" />
+      </div>
+    )
+  }
+  if (preset === "orbit") {
+    return (
+      <div className={cn(base, "relative bg-[#0B0B0C]")}>
+        <span
+          className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ backgroundColor: accent }}
+        />
+        {[0, 1, 2, 3].map((i) => {
+          const a = ((i / 4) * 360 - 90) * (Math.PI / 180)
+          return (
+            <span
+              key={i}
+              className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50"
+              style={{
+                left: `${50 + 32 * Math.cos(a)}%`,
+                top: `${50 + 32 * Math.sin(a)}%`,
+              }}
+            />
+          )
+        })}
+      </div>
+    )
+  }
+  if (preset === "stamp") {
+    return (
+      <div className={cn(base, "bg-[#101012] p-1")}>
+        <div
+          className="h-full w-full rotate-1 border-2 border-dashed"
+          style={{ borderColor: accent, backgroundColor: "rgba(255,255,255,0.06)" }}
+        />
+      </div>
+    )
+  }
+  if (preset === "holo") {
+    return (
+      <div className={cn(base, "bg-[#0B0B0C] p-1")}>
+        <div
+          className="h-full w-full rounded-full"
+          style={{
+            backgroundImage: `linear-gradient(120deg, ${accent}, #7dd3fc, ${accent})`,
+            opacity: 0.85,
+          }}
+        />
+      </div>
+    )
+  }
+  if (preset === "diary") {
+    return (
+      <div
+        className={cn(base, "bg-[#f4efe4] p-1")}
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(transparent 0 5px, rgba(80,120,180,0.25) 5px 6px)",
+        }}
+      >
+        <div className="h-full w-full border border-black/10 bg-white/50" />
       </div>
     )
   }
@@ -378,6 +536,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
   const [dragKey, setDragKey] = useState<PlatformLinkKey | null>(null)
   const [addPlatformOpen, setAddPlatformOpen] = useState(false)
   const [addSocialOpen, setAddSocialOpen] = useState(false)
+  const [promoPublic, setPromoPublic] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -403,6 +562,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
       setCustomAccent(nextTheme.accent)
       setPlatformLinks(normalizePlatformLinks(json.platformLinks))
       setSlug(json.smartlinkSlug ?? "")
+      setPromoPublic(Boolean(json.smartlinkPublic))
     } finally {
       setLoading(false)
     }
@@ -565,6 +725,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
           ensureSlug: true,
           smartlinkSlug: slug.trim() || undefined,
           platformLinks: cleanedLinks,
+          smartlinkPublic: data.canEnablePromo ? promoPublic : undefined,
           theme: {
             ...theme,
             accent,
@@ -590,6 +751,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
       setPlatformLinks(normalizePlatformLinks(json.platformLinks))
       setSlug(json.smartlinkSlug ?? "")
       setCustomAccent(nextTheme.accent)
+      setPromoPublic(Boolean(json.smartlinkPublic))
       toast.success("Смартлинк сохранён")
     } catch {
       toast.error("Не удалось сохранить")
@@ -691,11 +853,47 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
         </div>
       </div>
 
+      {data.canEnablePromo ? (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/40 px-4 py-3">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-sm font-medium">Промо-смартлинк</p>
+            <p className="text-xs text-muted-foreground">
+              Открыть публичную страницу до официального релиза (модерация / площадки). Нужна обложка.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={promoPublic}
+            aria-label="Включить промо-смартлинк"
+            onClick={() => setPromoPublic((v) => !v)}
+            className={cn(
+              "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+              promoPublic ? "bg-primary" : "bg-muted"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform",
+                promoPublic ? "left-[1.35rem]" : "left-0.5"
+              )}
+            />
+          </button>
+        </div>
+      ) : null}
+
       {!data.isPublic ? (
         <p className="shrink-0 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
-          Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее.
+          {data.canEnablePromo
+            ? "Включите «Промо-смартлинк» и сохраните - страница станет доступна по ссылке (нужна обложка)."
+            : "Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее."}
         </p>
-      ) : null}
+      ) : (
+        <p className="shrink-0 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-950 dark:text-emerald-100">
+          Публичная страница активна
+          {data.smartlinkPublic && data.status !== "released" ? " (промо)" : ""}.
+        </p>
+      )}
 
       <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
         <div className="min-h-0 space-y-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
@@ -841,7 +1039,8 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 />
                 <p className="text-sm text-muted-foreground">
                   На странице крутится короткий фрагмент ~{SMARTLINK_PREVIEW_AUDIO_DURATION_SEC} сек с
-                  этой секунды (не весь трек). Старт всегда без звука - слушатель включает сам.
+                  этой секунды (не весь трек). Звук включается сразу; если браузер запретит - кнопка
+                  «Вкл. звук».
                   {typeof data?.defaultPreviewStartSec === "number" && data.defaultPreviewStartSec > 0
                     ? ` В релизе для TikTok указано: ${data.defaultPreviewStartSec} сек.`
                     : null}
@@ -1109,7 +1308,10 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                 onChange={(next) => patchTheme("platformLayout", next as SmartlinkPlatformLayout)}
                 cols={2}
               />
-              {(theme.preset === "vinyl" || theme.preset === "grid") &&
+              {(theme.preset === "vinyl" ||
+                theme.preset === "grid" ||
+                theme.preset === "rave" ||
+                theme.preset === "orbit") &&
               theme.platformLayout !== "icons" ? (
                 <p className="text-xs text-muted-foreground">
                   Стиль «{SMARTLINK_PRESET_META[theme.preset].label}» лучше смотрится со значками

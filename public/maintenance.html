@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Технические работы | Parallax Music</title>
+    <style>
+      :root {
+        --bg: #09090b;
+        --fg: #f2efe9;
+        --muted: #a8a29e;
+        --primary: #c23a2e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+      body {
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background-image:
+          radial-gradient(720px 380px at 96% 4%, rgba(194, 58, 46, 0.12), transparent 58%),
+          radial-gradient(800px 500px at 50% 110%, rgba(194, 58, 46, 0.08), transparent 60%);
+      }
+      main {
+        max-width: 40rem;
+        text-align: center;
+      }
+      .brand {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        margin: 0 0 1.5rem;
+      }
+      .brand span {
+        color: var(--primary);
+        margin-left: 0.25rem;
+      }
+      .bar {
+        width: 3rem;
+        height: 0.25rem;
+        margin: 0 auto 1.75rem;
+        border-radius: 999px;
+        background: var(--primary);
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.55;
+          transform: scaleX(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scaleX(1.35);
+        }
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.75rem, 4vw, 2.75rem);
+        line-height: 1.15;
+        margin: 0 0 1rem;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 auto;
+        max-width: 32rem;
+        color: var(--muted);
+        font-size: 1.05rem;
+        line-height: 1.55;
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+        justify-content: center;
+        margin-top: 2rem;
+      }
+      a {
+        color: var(--fg);
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+      }
+      a:hover {
+        color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="brand">PARALLAX<span>MUSIC</span></p>
+      <div class="bar" aria-hidden="true"></div>
+      <h1>Идут технические работы</h1>
+      <p>
+        Улучшаем сервис для вас. Сайт скоро снова будет доступен - спасибо за
+        терпение.
+      </p>
+      <div class="links">
+        <a href="https://t.me/parallaxmusic_rt" target="_blank" rel="noopener noreferrer"
+          >Telegram</a
+        >
+        <a href="mailto:parallaxmusiclabel@gmail.com">parallaxmusiclabel@gmail.com</a>
+      </div>
+    </main>
+  </body>
+</html>

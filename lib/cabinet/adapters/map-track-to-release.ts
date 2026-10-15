@@ -108,6 +108,8 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
       trackCount,
       tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
       aiAnalysisText,
+      smartlinkSlug: track.smartlinkSlug?.trim() || null,
+      smartlinkPublic: track.smartlinkPublic === true,
     }
   }
 
@@ -124,6 +126,8 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
     trackCount: 1,
     tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
     aiAnalysisText,
+    smartlinkSlug: track.smartlinkSlug?.trim() || null,
+    smartlinkPublic: track.smartlinkPublic === true,
   }
 }
 
@@ -152,6 +156,9 @@ export function mapReleaseEntityToView(
     releaseStatus: release.status,
     platforms: mergePlatforms(tracks),
     aiAnalysisText: release.aiAnalysisText?.trim() || null,
+    smartlinkSlug:
+      tracks.map((t) => t.smartlinkSlug?.trim()).find(Boolean) || null,
+    smartlinkPublic: tracks.some((t) => t.smartlinkPublic === true),
   }
 }
 
@@ -180,6 +187,9 @@ export function mapAlbumTracksToRelease(
     trackCount: summaries.length,
     tracks: summaries,
     aiAnalysisText,
+    smartlinkSlug:
+      ordered.map((t) => t.smartlinkSlug?.trim()).find(Boolean) || null,
+    smartlinkPublic: ordered.some((t) => t.smartlinkPublic === true),
   }
 }
 

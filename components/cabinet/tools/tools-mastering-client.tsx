@@ -1,6 +1,14 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import Link from "next/link"
 import { ArrowLeft, ChevronDown, CircleHelp, Download, Loader2, Pause, Play, Upload } from "lucide-react"
 import { toast } from "sonner"
@@ -141,6 +149,186 @@ function ParamSlider({
   )
 }
 
+function clampStepped(value: number, min: number, max: number, step: number): number {
+  const clamped = Math.min(max, Math.max(min, value))
+  if (step <= 0) return clamped
+  const stepped = Math.round((clamped - min) / step) * step + min
+  const decimals = String(step).includes(".") ? String(step).split(".")[1]!.length : 0
+  return Number(stepped.toFixed(decimals))
+}
+
+function formatKnobValue(value: number, unit?: string): string {
+  const abs = Math.abs(value)
+  const text =
+    abs >= 100 ? value.toFixed(0) : abs >= 10 ? value.toFixed(1) : Number.isInteger(value) ? String(value) : value.toFixed(1)
+  return `${text}${unit ?? ""}`
+}
+
+/** VST-style rotary knob: drag vertically or use wheel / arrows. */
+function RotaryKnob({
+  label,
+  tip,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  onChange,
+}: {
+  label: string
+  tip: string
+  value: number
+  min: number
+  max: number
+  step: number
+  unit?: string
+  onChange: (v: number) => void
+}) {
+  const gradId = useId().replace(/:/g, "")
+  const dragRef = useRef<{ startY: number; startValue: number } | null>(null)
+  const t = max === min ? 0 : (value - min) / (max - min)
+  const angle = -135 + Math.min(1, Math.max(0, t)) * 270
+  const arcLen = 270 * (Math.PI / 180) * 40
+
+  const applyFromDeltaY = (deltaY: number, startValue: number) => {
+    const range = max - min
+    const next = startValue - (deltaY / 110) * range
+    onChange(clampStepped(next, min, max, step))
+  }
+
+  return (
+    <div className="flex w-[5.5rem] flex-col items-center gap-1.5 sm:w-[6rem]">
+      <p className="tabular-nums text-[11px] font-medium text-primary">{formatKnobValue(value, unit)}</p>
+      <div
+        role="slider"
+        tabIndex={0}
+        aria-label={label}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={formatKnobValue(value, unit)}
+        className="relative h-[4.25rem] w-[4.25rem] cursor-ns-resize touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:h-[4.75rem] sm:w-[4.75rem]"
+        onPointerDown={(e) => {
+          e.preventDefault()
+          ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
+          dragRef.current = { startY: e.clientY, startValue: value }
+        }}
+        onPointerMove={(e) => {
+          if (!dragRef.current) return
+          applyFromDeltaY(e.clientY - dragRef.current.startY, dragRef.current.startValue)
+        }}
+        onPointerUp={() => {
+          dragRef.current = null
+        }}
+        onPointerCancel={() => {
+          dragRef.current = null
+        }}
+        onWheel={(e) => {
+          e.preventDefault()
+          const dir = e.deltaY > 0 ? -1 : 1
+          onChange(clampStepped(value + dir * step, min, max, step))
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+            e.preventDefault()
+            onChange(clampStepped(value + step, min, max, step))
+          } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+            e.preventDefault()
+            onChange(clampStepped(value - step, min, max, step))
+          } else if (e.key === "Home") {
+            e.preventDefault()
+            onChange(min)
+          } else if (e.key === "End") {
+            e.preventDefault()
+            onChange(max)
+          }
+        }}
+      >
+        <svg viewBox="0 0 100 100" className="h-full w-full drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]">
+          <defs>
+            <radialGradient id={gradId} cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="var(--muted-foreground)" stopOpacity="0.35" />
+              <stop offset="55%" stopColor="var(--muted)" />
+              <stop offset="100%" stopColor="var(--card)" />
+            </radialGradient>
+          </defs>
+          <circle
+            cx="50"
+            cy="50"
+            r="46"
+            fill="var(--card)"
+            stroke="var(--border)"
+            strokeWidth="2"
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            fill="none"
+            stroke="var(--border)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray={`${arcLen} ${2 * Math.PI * 40}`}
+            transform="rotate(135 50 50)"
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray={`${t * arcLen} ${2 * Math.PI * 40}`}
+            transform="rotate(135 50 50)"
+            className="opacity-90"
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r="32"
+            fill={`url(#${gradId})`}
+            stroke="var(--border)"
+            strokeWidth="1"
+          />
+          <g transform={`rotate(${angle} 50 50)`}>
+            <rect x="48" y="18" width="4" height="16" rx="2" fill="var(--primary)" />
+            <circle cx="50" cy="50" r="4" fill="var(--background)" />
+          </g>
+        </svg>
+      </div>
+      <div className="flex items-center justify-center gap-1 text-center">
+        <span className="text-[11px] font-medium leading-tight text-foreground/90">{label}</span>
+        <HintIcon label={label} tip={tip} />
+      </div>
+    </div>
+  )
+}
+
+function KnobGroup({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint: string
+  children: ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-gradient-to-b from-card/50 to-card/20 p-3 sm:p-4">
+      <div className="mb-3 flex items-center gap-1.5 border-b border-border/50 pb-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {title}
+        </p>
+        <HintIcon label={title} tip={hint} />
+      </div>
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-4 sm:justify-start sm:gap-x-4">
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function HintCheckbox({
   label,
   tip,
@@ -192,7 +380,7 @@ function ToolsMasteringInner() {
   const [playhead, setPlayhead] = useState(0)
   const [duration, setDuration] = useState(0)
   const [presetsOpen, setPresetsOpen] = useState(true)
-  const [fineTuneOpen, setFineTuneOpen] = useState(false)
+  const [fineTuneOpen, setFineTuneOpen] = useState(true)
 
   const walletBalance = user?.walletBalance ?? 0
 
@@ -429,8 +617,8 @@ function ToolsMasteringInner() {
   })()
 
   return (
-    <div className="flex w-full min-w-0 max-w-none flex-col gap-6 xl:h-full xl:min-h-0">
-      <div className="shrink-0 space-y-3">
+    <div className="flex w-full min-w-0 max-w-none flex-col gap-6">
+      <div className="space-y-3">
         <Link
           href="/cabinet/tools"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -445,44 +633,148 @@ function ToolsMasteringInner() {
         />
       </div>
 
-      <section className="shrink-0 space-y-3 rounded-lg border border-border bg-card/30 p-4">
-        <p className="text-sm font-medium">Исходный WAV</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".wav,audio/wav,audio/x-wav"
-          className="hidden"
-          onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="mr-2 h-4 w-4" />
-            Выбрать файл
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {file ? file.name : "Файл не выбран"}
-          </span>
+      <section className="grid gap-4 rounded-xl border border-border bg-card/30 p-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
+        <div className="space-y-3 border-b border-border/60 pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
+          <p className="text-sm font-medium">Исходный WAV</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".wav,audio/wav,audio/x-wav"
+            className="hidden"
+            onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="mr-2 h-4 w-4" />
+              Выбрать файл
+            </Button>
+            <span className="min-w-0 truncate text-sm text-muted-foreground">
+              {file ? file.name : "Файл не выбран"}
+            </span>
+          </div>
+
+          {loadState === "loading" ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="text-muted-foreground">{loadPhase}</span>
+                <span className="tabular-nums text-muted-foreground">{loadPercent}%</span>
+              </div>
+              <Progress value={loadPercent} className="h-2" />
+            </div>
+          ) : null}
+
+          {loadState === "ready" ? (
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+              Трек загружен и готов к мастерингу
+            </div>
+          ) : null}
         </div>
 
-        {loadState === "loading" ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-muted-foreground">{loadPhase}</span>
-              <span className="tabular-nums text-muted-foreground">{loadPercent}%</span>
+        <div className="space-y-3 lg:pl-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium">Предпрослушивание</p>
+              <HintIcon
+                label="Предпрослушивание"
+                tip="Слушайте результат до скачивания. A - исходник, B - с мастерингом. Крутилки меняют звук сразу в режиме B."
+              />
             </div>
-            <Progress value={loadPercent} className="h-2" />
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              <button
+                type="button"
+                className={cn(
+                  "rounded px-3 py-1.5 text-xs font-semibold",
+                  abMode === "A"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => switchAb("A")}
+                disabled={loadState !== "ready"}
+              >
+                A · оригинал
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded px-3 py-1.5 text-xs font-semibold",
+                  abMode === "B"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => switchAb("B")}
+                disabled={loadState !== "ready"}
+              >
+                B · мастер
+              </button>
+            </div>
           </div>
-        ) : null}
 
-        {loadState === "ready" ? (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-            Трек загружен и готов к мастерингу
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 shrink-0"
+              disabled={loadState !== "ready"}
+              aria-label={playing ? "Пауза" : "Воспроизвести"}
+              onClick={() => void togglePlay()}
+            >
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
+                <span>{formatTime(playhead)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+              <Slider
+                value={[Math.min(playhead, duration || 0)]}
+                min={0}
+                max={duration > 0 ? duration : 1}
+                step={0.01}
+                disabled={loadState !== "ready" || duration <= 0}
+                aria-label="Позиция воспроизведения"
+                onValueChange={(value) => {
+                  scrubbingRef.current = true
+                  setPlayhead(value[0] ?? 0)
+                }}
+                onValueCommit={(value) => {
+                  scrubbingRef.current = false
+                  void seekTo(value[0] ?? 0)
+                }}
+              />
+            </div>
           </div>
-        ) : null}
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              onClick={() => {
+                if (needsPurchase) {
+                  setPayDialogOpen(true)
+                  return
+                }
+                void handleDownload()
+              }}
+              disabled={needsPurchase ? paying : busy || loadState !== "ready"}
+              className="sm:flex-1"
+            >
+              {busy || paying ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : needsPurchase ? null : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {downloadLabel}
+            </Button>
+            <Button type="button" variant="ghost" asChild className="sm:shrink-0">
+              <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
+            </Button>
+          </div>
+        </div>
       </section>
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] xl:overflow-hidden">
-        <div className="min-w-0 space-y-6 xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
+      <div className="space-y-6">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
             <section className="rounded-lg border border-border bg-card/30">
               <CollapsibleTrigger asChild>
@@ -630,345 +922,161 @@ function ToolsMasteringInner() {
               </div>
               <CollapsibleContent>
                 <div className="space-y-4 border-t border-border px-4 py-4">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <ParamSlider
-                label="Обрезка низа"
-                tip="Убирает лишний гул и шум ниже выбранной частоты. Чуть выше - чище низ, но можно потерять «тело» баса."
-                value={params.hpfHz}
-                min={20}
-                max={120}
-                step={1}
-                unit=" Hz"
-                onChange={(hpfHz) => patchParams({ hpfHz })}
-              />
-              <ParamSlider
-                label="Низ"
-                tip="Поднимает или опускает бас и «тело» трека. В плюс - мощнее низ, в минус - легче и суше."
-                value={params.lfShelfDb}
-                min={-6}
-                max={6}
-                step={0.1}
-                unit=" dB"
-                onChange={(lfShelfDb) => patchParams({ lfShelfDb })}
-              />
-              <ParamSlider
-                label="Середина"
-                tip="Акцент на голосе и основных инструментах. В плюс - плотнее и ближе, в минус - мягче и дальше."
-                value={params.mfPeakDb}
-                min={-6}
-                max={6}
-                step={0.1}
-                unit=" dB"
-                onChange={(mfPeakDb) => patchParams({ mfPeakDb })}
-              />
-              <ParamSlider
-                label="Верх"
-                tip="Яркость и воздух. В плюс - звонче и детальнее, в минус - теплее и спокойнее."
-                value={params.hfShelfDb}
-                min={-6}
-                max={6}
-                step={0.1}
-                unit=" dB"
-                onChange={(hfShelfDb) => patchParams({ hfShelfDb })}
-              />
-              <ParamSlider
-                label="Ширина стерео"
-                tip="1 - как в исходнике, выше - шире и объёмнее, ниже - уже, ближе к моно. Слишком широко может «плыть» на телефоне."
-                value={params.stereoWidth}
-                min={0}
-                max={2}
-                step={0.05}
-                onChange={(stereoWidth) => patchParams({ stereoWidth })}
-              />
-              <ParamSlider
-                label="Насыщенность"
-                tip="Добавляет плотность и «тепло» за счёт мягкого искажения. Сильнее - жирнее и горячее, но можно пережать."
-                value={params.saturation}
-                min={0}
-                max={5}
-                step={0.1}
-                onChange={(saturation) => patchParams({ saturation })}
-              />
-              <ParamSlider
-                label="Порог сжатия"
-                tip="С какого уровня включается компрессор. Ниже (например −20) - сильнее выравнивает громкость."
-                value={params.thresholdDb}
-                min={-40}
-                max={0}
-                step={0.5}
-                unit=" dB"
-                onChange={(thresholdDb) => patchParams({ thresholdDb })}
-              />
-              <ParamSlider
-                label="Сила сжатия"
-                tip="Насколько сильно прижимаются громкие моменты. Выше - ровнее и плотнее, но меньше «живости»."
-                value={params.ratio}
-                min={1.1}
-                max={10}
-                step={0.1}
-                onChange={(ratio) => patchParams({ ratio })}
-              />
-              <ParamSlider
-                label="Атака"
-                tip="Как быстро срабатывает сжатие. Быстрее - плотнее и контролируемее, медленнее - больше остроты атак."
-                value={params.attackMs}
-                min={1}
-                max={100}
-                step={1}
-                unit=" ms"
-                onChange={(attackMs) => patchParams({ attackMs })}
-              />
-              <ParamSlider
-                label="Восстановление"
-                tip="Как быстро компрессор отпускает после пика. Быстрее - живее, медленнее - ровнее и спокойнее."
-                value={params.releaseMs}
-                min={20}
-                max={400}
-                step={5}
-                unit=" ms"
-                onChange={(releaseMs) => patchParams({ releaseMs })}
-              />
-              <ParamSlider
-                label="Потолок"
-                tip="Максимальная громкость на выходе, чтобы не было клиппинга. Чуть ниже нуля - безопаснее для площадок."
-                value={params.ceilingDb}
-                min={-3}
-                max={0}
-                step={0.1}
-                unit=" dB"
-                onChange={(ceilingDb) => patchParams({ ceilingDb })}
-              />
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <HintCheckbox
-                label="Мягкий клип"
-                tip="Плавно ограничивает самые громкие пики вместо жёсткого обрезания - звук плотнее и без треска."
-                checked={params.softClip}
-                onCheckedChange={(softClip) => patchParams({ softClip })}
-              />
-              <HintCheckbox
-                label="Моно-бас (в скачивании)"
-                tip="Собирает низ в центр. Трек стабильнее на телефонах и в клубе. Действует в скачанном файле."
-                checked={params.monoBass}
-                onCheckedChange={(monoBass) => patchParams({ monoBass })}
-              />
-            </div>
+                  <p className="text-xs text-muted-foreground">
+                    Тяните крутилки вверх/вниз или крутите колесом мыши. Группы как в VST: тон,
+                    динамика, окрас, выход.
+                  </p>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <KnobGroup
+                      title="Тон / EQ"
+                      hint="Баланс частот: обрезка гула, низ, середина и яркость верха."
+                    >
+                      <RotaryKnob
+                        label="Обрезка низа"
+                        tip="Убирает лишний гул и шум ниже выбранной частоты. Чуть выше - чище низ, но можно потерять «тело» баса."
+                        value={params.hpfHz}
+                        min={20}
+                        max={120}
+                        step={1}
+                        unit=" Hz"
+                        onChange={(hpfHz) => patchParams({ hpfHz })}
+                      />
+                      <RotaryKnob
+                        label="Низ"
+                        tip="Поднимает или опускает бас и «тело» трека. В плюс - мощнее низ, в минус - легче и суше."
+                        value={params.lfShelfDb}
+                        min={-6}
+                        max={6}
+                        step={0.1}
+                        unit=" dB"
+                        onChange={(lfShelfDb) => patchParams({ lfShelfDb })}
+                      />
+                      <RotaryKnob
+                        label="Середина"
+                        tip="Акцент на голосе и основных инструментах. В плюс - плотнее и ближе, в минус - мягче и дальше."
+                        value={params.mfPeakDb}
+                        min={-6}
+                        max={6}
+                        step={0.1}
+                        unit=" dB"
+                        onChange={(mfPeakDb) => patchParams({ mfPeakDb })}
+                      />
+                      <RotaryKnob
+                        label="Верх"
+                        tip="Яркость и воздух. В плюс - звонче и детальнее, в минус - теплее и спокойнее."
+                        value={params.hfShelfDb}
+                        min={-6}
+                        max={6}
+                        step={0.1}
+                        unit=" dB"
+                        onChange={(hfShelfDb) => patchParams({ hfShelfDb })}
+                      />
+                    </KnobGroup>
+
+                    <KnobGroup
+                      title="Динамика"
+                      hint="Компрессор: порог, сила, атака и восстановление - как громкость «прижимается»."
+                    >
+                      <RotaryKnob
+                        label="Порог"
+                        tip="С какого уровня включается компрессор. Ниже (например -20) - сильнее выравнивает громкость."
+                        value={params.thresholdDb}
+                        min={-40}
+                        max={0}
+                        step={0.5}
+                        unit=" dB"
+                        onChange={(thresholdDb) => patchParams({ thresholdDb })}
+                      />
+                      <RotaryKnob
+                        label="Сила"
+                        tip="Насколько сильно прижимаются громкие моменты. Выше - ровнее и плотнее, но меньше «живости»."
+                        value={params.ratio}
+                        min={1.1}
+                        max={10}
+                        step={0.1}
+                        onChange={(ratio) => patchParams({ ratio })}
+                      />
+                      <RotaryKnob
+                        label="Атака"
+                        tip="Как быстро срабатывает сжатие. Быстрее - плотнее и контролируемее, медленнее - больше остроты атак."
+                        value={params.attackMs}
+                        min={1}
+                        max={100}
+                        step={1}
+                        unit=" ms"
+                        onChange={(attackMs) => patchParams({ attackMs })}
+                      />
+                      <RotaryKnob
+                        label="Восстановление"
+                        tip="Как быстро компрессор отпускает после пика. Быстрее - живее, медленнее - ровнее и спокойнее."
+                        value={params.releaseMs}
+                        min={20}
+                        max={400}
+                        step={5}
+                        unit=" ms"
+                        onChange={(releaseMs) => patchParams({ releaseMs })}
+                      />
+                    </KnobGroup>
+
+                    <KnobGroup
+                      title="Окрас"
+                      hint="Ширина стерео и насыщенность - объём и «тепло» звука."
+                    >
+                      <RotaryKnob
+                        label="Стерео"
+                        tip="1 - как в исходнике, выше - шире и объёмнее, ниже - уже, ближе к моно. Слишком широко может «плыть» на телефоне."
+                        value={params.stereoWidth}
+                        min={0}
+                        max={2}
+                        step={0.05}
+                        onChange={(stereoWidth) => patchParams({ stereoWidth })}
+                      />
+                      <RotaryKnob
+                        label="Насыщенность"
+                        tip="Добавляет плотность и «тепло» за счёт мягкого искажения. Сильнее - жирнее и горячее, но можно пережать."
+                        value={params.saturation}
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        onChange={(saturation) => patchParams({ saturation })}
+                      />
+                    </KnobGroup>
+
+                    <KnobGroup
+                      title="Выход"
+                      hint="Потолок громкости и финальные опции перед скачиванием."
+                    >
+                      <RotaryKnob
+                        label="Потолок"
+                        tip="Максимальная громкость на выходе, чтобы не было клиппинга. Чуть ниже нуля - безопаснее для площадок."
+                        value={params.ceilingDb}
+                        min={-3}
+                        max={0}
+                        step={0.1}
+                        unit=" dB"
+                        onChange={(ceilingDb) => patchParams({ ceilingDb })}
+                      />
+                      <div className="flex min-w-[10rem] flex-col justify-center gap-3 self-center pl-1">
+                        <HintCheckbox
+                          label="Мягкий клип"
+                          tip="Плавно ограничивает самые громкие пики вместо жёсткого обрезания - звук плотнее и без треска."
+                          checked={params.softClip}
+                          onCheckedChange={(softClip) => patchParams({ softClip })}
+                        />
+                        <HintCheckbox
+                          label="Моно-бас (в скачивании)"
+                          tip="Собирает низ в центр. Трек стабильнее на телефонах и в клубе. Действует в скачанном файле."
+                          checked={params.monoBass}
+                          onCheckedChange={(monoBass) => patchParams({ monoBass })}
+                        />
+                      </div>
+                    </KnobGroup>
+                  </div>
                 </div>
               </CollapsibleContent>
             </section>
           </Collapsible>
-        </div>
-
-        <aside className="hidden min-w-0 xl:block xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain">
-          <div className="space-y-4 rounded-lg border border-border bg-background/95 p-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium">Предпрослушивание</p>
-                <HintIcon
-                  label="Предпрослушивание"
-                  tip="Слушайте результат до скачивания. A - исходник, B - с мастерингом. Ползунок перематывает трек."
-                />
-              </div>
-              <div className="inline-flex rounded-md border border-border p-0.5">
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded px-3 py-1.5 text-xs font-semibold",
-                    abMode === "A"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => switchAb("A")}
-                  disabled={loadState !== "ready"}
-                >
-                  A · оригинал
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded px-3 py-1.5 text-xs font-semibold",
-                    abMode === "B"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => switchAb("B")}
-                  disabled={loadState !== "ready"}
-                >
-                  B · мастер
-                </button>
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Двигайте ползунки во время воспроизведения - звук меняется сразу (B). A/B сравнивает
-              оригинал и обработку на лету.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-11 w-11"
-                disabled={loadState !== "ready"}
-                aria-label={playing ? "Пауза" : "Воспроизвести"}
-                onClick={() => void togglePlay()}
-              >
-                {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </Button>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
-                  <span>{formatTime(playhead)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-                <Slider
-                  value={[Math.min(playhead, duration || 0)]}
-                  min={0}
-                  max={duration > 0 ? duration : 1}
-                  step={0.01}
-                  disabled={loadState !== "ready" || duration <= 0}
-                  aria-label="Позиция воспроизведения"
-                  onValueChange={(value) => {
-                    scrubbingRef.current = true
-                    setPlayhead(value[0] ?? 0)
-                  }}
-                  onValueCommit={(value) => {
-                    scrubbingRef.current = false
-                    void seekTo(value[0] ?? 0)
-                  }}
-                />
-              </div>
-            </div>
-
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-            <div className="flex flex-col gap-3">
-              <Button
-                type="button"
-                onClick={() => {
-                  if (needsPurchase) {
-                    setPayDialogOpen(true)
-                    return
-                  }
-                  void handleDownload()
-                }}
-                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
-                className="w-full"
-              >
-                {busy || paying ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : needsPurchase ? null : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
-                {downloadLabel}
-              </Button>
-              <Button type="button" variant="ghost" asChild className="w-full">
-                <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
-              </Button>
-            </div>
-          </div>
-        </aside>
       </div>
-
-      {/* Мобильный плеер - всегда поверх экрана, не уезжает со скроллом */}
-      <div
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-3 pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.45)] backdrop-blur-md supports-[backdrop-filter]:bg-background/90 xl:hidden",
-          "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-        )}
-      >
-        <div className="mx-auto flex w-full max-w-lg flex-col gap-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-muted-foreground">Предпрослушивание</p>
-            <div className="inline-flex rounded-md border border-border p-0.5">
-              <button
-                type="button"
-                className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-semibold",
-                  abMode === "A"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                onClick={() => switchAb("A")}
-                disabled={loadState !== "ready"}
-              >
-                A
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-semibold",
-                  abMode === "B"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                onClick={() => switchAb("B")}
-                disabled={loadState !== "ready"}
-              >
-                B
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-              disabled={loadState !== "ready"}
-              aria-label={playing ? "Пауза" : "Воспроизвести"}
-              onClick={() => void togglePlay()}
-            >
-              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            </Button>
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex justify-between text-[11px] tabular-nums text-muted-foreground">
-                <span>{formatTime(playhead)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-              <Slider
-                value={[Math.min(playhead, duration || 0)]}
-                min={0}
-                max={duration > 0 ? duration : 1}
-                step={0.01}
-                disabled={loadState !== "ready" || duration <= 0}
-                aria-label="Позиция воспроизведения"
-                onValueChange={(value) => {
-                  scrubbingRef.current = true
-                  setPlayhead(value[0] ?? 0)
-                }}
-                onValueCommit={(value) => {
-                  scrubbingRef.current = false
-                  void seekTo(value[0] ?? 0)
-                }}
-              />
-            </div>
-            <Button
-              type="button"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-              disabled={needsPurchase ? paying : busy || loadState !== "ready"}
-              aria-label={downloadLabel}
-              title={downloadLabel}
-              onClick={() => {
-                if (needsPurchase) {
-                  setPayDialogOpen(true)
-                  return
-                }
-                void handleDownload()
-              }}
-            >
-              {busy || paying ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          {error ? <p className="text-xs text-destructive">{error}</p> : null}
-        </div>
-      </div>
-      <div className="h-28 xl:hidden" aria-hidden />
 
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
         <DialogContent>

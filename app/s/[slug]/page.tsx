@@ -1,11 +1,7 @@
 import { notFound } from "next/navigation"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
-import { getReleasedSmartlinkTrack, smartlinkOgImagePath } from "@/lib/smartlink"
-import {
-  DEFAULT_SMARTLINK_THEME,
-  getOrderedSmartlinkLinks,
-  parseSmartlinkTheme,
-} from "@/lib/smartlink-theme"
+import { getPublicSmartlink, smartlinkOgImagePath } from "@/lib/smartlink"
+import { getOrderedSmartlinkLinks } from "@/lib/smartlink-theme"
 
 interface SmartlinkPageProps {
   params: Promise<{ slug: string }>
@@ -13,26 +9,32 @@ interface SmartlinkPageProps {
 
 export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
   const { slug } = await params
-  const track = await getReleasedSmartlinkTrack(slug)
-  if (!track) notFound()
+  const pub = await getPublicSmartlink(slug)
+  if (!pub) notFound()
 
   const coverUrl = smartlinkOgImagePath(slug)
-  const theme = parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME)
-  const linksList = getOrderedSmartlinkLinks(track.platformLinks, theme)
+  const linksList = getOrderedSmartlinkLinks(pub.platformLinks, pub.theme)
 
   const previewAudioSrc =
-    theme.previewAudioEnabled && track.audioPath?.trim()
+    pub.theme.previewAudioEnabled && pub.audioPath?.trim()
       ? `/api/smartlink/${encodeURIComponent(slug)}/audio`
       : null
 
+  const brandParams = new URLSearchParams({
+    utm_source: "smartlink",
+    utm_medium: "brand",
+    utm_campaign: pub.slug,
+  })
+
   return (
     <SmartlinkLanding
-      title={track.trackName}
-      artist={track.artistName}
+      title={pub.title}
+      artist={pub.artistName}
       coverUrl={coverUrl}
       links={linksList}
-      theme={theme}
+      theme={pub.theme}
       previewAudioSrc={previewAudioSrc}
+      brandHref={`/?${brandParams.toString()}`}
     />
   )
 }

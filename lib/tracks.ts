@@ -101,6 +101,8 @@ export interface Track {
   platformLinks?: PlatformLinks
   /** Оформление публичного смартлинка */
   smartlinkTheme?: SmartlinkTheme
+  /** Промо: публичный смартлинк до статуса released (on_moderation и др.). */
+  smartlinkPublic?: boolean
   /** Списан ли Fix-слот при отправке на модерацию (новый тариф Fix). */
   fixPackCreditsCharged: boolean
   /** AI-анализ (legacy-сингл без releases; иначе канон в releases.ai_analysis_text). */
@@ -153,6 +155,7 @@ export interface TrackRow {
   smartlink_slug: string | null
   platform_links: string | null
   smartlink_theme?: string | null
+  smartlink_public?: boolean | null
   fix_pack_credits_charged?: boolean | null
   ai_analysis_text?: string | null
   created_at: string
@@ -223,6 +226,7 @@ export function rowToTrack(row: TrackRow): Track {
     smartlinkSlug: row.smartlink_slug ?? undefined,
     platformLinks,
     smartlinkTheme: parseSmartlinkThemeJson(row.smartlink_theme),
+    smartlinkPublic: row.smartlink_public === true,
     fixPackCreditsCharged: row.fix_pack_credits_charged === true,
     aiAnalysisText: row.ai_analysis_text?.trim() ? row.ai_analysis_text : null,
     createdAt: normalizePgTimestamptz(row.created_at),
@@ -358,9 +362,35 @@ export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string
   const trimmed = slug.trim()
   if (!trimmed) return false
   const row = await queryOne<{ id: string }>("SELECT id FROM tracks WHERE smartlink_slug = ?", [trimmed])
-  if (!row) return false
-  if (excludeTrackId && row.id === excludeTrackId) return false
-  return true
+  if (row) {
+    if (excludeTrackId && row.id === excludeTrackId) {
+      // continue - still check smartlinks table
+    } else {
+      return true
+    }
+  }
+  try {
+    const sl = await queryOne<{ id: string }>(
+      `SELECT id FROM smartlinks WHERE LOWER(slug) = LOWER(?)`,
+      [trimmed]
+    )
+    if (sl) return true
+  } catch {
+    // таблица smartlinks может ещё не существовать до миграции
+  }
+  return false
+}
+
+export async function setTrackSmartlinkPublic(
+  trackId: string,
+  smartlinkPublic: boolean
+): Promise<Track | null> {
+  await execute(`UPDATE tracks SET smartlink_public = ?, updated_at = ? WHERE id = ?`, [
+    smartlinkPublic,
+    new Date().toISOString(),
+    trackId,
+  ])
+  return getTrackById(trackId)
 }
 
 export type CreateTrackInput = Omit<

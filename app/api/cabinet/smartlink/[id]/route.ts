@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import {
   ensureSmartlinkSlugOnTrack,
+  isTrackSmartlinkPubliclyVisible,
   resolveCabinetSmartlinkContext,
 } from "@/lib/cabinet-smartlink"
 import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
@@ -18,7 +19,7 @@ import {
   normalizeAccentHex,
   parseSmartlinkTheme,
 } from "@/lib/smartlink-theme"
-import { isSmartlinkSlugTaken, updateTrack } from "@/lib/tracks"
+import { isSmartlinkSlugTaken, setTrackSmartlinkPublic, updateTrack } from "@/lib/tracks"
 
 const optionalUrl = z.string().trim().max(2000).optional().nullable()
 
@@ -36,6 +37,7 @@ const patchSchema = z.object({
   platformLinks: platformLinksSchema.optional(),
   smartlinkSlug: z.string().optional(),
   ensureSlug: z.boolean().optional(),
+  smartlinkPublic: z.boolean().optional(),
 })
 
 function toResponse(ctx: NonNullable<Awaited<ReturnType<typeof resolveCabinetSmartlinkContext>>>) {
@@ -43,6 +45,7 @@ function toResponse(ctx: NonNullable<Awaited<ReturnType<typeof resolveCabinetSma
     typeof ctx.track.tiktokSoundStartSec === "number" && Number.isFinite(ctx.track.tiktokSoundStartSec)
       ? Math.max(0, Math.trunc(ctx.track.tiktokSoundStartSec))
       : 0
+  const isPublic = isTrackSmartlinkPubliclyVisible(ctx.track) && Boolean(ctx.coverUrl)
   return {
     releaseId: ctx.releaseId,
     trackId: ctx.track.id,
@@ -54,7 +57,9 @@ function toResponse(ctx: NonNullable<Awaited<ReturnType<typeof resolveCabinetSma
     platformLinks: ctx.platformLinks,
     smartlinkSlug: ctx.smartlinkSlug,
     publicPath: ctx.smartlinkSlug ? `/s/${ctx.smartlinkSlug}` : null,
-    isPublic: ctx.status === "released" && Boolean(ctx.smartlinkSlug) && Boolean(ctx.coverUrl),
+    isPublic,
+    smartlinkPublic: ctx.smartlinkPublic,
+    canEnablePromo: ctx.canEnablePromo,
     /** Подсказка для хука смартлинка - секунда из карточки релиза (TikTok). */
     defaultPreviewStartSec: tiktokStart,
   }
@@ -154,6 +159,22 @@ export async function PATCH(
   })
   if (!updated) {
     return NextResponse.json({ error: "Не удалось сохранить" }, { status: 500 })
+  }
+
+  if (payload.smartlinkPublic !== undefined) {
+    if (payload.smartlinkPublic && !ctx.canEnablePromo && ctx.track.status !== "released") {
+      return NextResponse.json(
+        {
+          error:
+            "Промо-смартлинк доступен на модерации, после отправки агрегатору или на площадках",
+        },
+        { status: 400 }
+      )
+    }
+    // Для released флаг не нужен - страница и так публичная
+    if (ctx.track.status !== "released") {
+      await setTrackSmartlinkPublic(ctx.track.id, payload.smartlinkPublic)
+    }
   }
 
   const refreshed = await resolveCabinetSmartlinkContext(id, session.email)

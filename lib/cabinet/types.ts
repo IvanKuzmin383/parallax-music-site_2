@@ -97,6 +97,10 @@ export interface ReleaseView {
   releaseStatus?: string
   /** AI-анализ релиза (если заполнен в админке). */
   aiAnalysisText?: string | null
+  /** Публичный slug смартлинка (с трека релиза). */
+  smartlinkSlug?: string | null
+  /** Промо: страница открыта до статуса «выпущен». */
+  smartlinkPublic?: boolean
 }
 
 export interface CabinetUserView {

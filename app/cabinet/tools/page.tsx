@@ -24,7 +24,22 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
         description: "Пресеты и параметры, 1 бесплатное скачивание",
         priceLabel: "далее 100 ₽",
       },
-      { label: "Вертикальные видео", href: "/cabinet/design/vertical-videos", description: "Видео для Reels / Shorts / TikTok" },
+      {
+        label: "Смартлинки",
+        href: "/cabinet/tools/smartlinks",
+        description: "Страница со ссылками на площадки: промо до релиза или без дистрибуции",
+        priceLabel: "от 490 ₽ / год",
+      },
+      {
+        label: "Сторис из трека",
+        href: "/cabinet/tools/story-video",
+        description: "15 сек для Reels / Shorts / TikTok: обложка, хук, шаблоны и скачивание в браузере",
+      },
+      {
+        label: "Вертикальные видео",
+        href: "/cabinet/design/vertical-videos",
+        description: "Монтаж со сток-видеорядом под трек (заказ)",
+      },
       {
         label: "Видеошот в Яндекс Музыке",
         href: "/cabinet/design/video-shots",
