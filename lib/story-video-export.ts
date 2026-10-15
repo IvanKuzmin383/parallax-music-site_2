@@ -1,4 +1,4 @@
-import { loadStoryVideoBadgeIcon } from "@/lib/story-video-badge-icon"
+import { loadStoryVideoBadgeIcons } from "@/lib/story-video-badge-icon"
 import {
   buildStoryVideoPeaks,
   drawStoryVideoFrame,
@@ -56,14 +56,43 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   })
 }
 
-async function decodeAudio(audioUrl: string, startSec: number, durationSec: number): Promise<{
+async function loadAudioRaw(
+  audioUrl: string,
+  audioData?: ArrayBuffer | Blob | null
+): Promise<ArrayBuffer> {
+  if (audioData instanceof ArrayBuffer && audioData.byteLength > 0) {
+    return audioData.slice(0)
+  }
+  if (typeof Blob !== "undefined" && audioData instanceof Blob) {
+    return audioData.arrayBuffer()
+  }
+  // blob:/data: не требуют credentials; кабинетные URL - с cookie
+  const needsCreds = !/^(blob:|data:)/i.test(audioUrl)
+  const res = await fetch(audioUrl, needsCreds ? { credentials: "include" } : undefined)
+  if (!res.ok) throw new Error("Не удалось загрузить аудио")
+  return res.arrayBuffer()
+}
+
+async function decodeAudio(
+  audioUrl: string,
+  startSec: number,
+  durationSec: number,
+  audioData?: ArrayBuffer | Blob | null
+): Promise<{
   context: AudioContext
   buffer: AudioBuffer
   peaks: Float32Array
 }> {
-  const res = await fetch(audioUrl, { credentials: "include" })
-  if (!res.ok) throw new Error("Не удалось загрузить аудио")
-  const raw = await res.arrayBuffer()
+  let raw: ArrayBuffer
+  try {
+    raw = await loadAudioRaw(audioUrl, audioData)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : ""
+    if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+      throw new Error("Не удалось загрузить аудио (сеть или CSP). Попробуйте другой файл.")
+    }
+    throw err instanceof Error ? err : new Error("Не удалось загрузить аудио")
+  }
   const context = new AudioContext()
   const full = await context.decodeAudioData(raw.slice(0))
   const sampleRate = full.sampleRate
@@ -89,10 +118,12 @@ export async function exportStoryVideo(params: {
   project: StoryVideoProject
   coverUrl: string
   audioUrl: string
+  /** Уже загруженный файл/буфер - без повторного fetch (blob + CSP). */
+  audioData?: ArrayBuffer | Blob | null
   onProgress?: (p: StoryVideoExportProgress) => void
   signal?: AbortSignal
 }): Promise<{ blob: Blob; filename: string; mimeType: string }> {
-  const { project, coverUrl, audioUrl, onProgress, signal } = params
+  const { project, coverUrl, audioUrl, audioData, onProgress, signal } = params
   const report = (p: StoryVideoExportProgress) => onProgress?.(p)
 
   if (typeof MediaRecorder === "undefined") {
@@ -102,14 +133,15 @@ export async function exportStoryVideo(params: {
   report({ phase: "prepare", progress: 0.05, message: "Готовим обложку и аудио…" })
   if (signal?.aborted) throw new Error("Отменено")
 
-  const [cover, badgeIcon] = await Promise.all([
+  const [cover, badgeIcons] = await Promise.all([
     loadImage(coverUrl),
-    loadStoryVideoBadgeIcon(project.badge ?? "none"),
+    loadStoryVideoBadgeIcons(project.badges ?? []),
   ])
   const { context, buffer, peaks } = await decodeAudio(
     audioUrl,
     project.startSec,
-    project.durationSec || STORY_VIDEO_DURATION_SEC
+    project.durationSec || STORY_VIDEO_DURATION_SEC,
+    audioData
   )
   const canvas = document.createElement("canvas")
   canvas.width = STORY_VIDEO_WIDTH
@@ -145,7 +177,7 @@ export async function exportStoryVideo(params: {
       cover,
       peaks,
       frameIndex: 0,
-      badgeIcon,
+      badgeIcons,
     })
 
     videoStream = canvas.captureStream(fps)
@@ -209,7 +241,7 @@ export async function exportStoryVideo(params: {
         cover,
         peaks,
         frameIndex: frame,
-        badgeIcon,
+        badgeIcons,
       })
 
       const target = startedAt + (frame + 1) * frameDurationMs

@@ -24,6 +24,7 @@ export type OrderType =
   | "ai_mastering"
   | "tools_mastering_download"
   | "tools_story_video_download"
+  | "tools_slowed_reverb_download"
   | "tools_smartlink"
   | "vertical_video"
   | "track_cover"
@@ -96,6 +97,14 @@ export interface OrderToolsMasteringDownload extends OrderBase {
 /** Покупка кредитов скачивания сниппета в Tools (tracksCount = число кредитов). */
 export interface OrderToolsStoryVideoDownload extends OrderBase {
   orderType: "tools_story_video_download"
+  userId: string
+  tracksCount: number
+  totalAmount: string
+}
+
+/** Покупка кредитов скачивания Slowed / Reverb / Nightcore (tracksCount = число кредитов). */
+export interface OrderToolsSlowedReverbDownload extends OrderBase {
+  orderType: "tools_slowed_reverb_download"
   userId: string
   tracksCount: number
   totalAmount: string
@@ -190,6 +199,7 @@ export type Order =
   | OrderWalletTopup
   | OrderToolsMasteringDownload
   | OrderToolsStoryVideoDownload
+  | OrderToolsSlowedReverbDownload
   | OrderToolsSmartlink
   | OrderAiMastering
   | OrderVerticalVideo
@@ -204,6 +214,7 @@ export type CreateOrderInput =
   | Omit<OrderWalletTopup, "id" | "status" | "createdAt">
   | Omit<OrderToolsMasteringDownload, "id" | "status" | "createdAt">
   | Omit<OrderToolsStoryVideoDownload, "id" | "status" | "createdAt">
+  | Omit<OrderToolsSlowedReverbDownload, "id" | "status" | "createdAt">
   | Omit<OrderToolsSmartlink, "id" | "status" | "createdAt">
   | Omit<OrderAiMastering, "id" | "status" | "createdAt">
   | Omit<OrderVerticalVideo, "id" | "status" | "createdAt">
@@ -296,6 +307,15 @@ function rowToOrder(row: OrderRow): Order {
     return {
       ...base,
       orderType: "tools_story_video_download",
+      userId: row.user_id ?? "",
+      tracksCount: row.tracks_count ?? 0,
+      totalAmount: row.total_amount,
+    }
+  }
+  if (row.order_type === "tools_slowed_reverb_download") {
+    return {
+      ...base,
+      orderType: "tools_slowed_reverb_download",
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       totalAmount: row.total_amount,
@@ -552,6 +572,31 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
       [
         id,
         "tools_story_video_download",
+        null,
+        createdAt,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        totalAmount,
+        o.userId,
+        o.tracksCount,
+      ]
+    )
+    return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
+  }
+  if (orderType === "tools_slowed_reverb_download") {
+    const o = order as Omit<OrderToolsSlowedReverbDownload, "id" | "status" | "createdAt">
+    await execute(
+      `
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      [
+        id,
+        "tools_slowed_reverb_download",
         null,
         createdAt,
         null,

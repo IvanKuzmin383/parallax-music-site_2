@@ -37,7 +37,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { useCabinetSession } from "@/lib/cabinet/hooks/cabinet-session-provider"
-import { loadStoryVideoBadgeIcon } from "@/lib/story-video-badge-icon"
+import { loadStoryVideoBadgeIcons } from "@/lib/story-video-badge-icon"
 import { buildStoryVideoPeaks } from "@/lib/story-video-canvas"
 import { exportStoryVideo } from "@/lib/story-video-export"
 import {
@@ -53,8 +53,8 @@ import {
   normalizeAccentHex,
   normalizeStoryVideoRange,
   STORY_VIDEO_ACCENT_SWATCHES,
+  STORY_VIDEO_BADGE_IDS,
   STORY_VIDEO_BADGE_META,
-  STORY_VIDEO_BADGES,
   STORY_VIDEO_DURATION_MAX_SEC,
   STORY_VIDEO_DURATION_MIN_SEC,
   STORY_VIDEO_DURATION_SEC,
@@ -69,7 +69,8 @@ import {
   STORY_VIDEO_TEXT_LAYOUT_META,
   STORY_VIDEO_TEXT_LAYOUTS,
   STORY_VIDEO_TEXT_POSITION_PRESETS,
-  type StoryVideoBadge,
+  toggleStoryVideoBadge,
+  type StoryVideoBadgeId,
   type StoryVideoFilter,
   type StoryVideoMotion,
   type StoryVideoProject,
@@ -190,7 +191,9 @@ export function StoryVideoClient() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [coverImage, setCoverImage] = useState<HTMLImageElement | null>(null)
-  const [badgeIcon, setBadgeIcon] = useState<HTMLImageElement | null>(null)
+  const [badgeIcons, setBadgeIcons] = useState<Partial<
+    Record<StoryVideoBadgeId, HTMLImageElement>
+  > | null>(null)
   const [peaks, setPeaks] = useState<Float32Array | null>(null)
   const [audioDuration, setAudioDuration] = useState(0)
 
@@ -239,6 +242,8 @@ export function StoryVideoClient() {
   const rafRef = useRef<number | null>(null)
   const localCoverObjectUrl = useRef<string | null>(null)
   const localAudioObjectUrl = useRef<string | null>(null)
+  const localAudioFileRef = useRef<File | null>(null)
+  const audioArrayBufferRef = useRef<ArrayBuffer | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const patch = useCallback((partial: Partial<StoryVideoProject>) => {
@@ -276,13 +281,13 @@ export function StoryVideoClient() {
 
   useEffect(() => {
     let cancelled = false
-    void loadStoryVideoBadgeIcon(project.badge).then((img) => {
-      if (!cancelled) setBadgeIcon(img)
+    void loadStoryVideoBadgeIcons(project.badges).then((icons) => {
+      if (!cancelled) setBadgeIcons(icons)
     })
     return () => {
       cancelled = true
     }
-  }, [project.badge])
+  }, [project.badges])
 
   useEffect(() => {
     if (!coverUrl) {
@@ -318,14 +323,23 @@ export function StoryVideoClient() {
     if (!audioUrl) {
       setPeaks(null)
       setAudioDuration(0)
+      audioArrayBufferRef.current = null
       return
     }
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(audioUrl, { credentials: "include" })
-        if (!res.ok) throw new Error("audio")
-        const buf = await res.arrayBuffer()
+        let buf: ArrayBuffer
+        if (localAudioFileRef.current) {
+          buf = await localAudioFileRef.current.arrayBuffer()
+        } else {
+          const needsCreds = !/^(blob:|data:)/i.test(audioUrl)
+          const res = await fetch(audioUrl, needsCreds ? { credentials: "include" } : undefined)
+          if (!res.ok) throw new Error("audio")
+          buf = await res.arrayBuffer()
+        }
+        if (cancelled) return
+        audioArrayBufferRef.current = buf
         const ctx = new AudioContext()
         const decoded = await ctx.decodeAudioData(buf.slice(0))
         await ctx.close()
@@ -334,6 +348,7 @@ export function StoryVideoClient() {
         setPeaks(buildStoryVideoPeaks(decoded))
       } catch {
         if (!cancelled) {
+          audioArrayBufferRef.current = null
           setPeaks(null)
           setAudioDuration(0)
         }
@@ -430,6 +445,8 @@ export function StoryVideoClient() {
       URL.revokeObjectURL(localAudioObjectUrl.current)
       localAudioObjectUrl.current = null
     }
+    localAudioFileRef.current = null
+    audioArrayBufferRef.current = null
     const hasCover = Boolean(track.coverPath && String(track.coverPath).trim())
     setCoverUrl(hasCover ? `/api/cabinet/uploads/cover/${track.id}` : null)
     setAudioUrl(`/api/cabinet/tracks/${track.id}/audio`)
@@ -482,6 +499,8 @@ export function StoryVideoClient() {
       return
     }
     if (localAudioObjectUrl.current) URL.revokeObjectURL(localAudioObjectUrl.current)
+    localAudioFileRef.current = file
+    audioArrayBufferRef.current = null
     const url = URL.createObjectURL(file)
     localAudioObjectUrl.current = url
     setAudioUrl(url)
@@ -614,6 +633,7 @@ export function StoryVideoClient() {
         project,
         coverUrl,
         audioUrl,
+        audioData: localAudioFileRef.current ?? audioArrayBufferRef.current,
         signal: ac.signal,
         onProgress: (p) => {
           setExportProgress(Math.min(0.92, p.progress))
@@ -622,10 +642,17 @@ export function StoryVideoClient() {
       })
 
       setExportMessage("Подтверждаем скачивание…")
-      const consumeRes = await fetch("/api/cabinet/tools/story-video/consume", {
-        method: "POST",
-        credentials: "include",
-      })
+      let consumeRes: Response
+      try {
+        consumeRes = await fetch("/api/cabinet/tools/story-video/consume", {
+          method: "POST",
+          credentials: "include",
+        })
+      } catch {
+        throw new Error(
+          "Не удалось подтвердить скачивание (сеть). Видео собрано - обновите страницу и попробуйте снова."
+        )
+      }
       const consumeData = (await consumeRes.json().catch(() => ({}))) as {
         error?: string
         entitlement?: ToolsStoryVideoEntitlement
@@ -659,7 +686,10 @@ export function StoryVideoClient() {
             : "Видео скачано (WebM)"
       )
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Не удалось экспортировать"
+      const raw = err instanceof Error ? err.message : "Не удалось экспортировать"
+      const msg = /Failed to fetch|NetworkError|Load failed/i.test(raw)
+        ? "Не удалось скачать сниппет (сеть или доступ к аудио). Попробуйте ещё раз."
+        : raw
       if (msg !== "Отменено") toast.error(msg)
     } finally {
       setExporting(false)
@@ -1080,40 +1110,60 @@ export function StoryVideoClient() {
           </CollapsibleSection>
 
           <CollapsibleSection
-            title="7. Бейдж площадки"
+            title="7. Бейджи площадок"
             summary={
-              project.badge === "none"
-                ? "Выключен"
-                : `${STORY_VIDEO_BADGE_META[project.badge].label} · ${project.badgeX}% / ${project.badgeY}%`
+              project.badges.length === 0
+                ? "Не выбраны"
+                : `${project.badges.map((b) => STORY_VIDEO_BADGE_META[b].label).join(", ")} · ${project.badgeX}% / ${project.badgeY}%`
             }
             open={openPanels.badge}
             onOpenChange={(v) => setPanel("badge", v)}
           >
+            <p className="text-xs text-muted-foreground">
+              Можно выбрать несколько - встанут столбиком без наложений.
+            </p>
             <div className="grid gap-2 sm:grid-cols-2">
-              {STORY_VIDEO_BADGES.map((id) => (
+              {STORY_VIDEO_BADGE_IDS.map((id) => (
                 <ChipButton
                   key={id}
-                  active={project.badge === id}
+                  active={project.badges.includes(id)}
                   label={STORY_VIDEO_BADGE_META[id].label}
-                  description={
-                    id === "none"
-                      ? "Без оверлея"
-                      : `${STORY_VIDEO_BADGE_META[id].line1} ${STORY_VIDEO_BADGE_META[id].line2}`
-                  }
-                  onClick={() =>
+                  description={`${STORY_VIDEO_BADGE_META[id].line1} ${STORY_VIDEO_BADGE_META[id].line2}`}
+                  onClick={() => {
+                    const next = toggleStoryVideoBadge(project.badges, id)
                     patch({
-                      badge: id as StoryVideoBadge,
-                      ...(id !== "none" && project.badge === "none"
-                        ? { badgeX: 50, badgeY: 92 }
+                      badges: next,
+                      ...(project.badges.length === 0 && next.length > 0
+                        ? { badgeX: 50, badgeY: 88 }
                         : {}),
                     })
-                  }
+                  }}
                 />
               ))}
             </div>
-            {project.badge !== "none" ? (
+            {project.badges.length > 0 ? (
               <div className="space-y-2">
-                <Label>Позиция бейджа</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      patch({ badges: [...STORY_VIDEO_BADGE_IDS], badgeX: 50, badgeY: 88 })
+                    }
+                  >
+                    Выбрать все
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => patch({ badges: [] })}
+                  >
+                    Снять все
+                  </Button>
+                </div>
+                <Label>Позиция блока бейджей</Label>
                 <div className="grid w-36 grid-cols-3 gap-1.5">
                   {STORY_VIDEO_TEXT_POSITION_PRESETS.map((preset) => {
                     const active =
@@ -1124,7 +1174,7 @@ export function StoryVideoClient() {
                         key={`badge-${preset.id}`}
                         type="button"
                         title={preset.label}
-                        aria-label={`Позиция бейджа ${preset.id}`}
+                        aria-label={`Позиция бейджей ${preset.id}`}
                         onClick={() =>
                           patch({ badgeX: preset.textX, badgeY: preset.textY })
                         }
@@ -1164,13 +1214,10 @@ export function StoryVideoClient() {
                     max={96}
                     step={1}
                     onValueChange={(v) =>
-                      patch({ badgeY: clampStoryVideoTextAxis(v[0] ?? 92) })
+                      patch({ badgeY: clampStoryVideoTextAxis(v[0] ?? 88) })
                     }
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Бейдж рисуется с прозрачным фоном вокруг (не как чёрный прямоугольник).
-                </p>
               </div>
             ) : null}
           </CollapsibleSection>
@@ -1228,7 +1275,7 @@ export function StoryVideoClient() {
               cover={coverImage}
               peaks={peaks}
               timeSec={timeSec}
-              badgeIcon={badgeIcon}
+              badgeIcons={badgeIcons}
               className="mx-auto w-full max-w-[280px]"
             />
 
@@ -1242,7 +1289,7 @@ export function StoryVideoClient() {
               </p>
             ) : null}
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               <Button
                 type="button"
                 variant="secondary"
@@ -1252,31 +1299,31 @@ export function StoryVideoClient() {
               >
                 {playing ? (
                   <>
-                    <Pause className="mr-1.5 h-4 w-4" />
+                    <Pause className="mr-1.5 h-4 w-4 shrink-0" />
                     Пауза
                   </>
                 ) : (
                   <>
-                    <Play className="mr-1.5 h-4 w-4" />
+                    <Play className="mr-1.5 h-4 w-4 shrink-0" />
                     Смотреть
                   </>
                 )}
               </Button>
               <Button
                 type="button"
-                className="w-full"
+                className="h-auto min-h-10 w-full whitespace-normal px-3 py-2 text-center leading-snug"
                 onClick={requestDownload}
                 disabled={!canExport}
               >
                 {exporting ? (
                   <>
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin" />
                     {Math.round(exportProgress * 100)}%
                   </>
                 ) : (
                   <>
-                    <Download className="mr-1.5 h-4 w-4" />
-                    {downloadLabel}
+                    <Download className="mr-1.5 h-4 w-4 shrink-0" />
+                    <span>{downloadLabel}</span>
                   </>
                 )}
               </Button>

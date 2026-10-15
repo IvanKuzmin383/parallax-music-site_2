@@ -159,25 +159,25 @@ export function CabinetKycFormDialog({
         <DialogHeader>
           <DialogTitle>Верификация аккаунта</DialogTitle>
           <DialogDescription>
-            Подайте заявку на верификацию, чтобы пользоваться дистрибуцией и выводом роялти.
+            Подайте заявку на верификацию, чтобы пользоваться дистрибуцией и выводом роялти
           </DialogDescription>
         </DialogHeader>
 
         {status === "pending" ? (
-          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-200 ring-1 ring-inset ring-amber-500/30">
-            Заявка уже на проверке. Обычно это занимает 1-2 рабочих дня.
+          <p className="rounded-lg bg-amber-500/15 px-3 py-2 text-sm font-medium text-amber-950 ring-1 ring-inset ring-amber-600/35 dark:bg-amber-500/10 dark:text-amber-100 dark:ring-amber-500/30">
+            Заявка уже на проверке. Обычно это занимает 1-2 рабочих дня
           </p>
         ) : null}
 
         {status === "rejected" && rejectionReason ? (
-          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive ring-1 ring-inset ring-destructive/30">
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive ring-1 ring-inset ring-destructive/30">
             Отклонено: {rejectionReason}
           </p>
         ) : null}
 
         {status === "verified" ? (
-          <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300 ring-1 ring-inset ring-emerald-500/30">
-            Аккаунт верифицирован.
+          <p className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-950 ring-1 ring-inset ring-emerald-600/35 dark:bg-emerald-500/10 dark:text-emerald-100 dark:ring-emerald-500/30">
+            Аккаунт верифицирован
           </p>
         ) : null}
 
@@ -272,8 +272,7 @@ export function CabinetKycFormDialog({
               onChange={(e) => setConsent(e.target.checked)}
             />
             <span>
-              Соглашаюсь на обработку паспортных данных и скана документа исключительно для
-              верификации аккаунта. После проверки скан будет удалён.
+              Соглашаюсь на обработку персональных данных
             </span>
           </label>
 

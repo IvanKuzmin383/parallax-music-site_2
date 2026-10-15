@@ -844,19 +844,19 @@ export function SmartlinkLanding({
         <div aria-hidden className="sl-cassette-wrap absolute inset-0" />
         <div
           aria-hidden
-          className="sl-cassette-window absolute left-[9%] right-[9%] top-[20%] h-[44%] overflow-hidden rounded-[3px]"
+          className="sl-cassette-window absolute left-[9%] right-[9%] top-[30%] h-[40%] overflow-hidden rounded-[3px]"
         >
-          <div className="sl-cassette-tape absolute inset-x-[18%] top-1/2 h-[38%] -translate-y-1/2 rounded-sm" />
-          <div className="sl-cassette-reel sl-cassette-spin absolute left-[6%] top-1/2 aspect-square w-[30%] -translate-y-1/2 rounded-full">
+          <div className="sl-cassette-tape absolute inset-x-[18%] top-[55%] h-[38%] -translate-y-1/2 rounded-sm" />
+          <div className="sl-cassette-reel sl-cassette-spin absolute left-[6%] top-[55%] aspect-square w-[30%] -translate-y-1/2 rounded-full">
             <span className="sl-cassette-hub" />
           </div>
-          <div className="sl-cassette-reel sl-cassette-spin-rev absolute right-[6%] top-1/2 aspect-square w-[30%] -translate-y-1/2 rounded-full">
+          <div className="sl-cassette-reel sl-cassette-spin-rev absolute right-[6%] top-[55%] aspect-square w-[30%] -translate-y-1/2 rounded-full">
             <span className="sl-cassette-hub" />
           </div>
         </div>
         <div
           aria-hidden
-          className="sl-cassette-label absolute inset-x-[10%] bottom-[8%] h-[18%] rounded-sm"
+          className="sl-cassette-label absolute inset-x-[10%] bottom-[6%] h-[16%] rounded-sm"
         />
         <div aria-hidden className="sl-cassette-screw absolute left-[5%] top-[7%]" />
         <div aria-hidden className="sl-cassette-screw absolute right-[5%] top-[7%]" />
@@ -1009,9 +1009,7 @@ export function SmartlinkLanding({
       ) : null}
 
       {!preview && previewAudioSrc ? (
-        <div className="absolute right-3 top-3 z-20 sm:right-5 sm:top-5">
-          <SmartlinkPreviewAudio src={previewAudioSrc} light={contentLight && isSheet} />
-        </div>
+        <SmartlinkPreviewAudio src={previewAudioSrc} light={contentLight && isSheet} />
       ) : null}
 
       <div className={cardClass}>

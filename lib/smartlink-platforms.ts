@@ -23,15 +23,15 @@ export const PLATFORM_LINK_KEYS = SMARTLINK_PLATFORMS.map((p) => p.key) as Platf
 
 /** Официальные / фирменные иконки площадок в public/platforms. */
 export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
-  spotify: "/platforms/spotify.svg",
-  appleMusic: "/platforms/apple-music.svg",
+  spotify: "/platforms/spotify.svg?v=3",
+  appleMusic: "/platforms/apple-music.svg?v=3",
   deezer: "/platforms/deezer.svg?v=2",
-  yandex: "/platforms/yandex.svg",
-  youtubeMusic: "/platforms/youtube-music.svg",
+  yandex: "/platforms/yandex.svg?v=3",
+  youtubeMusic: "/platforms/youtube-music.svg?v=3",
   vk: "/platforms/vk.svg?v=3",
   sberzvuk: "/platforms/sberzvuk.svg",
-  kion: "/platforms/kion.svg",
-  amazonMusic: "/platforms/amazon-music.svg?v=2",
+  kion: "/platforms/kion.svg?v=3",
+  amazonMusic: "/platforms/amazon-music.svg?v=3",
   odnoklassniki: "/platforms/odnoklassniki.svg?v=2",
   tidal: "/platforms/tidal.svg?v=2",
   soundcloud: "/platforms/soundcloud.svg?v=2",

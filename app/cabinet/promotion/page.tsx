@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, Megaphone } from "lucide-react"
+import { ArrowRight, Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
@@ -57,15 +57,6 @@ export default function PromotionPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      <div className="flex justify-start">
-        <Button variant="ghost" asChild>
-          <Link href="/cabinet">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            В кабинет
-          </Link>
-        </Button>
       </div>
     </div>
   )

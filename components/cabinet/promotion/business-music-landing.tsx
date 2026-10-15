@@ -669,7 +669,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
       </section>
 
       {/* 7. FAQ */}
-      <section id="faq" className="scroll-mt-20 max-w-3xl space-y-5">
+      <section id="faq" className="scroll-mt-20 space-y-5">
         <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">Перед размещением</h2>
         <Accordion
           type="single"

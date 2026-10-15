@@ -497,7 +497,7 @@ export default function FinanceBalancePage() {
               Оплата картой через Т-Банк. Минимум{" "}
               {WALLET_TOPUP_MIN_RUB.toLocaleString("ru-RU")} ₽, максимум{" "}
               {WALLET_TOPUP_MAX_RUB.toLocaleString("ru-RU")} ₽. Средства сразу появятся на
-              балансе кабинета после оплаты.
+              балансе кабинета после оплаты
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

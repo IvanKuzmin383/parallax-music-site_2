@@ -133,7 +133,25 @@ interface CabinetUserRow {
   kyc_verified_at?: string | null
   kyc_rejected_at?: string | null
   kyc_rejection_reason?: string | null
-  kyc_birth_date?: string | null
+  kyc_birth_date?: string | Date | null
+}
+
+function pgDateOnly(value: string | Date | null | undefined): string | null {
+  if (!value) return null
+  if (value instanceof Date) {
+    const y = value.getUTCFullYear()
+    const m = String(value.getUTCMonth() + 1).padStart(2, "0")
+    const d = String(value.getUTCDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  }
+  const s = String(value).trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+  const parsed = new Date(s)
+  if (Number.isNaN(parsed.getTime())) return null
+  const y = parsed.getUTCFullYear()
+  const m = String(parsed.getUTCMonth() + 1).padStart(2, "0")
+  const d = String(parsed.getUTCDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
 }
 
 interface CabinetUserDeletionRow {
@@ -214,7 +232,7 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     kycVerifiedAt: row.kyc_verified_at ?? null,
     kycRejectedAt: row.kyc_rejected_at ?? null,
     kycRejectionReason: row.kyc_rejection_reason ?? null,
-    kycBirthDate: row.kyc_birth_date ? String(row.kyc_birth_date).slice(0, 10) : null,
+    kycBirthDate: pgDateOnly(row.kyc_birth_date),
   }
 }
 

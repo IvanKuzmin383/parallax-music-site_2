@@ -1,6 +1,6 @@
 "use client"
 
-import { ShieldCheck } from "lucide-react"
+import { Check, ShieldCheck } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { CabinetKycStatusView } from "@/lib/cabinet/types"
+
+const KYC_BENEFITS = [
+  "Быстрее и проще вывод роялти",
+  "Подтверждение правообладателя перед дистрибуцией",
+  "Защита аккаунта при претензиях по контенту",
+  "Приоритет при разборе спорных ситуаций",
+] as const
 
 type Props = {
   open: boolean
@@ -40,17 +47,21 @@ export function CabinetKycRequiredDialog({
           </DialogTitle>
           <DialogDescription className="text-pretty">
             {pending
-              ? "Мы уже получили ваши данные. Обычно проверка занимает 1-2 рабочих дня. После одобрения можно загружать релизы и клипы."
-              : "Чтобы отправлять релизы и видеоклипы в дистрибуцию, подтвердите личность. Это защита прав, ускоряет вывод роялти и помогает решать спорные ситуации."}
+              ? "Мы уже получили ваши данные. Обычно проверка занимает 1-2 рабочих дня. После одобрения можно загружать релизы и клипы"
+              : "Чтобы отправлять релизы и видеоклипы в дистрибуцию, подтвердите личность. Это ваша защита прав, ускоряет вывод роялти и помогает решать спорные ситуации"}
           </DialogDescription>
         </DialogHeader>
 
         {!pending ? (
-          <ul className="space-y-2 rounded-xl bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            <li>Быстрее и проще вывод роялти</li>
-            <li>Подтверждение правообладателя перед дистрибуцией</li>
-            <li>Защита аккаунта при претензиях по контенту</li>
-            <li>Приоритет при разборе спорных ситуаций</li>
+          <ul className="space-y-2.5 rounded-xl bg-muted/40 px-4 py-3.5 text-sm text-muted-foreground">
+            {KYC_BENEFITS.map((text) => (
+              <li key={text} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 ring-1 ring-inset ring-emerald-500/25">
+                  <Check className="h-3 w-3" strokeWidth={2.75} aria-hidden />
+                </span>
+                <span className="min-w-0 leading-snug text-foreground/85">{text}</span>
+              </li>
+            ))}
           </ul>
         ) : null}
 

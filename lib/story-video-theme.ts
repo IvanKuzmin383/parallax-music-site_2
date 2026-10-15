@@ -16,6 +16,7 @@ export const STORY_VIDEO_TEMPLATES = [
   "filmGrain",
   "lyricCard",
   "vinyl",
+  "cassette",
   "neon",
   "noir",
   "ticket",
@@ -32,6 +33,7 @@ export const STORY_VIDEO_TEMPLATE_BASE = [
 
 export const STORY_VIDEO_TEMPLATE_SIGNATURE = [
   "vinyl",
+  "cassette",
   "neon",
   "noir",
   "ticket",
@@ -55,15 +57,17 @@ export type StoryVideoTextLayout = (typeof STORY_VIDEO_TEXT_LAYOUTS)[number]
 export const STORY_VIDEO_TEXT_ALIGNS = ["left", "center", "right"] as const
 export type StoryVideoTextAlign = (typeof STORY_VIDEO_TEXT_ALIGNS)[number]
 
-/** Бейдж «слушайте на…» поверх ролика (прозрачный фон вокруг). */
-export const STORY_VIDEO_BADGES = ["none", "spotify", "appleMusic", "yandex", "vk"] as const
-export type StoryVideoBadge = (typeof STORY_VIDEO_BADGES)[number]
+/** Бейджи «слушайте на…» - можно выбрать несколько, рисуются столбиком без наложений. */
+export const STORY_VIDEO_BADGE_IDS = ["spotify", "appleMusic", "yandex", "vk"] as const
+export type StoryVideoBadgeId = (typeof STORY_VIDEO_BADGE_IDS)[number]
+
+/** @deprecated use StoryVideoBadgeId; оставлен для совместимости импортов */
+export type StoryVideoBadge = StoryVideoBadgeId | "none"
 
 export const STORY_VIDEO_BADGE_META: Record<
-  StoryVideoBadge,
-  { label: string; line1: string; line2: string; iconSrc: string | null }
+  StoryVideoBadgeId,
+  { label: string; line1: string; line2: string; iconSrc: string }
 > = {
-  none: { label: "Без бейджа", line1: "", line2: "", iconSrc: null },
   spotify: {
     label: "Spotify",
     line1: "Listen on",
@@ -89,6 +93,9 @@ export const STORY_VIDEO_BADGE_META: Record<
     iconSrc: "/platforms/vk.svg?v=2",
   },
 }
+
+/** Старый список с "none" - для UI больше не нужен, оставлен пустым алиасом. */
+export const STORY_VIDEO_BADGES = STORY_VIDEO_BADGE_IDS
 
 /** Быстрые точки для сетки 3×3 (проценты кадра). */
 export const STORY_VIDEO_TEXT_POSITION_PRESETS: Array<{
@@ -132,11 +139,11 @@ export type StoryVideoProject = {
   showText: boolean
   /** Акцентная линия под текстом (Big Hook / Lyric Card). */
   showTextLine: boolean
-  /** Бейдж площадки. */
-  badge: StoryVideoBadge
-  /** Горизонталь якоря бейджа, 0-100. */
+  /** Выбранные бейджи площадок (порядок = сверху вниз). */
+  badges: StoryVideoBadgeId[]
+  /** Горизонталь якоря блока бейджей, 0-100. */
   badgeX: number
-  /** Вертикаль якоря бейджа, 0-100. */
+  /** Вертикаль якоря блока бейджей (центр стопки), 0-100. */
   badgeY: number
 }
 
@@ -158,9 +165,9 @@ export const DEFAULT_STORY_VIDEO_PROJECT: StoryVideoProject = {
   showWaveform: true,
   showText: true,
   showTextLine: true,
-  badge: "none",
+  badges: [],
   badgeX: 50,
-  badgeY: 92,
+  badgeY: 88,
 }
 
 export const STORY_VIDEO_TEMPLATE_META: Record<
@@ -172,6 +179,7 @@ export const STORY_VIDEO_TEMPLATE_META: Record<
   filmGrain: { label: "Film Grain", description: "Кино, letterbox и зерно" },
   lyricCard: { label: "Lyric Card", description: "Цитата/хук крупно, обложка по центру" },
   vinyl: { label: "Vinyl", description: "Круглая обложка и виниловый вайб" },
+  cassette: { label: "Кассета", description: "Обложка на корпусе, крутящиеся катушки" },
   neon: { label: "Neon", description: "Тёмный фон и свечение акцента" },
   noir: { label: "Noir", description: "Ч/б с одной цветной линией" },
   ticket: { label: "Ticket", description: "Билет LISTEN NOW" },
@@ -217,6 +225,7 @@ export const STORY_VIDEO_TEMPLATE_LOOK: Record<StoryVideoTemplate, StoryVideoTem
   filmGrain: { motion: "kenBurnsOut", filter: "grain", textLayout: "titleArtist", showWaveform: false },
   lyricCard: { motion: "kenBurnsIn", filter: "clean", textLayout: "bigHook", showWaveform: true },
   vinyl: { motion: "kenBurnsIn", filter: "warm", textLayout: "titleArtist", showWaveform: true },
+  cassette: { motion: "breathe", filter: "warm", textLayout: "titleArtist", showWaveform: true },
   neon: { motion: "snapZoom", filter: "clean", textLayout: "titleArtist", showWaveform: true },
   noir: { motion: "kenBurnsIn", filter: "clean", textLayout: "titleArtist", showWaveform: false },
   ticket: { motion: "breathe", filter: "warm", textLayout: "bigHook", showWaveform: false },
@@ -311,8 +320,27 @@ export function isStoryVideoTextAlign(v: unknown): v is StoryVideoTextAlign {
   return typeof v === "string" && (STORY_VIDEO_TEXT_ALIGNS as readonly string[]).includes(v)
 }
 
-export function isStoryVideoBadge(v: unknown): v is StoryVideoBadge {
-  return typeof v === "string" && (STORY_VIDEO_BADGES as readonly string[]).includes(v)
+export function isStoryVideoBadgeId(v: unknown): v is StoryVideoBadgeId {
+  return typeof v === "string" && (STORY_VIDEO_BADGE_IDS as readonly string[]).includes(v)
+}
+
+export function normalizeStoryVideoBadges(value: unknown): StoryVideoBadgeId[] {
+  if (!Array.isArray(value)) return []
+  const out: StoryVideoBadgeId[] = []
+  for (const item of value) {
+    if (isStoryVideoBadgeId(item) && !out.includes(item)) out.push(item)
+  }
+  return out
+}
+
+export function toggleStoryVideoBadge(
+  current: StoryVideoBadgeId[],
+  id: StoryVideoBadgeId
+): StoryVideoBadgeId[] {
+  if (current.includes(id)) return current.filter((b) => b !== id)
+  // Сохраняем канонический порядок площадок
+  const next = [...current, id]
+  return STORY_VIDEO_BADGE_IDS.filter((b) => next.includes(b))
 }
 
 export function normalizeAccentHex(value: string): string {

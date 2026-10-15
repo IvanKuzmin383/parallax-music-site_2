@@ -135,6 +135,7 @@ export function ToolsSmartlinksClient() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <PageHeader
             title="Смартлинки"
+            className="mb-0 sm:mb-0 [&_p]:max-w-none"
             description="Отдельные страницы со ссылками на площадки: для промо до релиза или без дистрибуции. Обложка и отрывок - ваши."
           />
           <Button type="button" onClick={() => void createNew()} disabled={creating}>

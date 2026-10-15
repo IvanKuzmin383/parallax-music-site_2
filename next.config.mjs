@@ -28,7 +28,8 @@ const cspDirectives = [
   "media-src 'self' blob: data:",
   "font-src 'self' data:",
   [
-    "connect-src 'self'",
+    // blob: - fetch локального аудио в сторис/мастеринге (иначе CSP → Failed to fetch)
+    "connect-src 'self' blob: data:",
     'https://mc.yandex.ru',
     'https://mc.yandex.com',
     'https://yandex.ru',

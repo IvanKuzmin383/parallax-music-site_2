@@ -121,7 +121,8 @@ export function applySoftNoiseGate(
 }
 
 /**
- * Сглаживание: смягчение резкой середины + деэссер (сжатие верхов) + dry/wet bypass.
+ * Сглаживание: только срезы EQ (резкость + воздух) + мягкий LP.
+ * Без split/compressor - у DynamicsCompressor в Web Audio makeup усиливал верха.
  */
 export function createSmoothingChain(ctx: BaseAudioContext): {
   input: GainNode
@@ -130,60 +131,41 @@ export function createSmoothingChain(ctx: BaseAudioContext): {
 } {
   const input = ctx.createGain()
   const output = ctx.createGain()
-  const dry = ctx.createGain()
-  const wet = ctx.createGain()
-  const sum = ctx.createGain()
 
   const harshPeak = ctx.createBiquadFilter()
   harshPeak.type = "peaking"
   harshPeak.frequency.value = 3500
-  harshPeak.Q.value = 1.1
+  harshPeak.Q.value = 1.2
+  harshPeak.gain.value = 0
 
-  const bodyLp = ctx.createBiquadFilter()
-  bodyLp.type = "lowpass"
-  bodyLp.frequency.value = 5800
-  bodyLp.Q.value = 0.707
+  const airShelf = ctx.createBiquadFilter()
+  airShelf.type = "highshelf"
+  airShelf.frequency.value = 7000
+  airShelf.Q.value = 0.7
+  airShelf.gain.value = 0
 
-  const airHp = ctx.createBiquadFilter()
-  airHp.type = "highpass"
-  airHp.frequency.value = 5800
-  airHp.Q.value = 0.707
-
-  const deEss = ctx.createDynamicsCompressor()
-  deEss.knee.value = 8
-  deEss.attack.value = 0.001
-  deEss.release.value = 0.06
-
-  const wetSum = ctx.createGain()
-
-  input.connect(dry)
-  dry.connect(sum)
+  const airLp = ctx.createBiquadFilter()
+  airLp.type = "lowpass"
+  airLp.Q.value = 0.707
+  const bypassLpHz = Math.min(20000, Math.max(18000, (ctx.sampleRate || 44100) * 0.45))
+  airLp.frequency.value = bypassLpHz
 
   input.connect(harshPeak)
-  harshPeak.connect(bodyLp)
-  harshPeak.connect(airHp)
-  bodyLp.connect(wetSum)
-  airHp.connect(deEss)
-  deEss.connect(wetSum)
-  wetSum.connect(wet)
-  wet.connect(sum)
-  sum.connect(output)
+  harshPeak.connect(airShelf)
+  airShelf.connect(airLp)
+  airLp.connect(output)
 
   const setLevel = (level: SmoothLevel) => {
     const s = smoothSettings(level)
     if (!s.enabled) {
-      dry.gain.value = 1
-      wet.gain.value = 0
       harshPeak.gain.value = 0
-      deEss.threshold.value = 0
-      deEss.ratio.value = 1
+      airShelf.gain.value = 0
+      airLp.frequency.value = bypassLpHz
       return
     }
-    dry.gain.value = 0
-    wet.gain.value = 1
     harshPeak.gain.value = s.harshGainDb
-    deEss.threshold.value = s.deEssThreshold
-    deEss.ratio.value = s.deEssRatio
+    airShelf.gain.value = s.airShelfDb
+    airLp.frequency.value = s.airLpHz ?? bypassLpHz
   }
 
   setLevel("off")

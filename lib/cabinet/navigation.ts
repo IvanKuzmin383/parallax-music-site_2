@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react"
 import {
-  Award,
   BarChart3,
   Building2,
   ClipboardList,
@@ -59,7 +58,6 @@ export const CABINET_SIDEBAR_GROUPS: NavGroup[] = [
     label: "Кабинет",
     items: [
       { id: "finance", label: "Финансы", href: "/cabinet/finance/balance", icon: Wallet },
-      { id: "achievements", label: "Достижения", href: "/cabinet/achievements", icon: Award },
       { id: "referrals", label: "Партнёрка", href: "/cabinet/referrals", icon: Users },
       { id: "news", label: "Новости", href: "/cabinet/news", icon: Newspaper },
       { id: "settings", label: "Настройки", href: "/cabinet/settings", icon: Settings },

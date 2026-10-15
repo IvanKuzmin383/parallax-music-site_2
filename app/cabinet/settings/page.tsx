@@ -5,18 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CabinetProfileTab } from "@/components/cabinet/settings/cabinet-profile-tab"
 import { SecuritySettings } from "@/components/cabinet/settings/security-settings"
+import { CabinetAchievementsTab } from "@/components/cabinet/settings/cabinet-achievements-tab"
 
-type SettingsTab = "profile" | "security"
+type SettingsTab = "profile" | "security" | "achievements"
+
+function parseTab(tabParam: string | null): SettingsTab {
+  if (tabParam === "security") return "security"
+  if (tabParam === "achievements") return "achievements"
+  return "profile"
+}
 
 export default function CabinetSettingsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get("tab")
-  const initial: SettingsTab = tabParam === "security" ? "security" : "profile"
-  const [tab, setTab] = useState<SettingsTab>(initial)
+  const [tab, setTab] = useState<SettingsTab>(() => parseTab(tabParam))
 
   useEffect(() => {
-    setTab(tabParam === "security" ? "security" : "profile")
+    setTab(parseTab(tabParam))
   }, [tabParam])
 
   return (
@@ -24,19 +30,19 @@ export default function CabinetSettingsPage() {
       <Tabs
         value={tab}
         onValueChange={(v) => {
-          const next = v === "security" ? "security" : "profile"
+          const next = parseTab(v)
           setTab(next)
-          const url = next === "profile" ? "/cabinet/settings?tab=profile" : "/cabinet/settings?tab=security"
-          router.replace(url, { scroll: false })
+          router.replace(`/cabinet/settings?tab=${next}`, { scroll: false })
         }}
       >
-        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold tracking-tight md:text-[1.75rem] md:leading-tight">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:gap-4">
+          <h1 className="shrink-0 text-2xl font-bold tracking-tight md:text-[1.75rem] md:leading-tight">
             Настройки
           </h1>
-          <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:min-w-[16rem]">
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:min-w-[22rem]">
             <TabsTrigger value="profile">Профиль</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>
+            <TabsTrigger value="achievements">Достижения</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="profile" className="mt-0 focus-visible:outline-none">
@@ -44,6 +50,9 @@ export default function CabinetSettingsPage() {
         </TabsContent>
         <TabsContent value="security" className="mt-0 focus-visible:outline-none">
           <SecuritySettings />
+        </TabsContent>
+        <TabsContent value="achievements" className="mt-0 focus-visible:outline-none">
+          <CabinetAchievementsTab />
         </TabsContent>
       </Tabs>
     </div>

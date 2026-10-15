@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Music, Search, Upload } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -17,12 +18,6 @@ import { ReleaseListCard } from "@/components/cabinet/releases/release-list-card
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { Spinner } from "@/components/ui/spinner"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
   matchesReleaseFilter,
   matchesReleaseSearch,
   RELEASE_FILTERS,
@@ -36,6 +31,7 @@ import {
 } from "@/lib/cabinet/hooks/use-artist-project-filter"
 import { cn } from "@/lib/utils"
 import { DistributionSectionTabs } from "@/components/cabinet/distribution/distribution-section-tabs"
+import { useCabinetKyc } from "@/components/cabinet/kyc/cabinet-kyc-provider"
 
 const STAT_LABELS: Record<ReleaseFilterKey, string> = {
   all: "Все релизы",
@@ -95,6 +91,8 @@ function UploadReleaseButton({
   variant?: "default" | "outline"
   artist?: string
 }) {
+  const router = useRouter()
+  const { isVerified, openRequired, loading: kycLoading } = useCabinetKyc()
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -113,47 +111,31 @@ function UploadReleaseButton({
     })()
   }, [])
 
-  const disabled = profileComplete === false
-  const loading = profileComplete === null
+  const busy = profileComplete === null || kycLoading
   const uploadHref = artist
     ? `/cabinet/upload?artist=${encodeURIComponent(artist)}`
     : "/cabinet/upload"
 
-  const buttonInner = (
-    <>
-      <Upload className="h-4 w-4 mr-2" />
-      Загрузить релиз
-    </>
-  )
-
-  if (loading) {
-    return (
-      <Button variant={variant} disabled>
-        {buttonInner}
-      </Button>
-    )
-  }
-
-  if (disabled) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant={variant} disabled>
-              {buttonInner}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Заполните обязательные поля в профиле, чтобы загрузить релиз
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    )
+  const handleClick = () => {
+    if (busy) return
+    if (!isVerified) {
+      // Как у клипов: диалог «Заявка на проверке» / «Нужна верификация»
+      openRequired()
+      return
+    }
+    if (profileComplete === false) {
+      toast.message("Заполните профиль", {
+        description: "Укажите обязательные поля в настройках профиля, чтобы загрузить релиз",
+      })
+      return
+    }
+    router.push(uploadHref)
   }
 
   return (
-    <Button asChild variant={variant}>
-      <Link href={uploadHref}>{buttonInner}</Link>
+    <Button type="button" variant={variant} disabled={busy} onClick={handleClick}>
+      <Upload className="h-4 w-4 mr-2" />
+      Загрузить релиз
     </Button>
   )
 }

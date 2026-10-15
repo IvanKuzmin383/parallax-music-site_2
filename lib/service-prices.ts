@@ -8,6 +8,7 @@ import { RADIO_PRICE_RUB } from "@/lib/radio-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
 import { TOOLS_MASTERING_DOWNLOAD_PRICE_RUB } from "@/lib/tools-mastering-pricing"
 import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
+import { TOOLS_SLOWED_REVERB_DOWNLOAD_PRICE_RUB } from "@/lib/tools-slowed-reverb-pricing"
 import { TOOLS_STORY_VIDEO_DOWNLOAD_PRICE_RUB } from "@/lib/tools-story-video-pricing"
 import { TRACK_COVER_PRICE_RUB } from "@/lib/track-cover-pricing"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
@@ -21,6 +22,7 @@ export const SERVICE_PRICE_KEYS = [
   "tools_smartlink",
   "tools_story_video",
   "tools_mastering",
+  "tools_slowed_reverb",
   "lyrics_sync",
   "ai_mastering",
   "yandex_videoshot",
@@ -60,6 +62,11 @@ export const SERVICE_PRICE_DEFS: readonly ServicePriceDef[] = [
     key: "tools_mastering",
     title: "Онлайн-мастеринг (скачивание)",
     defaultPriceRub: TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
+  },
+  {
+    key: "tools_slowed_reverb",
+    title: "Slowed / Reverb / Nightcore (скачивание)",
+    defaultPriceRub: TOOLS_SLOWED_REVERB_DOWNLOAD_PRICE_RUB,
   },
   {
     key: "lyrics_sync",

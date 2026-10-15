@@ -3,6 +3,7 @@ import path from "path"
 import { getCabinetUserByEmail, getCabinetUserById, updateCabinetUserPurchasedTracks } from "@/lib/cabinet-users"
 import { activateSmartlinkPaid } from "@/lib/cabinet-smartlinks"
 import { addToolsMasteringCredits } from "@/lib/tools-mastering-entitlement"
+import { addToolsSlowedReverbCredits } from "@/lib/tools-slowed-reverb-entitlement"
 import { addToolsStoryVideoCredits } from "@/lib/tools-story-video-entitlement"
 import { isStaffNotificationConfigured, notifyStaffInBackground } from "@/lib/form-notifications"
 import type { Order } from "@/lib/orders"
@@ -255,6 +256,39 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       ].join("\n"),
       `[Parallax] Оплата сторис из трека: ${email}`,
       "tools_story_video_download",
+      provider
+    )
+    await notifyUserPaid(order, amount)
+    return
+  }
+
+  if (order.orderType === "tools_slowed_reverb_download") {
+    const credits = Math.max(1, order.tracksCount || 1)
+    const credited = await addToolsSlowedReverbCredits(order.userId, credits)
+    if (!credited) {
+      console.error("[fulfill-paid-order] User not found for tools_slowed_reverb_download", {
+        orderId,
+        userId: order.userId,
+      })
+    }
+    await updateOrderStatus(orderId, "paid", { paidAt, paymentId })
+
+    const user = await getCabinetUserById(order.userId)
+    const email = user?.email ?? `userId=${order.userId}`
+    notifyStaff(
+      [
+        `<b>Оплата: Slowed / Reverb / Nightcore Tools (${provider})</b>`,
+        "",
+        `<b>Пользователь:</b> ${escapeHtml(email)}`,
+        `<b>Кредитов:</b> ${credits}`,
+        `<b>Сумма:</b> ${escapeHtml(String(amount))} RUB`,
+        `<b>ID заказа:</b> ${escapeHtml(orderId)}`,
+        `<b>ID платежа:</b> ${escapeHtml(paymentId)}`,
+        "",
+        "#tools_slowed_reverb #оплата #кабинет",
+      ].join("\n"),
+      `[Parallax] Оплата Slowed/Reverb: ${email}`,
+      "tools_slowed_reverb_download",
       provider
     )
     await notifyUserPaid(order, amount)

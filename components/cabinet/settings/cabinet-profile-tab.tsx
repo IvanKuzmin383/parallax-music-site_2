@@ -35,6 +35,7 @@ import { getEffectiveTrackLimit } from "@/lib/subscription-plans"
 import { getFixRemainingUploadSlots } from "@/lib/subscription-track-limits"
 import type { CabinetUser } from "@/lib/cabinet-users"
 import { CabinetKycStatusBadge } from "@/components/cabinet/kyc/cabinet-kyc-status-badge"
+import { useCabinetKyc } from "@/components/cabinet/kyc/cabinet-kyc-provider"
 
 type AutopayApiResponse = {
   autopayEnabled: boolean
@@ -52,6 +53,7 @@ type CabinetProfileResponse = {
 
 export function CabinetProfileTab() {
   const router = useRouter()
+  const { status: kycStatus } = useCabinetKyc()
 
   const [loading, setLoading] = useState(true)
   const [subscription, setSubscription] = useState<{
@@ -70,6 +72,7 @@ export function CabinetProfileTab() {
   const [legalBasisDialogOpen, setLegalBasisDialogOpen] = useState(false)
   const [profileFormDefaults, setProfileFormDefaults] = useState<ProfileFormValues | null>(null)
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -113,7 +116,7 @@ export function CabinetProfileTab() {
         setLoading(false)
       }
     })()
-  }, [router])
+  }, [router, kycStatus])
 
   const effectiveLimit: number | null = subscription?.subscriptionName
     ? getEffectiveTrackLimit({
@@ -139,8 +142,6 @@ export function CabinetProfileTab() {
 
   const renewPlanId = subscriptionNameToPlanId(subscription?.subscriptionName)
 
-  const [saving, setSaving] = useState(false)
-
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -155,7 +156,7 @@ export function CabinetProfileTab() {
           <CardHeader className="pb-2 gap-1">
             <CardTitle>Верификация</CardTitle>
             <CardDescription>
-              Нужна для загрузки релизов, клипов и вывода роялти. Скан паспорта удаляется после проверки.
+              Нужна для загрузки релизов, клипов и вывода роялти
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -387,7 +388,7 @@ export function CabinetProfileTab() {
           <CardContent>
             {profileFormDefaults && profileUserId ? (
               <CabinetProfileForm
-                key={`${profileUserId}-${profileFormDefaults.counterpartyType}`}
+                key={`${profileUserId}-${profileFormDefaults.counterpartyType}-${profileFormDefaults.lastName}-${profileFormDefaults.firstName}-${profileFormDefaults.phone}`}
                 defaultValues={profileFormDefaults}
                 saving={saving}
                 onSavingChange={setSaving}

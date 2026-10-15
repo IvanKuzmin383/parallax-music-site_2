@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { ToolsSmartlinkEditorClient } from "@/components/cabinet/tools/tools-smartlink-editor-client"
+import { SmartlinkEditor } from "@/components/cabinet/smartlink/smartlink-editor"
 
 export default function CabinetToolsSmartlinkEditPage({
   params,
@@ -9,5 +9,5 @@ export default function CabinetToolsSmartlinkEditPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  return <ToolsSmartlinkEditorClient smartlinkId={id} />
+  return <SmartlinkEditor smartlinkId={id} />
 }

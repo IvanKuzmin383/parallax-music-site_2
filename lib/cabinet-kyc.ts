@@ -53,7 +53,7 @@ type KycApplicationRow = {
   passport_series: string | null
   passport_number: string | null
   passport_masked: string | null
-  birth_date: string
+  birth_date: string | Date
   document_storage_key: string | null
   document_mime: string | null
   document_size: number | null
@@ -78,6 +78,27 @@ function asApplicationStatus(value: string): KycApplicationStatus {
   return "pending"
 }
 
+/** node-pg отдаёт DATE как Date; String(date).slice(0,10) даёт «Sat Aug 17» - нельзя. */
+function toDateOnly(value: string | Date | null | undefined): string {
+  if (!value) return ""
+  if (value instanceof Date) {
+    const y = value.getUTCFullYear()
+    const m = String(value.getUTCMonth() + 1).padStart(2, "0")
+    const d = String(value.getUTCDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  }
+  const s = String(value).trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+  const parsed = new Date(s)
+  if (!Number.isNaN(parsed.getTime())) {
+    const y = parsed.getUTCFullYear()
+    const m = String(parsed.getUTCMonth() + 1).padStart(2, "0")
+    const d = String(parsed.getUTCDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
+  }
+  return s.slice(0, 10)
+}
+
 function rowToApplication(row: KycApplicationRow): CabinetKycApplication {
   return {
     id: row.id,
@@ -90,7 +111,7 @@ function rowToApplication(row: KycApplicationRow): CabinetKycApplication {
     passportSeries: row.passport_series,
     passportNumber: row.passport_number,
     passportMasked: row.passport_masked,
-    birthDate: String(row.birth_date).slice(0, 10),
+    birthDate: toDateOnly(row.birth_date),
     documentStorageKey: row.document_storage_key,
     documentMime: row.document_mime,
     documentSize: row.document_size,
@@ -434,10 +455,14 @@ export async function submitKycApplication(params: {
         UPDATE cabinet_users
         SET kyc_status = 'pending',
             kyc_rejected_at = NULL,
-            kyc_rejection_reason = NULL
+            kyc_rejection_reason = NULL,
+            last_name = ?,
+            first_name = ?,
+            patronymic = COALESCE(?, patronymic),
+            phone = COALESCE(?, phone)
         WHERE id = ?
         `,
-        [params.user.id]
+        [lastName, firstName, patronymic, phone, params.user.id]
       )
     })
   } catch (error) {
@@ -541,10 +566,14 @@ export async function approveKycApplication(params: {
           kyc_verified_at = ?,
           kyc_rejected_at = NULL,
           kyc_rejection_reason = NULL,
-          kyc_birth_date = ?
+          kyc_birth_date = ?,
+          last_name = ?,
+          first_name = ?,
+          patronymic = COALESCE(?, patronymic),
+          phone = COALESCE(?, phone)
       WHERE id = ?
       `,
-      [now, app.birthDate, app.userId]
+      [now, app.birthDate, app.lastName, app.firstName, app.patronymic, app.phone, app.userId]
     )
   })
 
@@ -660,6 +689,37 @@ export async function cleanupSettledKycDocuments(options?: {
     cleaned += 1
   }
   return { cleaned }
+}
+
+/** Если в профиле ещё нет ФИО/телефона - подтянуть из последней KYC-заявки. */
+export async function syncUserProfileFromKycIfEmpty(user: CabinetUser): Promise<CabinetUser> {
+  const needsName = !user.lastName?.trim() || !user.firstName?.trim()
+  const needsPhone = !user.phone?.trim()
+  if (!needsName && !needsPhone) return user
+
+  const latest = await getLatestKycApplicationForUser(user.id)
+  if (!latest) return user
+  if (latest.status !== "pending" && latest.status !== "approved") return user
+
+  const lastName = user.lastName?.trim() || latest.lastName
+  const firstName = user.firstName?.trim() || latest.firstName
+  const patronymic = user.patronymic?.trim() || latest.patronymic
+  const phone = user.phone?.trim() || latest.phone
+
+  await execute(
+    `
+    UPDATE cabinet_users
+    SET last_name = ?,
+        first_name = ?,
+        patronymic = COALESCE(?, patronymic),
+        phone = COALESCE(?, phone)
+    WHERE id = ?
+    `,
+    [lastName, firstName, patronymic, phone, user.id]
+  )
+
+  const refreshed = await getCabinetUserById(user.id)
+  return refreshed ?? user
 }
 
 export async function getKycPublicStateForUser(user: CabinetUser) {

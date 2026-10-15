@@ -169,7 +169,7 @@ export async function unlockAchievement(
       body: rewardNote
         ? `${def.description}. Награда: ${rewardNote}`
         : def.description,
-      href: "/cabinet/achievements",
+      href: "/cabinet/settings?tab=achievements",
       entityType: "achievement",
       entityId: achievementId,
     })

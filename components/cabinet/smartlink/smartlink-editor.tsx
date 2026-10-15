@@ -70,6 +70,8 @@ import {
   type SmartlinkSocialKey,
   type SmartlinkSocialPosition,
 } from "@/lib/smartlink-socials"
+import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
+import { useCabinetSession } from "@/lib/cabinet/hooks/cabinet-session-provider"
 import { cn } from "@/lib/utils"
 
 type SmartlinkApiPayload = {
@@ -87,6 +89,47 @@ type SmartlinkApiPayload = {
   smartlinkPublic?: boolean
   canEnablePromo?: boolean
   defaultPreviewStartSec?: number
+  /** Tools standalone */
+  needsPayment?: boolean
+  priceRub?: number
+  hasPreviewAudio?: boolean
+}
+
+export type SmartlinkEditorProps = { releaseKey: string } | { smartlinkId: string }
+
+type ToolsSmartlinkApiRaw = {
+  id: string
+  slug: string
+  title: string
+  artistName: string
+  coverUrl: string | null
+  hasPreviewAudio: boolean
+  theme: SmartlinkTheme
+  platformLinks: PlatformLinks
+  status: string
+  publicPath: string
+  isPublic: boolean
+  needsPayment: boolean
+  priceRub: number
+}
+
+function mapToolsPayload(json: ToolsSmartlinkApiRaw): SmartlinkApiPayload {
+  return {
+    releaseId: null,
+    trackId: json.id,
+    title: json.title,
+    artist: json.artistName,
+    coverUrl: json.coverUrl,
+    status: json.status,
+    theme: json.theme,
+    platformLinks: json.platformLinks,
+    smartlinkSlug: json.slug,
+    publicPath: json.publicPath,
+    isPublic: json.isPublic,
+    needsPayment: json.needsPayment,
+    priceRub: json.priceRub,
+    hasPreviewAudio: json.hasPreviewAudio,
+  }
 }
 
 const BUTTON_LABELS: Record<SmartlinkButtonStyle, string> = {
@@ -543,23 +586,52 @@ function EditorSection({
   )
 }
 
-export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
+export function SmartlinkEditor(props: SmartlinkEditorProps) {
+  const isTools = "smartlinkId" in props
+  const releaseKey = isTools ? "" : props.releaseKey
+  const smartlinkId = isTools ? props.smartlinkId : ""
+  const { user, refresh: refreshSession } = useCabinetSession()
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [paying, setPaying] = useState(false)
   const [data, setData] = useState<SmartlinkApiPayload | null>(null)
   const [theme, setTheme] = useState<SmartlinkTheme>(DEFAULT_SMARTLINK_THEME)
   const [platformLinks, setPlatformLinks] = useState<PlatformLinks>({})
   const [slug, setSlug] = useState("")
+  const [title, setTitle] = useState("")
+  const [artist, setArtist] = useState("")
   const [customAccent, setCustomAccent] = useState(DEFAULT_SMARTLINK_THEME.accent)
   const [copied, setCopied] = useState(false)
   const [dragKey, setDragKey] = useState<PlatformLinkKey | null>(null)
   const [addPlatformOpen, setAddPlatformOpen] = useState(false)
   const [addSocialOpen, setAddSocialOpen] = useState(false)
   const [promoPublic, setPromoPublic] = useState(false)
+  const [coverTick, setCoverTick] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
+      if (isTools) {
+        const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}`, {
+          credentials: "include",
+        })
+        if (!res.ok) {
+          setData(null)
+          return
+        }
+        const json = mapToolsPayload((await res.json()) as ToolsSmartlinkApiRaw)
+        setData(json)
+        setTitle(json.title)
+        setArtist(json.artist)
+        const nextTheme = parseSmartlinkTheme(json.theme)
+        setTheme(nextTheme)
+        setCustomAccent(nextTheme.accent)
+        setPlatformLinks(normalizePlatformLinks(json.platformLinks))
+        setSlug(json.smartlinkSlug ?? "")
+        return
+      }
+
       const res = await fetch(`/api/cabinet/smartlink/${releaseKey}`, { credentials: "include" })
       if (!res.ok) {
         setData(null)
@@ -567,6 +639,8 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
       }
       const json = (await res.json()) as SmartlinkApiPayload
       setData(json)
+      setTitle(json.title)
+      setArtist(json.artist)
       const parsedTheme = parseSmartlinkTheme(json.theme)
       const defaultStart =
         typeof json.defaultPreviewStartSec === "number" ? json.defaultPreviewStartSec : 0
@@ -585,7 +659,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
     } finally {
       setLoading(false)
     }
-  }, [releaseKey])
+  }, [isTools, releaseKey, smartlinkId])
 
   useEffect(() => {
     void load()
@@ -728,19 +802,70 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
     )
   }
 
+  const buildThemePayload = () => {
+    const accent = normalizeAccentHex(customAccent) ?? theme.accent
+    return {
+      ...theme,
+      accent,
+      platformOrder: activePlatformKeys,
+      socials: {
+        ...socials,
+        items: socials.items.filter((i) => i.url.trim() && i.url !== "https://"),
+      },
+      extraLinks: (theme.extraLinks ?? []).filter(
+        (i) => i.label.trim() && i.url.trim() && i.url !== "https://",
+      ),
+    }
+  }
+
+  const cleanedPlatformLinks = () =>
+    normalizePlatformLinks(
+      Object.fromEntries(
+        Object.entries(platformLinks).filter(([, url]) => {
+          const t = (url ?? "").trim()
+          return t.length > 0 && t !== "https://" && t !== "http://"
+        }),
+      ) as PlatformLinks,
+    )
+
   const onSave = async () => {
     if (!data) return
     setSaving(true)
     try {
-      const accent = normalizeAccentHex(customAccent) ?? theme.accent
-      const cleanedLinks = normalizePlatformLinks(
-        Object.fromEntries(
-          Object.entries(platformLinks).filter(([, url]) => {
-            const t = (url ?? "").trim()
-            return t.length > 0 && t !== "https://" && t !== "http://"
+      const cleanedLinks = cleanedPlatformLinks()
+      const themePayload = buildThemePayload()
+
+      if (isTools) {
+        const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim() || "Смартлинк",
+            artistName: artist.trim(),
+            slug: slug.trim() || undefined,
+            platformLinks: cleanedLinks,
+            theme: themePayload,
           }),
-        ) as PlatformLinks,
-      )
+        })
+        const raw = (await res.json()) as ToolsSmartlinkApiRaw & { error?: string }
+        if (!res.ok) {
+          toast.error(raw.error || "Не удалось сохранить")
+          return
+        }
+        const json = mapToolsPayload(raw)
+        setData(json)
+        setTitle(json.title)
+        setArtist(json.artist)
+        const nextTheme = parseSmartlinkTheme(json.theme)
+        setTheme(nextTheme)
+        setPlatformLinks(normalizePlatformLinks(json.platformLinks))
+        setSlug(json.smartlinkSlug ?? "")
+        setCustomAccent(nextTheme.accent)
+        toast.success("Смартлинк сохранён")
+        return
+      }
+
       const res = await fetch(`/api/cabinet/smartlink/${releaseKey}`, {
         method: "PATCH",
         credentials: "include",
@@ -750,18 +875,7 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
           smartlinkSlug: slug.trim() || undefined,
           platformLinks: cleanedLinks,
           smartlinkPublic: data.canEnablePromo ? promoPublic : undefined,
-          theme: {
-            ...theme,
-            accent,
-            platformOrder: activePlatformKeys,
-            socials: {
-              ...socials,
-              items: socials.items.filter((i) => i.url.trim() && i.url !== "https://"),
-            },
-            extraLinks: (theme.extraLinks ?? []).filter(
-              (i) => i.label.trim() && i.url.trim() && i.url !== "https://",
-            ),
-          },
+          theme: themePayload,
         }),
       })
       const json = (await res.json()) as SmartlinkApiPayload & { error?: string }
@@ -770,6 +884,8 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
         return
       }
       setData(json)
+      setTitle(json.title)
+      setArtist(json.artist)
       const nextTheme = parseSmartlinkTheme(json.theme)
       setTheme(nextTheme)
       setPlatformLinks(normalizePlatformLinks(json.platformLinks))
@@ -781,6 +897,66 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
       toast.error("Не удалось сохранить")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const uploadToolsCover = async (file: File | null) => {
+    if (!file || !isTools) return
+    const fd = new FormData()
+    fd.set("file", file)
+    const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}/cover`, {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    })
+    const json = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) {
+      toast.error(json.error || "Не удалось загрузить обложку")
+      return
+    }
+    toast.success("Обложка загружена")
+    setCoverTick((n) => n + 1)
+    void load()
+  }
+
+  const uploadToolsAudio = async (file: File | null) => {
+    if (!file || !isTools) return
+    const fd = new FormData()
+    fd.set("file", file)
+    const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}/audio`, {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    })
+    const json = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) {
+      toast.error(json.error || "Не удалось загрузить аудио")
+      return
+    }
+    toast.success("Отрывок загружен")
+    void load()
+  }
+
+  const payToolsSmartlink = async () => {
+    if (!isTools) return
+    setPaying(true)
+    try {
+      const res = await fetch("/api/cabinet/payments/tools-smartlink/create", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ smartlinkId }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        toast.error(json.error || "Не удалось оплатить")
+        return
+      }
+      toast.success("Смартлинк активирован")
+      await refreshSession()
+      void load()
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -807,31 +983,78 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
   if (!data) {
     return (
       <div className="mx-auto max-w-lg space-y-4 py-16 text-center">
-        <p className="text-muted-foreground">Релиз не найден</p>
+        <p className="text-muted-foreground">
+          {isTools ? "Смартлинк не найден" : "Релиз не найден"}
+        </p>
         <Button asChild variant="outline">
-          <Link href="/cabinet/distribution/music">К списку релизов</Link>
+          <Link href={isTools ? "/cabinet/tools/smartlinks" : "/cabinet/distribution/music"}>
+            {isTools ? "К списку смартлинков" : "К списку релизов"}
+          </Link>
         </Button>
       </div>
     )
   }
 
+  const price = data.priceRub || TOOLS_SMARTLINK_PRICE_RUB
+  const balance = user?.walletBalance ?? 0
+  const previewCoverUrl = data.coverUrl
+    ? `${data.coverUrl}${data.coverUrl.includes("?") ? "&" : "?"}t=${coverTick}`
+    : null
+  const publicActiveLabel = isTools
+    ? !data.needsPayment
+      ? "Активна"
+      : null
+    : data.isPublic
+      ? data.smartlinkPublic && data.status !== "released"
+        ? "Активна · промо"
+        : "Активна"
+      : null
+
   return (
     <div className="flex w-full max-w-none flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="sticky top-0 z-30 -mx-1 shrink-0 space-y-2 border-b border-border/50 bg-background/95 px-1 pb-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/85 lg:static lg:border-0 lg:bg-transparent lg:pb-0 lg:backdrop-blur-none">
-        <Button variant="ghost" size="sm" asChild className="-ml-2 h-8 text-sm">
-          <Link href={`/cabinet/distribution/music/${releaseKey}`}>
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            К релизу
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 h-8 text-sm">
+            <Link
+              href={isTools ? "/cabinet/tools/smartlinks" : `/cabinet/distribution/music/${releaseKey}`}
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              {isTools ? "К смартлинкам" : "К релизу"}
+            </Link>
+          </Button>
+          {publicActiveLabel ? (
+            <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-950 dark:text-emerald-100">
+              {publicActiveLabel}
+            </span>
+          ) : null}
+        </div>
 
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <div className="min-w-0 flex-1 truncate">
-            <p className="truncate text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{data.artist}</span>
-              <span className="mx-1.5 text-muted-foreground/50">·</span>
-              <span className="font-semibold text-foreground">{data.title}</span>
-            </p>
+          <div className="min-w-0 flex-1">
+            {isTools ? (
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Название"
+                  className="h-9 text-sm font-semibold"
+                  aria-label="Название"
+                />
+                <Input
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  placeholder="Артист"
+                  className="h-9 text-sm"
+                  aria-label="Артист"
+                />
+              </div>
+            ) : (
+              <p className="truncate text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{artist}</span>
+                <span className="mx-1.5 text-muted-foreground/50">·</span>
+                <span className="font-semibold text-foreground">{title}</span>
+              </p>
+            )}
           </div>
 
           <div className="flex min-w-0 max-w-[min(100%,22rem)] flex-[1.2] items-center gap-1.5 sm:max-w-none">
@@ -877,7 +1100,24 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
         </div>
       </div>
 
-      {data.canEnablePromo ? (
+      {isTools && data.needsPayment ? (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-950 dark:text-amber-100">
+            Чтобы страница стала публичной, оплатите {price.toLocaleString("ru-RU")} ₽ с баланса
+            (год). Баланс: {balance.toLocaleString("ru-RU")} ₽.
+          </p>
+          <Button
+            type="button"
+            onClick={() => void payToolsSmartlink()}
+            disabled={paying || balance < price}
+          >
+            {paying ? <Spinner className="mr-2 h-4 w-4" /> : null}
+            Оплатить {price.toLocaleString("ru-RU")} ₽
+          </Button>
+        </div>
+      ) : null}
+
+      {!isTools && data.canEnablePromo ? (
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/40 px-4 py-3">
           <div className="min-w-0 space-y-0.5">
             <p className="text-sm font-medium">Промо-смартлинк</p>
@@ -893,34 +1133,60 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
             onClick={() => setPromoPublic((v) => !v)}
             className={cn(
               "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-              promoPublic ? "bg-primary" : "bg-muted"
+              promoPublic ? "bg-primary" : "bg-muted",
             )}
           >
             <span
               className={cn(
                 "absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform",
-                promoPublic ? "left-[1.35rem]" : "left-0.5"
+                promoPublic ? "left-[1.35rem]" : "left-0.5",
               )}
             />
           </button>
         </div>
       ) : null}
 
-      {!data.isPublic ? (
-        <p className="shrink-0 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
+      {!isTools && !data.isPublic ? (
+        <p className="shrink-0 text-xs text-muted-foreground">
           {data.canEnablePromo
             ? "Включите «Промо-смартлинк» и сохраните - страница станет доступна по ссылке (нужна обложка)."
             : "Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее."}
         </p>
-      ) : (
-        <p className="shrink-0 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-950 dark:text-emerald-100">
-          Публичная страница активна
-          {data.smartlinkPublic && data.status !== "released" ? " (промо)" : ""}.
-        </p>
-      )}
+      ) : null}
 
       <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
         <div className="min-h-0 space-y-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+          {isTools ? (
+            <EditorSection title="Обложка и отрывок">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm">Обложка (JPG/PNG)</Label>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={(e) => void uploadToolsCover(e.target.files?.[0] ?? null)}
+                  />
+                  {data.coverUrl ? (
+                    <p className="text-xs text-muted-foreground">Обложка загружена</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Нужна для превью и публикации</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Отрывок (WAV/MP3)</Label>
+                  <Input
+                    type="file"
+                    accept=".wav,.mp3,audio/wav,audio/mpeg"
+                    onChange={(e) => void uploadToolsAudio(e.target.files?.[0] ?? null)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {data.hasPreviewAudio ? "Файл загружен" : "Опционально - хук на странице"}
+                  </p>
+                </div>
+              </div>
+            </EditorSection>
+          ) : null}
+
           <EditorSection title="Стиль">
             <div className="space-y-3">
               <div>
@@ -1069,9 +1335,14 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
                     ? ` В релизе для TikTok указано: ${data.defaultPreviewStartSec} сек.`
                     : null}
                 </p>
-                {data && !data.isPublic ? (
+                {data && !data.isPublic && !isTools ? (
                   <p className="text-sm text-amber-700 dark:text-amber-200">
                     Хук заработает на публичной странице после релиза.
+                  </p>
+                ) : null}
+                {isTools && data && !data.hasPreviewAudio ? (
+                  <p className="text-sm text-amber-700 dark:text-amber-200">
+                    Загрузите отрывок выше - иначе на странице не будет звука.
                   </p>
                 ) : null}
               </div>
@@ -1432,12 +1703,12 @@ export function SmartlinkEditor({ releaseKey }: { releaseKey: string }) {
               <span className="h-1.5 w-12 rounded-full bg-white/20" />
             </div>
             <div className="max-h-[min(680px,calc(100dvh-12rem))] overflow-y-auto lg:max-h-none">
-              {data.coverUrl ? (
+              {previewCoverUrl ? (
                 <SmartlinkLanding
-                  key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}-${previewTheme.platformLayout}`}
-                  title={data.title}
-                  artist={data.artist}
-                  coverUrl={data.coverUrl}
+                  key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}-${previewTheme.platformLayout}-${coverTick}`}
+                  title={title || "Название"}
+                  artist={artist || "Артист"}
+                  coverUrl={previewCoverUrl}
                   links={previewLinks}
                   theme={previewTheme}
                   preview

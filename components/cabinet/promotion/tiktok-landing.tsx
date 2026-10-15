@@ -627,7 +627,7 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
       </section>
 
       {/* F. FAQ */}
-      <section id="faq" className="scroll-mt-20 max-w-3xl space-y-5">
+      <section id="faq" className="scroll-mt-20 space-y-5">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Перед оформлением

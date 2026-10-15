@@ -6,6 +6,7 @@ import {
   sanitizeCabinetUserForClient,
 } from "@/lib/cabinet-counterparty"
 import { getCabinetUserByEmail, updateCabinetUserProfile } from "@/lib/cabinet-users"
+import { syncUserProfileFromKycIfEmpty } from "@/lib/cabinet-kyc"
 import { getTracksByUserId } from "@/lib/tracks"
 
 function resolveCounterpartyType(
@@ -22,10 +23,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const user = await getCabinetUserByEmail(session.email)
+    let user = await getCabinetUserByEmail(session.email)
     if (!user) {
       return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
     }
+
+    user = await syncUserProfileFromKycIfEmpty(user)
 
     const uploadedTracksCount = (await getTracksByUserId(session.email)).length
     const publicUser = sanitizeCabinetUserForClient(user)

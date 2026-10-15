@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { drawStoryVideoFrame } from "@/lib/story-video-canvas"
-import type { StoryVideoProject } from "@/lib/story-video-theme"
+import type { StoryVideoBadgeId, StoryVideoProject } from "@/lib/story-video-theme"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
   cover: HTMLImageElement | null
   peaks: Float32Array | null
   timeSec: number
-  badgeIcon?: HTMLImageElement | null
+  badgeIcons?: Partial<Record<StoryVideoBadgeId, HTMLImageElement>> | null
   className?: string
   /** Логическое разрешение canvas (превью меньше экспорта). */
   width?: number
@@ -22,7 +22,7 @@ export function StoryVideoPreview({
   cover,
   peaks,
   timeSec,
-  badgeIcon = null,
+  badgeIcons = null,
   className,
   width = 360,
   height = 640,
@@ -44,9 +44,9 @@ export function StoryVideoPreview({
       peaks,
       frameIndex: Math.floor(timeSec * 30),
       watermark: true,
-      badgeIcon,
+      badgeIcons,
     })
-  }, [project, cover, peaks, timeSec, badgeIcon, width, height])
+  }, [project, cover, peaks, timeSec, badgeIcons, width, height])
 
   return (
     <div

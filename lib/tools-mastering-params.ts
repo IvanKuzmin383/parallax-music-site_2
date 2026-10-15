@@ -1,6 +1,6 @@
 export type LoudnessLevel = "low" | "med" | "high"
 export type DensityLevel = "low" | "med" | "high"
-/** Сглаживание: деэссер + смягчение резкости + мягкий gate в скачивании */
+/** Сглаживание: EQ-срезы резкости/воздуха + мягкий gate в скачивании */
 export type SmoothLevel = "off" | "low" | "med" | "high"
 
 export type MasteringParams = {
@@ -212,13 +212,15 @@ export const DEFAULT_MASTERING_PARAMS: MasteringParams = {
   ...MASTERING_PRESETS[0].params,
 }
 
+/** EQ + soft gate for «Сглаживание». Cuts only - no compressor makeup. */
 export function smoothSettings(level: SmoothLevel): {
   enabled: boolean
+  /** Peaking cut around presence / harshness (~3.5 kHz) */
   harshGainDb: number
-  harshThreshold: number
-  harshRatio: number
-  deEssThreshold: number
-  deEssRatio: number
+  /** High-shelf cut for air / sibilance (~7 kHz) */
+  airShelfDb: number
+  /** Gentle lowpass; null = bypass (near Nyquist) */
+  airLpHz: number | null
   gateThresholdDb: number
   gateRatio: number
 } {
@@ -226,10 +228,8 @@ export function smoothSettings(level: SmoothLevel): {
     return {
       enabled: false,
       harshGainDb: 0,
-      harshThreshold: 0,
-      harshRatio: 1,
-      deEssThreshold: 0,
-      deEssRatio: 1,
+      airShelfDb: 0,
+      airLpHz: null,
       gateThresholdDb: -90,
       gateRatio: 1,
     }
@@ -237,11 +237,9 @@ export function smoothSettings(level: SmoothLevel): {
   if (level === "low") {
     return {
       enabled: true,
-      harshGainDb: -1,
-      harshThreshold: -22,
-      harshRatio: 2.2,
-      deEssThreshold: -26,
-      deEssRatio: 3.5,
+      harshGainDb: -1.4,
+      airShelfDb: -2.2,
+      airLpHz: 14000,
       gateThresholdDb: -52,
       gateRatio: 1.35,
     }
@@ -249,22 +247,18 @@ export function smoothSettings(level: SmoothLevel): {
   if (level === "high") {
     return {
       enabled: true,
-      harshGainDb: -2.6,
-      harshThreshold: -18,
-      harshRatio: 3.4,
-      deEssThreshold: -22,
-      deEssRatio: 6,
+      harshGainDb: -3.2,
+      airShelfDb: -5.5,
+      airLpHz: 9000,
       gateThresholdDb: -42,
       gateRatio: 2.1,
     }
   }
   return {
     enabled: true,
-    harshGainDb: -1.7,
-    harshThreshold: -20,
-    harshRatio: 2.8,
-    deEssThreshold: -24,
-    deEssRatio: 4.5,
+    harshGainDb: -2.2,
+    airShelfDb: -3.6,
+    airLpHz: 11500,
     gateThresholdDb: -48,
     gateRatio: 1.65,
   }

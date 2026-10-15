@@ -55,6 +55,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   ai_mastering: "AI-мастеринг",
   tools_mastering_download: "Онлайн-мастеринг",
   tools_story_video_download: "Сниппет",
+  tools_slowed_reverb_download: "Slowed / Reverb / Nightcore",
   vertical_video: "Вертикальное видео",
   track_cover: "Обложка трека",
   ai_cover: "AI-обложка",

@@ -1,5 +1,5 @@
 import type {
-  StoryVideoBadge,
+  StoryVideoBadgeId,
   StoryVideoFilter,
   StoryVideoMotion,
   StoryVideoProject,
@@ -21,8 +21,8 @@ export type StoryVideoDrawInput = {
   frameIndex?: number
   /** Водяной знак превью (защита от записи экрана). В экспорт не передавать. */
   watermark?: boolean
-  /** Иконка бейджа площадки (уже загруженный SVG/PNG). */
-  badgeIcon?: CanvasImageSource | null
+  /** Иконки бейджей площадок (уже загруженные SVG/PNG). */
+  badgeIcons?: Partial<Record<StoryVideoBadgeId, CanvasImageSource>> | null
 }
 
 function clamp01(n: number): number {
@@ -157,6 +157,72 @@ function drawRoundedCover(
   roundRectPath(ctx, x, y, size, size, radius)
   ctx.clip()
   drawImageCover(ctx, cover, x, y, size, size, scale)
+  ctx.restore()
+}
+
+function drawCassetteReel(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  rotationRad: number
+) {
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(rotationRad)
+  // спицы катушки
+  const spokes = 8
+  for (let i = 0; i < spokes; i++) {
+    const a0 = (i / spokes) * Math.PI * 2
+    const a1 = a0 + (14 * Math.PI) / 180
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.arc(0, 0, radius, a0, a1)
+    ctx.closePath()
+    ctx.fillStyle = i % 2 === 0 ? "#3a3a42" : "#16161a"
+    ctx.fill()
+  }
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.strokeStyle = "rgba(255,255,255,0.14)"
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+  // ступица
+  const hub = radius * 0.28
+  ctx.beginPath()
+  ctx.arc(0, 0, hub, 0, Math.PI * 2)
+  const hubGrad = ctx.createRadialGradient(-hub * 0.2, -hub * 0.2, 0, 0, 0, hub)
+  hubGrad.addColorStop(0, "#4a4a52")
+  hubGrad.addColorStop(0.55, "#1c1c22")
+  hubGrad.addColorStop(1, "#0a0a0c")
+  ctx.fillStyle = hubGrad
+  ctx.fill()
+  ctx.strokeStyle = "rgba(255,255,255,0.2)"
+  ctx.lineWidth = 1
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawCassetteScrew(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r)
+  g.addColorStop(0, "#6a6a72")
+  g.addColorStop(0.6, "#2a2a30")
+  g.addColorStop(1, "#121214")
+  ctx.fillStyle = g
+  ctx.fill()
+  ctx.strokeStyle = "rgba(255,255,255,0.25)"
+  ctx.lineWidth = 1
+  ctx.stroke()
+  // шлиц
+  ctx.beginPath()
+  ctx.moveTo(cx - r * 0.45, cy)
+  ctx.lineTo(cx + r * 0.45, cy)
+  ctx.strokeStyle = "rgba(0,0,0,0.55)"
+  ctx.lineWidth = Math.max(1, r * 0.35)
+  ctx.stroke()
   ctx.restore()
 }
 
@@ -500,6 +566,115 @@ function drawTemplate(
       drawCircleCover(ctx, cover, cx, height * 0.38, r, scale, rot)
       break
     }
+    case "cassette": {
+      // Как смартлинк: корпус = обложка, окно с катушками, винты, лейбл
+      drawBlurredBackground(ctx, cover, width, height, 1.06)
+      const cassW = width * 0.86
+      const cassH = cassW / 1.55
+      const cassX = (width - cassW) / 2
+      const cassY = height * 0.18
+      const cassR = width * 0.025
+
+      ctx.save()
+      ctx.shadowColor = "rgba(0,0,0,0.55)"
+      ctx.shadowBlur = width * 0.06
+      ctx.shadowOffsetY = width * 0.02
+      roundRectPath(ctx, cassX, cassY, cassW, cassH, cassR)
+      ctx.clip()
+      drawImageCover(ctx, cover, cassX, cassY, cassW, cassH, scale)
+
+      // пластиковый блик поверх обложки
+      const gloss = ctx.createLinearGradient(cassX, cassY, cassX, cassY + cassH)
+      gloss.addColorStop(0, "rgba(255,255,255,0.22)")
+      gloss.addColorStop(0.16, "transparent")
+      gloss.addColorStop(0.7, "transparent")
+      gloss.addColorStop(1, "rgba(0,0,0,0.38)")
+      ctx.fillStyle = gloss
+      ctx.fillRect(cassX, cassY, cassW, cassH)
+      const sideShade = ctx.createLinearGradient(cassX, 0, cassX + cassW, 0)
+      sideShade.addColorStop(0, "rgba(0,0,0,0.28)")
+      sideShade.addColorStop(0.14, "transparent")
+      sideShade.addColorStop(0.86, "transparent")
+      sideShade.addColorStop(1, "rgba(0,0,0,0.28)")
+      ctx.fillStyle = sideShade
+      ctx.fillRect(cassX, cassY, cassW, cassH)
+      ctx.restore()
+
+      // рамка корпуса
+      ctx.save()
+      roundRectPath(ctx, cassX, cassY, cassW, cassH, cassR)
+      ctx.strokeStyle = "rgba(255,255,255,0.18)"
+      ctx.lineWidth = Math.max(1.5, width * 0.003)
+      ctx.stroke()
+      ctx.restore()
+
+      // окно с лентой и катушками
+      const winX = cassX + cassW * 0.09
+      const winY = cassY + cassH * 0.3
+      const winW = cassW * 0.82
+      const winH = cassH * 0.4
+      roundRectPath(ctx, winX, winY, winW, winH, 3)
+      ctx.fillStyle = "rgba(8,8,10,0.78)"
+      ctx.fill()
+      ctx.strokeStyle = "rgba(255,255,255,0.12)"
+      ctx.lineWidth = 1
+      ctx.stroke()
+
+      // лента между катушками
+      const tapeH = winH * 0.38
+      const tapeY = winY + winH * 0.55 - tapeH / 2
+      roundRectPath(ctx, winX + winW * 0.18, tapeY, winW * 0.64, tapeH, 2)
+      const tapeGrad = ctx.createLinearGradient(0, tapeY, 0, tapeY + tapeH)
+      tapeGrad.addColorStop(0, "#2a2218")
+      tapeGrad.addColorStop(0.5, "#1a140e")
+      tapeGrad.addColorStop(1, "#0e0a08")
+      ctx.fillStyle = tapeGrad
+      ctx.fill()
+
+      const reelR = winW * 0.15
+      const reelCy = winY + winH * 0.55
+      const leftReelCx = winX + winW * 0.06 + reelR
+      const rightReelCx = winX + winW * 0.94 - reelR
+      // ~3.2s на оборот как в смартлинке
+      const reelRot = (timeSec / 3.2) * Math.PI * 2
+      drawCassetteReel(ctx, leftReelCx, reelCy, reelR, reelRot)
+      drawCassetteReel(ctx, rightReelCx, reelCy, reelR, -reelRot)
+
+      // нижний лейбл
+      const labX = cassX + cassW * 0.1
+      const labY = cassY + cassH * 0.78
+      const labW = cassW * 0.8
+      const labH = cassH * 0.16
+      roundRectPath(ctx, labX, labY, labW, labH, 2)
+      ctx.fillStyle = "rgba(0,0,0,0.32)"
+      ctx.fill()
+      ctx.strokeStyle = "rgba(255,255,255,0.12)"
+      ctx.stroke()
+      if (project.showText !== false && project.textLayout !== "bigHook") {
+        ctx.save()
+        ctx.textAlign = "center"
+        ctx.fillStyle = "rgba(255,255,255,0.92)"
+        ctx.font = `700 ${Math.round(width * 0.028)}px system-ui, sans-serif`
+        ctx.fillText((project.title || "Трек").slice(0, 28), width / 2, labY + labH * 0.42)
+        ctx.fillStyle = "rgba(255,255,255,0.65)"
+        ctx.font = `500 ${Math.round(width * 0.022)}px system-ui, sans-serif`
+        ctx.fillText((project.artist || "").slice(0, 32), width / 2, labY + labH * 0.72)
+        ctx.restore()
+      }
+
+      // винты по углам
+      const screwR = Math.max(3, width * 0.007)
+      const screws: Array<[number, number]> = [
+        [cassX + cassW * 0.05, cassY + cassH * 0.07],
+        [cassX + cassW * 0.95, cassY + cassH * 0.07],
+        [cassX + cassW * 0.05, cassY + cassH * 0.93],
+        [cassX + cassW * 0.95, cassY + cassH * 0.93],
+      ]
+      for (const [sx, sy] of screws) {
+        drawCassetteScrew(ctx, sx, sy, screwR)
+      }
+      break
+    }
     case "neon": {
       ctx.fillStyle = "#07070c"
       ctx.fillRect(0, 0, width, height)
@@ -630,7 +805,7 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
 
   drawTemplate(ctx, width, height, project.template, cover, scale, timeSec, project.accent, project)
 
-  // ticket и lyricCard рисуют свой текст внутри шаблона
+  // ticket / lyricCard / cassette рисуют свой текст внутри шаблона
   if (project.template === "ticket") {
     if (
       project.showText !== false &&
@@ -644,6 +819,11 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
       ctx.fillText(project.hookText.slice(0, 42), width / 2, height * 0.9)
       ctx.restore()
     }
+  } else if (project.template === "cassette") {
+    // title/artist уже на лейбле кассеты; bigHook - ниже корпуса
+    if (project.showText !== false && project.textLayout === "bigHook") {
+      drawBigHook(ctx, width, height, project)
+    }
   } else if (project.template !== "lyricCard") {
     drawTextOverlay(ctx, width, height, project)
   }
@@ -655,8 +835,9 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
   // Фильтры grain/vhs читают пиксели - после всей графики
   applyFilterOverlay(ctx, width, height, project.filter, frameIndex)
 
-  if (project.badge && project.badge !== "none") {
-    drawPlatformBadge(ctx, width, height, project, input.badgeIcon ?? null)
+  const badges = Array.isArray(project.badges) ? project.badges : []
+  if (badges.length > 0) {
+    drawPlatformBadges(ctx, width, height, project, input.badgeIcons ?? null)
   }
 
   if (input.watermark) {
@@ -666,48 +847,47 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
   ctx.restore()
 }
 
-function drawPlatformBadge(
+function measureBadgeWidth(
   ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  project: StoryVideoProject,
-  icon: CanvasImageSource | null
-) {
-  const badge = project.badge as StoryVideoBadge
-  if (!badge || badge === "none") return
+  badge: StoryVideoBadgeId,
+  badgeH: number
+): number {
   const meta = STORY_VIDEO_BADGE_META[badge]
-  const xPct = Math.max(4, Math.min(96, project.badgeX ?? 50))
-  const yPct = Math.max(4, Math.min(96, project.badgeY ?? 92))
-  const cx = (xPct / 100) * width
-  const cy = (yPct / 100) * height
-
-  const badgeH = Math.max(36, width * 0.09)
   const padX = badgeH * 0.28
   const iconSize = badgeH * 0.62
   const gap = badgeH * 0.22
-
-  ctx.save()
   ctx.font = `600 ${Math.round(badgeH * 0.26)}px system-ui, sans-serif`
   const line1W = ctx.measureText(meta.line1).width
   ctx.font = `800 ${Math.round(badgeH * 0.38)}px system-ui, sans-serif`
   const line2W = ctx.measureText(meta.line2).width
-  const textW = Math.max(line1W, line2W)
-  const badgeW = padX + iconSize + gap + textW + padX * 1.15
+  return padX + iconSize + gap + Math.max(line1W, line2W) + padX * 1.15
+}
 
-  const left = cx - badgeW / 2
-  const top = cy - badgeH / 2
+function drawOnePlatformBadge(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  badge: StoryVideoBadgeId,
+  left: number,
+  top: number,
+  badgeW: number,
+  badgeH: number,
+  icon: CanvasImageSource | null | undefined
+) {
+  const meta = STORY_VIDEO_BADGE_META[badge]
+  const padX = badgeH * 0.28
+  const iconSize = badgeH * 0.62
+  const gap = badgeH * 0.22
   const radius = badgeH * 0.28
 
-  // Тень
+  ctx.save()
   ctx.shadowColor = "rgba(0,0,0,0.45)"
-  ctx.shadowBlur = width * 0.02
-  ctx.shadowOffsetY = width * 0.006
+  ctx.shadowBlur = width * 0.015
+  ctx.shadowOffsetY = width * 0.004
   roundRectPath(ctx, left, top, badgeW, badgeH, radius)
   ctx.fillStyle = "#0a0a0a"
   ctx.fill()
   ctx.shadowColor = "transparent"
 
-  // Тонкая обводка как у официальных бейджей
   roundRectPath(ctx, left, top, badgeW, badgeH, radius)
   ctx.strokeStyle = "rgba(255,255,255,0.35)"
   ctx.lineWidth = Math.max(1, width * 0.0025)
@@ -716,7 +896,6 @@ function drawPlatformBadge(
   const iconX = left + padX
   const iconY = top + (badgeH - iconSize) / 2
   if (icon) {
-    // Подложка только где SVG без своего фона (VK / при необходимости)
     if (badge === "vk") {
       roundRectPath(ctx, iconX, iconY, iconSize, iconSize, iconSize * 0.22)
       ctx.fillStyle = "#fff"
@@ -724,7 +903,6 @@ function drawPlatformBadge(
     }
     ctx.drawImage(icon, iconX, iconY, iconSize, iconSize)
   } else {
-    // Fallback без иконки - цветной кружок
     ctx.beginPath()
     ctx.arc(iconX + iconSize / 2, iconY + iconSize / 2, iconSize / 2, 0, Math.PI * 2)
     ctx.fillStyle =
@@ -749,48 +927,91 @@ function drawPlatformBadge(
   ctx.restore()
 }
 
-/** Плотный диагональный watermark - чтобы запись экрана была бесполезна для публикации. */
+/** Стопка бейджей по вертикали вокруг якоря badgeX/badgeY - без наложений. */
+function drawPlatformBadges(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  project: StoryVideoProject,
+  icons: Partial<Record<StoryVideoBadgeId, CanvasImageSource>> | null
+) {
+  const badges = project.badges.filter((b) => b in STORY_VIDEO_BADGE_META)
+  if (badges.length === 0) return
+
+  const count = badges.length
+  // Чуть компактнее при нескольких бейджах
+  const badgeH = Math.max(30, width * (count >= 3 ? 0.072 : 0.085))
+  const gapY = badgeH * 0.22
+  const stackH = count * badgeH + (count - 1) * gapY
+
+  const xPct = Math.max(4, Math.min(96, project.badgeX ?? 50))
+  const yPct = Math.max(4, Math.min(96, project.badgeY ?? 88))
+  const cx = (xPct / 100) * width
+  let stackTop = (yPct / 100) * height - stackH / 2
+
+  // Не выходим за края кадра
+  const margin = height * 0.03
+  if (stackTop < margin) stackTop = margin
+  if (stackTop + stackH > height - margin) stackTop = Math.max(margin, height - margin - stackH)
+
+  // Одна ширина на все бейджи - ровная стопка без наложений
+  const badgeW = Math.max(...badges.map((b) => measureBadgeWidth(ctx, b, badgeH)))
+  let left = cx - badgeW / 2
+  left = Math.max(width * 0.03, Math.min(left, width - width * 0.03 - badgeW))
+
+  for (let i = 0; i < badges.length; i++) {
+    const badge = badges[i]
+    const top = stackTop + i * (badgeH + gapY)
+    drawOnePlatformBadge(
+      ctx,
+      width,
+      badge,
+      left,
+      top,
+      badgeW,
+      badgeH,
+      icons?.[badge] ?? null
+    )
+  }
+}
+
+/**
+ * Лёгкий watermark: превью читается, запись экрана всё ещё помечается.
+ * Без затемнения кадра и без плотной сетки текста.
+ */
 function drawPreviewWatermark(ctx: CanvasRenderingContext2D, width: number, height: number) {
   ctx.save()
-  ctx.fillStyle = "rgba(0,0,0,0.22)"
-  ctx.fillRect(0, 0, width, height)
-
   ctx.translate(width / 2, height / 2)
   ctx.rotate((-28 * Math.PI) / 180)
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
-  ctx.font = `800 ${Math.round(width * 0.09)}px system-ui, sans-serif`
-  ctx.fillStyle = "rgba(255,255,255,0.22)"
-  ctx.strokeStyle = "rgba(0,0,0,0.18)"
-  ctx.lineWidth = Math.max(1, width * 0.004)
+  ctx.font = `700 ${Math.round(width * 0.07)}px system-ui, sans-serif`
+  ctx.fillStyle = "rgba(255,255,255,0.11)"
+  ctx.strokeStyle = "rgba(0,0,0,0.08)"
+  ctx.lineWidth = Math.max(1, width * 0.0025)
 
-  const label = "PREVIEW · PARALLAX"
-  const stepY = width * 0.22
-  const stepX = width * 0.55
-  for (let row = -4; row <= 4; row++) {
-    for (let col = -3; col <= 3; col++) {
-      const x = col * stepX + (row % 2 === 0 ? 0 : stepX / 2)
-      const y = row * stepY
-      ctx.strokeText(label, x, y)
-      ctx.fillText(label, x, y)
-    }
+  // Три диагональные надписи вместо плотной сетки
+  const label = "PREVIEW"
+  for (const y of [-width * 0.32, 0, width * 0.32]) {
+    ctx.strokeText(label, 0, y)
+    ctx.fillText(label, 0, y)
   }
   ctx.restore()
 
-  // Бейдж в углу
+  // Компактный бейдж в углу
   ctx.save()
-  const badgeW = width * 0.36
-  const badgeH = height * 0.045
+  const badgeW = width * 0.28
+  const badgeH = height * 0.036
   const bx = width * 0.06
-  const by = height * 0.06
+  const by = height * 0.055
   roundRectPath(ctx, bx, by, badgeW, badgeH, badgeH / 2)
-  ctx.fillStyle = "rgba(226,83,47,0.92)"
+  ctx.fillStyle = "rgba(226,83,47,0.85)"
   ctx.fill()
   ctx.fillStyle = "#fff"
-  ctx.font = `700 ${Math.round(width * 0.028)}px system-ui, sans-serif`
+  ctx.font = `700 ${Math.round(width * 0.026)}px system-ui, sans-serif`
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
-  ctx.fillText("ПРЕВЬЮ · без скачивания", bx + badgeW / 2, by + badgeH / 2)
+  ctx.fillText("ПРЕВЬЮ", bx + badgeW / 2, by + badgeH / 2)
   ctx.restore()
 }
 
