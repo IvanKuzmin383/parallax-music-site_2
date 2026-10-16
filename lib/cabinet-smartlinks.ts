@@ -219,8 +219,11 @@ export async function updateSmartlink(
     if (!SMARTLINK_SLUG_REGEX.test(slug)) {
       throw new Error("invalid_slug")
     }
-    if (await isAnySmartlinkSlugTaken(slug, { excludeSmartlinkId: id })) {
-      throw new Error("slug_taken")
+    // Свой текущий slug не считаем занятым
+    if (slug.toLowerCase() !== current.slug.toLowerCase()) {
+      if (await isAnySmartlinkSlugTaken(slug, { excludeSmartlinkId: id })) {
+        throw new Error("slug_taken")
+      }
     }
   }
 

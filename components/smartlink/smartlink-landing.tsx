@@ -126,7 +126,7 @@ export function SmartlinkLanding({
   links,
   theme,
   brandHref = "/",
-  brandLabel = "Parallax Music",
+  brandLabel = "Powered by Parallax",
   className,
   preview = false,
   previewAudioSrc = null,

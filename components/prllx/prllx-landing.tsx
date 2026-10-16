@@ -2,17 +2,12 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
-import {
-  PLATFORM_ICON_SRC,
-  type PlatformLinks,
-} from "@/lib/smartlink-platforms"
+import { type PlatformLinks } from "@/lib/smartlink-platforms"
 import { getSiteOrigin } from "@/lib/smartlink-public-origin"
 import {
   DEFAULT_SMARTLINK_THEME,
-  SMARTLINK_PRESET_BASE,
   SMARTLINK_PRESET_LOOK,
   SMARTLINK_PRESET_META,
-  SMARTLINK_PRESET_SIGNATURE,
   SMARTLINK_ANIMATION_META,
   SMARTLINK_BUTTON_STYLES,
   getOrderedSmartlinkLinks,
@@ -136,11 +131,6 @@ export function PrllxLanding() {
   const theme = useMemo(() => themeForPreset(preset, "cascade"), [preset])
   const links = useMemo(() => getOrderedSmartlinkLinks(DEMO_LINKS, theme), [theme])
 
-  const galleryPresets = useMemo(
-    () => [...SMARTLINK_PRESET_BASE, ...SMARTLINK_PRESET_SIGNATURE] as SmartlinkPreset[],
-    [],
-  )
-
   const pickPreset = (next: SmartlinkPreset) => {
     setAutoRotate(false)
     setPreset(next)
@@ -219,12 +209,12 @@ export function PrllxLanding() {
                 theme={theme}
                 preview
                 brandHref={site}
-                brandLabel="Parallax Music"
+                brandLabel="Powered by Parallax"
                 className="!min-h-[680px]"
               />
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             {HERO_ROTATE.map((p) => (
               <button
                 key={p}
@@ -240,6 +230,13 @@ export function PrllxLanding() {
                 {SMARTLINK_PRESET_META[p].label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setAutoRotate((v) => !v)}
+              className="rounded-full px-3 py-1 text-[11px] uppercase tracking-wider text-white/40 hover:text-white/70"
+            >
+              {autoRotate ? "Пауза" : "Авто"}
+            </button>
           </div>
         </div>
       </section>
@@ -295,89 +292,6 @@ export function PrllxLanding() {
         </div>
       </section>
 
-      {/* Preset gallery */}
-      <section className="relative z-10 py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Выберите настроение</h2>
-              <p className="mt-2 max-w-xl text-white/55">
-                Нажмите пресет - демо слева (или выше на мобиле) переключится. Все оформления из
-                редактора смартлинка.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setAutoRotate((v) => !v)}
-              className="self-start text-xs uppercase tracking-[0.16em] text-white/45 hover:text-white/80"
-            >
-              {autoRotate ? "Пауза ротации" : "Авто-ротация"}
-            </button>
-          </div>
-
-          <div className="mb-8 overflow-x-auto pb-2 lg:hidden">
-            <div className="flex w-max gap-2">
-              {galleryPresets.map((p) => (
-                <button
-                  key={`m-${p}`}
-                  type="button"
-                  onClick={() => pickPreset(p)}
-                  className={cn(
-                    "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
-                    preset === p ? "bg-white text-black" : "bg-white/10 text-white/70",
-                  )}
-                >
-                  {SMARTLINK_PRESET_META[p].label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {galleryPresets.map((p) => {
-              const active = preset === p
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => pickPreset(p)}
-                  className={cn(
-                    "group relative overflow-hidden rounded-2xl border p-4 text-left transition",
-                    active
-                      ? "border-[#E2532F]/70 bg-[#E2532F]/15 shadow-[0_0_0_1px_rgba(226,83,47,0.35)]"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]",
-                  )}
-                >
-                  <div className="mb-3 flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={DEMO_COVER}
-                      alt=""
-                      className="h-10 w-10 rounded-lg object-cover opacity-90 transition group-hover:scale-105"
-                    />
-                    <div className="flex -space-x-1.5">
-                      {(["spotify", "yandex", "appleMusic"] as const).map((key) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={key}
-                          src={PLATFORM_ICON_SRC[key]}
-                          alt=""
-                          className="h-5 w-5 rounded-full bg-black/40 p-0.5"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm font-semibold">{SMARTLINK_PRESET_META[p].label}</p>
-                  <p className="mt-1 text-xs leading-snug text-white/45">
-                    {SMARTLINK_PRESET_META[p].description}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* CTA band */}
       <section className="relative z-10 border-y border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-4 py-16 sm:px-6 lg:flex-row lg:items-center">
@@ -405,7 +319,7 @@ export function PrllxLanding() {
         <p>
           <span className="font-semibold text-white/70">prllx.link</span>
           {" · "}
-          продукт{" "}
+          Powered by{" "}
           <a href={site} className="underline-offset-2 hover:text-white/70 hover:underline">
             Parallax Music
           </a>

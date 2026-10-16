@@ -20,7 +20,8 @@ import {
   normalizeAccentHex,
   parseSmartlinkTheme,
 } from "@/lib/smartlink-theme"
-import { isSmartlinkSlugTaken, setTrackSmartlinkPublic, updateTrack } from "@/lib/tracks"
+import { isAnySmartlinkSlugTaken } from "@/lib/cabinet-smartlinks"
+import { setTrackSmartlinkPublic, updateTrack } from "@/lib/tracks"
 
 const optionalUrl = z.string().trim().max(2000).optional().nullable()
 
@@ -123,7 +124,12 @@ export async function PATCH(
         { status: 400 },
       )
     }
-    if (await isSmartlinkSlugTaken(slug, ctx.track.id)) {
+    const sameAsCurrent =
+      Boolean(ctx.smartlinkSlug) && ctx.smartlinkSlug!.toLowerCase() === slug.toLowerCase()
+    if (
+      !sameAsCurrent &&
+      (await isAnySmartlinkSlugTaken(slug, { excludeTrackId: ctx.track.id }))
+    ) {
       return NextResponse.json({ error: "Такой смартлинк уже занят" }, { status: 409 })
     }
     nextSlug = slug

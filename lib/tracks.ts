@@ -358,27 +358,14 @@ export async function generateUniqueSmartlinkSlug(): Promise<string> {
   return nanoid(10)
 }
 
+/** Занят ли slug в tracks (без таблицы smartlinks). */
 export async function isSmartlinkSlugTaken(slug: string, excludeTrackId?: string): Promise<boolean> {
   const trimmed = slug.trim()
   if (!trimmed) return false
   const row = await queryOne<{ id: string }>("SELECT id FROM tracks WHERE smartlink_slug = ?", [trimmed])
-  if (row) {
-    if (excludeTrackId && row.id === excludeTrackId) {
-      // continue - still check smartlinks table
-    } else {
-      return true
-    }
-  }
-  try {
-    const sl = await queryOne<{ id: string }>(
-      `SELECT id FROM smartlinks WHERE LOWER(slug) = LOWER(?)`,
-      [trimmed]
-    )
-    if (sl) return true
-  } catch {
-    // таблица smartlinks может ещё не существовать до миграции
-  }
-  return false
+  if (!row) return false
+  if (excludeTrackId && row.id === excludeTrackId) return false
+  return true
 }
 
 export async function setTrackSmartlinkPublic(

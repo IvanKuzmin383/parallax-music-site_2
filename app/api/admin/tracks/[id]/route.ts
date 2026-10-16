@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getAdminToken, verifySession } from "@/lib/auth"
+import { isAnySmartlinkSlugTaken } from "@/lib/cabinet-smartlinks"
 import {
   getTrackById,
   updateTrack,
   deleteTrack,
-  isSmartlinkSlugTaken,
   type Track,
 } from "@/lib/tracks"
 import {
@@ -186,7 +186,7 @@ export async function PATCH(
 
   if (data.smartlinkSlug !== undefined && data.smartlinkSlug && data.smartlinkSlug.trim()) {
     const slug = data.smartlinkSlug.trim()
-    if (await isSmartlinkSlugTaken(slug, id)) {
+    if (await isAnySmartlinkSlugTaken(slug, { excludeTrackId: id })) {
       return NextResponse.json(
         { error: "Такой смартлинк уже занят другим треком" },
         { status: 409 }
