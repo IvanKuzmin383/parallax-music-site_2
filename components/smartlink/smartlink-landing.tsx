@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import { SmartlinkPreviewAudio } from "@/components/smartlink/smartlink-preview-audio"
+import { SmartlinkAudioGate } from "@/components/smartlink/smartlink-audio-gate"
 import { SmartlinkRaveBlobs } from "@/components/smartlink/smartlink-rave-blobs"
 import {
   SOCIAL_ICON_SRC,
@@ -326,6 +326,18 @@ export function SmartlinkLanding({
         next.boxShadow = "none"
       }
       return next
+    }
+
+    // Винил / орбита: кружки в цвет фона страницы, без акцентной заливки
+    if (isVinyl || isOrbit) {
+      return withDetails({
+        backgroundColor: contentLight ? "#F3EFE6" : "#0B0B0C",
+        color: fgOnPage,
+        border: contentLight
+          ? "1px solid rgba(22,22,22,0.12)"
+          : "1px solid rgba(255,255,255,0.14)",
+        boxShadow: "none",
+      }, { keepBorder: true })
     }
 
     if (isInkblot) {
@@ -995,7 +1007,9 @@ export function SmartlinkLanding({
   )
 
   return (
-    <div
+    <SmartlinkAudioGate
+      previewAudioSrc={!preview ? previewAudioSrc : null}
+      light={contentLight && isSheet}
       className={shellClass}
       style={
         {
@@ -1056,10 +1070,6 @@ export function SmartlinkLanding({
         />
       ) : null}
 
-      {!preview && previewAudioSrc ? (
-        <SmartlinkPreviewAudio src={previewAudioSrc} light={contentLight && isSheet} />
-      ) : null}
-
       <div className={cardClass}>
         {socialsAbove ? (
           <div className={animClass(theme)} style={animStyle(theme, animIndex++)}>
@@ -1101,6 +1111,6 @@ export function SmartlinkLanding({
           {brandLabel}
         </a>
       </div>
-    </div>
+    </SmartlinkAudioGate>
   )
 }

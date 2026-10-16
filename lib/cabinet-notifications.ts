@@ -149,7 +149,20 @@ export async function tryCreateCabinetNotification(
   params: Parameters<typeof createCabinetNotification>[0]
 ): Promise<CabinetNotification | null> {
   try {
-    return await createCabinetNotification(params)
+    const created = await createCabinetNotification(params)
+    try {
+      const { trySendCabinetTelegramNotification } = await import("@/lib/cabinet-telegram")
+      await trySendCabinetTelegramNotification({
+        userId: created.userId,
+        type: created.type,
+        title: created.title,
+        body: created.body,
+        href: created.href,
+      })
+    } catch (tgError) {
+      console.error("[cabinet-notifications] telegram fan-out failed:", tgError)
+    }
+    return created
   } catch (error) {
     console.error("[cabinet-notifications] create failed:", error)
     return null

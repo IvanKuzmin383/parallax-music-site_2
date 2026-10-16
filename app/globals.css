@@ -921,6 +921,22 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   animation-delay: calc(var(--sl-anim-i, 0) * 60ms);
 }
 
+/* Пока оверлей «Послушать отрывок?» - entrance и лупы на паузе (на первом кадре) */
+.sl-await-intro .sl-anim-rise,
+.sl-await-intro .sl-anim-fade,
+.sl-await-intro .sl-anim-cascade,
+.sl-await-intro .sl-anim-softPop,
+.sl-await-intro .sl-anim-slide,
+.sl-await-intro .sl-anim-hail,
+.sl-await-intro .sl-anim-popGrid,
+.sl-await-intro .sl-vinyl-spin,
+.sl-await-intro .sl-cassette-spin,
+.sl-await-intro .sl-cassette-spin-rev,
+.sl-await-intro .sl-orbit-wheel,
+.sl-await-intro .sl-rave-blob {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sl-anim-rise,
   .sl-anim-fade,

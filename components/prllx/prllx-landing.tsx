@@ -111,8 +111,9 @@ function CtaLink({
 
 export function PrllxLanding() {
   const site = getSiteOrigin()
-  const registerHref = `${site}/cabinet?tab=register`
-  const loginHref = `${site}/cabinet`
+  const afterAuth = "/cabinet/tools/smartlinks"
+  const loginHref = `${site}/cabinet?next=${encodeURIComponent(afterAuth)}`
+  const registerHref = `${site}/cabinet?tab=register&next=${encodeURIComponent(afterAuth)}`
 
   const [preset, setPreset] = useState<SmartlinkPreset>("inkblot")
   const [autoRotate, setAutoRotate] = useState(true)
@@ -230,13 +231,6 @@ export function PrllxLanding() {
                 {SMARTLINK_PRESET_META[p].label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setAutoRotate((v) => !v)}
-              className="rounded-full px-3 py-1 text-[11px] uppercase tracking-wider text-white/40 hover:text-white/70"
-            >
-              {autoRotate ? "Пауза" : "Авто"}
-            </button>
           </div>
         </div>
       </section>

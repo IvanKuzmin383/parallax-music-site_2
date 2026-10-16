@@ -48,8 +48,14 @@ export const SMARTLINK_PRESETS = [
 ] as const
 export type SmartlinkPreset = (typeof SMARTLINK_PRESETS)[number]
 
-/** Спокойные базовые - первыми в сетке редактора. */
+/**
+ * Каркасы режима «Произвольный» (не отдельные пресеты в UI).
+ * Старые смартлинки с этими ключами остаются валидными.
+ */
 export const SMARTLINK_PRESET_BASE = ["ink", "blur", "sheet", "signal", "glass"] as const
+export type SmartlinkCustomSurface = (typeof SMARTLINK_PRESET_BASE)[number]
+
+/** Готовые характеры в сетке редактора. */
 export const SMARTLINK_PRESET_SIGNATURE = [
   "neon",
   "film",
@@ -192,6 +198,32 @@ export const SMARTLINK_PRESET_META: Record<
   diary: { label: "Дневник", description: "Линованная бумага и скрепка" },
 }
 
+/** Короткие подписи каркаса в режиме «Произвольный». */
+export const SMARTLINK_CUSTOM_SURFACE_META: Record<
+  SmartlinkCustomSurface,
+  { label: string; description: string }
+> = {
+  ink: { label: "Тёмный", description: "Спокойный тёмный фон" },
+  blur: { label: "Размытие", description: "Обложка размыта на фоне" },
+  sheet: { label: "Светлый", description: "Светлая карточка" },
+  signal: { label: "Контраст", description: "Жёсткие блоки" },
+  glass: { label: "Стекло", description: "Полупрозрачная карточка" },
+}
+
+export function isSmartlinkCustomSurfacePreset(
+  preset: string,
+): preset is SmartlinkCustomSurface {
+  return (SMARTLINK_PRESET_BASE as readonly string[]).includes(preset)
+}
+
+/** Режим произвольной сборки (не готовый характер). */
+export function isSmartlinkCustomMode(preset: SmartlinkPreset): boolean {
+  return isSmartlinkCustomSurfacePreset(preset)
+}
+
+/** Стартовый каркас для кнопки «Произвольный». */
+export const SMARTLINK_CUSTOM_DEFAULT_PRESET: SmartlinkCustomSurface = "ink"
+
 /** Рекомендуемые поля при выборе пресета в редакторе. */
 export type SmartlinkPresetLook = Pick<
   SmartlinkTheme,
@@ -272,9 +304,9 @@ export const SMARTLINK_PRESET_LOOK: Record<SmartlinkPreset, SmartlinkPresetLook>
     platformLayout: "list",
   },
   vinyl: {
-    buttons: "solid",
-    buttonBorder: false,
-    buttonShadow: true,
+    buttons: "bare",
+    buttonBorder: true,
+    buttonShadow: false,
     cover: "soft",
     coverShadow: true,
     font: "sans",
@@ -443,9 +475,9 @@ export const SMARTLINK_PRESET_LOOK: Record<SmartlinkPreset, SmartlinkPresetLook>
     platformLayout: "list",
   },
   orbit: {
-    buttons: "solid",
-    buttonBorder: false,
-    buttonShadow: true,
+    buttons: "bare",
+    buttonBorder: true,
+    buttonShadow: false,
     cover: "soft",
     coverShadow: true,
     font: "sans",

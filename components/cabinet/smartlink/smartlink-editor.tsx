@@ -33,10 +33,13 @@ import {
   SMARTLINK_FONT_META,
   SMARTLINK_PLATFORM_LAYOUTS,
   SMARTLINK_PLATFORM_LAYOUT_META,
+  SMARTLINK_CUSTOM_DEFAULT_PRESET,
+  SMARTLINK_CUSTOM_SURFACE_META,
   SMARTLINK_PRESET_BASE,
   SMARTLINK_PRESET_LOOK,
   SMARTLINK_PRESET_META,
   SMARTLINK_PRESET_SIGNATURE,
+  isSmartlinkCustomMode,
   SMARTLINK_PREVIEW_AUDIO_DURATION_SEC,
   SMARTLINK_PREVIEW_AUDIO_START_MAX,
   getOrderedSmartlinkLinks,
@@ -1194,23 +1197,77 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
             <div className="space-y-3">
               <div>
                 <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  Базовые
+                  Режим
                 </p>
-                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
-                  {SMARTLINK_PRESET_BASE.map((preset) => (
-                    <PresetPickButton
-                      key={preset}
-                      preset={preset}
-                      accent={theme.accent}
-                      active={theme.preset === preset}
-                      onPick={() => applyPreset(preset)}
-                    />
-                  ))}
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isSmartlinkCustomMode(theme.preset)) {
+                        applyPreset(SMARTLINK_CUSTOM_DEFAULT_PRESET)
+                      }
+                    }}
+                    aria-pressed={isSmartlinkCustomMode(theme.preset)}
+                    className={cn(
+                      "relative rounded-lg border p-1.5 text-left transition-all",
+                      isSmartlinkCustomMode(theme.preset)
+                        ? "border-primary bg-primary/20 shadow-[0_0_0_2px_var(--primary)]"
+                        : "border-border/80 bg-card/20 hover:border-primary/50 hover:bg-card/40",
+                    )}
+                  >
+                    {isSmartlinkCustomMode(theme.preset) ? (
+                      <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                        ✓
+                      </span>
+                    ) : null}
+                    <PresetSwatch preset={SMARTLINK_CUSTOM_DEFAULT_PRESET} accent={theme.accent} />
+                    <p
+                      className={cn(
+                        "mt-1 truncate text-xs font-semibold leading-tight",
+                        isSmartlinkCustomMode(theme.preset) ? "text-primary" : "text-foreground",
+                      )}
+                    >
+                      Произвольный
+                    </p>
+                  </button>
                 </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Свой каркас и все параметры ниже - собираете с нуля.
+                </p>
               </div>
+
+              {isSmartlinkCustomMode(theme.preset) ? (
+                <div className="space-y-2">
+                  <Label className="text-sm">Каркас</Label>
+                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+                    {SMARTLINK_PRESET_BASE.map((surface) => {
+                      const meta = SMARTLINK_CUSTOM_SURFACE_META[surface]
+                      const active = theme.preset === surface
+                      return (
+                        <button
+                          key={surface}
+                          type="button"
+                          onClick={() => applyPreset(surface)}
+                          aria-pressed={active}
+                          title={meta.description}
+                          className={cn(
+                            "rounded-lg border px-2 py-2 text-center text-xs font-medium transition-all",
+                            active
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                          )}
+                        >
+                          {meta.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div>
                 <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  Характер
+                  Готовые
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
                   {SMARTLINK_PRESET_SIGNATURE.map((preset) => (
@@ -1225,7 +1282,11 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                {SMARTLINK_PRESET_META[theme.preset].description}
+                {isSmartlinkCustomMode(theme.preset)
+                  ? SMARTLINK_CUSTOM_SURFACE_META[
+                      theme.preset as (typeof SMARTLINK_PRESET_BASE)[number]
+                    ].description
+                  : SMARTLINK_PRESET_META[theme.preset].description}
               </p>
               <div className="space-y-2">
                 <Label className="text-sm">Акцент</Label>
@@ -1572,7 +1633,10 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
             )}
           </EditorSection>
 
-          <EditorSection title="Детали" defaultOpen={false}>
+          <EditorSection
+            title="Детали"
+            defaultOpen={isSmartlinkCustomMode(theme.preset)}
+          >
             <div className="space-y-2">
               <Label className="text-sm">Кнопки</Label>
               <Segmented

@@ -9,6 +9,8 @@ type SmartlinkPreviewAudioProps = {
   className?: string
   /** Светлая карточка - более тёмная кнопка. */
   light?: boolean
+  /** После жеста (оверлей закрыт) - чтобы запустить entrance-анимации страницы. */
+  onUnlocked?: () => void
 }
 
 /**
@@ -16,7 +18,12 @@ type SmartlinkPreviewAudioProps = {
  * Поэтому сначала полноэкранный вопрос «Послушать отрывок?» -
  * клик/тач = жест пользователя, сразу play() со звуком.
  */
-export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPreviewAudioProps) {
+export function SmartlinkPreviewAudio({
+  src,
+  className,
+  light,
+  onUnlocked,
+}: SmartlinkPreviewAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [unlocked, setUnlocked] = useState(false)
   const [soundOn, setSoundOn] = useState(false)
@@ -54,6 +61,13 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
     }
   }, [src])
 
+  const finishUnlock = (withSound: boolean) => {
+    setUnlocked(true)
+    setSoundOn(withSound)
+    setPlaying(true)
+    onUnlocked?.()
+  }
+
   const startWithSound = () => {
     const el = audioRef.current
     if (!el) return
@@ -62,17 +76,13 @@ export function SmartlinkPreviewAudio({ src, className, light }: SmartlinkPrevie
     el.muted = false
     void el.play().then(
       () => {
-        setUnlocked(true)
-        setSoundOn(true)
-        setPlaying(true)
+        finishUnlock(true)
       },
       () => {
         // На всякий случай - muted, всё равно закрываем оверлей
         el.muted = true
         void el.play().catch(() => setFailed(true))
-        setUnlocked(true)
-        setSoundOn(false)
-        setPlaying(true)
+        finishUnlock(false)
       },
     )
   }
