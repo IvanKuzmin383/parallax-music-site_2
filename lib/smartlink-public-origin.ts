@@ -1,4 +1,5 @@
-import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
+/** Дублируем паттерн из lib/smartlink.ts - без импорта серверных модулей (fs) в клиент. */
+const SMARTLINK_SLUG_RE = /^[a-zA-Z0-9_-]{6,20}$/
 
 const DEFAULT_SITE_ORIGIN = "https://parallaxmusic.ru"
 
@@ -113,5 +114,5 @@ export function smartlinkPublicUrl(slug: string): string {
 /** Первый сегмент пути подходит как slug смартлинка на short-хосте. */
 export function isSmartlinkHostSlugSegment(segment: string): boolean {
   if (!segment || SMARTLINK_HOST_RESERVED_SEGMENTS.has(segment.toLowerCase())) return false
-  return SMARTLINK_SLUG_REGEX.test(segment)
+  return SMARTLINK_SLUG_RE.test(segment)
 }
