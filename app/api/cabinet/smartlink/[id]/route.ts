@@ -7,6 +7,7 @@ import {
   resolveCabinetSmartlinkContext,
 } from "@/lib/cabinet-smartlink"
 import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
+import { smartlinkPublicPath, smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 import {
   PLATFORM_LINK_KEYS,
   normalizePlatformLinks,
@@ -56,7 +57,8 @@ function toResponse(ctx: NonNullable<Awaited<ReturnType<typeof resolveCabinetSma
     theme: ctx.theme,
     platformLinks: ctx.platformLinks,
     smartlinkSlug: ctx.smartlinkSlug,
-    publicPath: ctx.smartlinkSlug ? `/s/${ctx.smartlinkSlug}` : null,
+    publicPath: ctx.smartlinkSlug ? smartlinkPublicPath(ctx.smartlinkSlug) : null,
+    publicUrl: ctx.smartlinkSlug ? smartlinkPublicUrl(ctx.smartlinkSlug) : null,
     isPublic,
     smartlinkPublic: ctx.smartlinkPublic,
     canEnablePromo: ctx.canEnablePromo,

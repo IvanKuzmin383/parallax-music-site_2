@@ -52,6 +52,7 @@ import {
   type SmartlinkPreset,
   type SmartlinkTheme,
 } from "@/lib/smartlink-theme"
+import { smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 import {
   PLATFORM_ICON_SRC,
   SMARTLINK_PLATFORMS,
@@ -85,6 +86,7 @@ type SmartlinkApiPayload = {
   platformLinks: PlatformLinks
   smartlinkSlug: string | null
   publicPath: string | null
+  publicUrl: string | null
   isPublic: boolean
   smartlinkPublic?: boolean
   canEnablePromo?: boolean
@@ -108,6 +110,7 @@ type ToolsSmartlinkApiRaw = {
   platformLinks: PlatformLinks
   status: string
   publicPath: string
+  publicUrl?: string | null
   isPublic: boolean
   needsPayment: boolean
   priceRub: number
@@ -125,6 +128,7 @@ function mapToolsPayload(json: ToolsSmartlinkApiRaw): SmartlinkApiPayload {
     platformLinks: json.platformLinks,
     smartlinkSlug: json.slug,
     publicPath: json.publicPath,
+    publicUrl: json.publicUrl ?? null,
     isPublic: json.isPublic,
     needsPayment: json.needsPayment,
     priceRub: json.priceRub,
@@ -706,10 +710,9 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   )
 
   const publicUrl = useMemo(() => {
-    if (typeof window === "undefined") return data?.publicPath ?? null
-    if (!slug.trim()) return null
-    return `${window.location.origin}/s/${slug.trim()}`
-  }, [data?.publicPath, slug])
+    if (!slug.trim()) return data?.publicUrl ?? data?.publicPath ?? null
+    return smartlinkPublicUrl(slug.trim())
+  }, [data?.publicPath, data?.publicUrl, slug])
 
   const patchTheme = <K extends keyof SmartlinkTheme>(key: K, value: SmartlinkTheme[K]) => {
     setTheme((prev) => ({ ...prev, [key]: value }))

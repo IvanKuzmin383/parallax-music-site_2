@@ -32,11 +32,11 @@ export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   sberzvuk: "/platforms/sberzvuk.svg",
   kion: "/platforms/kion.svg?v=3",
   amazonMusic: "/platforms/amazon-music.svg?v=3",
-  odnoklassniki: "/platforms/odnoklassniki.svg?v=2",
-  tidal: "/platforms/tidal.svg?v=2",
-  soundcloud: "/platforms/soundcloud.svg?v=2",
-  wink: "/platforms/wink.svg?v=2",
-  other: "/platforms/other.svg?v=2",
+  odnoklassniki: "/platforms/odnoklassniki.svg?v=3",
+  tidal: "/platforms/tidal.svg?v=3",
+  soundcloud: "/platforms/soundcloud.svg?v=3",
+  wink: "/platforms/wink.svg?v=3",
+  other: "/platforms/other.svg?v=3",
 }
 
 /** Фирменные цвета кнопок (режим «Чернила» и т.п.). */

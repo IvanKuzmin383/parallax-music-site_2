@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
 import { getPublicSmartlink, smartlinkOgImagePath } from "@/lib/smartlink"
+import { getSiteOrigin } from "@/lib/smartlink-public-origin"
 import { getOrderedSmartlinkLinks } from "@/lib/smartlink-theme"
 
 interface SmartlinkPageProps {
@@ -25,6 +26,7 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
     utm_medium: "brand",
     utm_campaign: pub.slug,
   })
+  const brandHref = `${getSiteOrigin()}/?${brandParams.toString()}`
 
   return (
     <SmartlinkLanding
@@ -34,7 +36,7 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
       links={linksList}
       theme={pub.theme}
       previewAudioSrc={previewAudioSrc}
-      brandHref={`/?${brandParams.toString()}`}
+      brandHref={brandHref}
     />
   )
 }

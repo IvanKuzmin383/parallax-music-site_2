@@ -232,6 +232,8 @@ export function SmartlinkLanding({
   const useIcons = iconsOnly
   /** Разрыв «как бумага» на hover - лист / билет / зин, только список кнопок. */
   const usePaperTear = !useIcons && (preset === "sheet" || preset === "ticket" || preset === "zine")
+  /** Лист и билет - вертикальный разрыв; зин - горизонтальный. */
+  const paperTearVertical = usePaperTear && (preset === "sheet" || preset === "ticket")
 
   const buttonBase = cn(
     "inline-flex items-center font-medium no-underline transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]",
@@ -286,14 +288,18 @@ export function SmartlinkLanding({
             : "rounded-xl"),
       isGrid && "rounded-lg",
       isNeon && "sl-neon-btn",
-      isGraffiti && "rounded-md font-semibold uppercase tracking-wide",
+      isGraffiti &&
+        cn(
+          "sl-graffiti-btn font-semibold uppercase tracking-wide hover:!scale-100 active:!scale-[0.98]",
+          `sl-graffiti-btn-${index % 4}`,
+        ),
       isStage && "rounded-sm uppercase tracking-[0.08em]",
       isRave && "rounded-sm font-mono uppercase tracking-wider",
       isZine && "rounded-none font-bold uppercase",
       isNoir && "rounded-none tracking-[0.1em] uppercase",
       isChrome && "rounded-full",
       isHolo && "sl-holo-btn rounded-xl",
-      isDiary && "rounded-sm",
+      isDiary && "sl-diary-btn rounded-sm hover:!scale-100 active:!scale-[0.99]",
       isPolaroid && "rounded-md",
     )
 
@@ -677,6 +683,7 @@ export function SmartlinkLanding({
                 buttonClassFor(linkIndex),
                 animClass(theme),
                 usePaperTear && "sl-paper-tear",
+                paperTearVertical && "sl-paper-tear-v",
               )}
               style={
                 usePaperTear

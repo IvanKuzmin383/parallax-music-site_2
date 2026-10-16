@@ -11,6 +11,7 @@ import {
 } from "@/lib/cabinet-smartlinks"
 import { resolveCabinetSmartlinkContext } from "@/lib/cabinet-smartlink"
 import { getServicePriceRub } from "@/lib/service-prices"
+import { smartlinkPublicPath, smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 
 const createSchema = z.object({
   title: z.string().trim().max(200).optional(),
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
       status: link.status,
       mode: link.mode,
       paidUntil: link.paidUntil,
-      publicPath: `/s/${link.slug}`,
+      publicPath: smartlinkPublicPath(link.slug),
+      publicUrl: smartlinkPublicUrl(link.slug),
       isPublic: isSmartlinkPubliclyActive(link),
       coverUrl: coverUrlForSmartlink(link),
       updatedAt: link.updatedAt,

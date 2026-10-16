@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { SMARTLINK_PLATFORMS, PLATFORM_ICON_SRC, type PlatformLinks, type PlatformLinkKey } from "@/lib/smartlink-platforms"
+import { smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 
 function CopyField({
   label,
@@ -109,7 +110,7 @@ export function ReleasePlatformMeta({
       setSmartlinkUrl(null)
       return
     }
-    setSmartlinkUrl(`${window.location.origin}/s/${slug}`)
+    setSmartlinkUrl(smartlinkPublicUrl(slug))
   }, [smartlinkSlug])
 
   return (

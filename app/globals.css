@@ -1102,6 +1102,205 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     radial-gradient(ellipse at 90% 80%, rgba(255, 255, 255, 0.04), transparent 45%);
 }
 
+/* Граффити: рваный край + штриховка / «баллончик» на hover */
+.sl-graffiti-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border-radius: 0 !important;
+  clip-path: polygon(
+    0% 8%,
+    3% 2%,
+    12% 6%,
+    22% 1%,
+    35% 5%,
+    48% 0%,
+    62% 4%,
+    78% 1%,
+    90% 5%,
+    100% 2%,
+    98% 18%,
+    100% 38%,
+    97% 55%,
+    100% 72%,
+    96% 88%,
+    100% 100%,
+    82% 97%,
+    68% 100%,
+    52% 96%,
+    38% 100%,
+    22% 97%,
+    8% 100%,
+    0% 90%,
+    2% 72%,
+    0% 52%,
+    3% 32%
+  );
+}
+
+.sl-graffiti-btn-1 {
+  clip-path: polygon(
+    0% 4%,
+    8% 0%,
+    18% 5%,
+    32% 1%,
+    45% 6%,
+    58% 0%,
+    72% 5%,
+    85% 2%,
+    100% 6%,
+    97% 22%,
+    100% 42%,
+    96% 60%,
+    100% 78%,
+    95% 100%,
+    78% 96%,
+    62% 100%,
+    48% 95%,
+    32% 100%,
+    15% 96%,
+    0% 100%,
+    3% 78%,
+    0% 55%,
+    4% 35%,
+    0% 18%
+  );
+}
+
+.sl-graffiti-btn-2 {
+  clip-path: polygon(
+    0% 0%,
+    14% 4%,
+    28% 0%,
+    42% 5%,
+    55% 1%,
+    70% 6%,
+    84% 0%,
+    100% 4%,
+    98% 20%,
+    100% 40%,
+    97% 58%,
+    100% 75%,
+    96% 92%,
+    88% 100%,
+    70% 97%,
+    55% 100%,
+    40% 96%,
+    25% 100%,
+    10% 97%,
+    0% 100%,
+    2% 80%,
+    0% 60%,
+    3% 40%,
+    0% 20%
+  );
+}
+
+.sl-graffiti-btn-3 {
+  clip-path: polygon(
+    0% 6%,
+    5% 0%,
+    20% 4%,
+    30% 0%,
+    50% 5%,
+    65% 0%,
+    80% 4%,
+    95% 0%,
+    100% 8%,
+    98% 28%,
+    100% 48%,
+    96% 68%,
+    100% 85%,
+    92% 100%,
+    75% 96%,
+    58% 100%,
+    42% 95%,
+    28% 100%,
+    12% 96%,
+    0% 100%,
+    4% 82%,
+    0% 65%,
+    3% 45%,
+    0% 25%
+  );
+}
+
+.sl-graffiti-btn > * {
+  position: relative;
+  z-index: 3;
+}
+
+/* Штриховка поверх краски */
+.sl-graffiti-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: repeating-linear-gradient(
+    -32deg,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.28) 2px 4px,
+    transparent 4px 7px,
+    rgba(255, 255, 255, 0.12) 7px 8px
+  );
+  mix-blend-mode: multiply;
+  transition: opacity 0.28s ease;
+}
+
+/* Брызги из баллончика */
+.sl-graffiti-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle at 12% 28%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 28% 18%, #111 0 1.2px, transparent 2px),
+    radial-gradient(circle at 45% 62%, #fff 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 62% 22%, #111 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 78% 48%, #fff 0 1px, transparent 1.8px),
+    radial-gradient(circle at 88% 72%, #111 0 1.1px, transparent 1.9px),
+    radial-gradient(circle at 18% 78%, #fff 0 1.3px, transparent 2px),
+    radial-gradient(circle at 38% 88%, #111 0 0.9px, transparent 1.5px),
+    radial-gradient(circle at 55% 40%, #fff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 70% 85%, #111 0 1.2px, transparent 2px),
+    radial-gradient(circle at 8% 52%, color-mix(in srgb, var(--sl-accent) 80%, #fff) 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 92% 35%, color-mix(in srgb, var(--sl-accent) 70%, #111) 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 8%, color-mix(in srgb, var(--sl-accent) 60%, #fff) 0 2px, transparent 3.2px),
+    radial-gradient(ellipse 80% 55% at 50% 40%, color-mix(in srgb, var(--sl-accent) 35%, transparent), transparent 70%);
+  mix-blend-mode: soft-light;
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+  transform: scale(0.92);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sl-graffiti-btn:hover::before,
+  .sl-graffiti-btn:focus-visible::before {
+    opacity: 0.95;
+  }
+
+  .sl-graffiti-btn:hover::after,
+  .sl-graffiti-btn:focus-visible::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sl-graffiti-btn:active::before {
+  opacity: 0.85;
+}
+
+.sl-graffiti-btn:active::after {
+  opacity: 0.9;
+  transform: scale(1);
+}
+
 .sl-stage-bg {
   background:
     radial-gradient(60% 40% at 50% 0%, color-mix(in srgb, var(--sl-accent) 35%, transparent), transparent 70%),
@@ -1473,6 +1672,62 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
+/* Дневник: зачёркивание «карандашом» на hover */
+.sl-diary-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.sl-diary-btn > * {
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.25s ease;
+}
+
+.sl-diary-btn::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 42%;
+  height: 14px;
+  z-index: 2;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16' fill='none'%3E%3Cpath d='M2 9 C14 4 22 12 34 7 C46 2 54 13 66 8 C78 3 88 12 100 7 C108 4 116 10 118 8' stroke='%232a2a2a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' opacity='0.78'/%3E%3Cpath d='M3 10 C16 6 26 13 38 9 C50 5 58 14 70 9 C82 4 94 13 117 8' stroke='%234a4a4a' stroke-width='1.3' stroke-linecap='round' opacity='0.45'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  transition:
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sl-diary-btn:hover::after,
+  .sl-diary-btn:focus-visible::after {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+
+  .sl-diary-btn:hover > *,
+  .sl-diary-btn:focus-visible > * {
+    opacity: 0.72;
+  }
+}
+
+.sl-diary-btn:active::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+.sl-diary-btn:active > * {
+  opacity: 0.72;
+}
+
 /* Разрыв кнопки «как лист бумаги» (Лист / Билет / Зин) */
 .sl-paper-tear {
   position: relative;
@@ -1497,8 +1752,8 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   will-change: transform;
 }
 
-/* Верхняя половина - зубчатый низ */
-.sl-paper-tear-a {
+/* Горизонтальный разрыв (Зин): верх / низ */
+.sl-paper-tear:not(.sl-paper-tear-v) .sl-paper-tear-a {
   clip-path: polygon(
     0% 0%,
     100% 0%,
@@ -1531,8 +1786,7 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   );
 }
 
-/* Нижняя половина - зубчатый верх (стык с верхней) */
-.sl-paper-tear-b {
+.sl-paper-tear:not(.sl-paper-tear-v) .sl-paper-tear-b {
   clip-path: polygon(
     0% 51%,
     4% 47%,
@@ -1565,16 +1819,97 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   );
 }
 
+/* Вертикальный разрыв (Лист / Билет): лево / право */
+.sl-paper-tear-v .sl-paper-tear-a {
+  clip-path: polygon(
+    0% 0%,
+    48% 0%,
+    52% 4%,
+    47% 8%,
+    53% 12%,
+    46% 16%,
+    52% 20%,
+    47% 24%,
+    53% 28%,
+    46% 32%,
+    52% 36%,
+    47% 40%,
+    53% 44%,
+    46% 48%,
+    52% 52%,
+    47% 56%,
+    53% 60%,
+    46% 64%,
+    52% 68%,
+    47% 72%,
+    53% 76%,
+    46% 80%,
+    52% 84%,
+    47% 88%,
+    53% 92%,
+    46% 96%,
+    51% 100%,
+    0% 100%
+  );
+}
+
+.sl-paper-tear-v .sl-paper-tear-b {
+  clip-path: polygon(
+    51% 0%,
+    100% 0%,
+    100% 100%,
+    51% 100%,
+    46% 96%,
+    53% 92%,
+    47% 88%,
+    52% 84%,
+    46% 80%,
+    53% 76%,
+    47% 72%,
+    52% 68%,
+    46% 64%,
+    53% 60%,
+    47% 56%,
+    52% 52%,
+    46% 48%,
+    53% 44%,
+    47% 40%,
+    52% 36%,
+    46% 32%,
+    53% 28%,
+    47% 24%,
+    52% 20%,
+    46% 16%,
+    53% 12%,
+    47% 8%,
+    52% 4%
+  );
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .sl-paper-tear:hover .sl-paper-tear-a,
-  .sl-paper-tear:focus-visible .sl-paper-tear-a {
+  /* Горизонтальный: вверх / вниз */
+  .sl-paper-tear:not(.sl-paper-tear-v):hover .sl-paper-tear-a,
+  .sl-paper-tear:not(.sl-paper-tear-v):focus-visible .sl-paper-tear-a {
     transform: translate(-4px, -7px) rotate(-2.2deg);
     z-index: 2;
   }
 
-  .sl-paper-tear:hover .sl-paper-tear-b,
-  .sl-paper-tear:focus-visible .sl-paper-tear-b {
+  .sl-paper-tear:not(.sl-paper-tear-v):hover .sl-paper-tear-b,
+  .sl-paper-tear:not(.sl-paper-tear-v):focus-visible .sl-paper-tear-b {
     transform: translate(5px, 8px) rotate(2.6deg);
+    z-index: 2;
+  }
+
+  /* Вертикальный: влево / вправо */
+  .sl-paper-tear-v:hover .sl-paper-tear-a,
+  .sl-paper-tear-v:focus-visible .sl-paper-tear-a {
+    transform: translate(-8px, -2px) rotate(-2.4deg);
+    z-index: 2;
+  }
+
+  .sl-paper-tear-v:hover .sl-paper-tear-b,
+  .sl-paper-tear-v:focus-visible .sl-paper-tear-b {
+    transform: translate(9px, 3px) rotate(2.8deg);
     z-index: 2;
   }
 }
@@ -1604,6 +1939,38 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   .sl-paper-tear:hover .sl-paper-tear-b,
   .sl-paper-tear:focus-visible .sl-paper-tear-b {
     transform: none !important;
+  }
+
+  .sl-graffiti-btn::before,
+  .sl-graffiti-btn::after {
+    transition: none !important;
+  }
+
+  .sl-graffiti-btn:hover::before,
+  .sl-graffiti-btn:focus-visible::before,
+  .sl-graffiti-btn:active::before,
+  .sl-graffiti-btn:hover::after,
+  .sl-graffiti-btn:focus-visible::after,
+  .sl-graffiti-btn:active::after {
+    opacity: 0 !important;
+    transform: none !important;
+  }
+
+  .sl-diary-btn::after {
+    transition: none !important;
+  }
+
+  .sl-diary-btn:hover::after,
+  .sl-diary-btn:focus-visible::after,
+  .sl-diary-btn:active::after {
+    transform: none !important;
+    opacity: 0 !important;
+  }
+
+  .sl-diary-btn:hover > *,
+  .sl-diary-btn:focus-visible > *,
+  .sl-diary-btn:active > * {
+    opacity: 1 !important;
   }
 }
 

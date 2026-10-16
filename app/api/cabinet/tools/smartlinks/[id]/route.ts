@@ -10,6 +10,7 @@ import {
   updateSmartlink,
 } from "@/lib/cabinet-smartlinks"
 import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
+import { smartlinkPublicPath, smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 import {
   PLATFORM_LINK_KEYS,
   normalizePlatformLinks,
@@ -56,7 +57,8 @@ async function toResponse(link: NonNullable<Awaited<ReturnType<typeof getSmartli
     status: link.status,
     mode: link.mode,
     paidUntil: link.paidUntil,
-    publicPath: `/s/${link.slug}`,
+    publicPath: smartlinkPublicPath(link.slug),
+    publicUrl: smartlinkPublicUrl(link.slug),
     isPublic: isSmartlinkPubliclyActive(link),
     priceRub,
     needsPayment: link.status !== "active" || !isSmartlinkPubliclyActive(link),

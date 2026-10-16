@@ -52,6 +52,7 @@ import ruMessages from "@/messages/ru.json"
 import type { UploadDraft, UploadDraftPayload, UploadDraftStatus } from "@/lib/upload-drafts"
 import type { PlatformLinks } from "@/lib/smartlink-platforms"
 import { SMARTLINK_PLATFORMS } from "@/lib/smartlink-platforms"
+import { smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -1156,10 +1157,7 @@ export default function TracksPageClient() {
       setSavingTrackId(null)
     }
   }
-  const getSmartlinkUrl = (slug: string) => {
-    if (typeof window === "undefined") return `https://parallaxmusic.ru/s/${slug}`
-    return `${window.location.origin}/s/${slug}`
-  }
+  const getSmartlinkUrl = (slug: string) => smartlinkPublicUrl(slug)
   const handleCopySmartlink = (slug: string) => {
     const url = getSmartlinkUrl(slug)
     void navigator.clipboard.writeText(url).then(() => {
@@ -3994,7 +3992,7 @@ export default function TracksPageClient() {
                     ))}
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="admin-smart-slug">Слаг смартлинка (после /s/)</Label>
+                    <Label htmlFor="admin-smart-slug">Слаг смартлинка</Label>
                     <Input
                       id="admin-smart-slug"
                       className="font-mono max-w-md"

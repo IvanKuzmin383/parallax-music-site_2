@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
+import { headers } from "next/headers"
 import Script from "next/script"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { ScrollToTop } from "@/components/scroll-to-top"
@@ -7,6 +8,7 @@ import { I18nProvider } from "@/lib/i18n-context"
 import { SiteShell } from "@/components/site-shell"
 import { fontClassNames } from "@/lib/fonts"
 import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
+import { isSmartlinkPublicHost } from "@/lib/smartlink-public-origin"
 import "./globals.css"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
@@ -86,7 +88,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -96,6 +98,10 @@ export default function RootLayout({
   const metrikaId = isValidId ? String(yandexMetrikaId).trim() : null
   const scriptUrl = metrikaId ? `https://mc.yandex.ru/metrika/tag.js?id=${metrikaId}` : null
   const topMailRuCounterId = "3752795"
+
+  const headerList = await headers()
+  const host = headerList.get("x-forwarded-host") || headerList.get("host")
+  const bareShell = isSmartlinkPublicHost(host)
 
   return (
     <html lang="ru" className={fontClassNames}>
@@ -143,7 +149,7 @@ export default function RootLayout({
             `,
             }}
           />
-          <SiteShell>{children}</SiteShell>
+          <SiteShell bareShell={bareShell}>{children}</SiteShell>
           <ScrollToTop />
           <SonnerToaster />
           {metrikaId && (

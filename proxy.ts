@@ -7,11 +7,78 @@ import {
   MAINTENANCE_BYPASS_COOKIE,
   MAINTENANCE_BYPASS_QUERY,
 } from "@/lib/maintenance"
+import {
+  getConfiguredSmartlinkOrigin,
+  isSmartlinkHostSlugSegment,
+  isSmartlinkPublicHost,
+  usesDedicatedSmartlinkHost,
+} from "@/lib/smartlink-public-origin"
 
-export function proxy(request: NextRequest) {
-  if (!isMaintenanceModeEnabled()) {
+function requestHost(request: NextRequest): string {
+  return (request.headers.get("host") || request.nextUrl.hostname || "").split(":")[0].toLowerCase()
+}
+
+function handleSmartlinkHost(request: NextRequest): NextResponse {
+  const host = requestHost(request)
+  const { pathname } = request.nextUrl
+  const configured = getConfiguredSmartlinkOrigin()
+
+  // Канон без www
+  if (host.startsWith("www.") && configured) {
+    const url = new URL(pathname + request.nextUrl.search, configured)
+    return NextResponse.redirect(url, 308)
+  }
+
+  // Корневой лендинг short-домена (витрина конструктора)
+  if (pathname === "/" || pathname === "") {
+    const url = request.nextUrl.clone()
+    url.pathname = "/prllx"
+    return NextResponse.rewrite(url)
+  }
+
+  if (pathname === "/prllx" || pathname.startsWith("/prllx/")) {
     return NextResponse.next()
   }
+
+  // /s/{slug}/... оставляем (OG image и т.п.); голый /s/{slug} → /{slug}
+  const sExact = pathname.match(/^\/s\/([a-zA-Z0-9_-]{6,20})\/?$/)
+  if (sExact) {
+    const url = request.nextUrl.clone()
+    url.pathname = `/${sExact[1]}`
+    return NextResponse.redirect(url, 308)
+  }
+
+  if (pathname.startsWith("/s/")) {
+    return NextResponse.next()
+  }
+
+  const rootSlug = pathname.match(/^\/([a-zA-Z0-9_-]{6,20})\/?$/)
+  if (rootSlug && isSmartlinkHostSlugSegment(rootSlug[1])) {
+    const url = request.nextUrl.clone()
+    url.pathname = `/s/${rootSlug[1]}`
+    return NextResponse.rewrite(url)
+  }
+
+  // На short-домене нет кабинета/сайта
+  return new NextResponse("Not Found", { status: 404 })
+}
+
+function handleMainHostSmartlinkRedirect(request: NextRequest): NextResponse | null {
+  if (!usesDedicatedSmartlinkHost()) return null
+  const configured = getConfiguredSmartlinkOrigin()
+  if (!configured) return null
+
+  const { pathname } = request.nextUrl
+  const m = pathname.match(/^\/s\/([a-zA-Z0-9_-]{6,20})\/?$/)
+  if (!m) return null
+
+  const target = new URL(`/${m[1]}`, configured)
+  target.search = request.nextUrl.search
+  return NextResponse.redirect(target, 308)
+}
+
+function handleMaintenance(request: NextRequest): NextResponse | null {
+  if (!isMaintenanceModeEnabled()) return null
 
   const { pathname, searchParams } = request.nextUrl
   const bypassSecret = getMaintenanceBypassSecret()
@@ -44,18 +111,38 @@ export function proxy(request: NextRequest) {
     return res
   }
 
+  // Публичные смартлинки доступны и во время maintenance
+  if (pathname.startsWith("/s/")) {
+    return NextResponse.next()
+  }
+
   const url = request.nextUrl.clone()
   url.pathname = "/maintenance"
   url.search = ""
 
-  const res = NextResponse.rewrite(url, {
+  return NextResponse.rewrite(url, {
     status: 503,
     headers: {
       "Retry-After": getMaintenanceRetryAfterSeconds(),
       "Cache-Control": "no-store",
     },
   })
-  return res
+}
+
+export function proxy(request: NextRequest) {
+  const host = requestHost(request)
+
+  if (isSmartlinkPublicHost(host)) {
+    return handleSmartlinkHost(request)
+  }
+
+  const smartlinkRedirect = handleMainHostSmartlinkRedirect(request)
+  if (smartlinkRedirect) return smartlinkRedirect
+
+  const maintenance = handleMaintenance(request)
+  if (maintenance) return maintenance
+
+  return NextResponse.next()
 }
 
 export const config = {

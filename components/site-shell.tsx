@@ -7,10 +7,17 @@ import { Footer } from "@/components/footer"
 import { CookieConsentBanner } from "@/components/cookie-consent"
 import { ReferralCapture } from "@/components/referral-capture"
 
+type SiteShellProps = {
+  children: React.ReactNode
+  /** Short-домен prllx.link - без шапки/подвала основного сайта. */
+  bareShell?: boolean
+}
+
 /** На смартлинках, кабинете, админке и странице техработ шапка/подвал публичного сайта не показываются. */
-export function SiteShell({ children }: { children: React.ReactNode }) {
+export function SiteShell({ children, bareShell = false }: SiteShellProps) {
   const pathname = usePathname()
   const isSmartlink = pathname?.startsWith("/s/")
+  const isPrllxLanding = pathname === "/prllx" || pathname?.startsWith("/prllx/")
   const isCabinet = pathname?.startsWith("/cabinet")
   const isMaintenance = pathname === "/maintenance"
   const isAdmin =
@@ -24,7 +31,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     </Suspense>
   )
 
-  if (isSmartlink || isAdmin || isMaintenance) {
+  if (bareShell || isSmartlink || isPrllxLanding || isAdmin || isMaintenance) {
     return (
       <>
         {referral}

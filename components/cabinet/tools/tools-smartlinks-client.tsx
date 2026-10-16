@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
+import { smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +20,7 @@ type ListItem = {
   mode: string
   paidUntil: string | null
   publicPath: string
+  publicUrl?: string | null
   isPublic: boolean
   coverUrl: string | null
   updatedAt: string
@@ -226,13 +228,18 @@ export function ToolsSmartlinksClient() {
                   >
                     {STATUS_LABEL[item.status] ?? item.status}
                   </span>
-                  {" · "}/s/{item.slug}
+                  {" · "}
+                  {item.publicUrl ?? smartlinkPublicUrl(item.slug)}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {item.isPublic ? (
                   <Button size="sm" variant="outline" asChild>
-                    <a href={item.publicPath} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={item.publicUrl ?? item.publicPath}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="mr-1.5 h-4 w-4" />
                       Открыть
                     </a>
