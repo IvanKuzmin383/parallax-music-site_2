@@ -207,13 +207,10 @@ export function PrllxLanding() {
         <div className="relative mx-auto w-full max-w-[340px] lg:max-w-none">
           <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent opacity-60 blur-xl" />
           <div className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-black/40 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+            <div className="border-b border-white/10 px-4 py-2.5">
               <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live preview</span>
-              <span className="truncate text-xs font-medium text-white/70">
-                {SMARTLINK_PRESET_META[preset].label}
-              </span>
             </div>
-            <div className="max-h-[560px] overflow-y-auto [&_a]:pointer-events-none">
+            <div className="prllx-preview-scroll max-h-[720px] overflow-y-auto sm:max-h-[780px] [&_a]:pointer-events-none">
               <SmartlinkLanding
                 title={DEMO_TITLE}
                 artist={DEMO_ARTIST}
@@ -223,7 +220,7 @@ export function PrllxLanding() {
                 preview
                 brandHref={site}
                 brandLabel="Parallax Music"
-                className="!min-h-[520px]"
+                className="!min-h-[680px]"
               />
             </div>
           </div>

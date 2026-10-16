@@ -348,6 +348,34 @@
   @apply border-border my-8;
 }
 
+/* prllx.link лендинг: скролл внутри live-preview */
+.prllx-preview-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(226, 83, 47, 0.55) transparent;
+}
+
+.prllx-preview-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.prllx-preview-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+
+.prllx-preview-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(226, 83, 47, 0.75), rgba(226, 83, 47, 0.35));
+  border-radius: 9999px;
+}
+
+.prllx-preview-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(226, 83, 47, 0.9);
+}
+
+.prllx-preview-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Кабинет: стилизованный скролл (вертикальный + горизонтальный) */
 .cabinet-scroll {
   scrollbar-width: thin;
