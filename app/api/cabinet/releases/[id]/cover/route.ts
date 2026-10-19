@@ -1,5 +1,6 @@
 import path from "path"
 import crypto from "crypto"
+import os from "os"
 import { NextRequest, NextResponse } from "next/server"
 import { promises as fs } from "fs"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
@@ -8,12 +9,16 @@ import {
   validateCabinetCoverImageFromFilePath,
 } from "@/lib/cabinet-cover-validation"
 import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
-import {
-  MultipartRequestError,
-  parseMultipartRequestStream,
-} from "@/lib/node-streaming-multipart"
 import { getCoversDir } from "@/lib/tracks"
 import { getReleaseById, isReleaseEditableStatus, updateRelease } from "@/lib/releases"
+
+function coverExtFromUpload(file: File): string | undefined {
+  const fromName = (file.name ?? "").toLowerCase().split(".").pop()
+  if (fromName && ["jpg", "jpeg", "png"].includes(fromName)) return fromName
+  if (file.type === "image/png") return "png"
+  if (file.type === "image/jpeg") return "jpg"
+  return fromName || undefined
+}
 
 export async function GET(
   _request: NextRequest,
@@ -63,46 +68,43 @@ export async function POST(
     return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
   }
 
+  let tempCoverPath: string | null = null
   try {
-    const multipart = await parseMultipartRequestStream(request, {
-      maxFiles: 1,
-      maxFields: 16,
-      maxFileSizeBytes: MAX_CABINET_COVER_BYTES,
-      maxFieldSizeBytes: 64 * 1024,
-    })
-
-    try {
-      const cover = multipart.getFile("cover")
-      if (!cover || cover.size === 0) {
-        return NextResponse.json({ error: "Обложка обязательна" }, { status: 400 })
-      }
-      if (cover.size > MAX_CABINET_COVER_BYTES) {
-        return NextResponse.json({ error: "Размер обложки не должен превышать 20 MB" }, { status: 400 })
-      }
-      const coverExt = cover.originalFilename.toLowerCase().split(".").pop()
-      const coverError = await validateCabinetCoverImageFromFilePath(
-        cover.tempFilePath,
-        coverExt,
-        cover.size
-      )
-      if (coverError) return NextResponse.json({ error: coverError }, { status: 400 })
-
-      const coverId = crypto.randomUUID()
-      const coversDir = await getCoversDir()
-      const coverPath = path.join(coversDir, `release-${coverId}.${coverExt}`)
-      await copyFileToPathAtomic(cover.tempFilePath, coverPath)
-
-      const updated = await updateRelease(id, { coverPath })
-      return NextResponse.json({ release: updated })
-    } finally {
-      await multipart.cleanup()
+    const form = await request.formData()
+    const coverEntry = form.get("cover")
+    if (!(coverEntry instanceof File) || coverEntry.size === 0) {
+      return NextResponse.json({ error: "Обложка обязательна" }, { status: 400 })
     }
+    if (coverEntry.size > MAX_CABINET_COVER_BYTES) {
+      return NextResponse.json({ error: "Размер обложки не должен превышать 20 MB" }, { status: 400 })
+    }
+    const coverExt = coverExtFromUpload(coverEntry)
+    const tmpDir = path.join(os.tmpdir(), "parallax-multipart")
+    await fs.mkdir(tmpDir, { recursive: true })
+    tempCoverPath = path.join(tmpDir, `${crypto.randomUUID()}.part`)
+    await fs.writeFile(tempCoverPath, Buffer.from(await coverEntry.arrayBuffer()))
+
+    const coverError = await validateCabinetCoverImageFromFilePath(
+      tempCoverPath,
+      coverExt,
+      coverEntry.size
+    )
+    if (coverError) return NextResponse.json({ error: coverError }, { status: 400 })
+
+    const coverId = crypto.randomUUID()
+    const coversDir = await getCoversDir()
+    const coverPath = path.join(coversDir, `release-${coverId}.${coverExt}`)
+    await copyFileToPathAtomic(tempCoverPath, coverPath)
+
+    const updated = await updateRelease(id, { coverPath })
+    return NextResponse.json({ release: updated })
   } catch (error) {
-    if (error instanceof MultipartRequestError) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
-    }
     console.error("[releases/cover POST]", error)
     return NextResponse.json({ error: "Не удалось загрузить обложку" }, { status: 500 })
+  } finally {
+    if (tempCoverPath) {
+      await fs.unlink(tempCoverPath).catch(() => {})
+    }
   }
 }
 

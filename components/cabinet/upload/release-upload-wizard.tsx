@@ -612,7 +612,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (requestAiCover) fd.append("requestAiCover", "true")
     if (coverCreatedWithAi) fd.append("coverCreatedWithAi", coverCreatedWithAi)
     if (acceptShortReleaseDate) fd.append("acceptShortReleaseDate", "true")
-    fd.append("cover", file)
+    // Явное имя файла - некоторые окружения иначе отдают cover без filename в multipart.
+    fd.append("cover", file, file.name || "cover.jpg")
 
     setSaving(true)
     try {
@@ -622,6 +623,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       const res = await fetch(url, { method: "POST", credentials: "include", body: fd })
       const data = await parseCabinetApiJson<{ release?: Release }>(res)
       if (!res.ok || !data.release) {
+        if (preview.startsWith("blob:")) URL.revokeObjectURL(preview)
+        setCoverPreview(null)
+        if (coverInputRef.current) coverInputRef.current.value = ""
         toast.error(formatCabinetUploadFailure(data.error, "Не удалось загрузить обложку", "cover"))
         return
       }
@@ -1265,7 +1269,9 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       if (!releaseId) {
         if (!requestAiCover) {
           focusStepIssue({
-            message: "Загрузите обложку для создания черновика",
+            message: coverPreview
+              ? "Обложка ещё не сохранилась на сервере. Выберите файл снова и дождитесь сообщения «Обложка сохранена»"
+              : "Загрузите обложку для создания черновика",
             fieldId: wizardFieldId("release-cover"),
             step: 1,
           })

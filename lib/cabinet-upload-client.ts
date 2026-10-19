@@ -144,6 +144,9 @@ export function formatCabinetUploadFailure(
   fallback: string,
   variant: "wav" | "cover" = "wav"
 ): string {
+  if (typeof error === "string" && error.trim()) {
+    return error.trim()
+  }
   if (error instanceof DOMException) {
     if (error.name === "AbortError") {
       return "Загрузка заняла слишком много времени. Подключитесь к Wi‑Fi и не сворачивайте браузер, пока файл не отправится."
