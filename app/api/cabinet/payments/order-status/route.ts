@@ -25,7 +25,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Заказ не найден" }, { status: 404 })
   }
 
-  if ("userId" in order && order.userId !== user.id) {
+  const ownsById = Boolean("userId" in order && order.userId && order.userId === user.id)
+  const ownsByEmail = Boolean(
+    "userEmail" in order &&
+      typeof order.userEmail === "string" &&
+      order.userEmail.trim().toLowerCase() === user.email.trim().toLowerCase()
+  )
+  if (!ownsById && !ownsByEmail) {
     return NextResponse.json({ error: "Доступ запрещен" }, { status: 403 })
   }
 
@@ -33,5 +39,6 @@ export async function GET(request: NextRequest) {
     orderId: order.id,
     status: order.status,
     paid: order.status === "paid",
+    orderType: order.orderType,
   })
 }

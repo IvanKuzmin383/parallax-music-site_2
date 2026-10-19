@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PromotionFreeConsultButton } from "@/components/cabinet/promotion/promotion-free-consult-button"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import {
   getCabinetServiceHubBackLabel,
@@ -148,43 +149,44 @@ function BiznesZvukCatalogSample() {
       <div className="relative overflow-visible px-1 py-2 sm:px-2">
         <div
           className={cn(
-            "relative origin-center rounded-[14px] border border-[#E4D9CB] bg-[#F1E9DE] p-4 text-[#1A1614]",
+            "relative origin-center overflow-hidden rounded-[14px]",
             "shadow-[0_22px_44px_-18px_rgba(0,0,0,0.55)]",
             "rotate-[1.25deg] sm:rotate-[2deg]",
           )}
         >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-bold tracking-tight text-[#1A1614]">БизнесЗвук</p>
-              <p className="mt-0.5 text-[11px] text-[#6B635C]">Каталог фоновой музыки</p>
-            </div>
-            <span className="shrink-0 rounded-md border border-[#F21D43]/30 bg-[#F21D43]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#F21D43]">
-              Образец
-            </span>
+          <div className="absolute inset-0">
+            <Image
+              src="/business-music/cafe-lounge.jpg"
+              alt="Атмосфера кафе и лаунж-бара"
+              fill
+              sizes="(max-width: 640px) 90vw, 22rem"
+              className="object-cover object-center"
+              priority
+            />
+            <div
+              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/30"
+              aria-hidden
+            />
           </div>
 
-          <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-[#D9CFC2] bg-[#FAF6F0] p-3">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-[#2A272F]">
-              <Image
-                src="/business-music/cafe-lounge.jpg"
-                alt="Атмосфера кафе и лаунж-бара"
-                fill
-                sizes="56px"
-                className="object-cover"
-              />
-            </div>
+          <div className="relative z-[1] flex min-h-[17rem] flex-col justify-between p-4 text-white sm:min-h-[18.5rem]">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#1A1614]">Ваш трек</p>
-              <p className="truncate text-xs text-[#6B635C]">Имя артиста</p>
-              <span className="mt-1.5 inline-flex rounded-md bg-[#2A272F]/08 px-1.5 py-0.5 text-[10px] font-medium text-[#4A4440]">
+              <p className="text-sm font-bold tracking-tight">БизнесЗвук</p>
+              <p className="mt-0.5 text-[11px] text-white/75">Каталог фоновой музыки</p>
+            </div>
+
+            <div className="rounded-[12px] border border-white/20 bg-black/35 p-3 backdrop-blur-[2px]">
+              <p className="truncate text-sm font-semibold">Ваш трек</p>
+              <p className="truncate text-xs text-white/70">Имя артиста</p>
+              <span className="mt-1.5 inline-flex rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-medium text-white/90">
                 Музыка для пространств
               </span>
             </div>
-          </div>
 
-          <p className="mt-3 text-xs leading-relaxed text-[#6B635C]">
-            Новый контекст для вашей музыки
-          </p>
+            <p className="text-xs leading-relaxed text-white/80">
+              Новый контекст для вашей музыки
+            </p>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -339,9 +341,12 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
             {backLabel}
           </Link>
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-          Задать вопрос
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по музыке для бизнеса." />
+          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+            Задать вопрос
+          </Button>
+        </div>
       </div>
 
       {/* 1. Hero */}

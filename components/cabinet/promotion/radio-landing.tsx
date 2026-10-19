@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PromotionFreeConsultButton } from "@/components/cabinet/promotion/promotion-free-consult-button"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import {
   getCabinetServiceHubBackLabel,
@@ -169,7 +170,6 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
   const formPanelId = useId()
   const statusId = useId()
 
-  const [formOpen, setFormOpen] = useState(false)
   const [projectName, setProjectName] = useState("")
   const [trackLink, setTrackLink] = useState("")
   const [comment, setComment] = useState("")
@@ -184,15 +184,12 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
   const priceKey = service.priceKey ?? "radio"
   const priceFallback = service.priceLabel
 
-  const openOrderForm = useCallback((expandForm: boolean) => {
-    if (expandForm) setFormOpen(true)
+  const openOrderForm = useCallback(() => {
     requestAnimationFrame(() => {
       scrollToId("radio-order")
-      if (expandForm) {
-        window.setTimeout(() => {
-          document.getElementById("radio-project")?.focus()
-        }, 280)
-      }
+      window.setTimeout(() => {
+        document.getElementById("radio-project")?.focus()
+      }, 280)
     })
   }, [])
 
@@ -213,7 +210,6 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
       toast.error(nextErrors.projectName || nextErrors.trackLink || "Заполните обязательные поля")
-      setFormOpen(true)
       scrollToId("radio-order")
       return
     }
@@ -266,9 +262,12 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             {backLabel}
           </Link>
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-          Задать вопрос
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по размещению на радио." />
+          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+            Задать вопрос
+          </Button>
+        </div>
       </div>
 
       {/* A. Hero */}
@@ -286,31 +285,30 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             Ещё одна точка знакомства с вашей музыкой. Подготовим материалы, разместим трек в
             радио-витрине Parallax Music и подтвердим выполнение.
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Button
-              size="lg"
-              className="h-11 min-h-11 bg-[#F01F43] px-5 text-white hover:bg-[#F01F43]/90"
-              onClick={() => openOrderForm(true)}
-            >
-              Оставить заявку
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-11 min-h-11 px-5"
-              onClick={() => scrollToId("radio-include")}
-            >
-              Что я получу
-            </Button>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                 <ServicePriceText priceKey={priceKey} fallback={priceFallback} />
-              </span>
-              {" "}
-              за трек
-            </p>
+              </p>
+              <p className="text-sm text-muted-foreground">За один трек</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button
+                size="lg"
+                className="h-11 min-h-11 bg-[#F01F43] px-5 text-white hover:bg-[#F01F43]/90"
+                onClick={openOrderForm}
+              >
+                Оставить заявку
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 min-h-11 px-5"
+                onClick={() => scrollToId("radio-include")}
+              >
+                Что я получу
+              </Button>
+            </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
               Предварительная заявка. Оплата сейчас не списывается.
             </p>
@@ -415,27 +413,12 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             ))}
           </ul>
 
-          <div className="mt-5 space-y-2">
-            <Button
-              type="button"
-              className="h-11 min-h-11 w-full bg-[#F01F43] text-white hover:bg-[#F01F43]/90"
-              aria-expanded={formOpen}
-              aria-controls={formPanelId}
-              onClick={() => openOrderForm(true)}
-            >
-              Оставить заявку
-            </Button>
+          <div id={formPanelId} className="mt-5 space-y-3 border-t border-border pt-5">
+            <h4 className="text-base font-semibold text-foreground">Заявка на услугу</h4>
             <p className="text-xs leading-relaxed text-muted-foreground">
               Сейчас собираем предварительные заявки. Оплата не списывается. Мы свяжемся с вами для
               уточнения деталей.
             </p>
-          </div>
-
-          <div
-            id={formPanelId}
-            className={cn("mt-5 space-y-3 border-t border-border pt-5", !formOpen && "hidden")}
-          >
-            <h4 className="text-base font-semibold text-foreground">Заявка на услугу</h4>
             <div className="space-y-1.5">
               <Label htmlFor="radio-project">Название релиза / проекта</Label>
               <Input

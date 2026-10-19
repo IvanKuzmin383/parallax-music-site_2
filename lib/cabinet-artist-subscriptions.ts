@@ -248,6 +248,7 @@ function pickSlotToRenewForPayment(
 /**
  * Оплата/продление подписки: продлевает подходящий слот (с артистом) или создаёт новый
  * с автоматически подставленным именем артиста из истории слотов / профиля.
+ * forceNewSlot: всегда новый свободный слот (доп. артист), без продления существующих.
  */
 export async function applyPaidSubscriptionToArtistSlots(params: {
   userId: string
@@ -255,7 +256,18 @@ export async function applyPaidSubscriptionToArtistSlots(params: {
   subscriptionExpiresAt: string
   subscriptionTrackLimit?: number | null
   preferredArtistNames?: Array<string | null | undefined>
+  forceNewSlot?: boolean
 }): Promise<CabinetArtistSubscription> {
+  if (params.forceNewSlot) {
+    return createCabinetArtistSubscriptionSlot({
+      userId: params.userId,
+      artistName: null,
+      subscriptionName: params.subscriptionName,
+      subscriptionExpiresAt: params.subscriptionExpiresAt,
+      subscriptionTrackLimit: params.subscriptionTrackLimit ?? null,
+    })
+  }
+
   const slots = await listCabinetArtistSubscriptionsByUserId(params.userId)
   const artistName = pickInferredArtistName(slots, params.preferredArtistNames)
   const renew = pickSlotToRenewForPayment(slots, artistName, params.subscriptionName)

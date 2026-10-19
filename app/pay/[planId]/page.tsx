@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState, useMemo } from "react"
+import { Suspense, useState, useMemo, useEffect } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -22,9 +22,21 @@ function PayPageContent() {
   const { t, locale } = useI18n()
 
   const initialPeriod = (searchParams.get("period") as Period) === "month" ? "month" : "year"
+  const fromCabinet =
+    searchParams.get("from") === "cabinet" ||
+    (searchParams.get("return") || "").startsWith("/cabinet")
+  const returnPathParam = (searchParams.get("return") || "").trim()
+  const returnPath =
+    returnPathParam.startsWith("/cabinet") && !returnPathParam.includes("..")
+      ? returnPathParam
+      : fromCabinet
+        ? "/cabinet/subscription"
+        : null
+
   const [period, setPeriod] = useState<Period>(initialPeriod)
   const [periodsCount, setPeriodsCount] = useState(1)
   const [email, setEmail] = useState("")
+  const [emailLocked, setEmailLocked] = useState(false)
   const [telegram, setTelegram] = useState("")
   const [agreeOffer, setAgreeOffer] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
@@ -32,6 +44,42 @@ function PayPageContent() {
   const [agreePrivacy, setAgreePrivacy] = useState(false)
   const [enableAutopay, setEnableAutopay] = useState(true)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // После оплаты с кабинета банк может вернуть на /pay/... - уводим на хаб
+    const payment = searchParams.get("payment")
+    const orderId = searchParams.get("orderId")
+    if (payment && (fromCabinet || returnPath)) {
+      const q = new URLSearchParams()
+      q.set("payment", payment)
+      if (orderId) q.set("orderId", orderId)
+      window.location.replace(`/cabinet/subscription?${q.toString()}`)
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch("/api/cabinet/user", { credentials: "include" })
+        if (!res.ok || cancelled) return
+        const data = (await res.json()) as {
+          user?: { email?: string; telegram?: string | null }
+        }
+        const sessionEmail = data.user?.email?.trim()
+        if (sessionEmail) {
+          setEmail(sessionEmail)
+          setEmailLocked(true)
+        }
+        const tg = data.user?.telegram?.trim()
+        if (tg) setTelegram(tg)
+      } catch {
+        // гость - форма как раньше
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fromCabinet, returnPath, searchParams])
 
   const plans = t.pricing.plans as Array<{
     id: string
@@ -75,6 +123,7 @@ function PayPageContent() {
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           planId: plan.id,
           period,
@@ -86,6 +135,8 @@ function PayPageContent() {
           consentPersonalData: true,
           consentPrivacyPolicy: true,
           enableRecurrent: enableAutopay,
+          fromCabinet: Boolean(fromCabinet || emailLocked),
+          returnPath: returnPath || undefined,
         }),
       })
 
@@ -123,11 +174,11 @@ function PayPageContent() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-xl mx-auto space-y-6">
           <Link
-            href="/#pricing"
+            href={fromCabinet || emailLocked ? "/cabinet/subscription" : "/#pricing"}
             className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80"
           >
             <ChevronLeft className="h-4 w-4" />
-            {t.pay.backToPricing}
+            {fromCabinet || emailLocked ? "К подписке в кабинете" : t.pay.backToPricing}
           </Link>
 
           <div className="text-center">
@@ -166,9 +217,14 @@ function PayPageContent() {
                     placeholder={t.pay.emailPlaceholder}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
+                    disabled={loading || emailLocked}
                     required
                   />
+                  {emailLocked ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Email из аккаунта кабинета - подписка привяжется к нему
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label htmlFor="pay-telegram" className="block text-sm font-medium mb-1">

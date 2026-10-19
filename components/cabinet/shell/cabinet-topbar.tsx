@@ -410,7 +410,7 @@ export function CabinetTopbar() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/cabinet/settings?tab=profile#cabinet-tariff" className="cursor-pointer gap-2">
+              <Link href="/cabinet/subscription" className="cursor-pointer gap-2">
                 <CreditCard className="h-4 w-4" />
                 Тарифы и оплата
               </Link>

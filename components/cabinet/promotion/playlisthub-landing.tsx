@@ -14,6 +14,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { PlaylisthubShowcase } from "@/components/cabinet/promotion/playlisthub-showcase"
+import { PromotionFreeConsultButton } from "@/components/cabinet/promotion/promotion-free-consult-button"
 import {
   getCabinetServiceHubBackLabel,
   getCabinetServiceHubHref,
@@ -138,12 +139,15 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
             {backLabel}
           </Link>
         </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" asChild>
-          <a href={PLAYLISTHUB_CATALOG_URL} target="_blank" rel="noopener noreferrer">
-            Открыть PlaylistHub
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-          </a>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по плейлистам Яндекс Музыки." />
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <a href={PLAYLISTHUB_CATALOG_URL} target="_blank" rel="noopener noreferrer">
+              Открыть PlaylistHub
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          </Button>
+        </div>
       </div>
 
       {/* 1. Hero */}

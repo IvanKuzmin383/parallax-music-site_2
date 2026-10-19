@@ -50,7 +50,7 @@ const EXTRA_PAGES: SearchHit[] = [
     title: "Тарифы",
     subtitle: "Подписка и оплата",
     keywords: ["тариф", "тарифы", "подписка", "оплата", "план"],
-    href: "/cabinet/settings?tab=profile#cabinet-tariff",
+    href: "/cabinet/subscription",
     group: "pages",
     Icon: CreditCard,
   },

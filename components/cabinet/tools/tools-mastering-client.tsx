@@ -598,6 +598,32 @@ function ToolsMasteringInner() {
     }
   }
 
+  const togglePlayRef = useRef(togglePlay)
+  togglePlayRef.current = togglePlay
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space" && e.key !== " ") return
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      const target = e.target
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          target.isContentEditable
+        ) {
+          return
+        }
+      }
+      e.preventDefault()
+      void togglePlayRef.current()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
   const switchAb = (mode: AbMode) => {
     setAbMode(mode)
     engineRef.current?.setAbMode(mode)
@@ -718,8 +744,8 @@ function ToolsMasteringInner() {
   })()
 
   return (
-    <div className="flex w-full min-w-0 max-w-none flex-col gap-6">
-      <div className="space-y-3">
+    <div className="flex w-full min-w-0 max-w-none flex-col gap-4">
+      <div className="space-y-2">
         <Link
           href="/cabinet/tools"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -729,12 +755,13 @@ function ToolsMasteringInner() {
         </Link>
         <PageHeader
           title="Онлайн-мастеринг"
-          className="[&_p]:max-w-none"
-          description="Обработка в браузере: пресеты, громкость, EQ, компрессор и лимитер. Предпрослушивание и A/B прямо во время настройки. AI-мастеринг на заказ - отдельно в разделе услуг"
+          className="mb-0 sm:mb-0 [&_p]:max-w-3xl"
+          description="Пресеты, EQ, компрессор и лимитер в браузере. A/B во время настройки. AI-мастеринг на заказ - в разделе услуг"
         />
       </div>
 
-      <section className="space-y-3 rounded-lg bg-card/30 p-4">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+      <section className="space-y-2.5 rounded-lg border border-border bg-card/40 p-3.5">
         <p className="text-sm font-medium">Исходный WAV</p>
         <input
           ref={fileInputRef}
@@ -748,9 +775,18 @@ function ToolsMasteringInner() {
             <Upload className="mr-2 h-4 w-4" />
             Выбрать файл
           </Button>
-          <span className="min-w-0 truncate text-sm text-muted-foreground">
-            {file ? file.name : "Файл не выбран"}
-          </span>
+          {loadState === "ready" ? (
+            <span className="min-w-0 text-sm text-emerald-300">
+              Трек загружен и готов к мастерингу
+              {file ? (
+                <span className="text-muted-foreground"> · {file.name}</span>
+              ) : null}
+            </span>
+          ) : (
+            <span className="min-w-0 truncate text-sm text-muted-foreground">
+              {file ? file.name : "Файл не выбран"}
+            </span>
+          )}
         </div>
 
         {loadState === "loading" ? (
@@ -762,18 +798,123 @@ function ToolsMasteringInner() {
             <Progress value={loadPercent} className="h-2" />
           </div>
         ) : null}
-
-        {loadState === "ready" ? (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-            Трек загружен и готов к мастерингу
-          </div>
-        ) : null}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <div className="order-2 min-w-0 space-y-6 xl:order-1">
+      <aside className="min-w-0 lg:sticky lg:top-16 lg:self-start">
+          <div className="space-y-3 rounded-lg border border-border bg-card/40 p-3.5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium">Предпрослушивание</p>
+                <HintIcon
+                  label="Предпрослушивание"
+                  tip="Слушайте результат до скачивания. A - исходник, B - с мастерингом. Крутилки меняют звук сразу в режиме B."
+                />
+              </div>
+              <div className="inline-flex rounded-md border border-border p-0.5">
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded px-3 py-1.5 text-xs font-semibold",
+                    abMode === "A"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => switchAb("A")}
+                  disabled={loadState !== "ready"}
+                >
+                  A · оригинал
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded px-3 py-1.5 text-xs font-semibold",
+                    abMode === "B"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => switchAb("B")}
+                  disabled={loadState !== "ready"}
+                >
+                  B · мастер
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Двигайте настройки во время воспроизведения - звук меняется сразу (B).
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 shrink-0"
+                disabled={loadState !== "ready"}
+                aria-label={playing ? "Пауза" : "Воспроизвести"}
+                onClick={() => void togglePlay()}
+              >
+                {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
+                  <span>{formatTime(playhead)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+                <Slider
+                  value={[Math.min(playhead, duration || 0)]}
+                  min={0}
+                  max={duration > 0 ? duration : 1}
+                  step={0.01}
+                  disabled={loadState !== "ready" || duration <= 0}
+                  aria-label="Позиция воспроизведения"
+                  onValueChange={(value) => {
+                    scrubbingRef.current = true
+                    setPlayhead(value[0] ?? 0)
+                  }}
+                  onValueCommit={(value) => {
+                    scrubbingRef.current = false
+                    void seekTo(value[0] ?? 0)
+                  }}
+                />
+              </div>
+            </div>
+
+            <LoudnessMeters reading={meter} live={playing && loadState === "ready"} />
+
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  if (needsPurchase) {
+                    setPayDialogOpen(true)
+                    return
+                  }
+                  void handleDownload()
+                }}
+                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
+                className="w-full"
+              >
+                {busy || paying ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : needsPurchase ? null : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                {downloadLabel}
+              </Button>
+              <Button type="button" variant="ghost" asChild className="w-full">
+                <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
+              </Button>
+            </div>
+          </div>
+      </aside>
+      </div>
+
+      <div className="min-w-0 space-y-3">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
-            <section className="rounded-lg bg-card/30">
+            <section className="rounded-lg border border-border bg-card/40">
               <div
                 role="button"
                 tabIndex={0}
@@ -970,7 +1111,7 @@ function ToolsMasteringInner() {
           </Collapsible>
 
           <Collapsible open={fineTuneOpen} onOpenChange={setFineTuneOpen}>
-            <section className="rounded-lg bg-card/30">
+            <section className="rounded-lg border border-border bg-card/40">
               <div
                 role="button"
                 tabIndex={0}
@@ -1163,118 +1304,6 @@ function ToolsMasteringInner() {
               </CollapsibleContent>
             </section>
           </Collapsible>
-        </div>
-
-        <aside className="sticky top-16 z-10 order-1 min-w-0 self-start xl:order-2">
-          <div className="space-y-4 rounded-lg bg-background/95 p-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium">Предпрослушивание</p>
-                <HintIcon
-                  label="Предпрослушивание"
-                  tip="Слушайте результат до скачивания. A - исходник, B - с мастерингом. Крутилки меняют звук сразу в режиме B."
-                />
-              </div>
-              <div className="inline-flex rounded-md border border-border p-0.5">
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded px-3 py-1.5 text-xs font-semibold",
-                    abMode === "A"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => switchAb("A")}
-                  disabled={loadState !== "ready"}
-                >
-                  A · оригинал
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded px-3 py-1.5 text-xs font-semibold",
-                    abMode === "B"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => switchAb("B")}
-                  disabled={loadState !== "ready"}
-                >
-                  B · мастер
-                </button>
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Двигайте настройки во время воспроизведения - звук меняется сразу (B).
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 shrink-0"
-                disabled={loadState !== "ready"}
-                aria-label={playing ? "Пауза" : "Воспроизвести"}
-                onClick={() => void togglePlay()}
-              >
-                {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </Button>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
-                  <span>{formatTime(playhead)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-                <Slider
-                  value={[Math.min(playhead, duration || 0)]}
-                  min={0}
-                  max={duration > 0 ? duration : 1}
-                  step={0.01}
-                  disabled={loadState !== "ready" || duration <= 0}
-                  aria-label="Позиция воспроизведения"
-                  onValueChange={(value) => {
-                    scrubbingRef.current = true
-                    setPlayhead(value[0] ?? 0)
-                  }}
-                  onValueCommit={(value) => {
-                    scrubbingRef.current = false
-                    void seekTo(value[0] ?? 0)
-                  }}
-                />
-              </div>
-            </div>
-
-            <LoudnessMeters reading={meter} live={playing && loadState === "ready"} />
-
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-            <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                onClick={() => {
-                  if (needsPurchase) {
-                    setPayDialogOpen(true)
-                    return
-                  }
-                  void handleDownload()
-                }}
-                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
-                className="w-full"
-              >
-                {busy || paying ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : needsPurchase ? null : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
-                {downloadLabel}
-              </Button>
-              <Button type="button" variant="ghost" asChild className="w-full">
-                <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
-              </Button>
-            </div>
-          </div>
-        </aside>
       </div>
 
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>

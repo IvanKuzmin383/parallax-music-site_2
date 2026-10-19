@@ -71,7 +71,16 @@ function formatRub(value: number): string {
 
 type HistoryFilter = "all" | "favorites"
 
-const DRAFT_STORAGE_KEY = "parallax-ai-tracks-draft-v1"
+const DRAFT_STORAGE_KEY = "parallax-ai-tracks-draft-v2"
+
+/** Чипы направления/настроения не персистим: по умолчанию сняты, пока пользователь сам не отметит. */
+function draftForStorage(draft: AiTracksDraft): AiTracksDraft {
+  return {
+    ...draft,
+    direction: null,
+    mood: null,
+  }
+}
 
 function formatTime(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return "0:00"
@@ -118,6 +127,11 @@ function Chip({
   )
 }
 
+function finiteDuration(value: number | null | undefined, fallback = 0): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return fallback
+  return value
+}
+
 function ResultPlayer({
   result,
   playingId,
@@ -128,9 +142,11 @@ function ResultPlayer({
   onPlayToggle: (id: string, audio: HTMLAudioElement | null) => void
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const scrubbingRef = useRef(false)
   const [current, setCurrent] = useState(0)
-  const [duration, setDuration] = useState(result.durationSec ?? 0)
+  const [duration, setDuration] = useState(() => finiteDuration(result.durationSec))
   const isPlaying = playingId === result.id
+  const seekMax = Math.max(duration, finiteDuration(result.durationSec), 0.1)
 
   useEffect(() => {
     const audio = audioRef.current
@@ -142,6 +158,18 @@ function ResultPlayer({
     }
   }, [isPlaying, onPlayToggle, result.id])
 
+  const seekTo = (raw: number) => {
+    const audio = audioRef.current
+    if (!audio) return
+    const next = Math.min(Math.max(0, raw), seekMax)
+    setCurrent(next)
+    try {
+      audio.currentTime = next
+    } catch {
+      /* ignore until media is seekable */
+    }
+  }
+
   if (!result.audioUrl) {
     return (
       <p className="text-sm text-muted-foreground">Аудиофайл пока недоступен.</p>
@@ -149,42 +177,61 @@ function ResultPlayer({
   }
 
   return (
-    <div className="space-y-2">
+    <div>
       <audio
         ref={audioRef}
         src={result.audioUrl}
-        preload="metadata"
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
-        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        preload="auto"
+        onLoadedMetadata={(e) => {
+          const d = finiteDuration(e.currentTarget.duration, finiteDuration(result.durationSec))
+          setDuration(d)
+        }}
+        onDurationChange={(e) => {
+          const d = finiteDuration(e.currentTarget.duration, finiteDuration(result.durationSec))
+          if (d > 0) setDuration(d)
+        }}
+        onTimeUpdate={(e) => {
+          if (!scrubbingRef.current) setCurrent(e.currentTarget.currentTime)
+        }}
         onEnded={() => onPlayToggle(result.id, null)}
       />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
           onClick={() => onPlayToggle(result.id, audioRef.current)}
         >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-0.5" />}
+          {isPlaying ? (
+            <Pause className="h-3 w-3" />
+          ) : (
+            <Play className="h-3 w-3 translate-x-px" />
+          )}
         </button>
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1">
           <input
             type="range"
             min={0}
-            max={duration || 0}
-            step={0.1}
-            value={Math.min(current, duration || 0)}
-            aria-label="Прогресс воспроизведения"
-            className="h-2 w-full cursor-pointer accent-[var(--primary)]"
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setCurrent(v)
-              if (audioRef.current) audioRef.current.currentTime = v
+            max={seekMax}
+            step={0.05}
+            value={Math.min(current, seekMax)}
+            aria-label="Перемотка"
+            className="h-1.5 w-full cursor-pointer accent-[var(--primary)]"
+            onPointerDown={() => {
+              scrubbingRef.current = true
             }}
+            onPointerUp={() => {
+              scrubbingRef.current = false
+            }}
+            onPointerCancel={() => {
+              scrubbingRef.current = false
+            }}
+            onInput={(e) => seekTo(Number(e.currentTarget.value))}
+            onChange={(e) => seekTo(Number(e.currentTarget.value))}
           />
-          <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
+          <div className="flex justify-between text-[10px] tabular-nums leading-none text-muted-foreground">
             <span>{formatTime(current)}</span>
-            <span>{formatTime(duration || result.durationSec || 0)}</span>
+            <span>{formatTime(seekMax > 0.1 ? seekMax : 0)}</span>
           </div>
         </div>
       </div>
@@ -214,62 +261,62 @@ function ResultCard({
   busyToRelease: boolean
 }) {
   return (
-    <article className="rounded-[20px] border border-border bg-card p-5 sm:p-6">
-      <div className="mb-4 flex gap-3">
+    <article className="rounded-lg border border-border bg-[color:var(--background)] px-2.5 py-2">
+      <div className="flex items-center gap-2">
         <div
-          className="h-16 w-16 shrink-0 rounded-2xl bg-gradient-to-br from-primary/25 via-muted to-background"
+          className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-primary/25 via-muted to-background"
           aria-hidden
         />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="truncate font-medium text-foreground">{result.title}</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Вариант {result.variantLabel}
-                {result.directionLabel ? ` · ${result.directionLabel}` : ""}
-                {` · ${result.modelLabel}`}
-              </p>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <h3 className="min-w-0 truncate text-sm font-medium text-foreground">{result.title}</h3>
             <button
               type="button"
               aria-label={result.isFavorite ? "Убрать из избранного" : "В избранное"}
               aria-pressed={result.isFavorite}
               disabled={busyFavorite}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-border"
+              className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
               onClick={() => onFavorite(result.id, !result.isFavorite)}
             >
               <Heart
                 className={cn(
-                  "h-4 w-4",
-                  result.isFavorite ? "fill-primary text-primary" : "text-muted-foreground"
+                  "h-3.5 w-3.5",
+                  result.isFavorite ? "fill-primary text-primary" : ""
                 )}
               />
             </button>
           </div>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {result.variantLabel}
+            {result.directionLabel ? ` · ${result.directionLabel}` : ""}
+            {` · ${result.modelLabel}`}
+          </p>
         </div>
       </div>
 
-      <ResultPlayer result={result} playingId={playingId} onPlayToggle={onPlayToggle} />
+      <div className="mt-1.5">
+        <ResultPlayer result={result} playingId={playingId} onPlayToggle={onPlayToggle} />
+      </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-1.5 flex gap-1">
         <Button
           type="button"
           size="sm"
-          className="min-h-11"
+          className="h-7 flex-1 px-2 text-xs"
           disabled={!result.audioUrl || busyToRelease}
           onClick={() => onToRelease(result)}
         >
           {busyToRelease ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
           ) : (
-            <Disc3 className="mr-1.5 h-4 w-4" />
+            <Disc3 className="mr-1 h-3 w-3" />
           )}
           В дистрибуцию
         </Button>
         {result.audioUrl ? (
-          <Button variant="outline" size="sm" className="min-h-11" asChild>
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" asChild>
             <a href={result.audioUrl} download>
-              <Download className="mr-1.5 h-4 w-4" />
+              <Download className="mr-1 h-3 w-3" />
               Скачать
             </a>
           </Button>
@@ -278,11 +325,12 @@ function ResultCard({
           type="button"
           variant="outline"
           size="sm"
-          className="min-h-11"
+          className="h-7 px-2 text-xs"
+          title="Повторить настройки"
           onClick={() => onReuse(settings)}
         >
-          <RotateCcw className="mr-1.5 h-4 w-4" />
-          Повторить настройки
+          <RotateCcw className="mr-1 h-3 w-3" />
+          Ещё раз
         </Button>
       </div>
     </article>
@@ -312,6 +360,8 @@ export function AiTracksStudioClient() {
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [soundOpen, setSoundOpen] = useState(false)
+  const [lyricsOpen, setLyricsOpen] = useState(true)
+  const [styleOpen, setStyleOpen] = useState(true)
   const [favoriteBusy, setFavoriteBusy] = useState<string | null>(null)
   const [toReleaseTarget, setToReleaseTarget] = useState<AiTracksResultDto | null>(null)
   const [toReleaseTitle, setToReleaseTitle] = useState("")
@@ -330,10 +380,24 @@ export function AiTracksStudioClient() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+      const raw =
+        localStorage.getItem(DRAFT_STORAGE_KEY) ??
+        localStorage.getItem("parallax-ai-tracks-draft-v1")
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<AiTracksDraft>
-        setDraft({ ...DEFAULT_AI_TRACKS_DRAFT, ...parsed })
+        setDraft(
+          draftForStorage({
+            ...DEFAULT_AI_TRACKS_DRAFT,
+            ...parsed,
+            direction: null,
+            mood: null,
+          })
+        )
+      }
+      try {
+        localStorage.removeItem("parallax-ai-tracks-draft-v1")
+      } catch {
+        /* ignore */
       }
     } catch {
       /* ignore */
@@ -344,7 +408,7 @@ export function AiTracksStudioClient() {
   useEffect(() => {
     if (!draftReady) return
     try {
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftForStorage(draft)))
     } catch {
       /* ignore */
     }
@@ -578,7 +642,7 @@ export function AiTracksStudioClient() {
   const liveMsg = statusLiveMessage(activeJob?.status ?? null)
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-10 pb-16 pt-2">
+    <div className="w-full max-w-none space-y-10 pb-16 pt-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
           <Link href={backHref}>
@@ -684,49 +748,104 @@ export function AiTracksStudioClient() {
                 </div>
 
                 {!draft.instrumental ? (
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Label htmlFor={lyricsId}>Ваш текст песни</Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="min-h-11"
-                        onClick={insertExampleLyrics}
-                      >
-                        Вставить пример
-                      </Button>
-                    </div>
-                    <Textarea
-                      id={lyricsId}
-                      value={draft.lyrics}
-                      maxLength={status?.limits.lyricsMax ?? AI_TRACKS_LIMITS.lyricsMax}
-                      placeholder="Текст песни"
-                      className="min-h-40 whitespace-pre-wrap bg-[color:var(--background)] text-base md:text-base"
-                      onChange={(e) => patchDraft({ lyrics: e.target.value })}
-                    />
-                    <div className="flex justify-between gap-2 text-xs text-muted-foreground">
-                      <span>Разделите текст на куплеты и припевы.</span>
-                      <span className="tabular-nums">
-                        {draft.lyrics.length}/{status?.limits.lyricsMax ?? AI_TRACKS_LIMITS.lyricsMax}
+                  <div className="rounded-2xl border border-border">
+                    <button
+                      type="button"
+                      className="flex min-h-10 w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
+                      onClick={() => setLyricsOpen((v) => !v)}
+                      aria-expanded={lyricsOpen}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">Текст песни</span>
+                        {!lyricsOpen ? (
+                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                            {draft.lyrics.trim()
+                              ? draft.lyrics.trim().replace(/\s+/g, " ").slice(0, 80)
+                              : "Пусто - нажмите, чтобы добавить"}
+                          </span>
+                        ) : null}
                       </span>
-                    </div>
+                      <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
+                        {draft.lyrics.length}/{status?.limits.lyricsMax ?? AI_TRACKS_LIMITS.lyricsMax}
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            lyricsOpen && "rotate-180"
+                          )}
+                        />
+                      </span>
+                    </button>
+                    {lyricsOpen ? (
+                      <div className="space-y-2 border-t border-border px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8"
+                            onClick={insertExampleLyrics}
+                          >
+                            Вставить пример
+                          </Button>
+                        </div>
+                        <Textarea
+                          id={lyricsId}
+                          value={draft.lyrics}
+                          maxLength={status?.limits.lyricsMax ?? AI_TRACKS_LIMITS.lyricsMax}
+                          placeholder="Текст песни"
+                          className="min-h-40 whitespace-pre-wrap bg-[color:var(--background)] text-base md:text-base"
+                          onChange={(e) => patchDraft({ lyrics: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Разделите текст на куплеты и припевы.
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
-                <div className="space-y-2">
-                  <Label htmlFor={styleId}>Как должна звучать музыка?</Label>
-                  <Textarea
-                    id={styleId}
-                    value={draft.style}
-                    maxLength={status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax}
-                    placeholder="Жанр, инструменты, темп, характер вокала"
-                    className="min-h-24 bg-[color:var(--background)] text-base md:text-base"
-                    onChange={(e) => patchDraft({ style: e.target.value })}
-                  />
-                  <div className="flex justify-end text-xs tabular-nums text-muted-foreground">
-                    {draft.style.length}/{status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax}
-                  </div>
+                <div className="rounded-2xl border border-border">
+                  <button
+                    type="button"
+                    className="flex min-h-10 w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
+                    onClick={() => setStyleOpen((v) => !v)}
+                    aria-expanded={styleOpen}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">Стиль звучания</span>
+                      {!styleOpen ? (
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                          {draft.style.trim()
+                            ? draft.style.trim().replace(/\s+/g, " ").slice(0, 80)
+                            : "Пусто - нажмите, чтобы описать"}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
+                      {draft.style.length}/{status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax}
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          styleOpen && "rotate-180"
+                        )}
+                      />
+                    </span>
+                  </button>
+                  {styleOpen ? (
+                    <div className="space-y-2 border-t border-border px-4 py-3">
+                      <Label htmlFor={styleId} className="sr-only">
+                        Как должна звучать музыка?
+                      </Label>
+                      <Textarea
+                        id={styleId}
+                        value={draft.style}
+                        maxLength={status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax}
+                        placeholder="Жанр, инструменты, темп, характер вокала"
+                        className="min-h-24 bg-[color:var(--background)] text-base md:text-base"
+                        onChange={(e) => patchDraft({ style: e.target.value })}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </>
             )}
@@ -925,16 +1044,16 @@ export function AiTracksStudioClient() {
           </div>
         </section>
 
-        <section className="rounded-[22px] border border-border bg-card p-6 sm:p-7">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <section className="rounded-xl border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 02 / Результат
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-foreground">Ваши треки</h2>
+              <h2 className="text-base font-semibold text-foreground">Ваши треки</h2>
             </div>
             <div
-              className="inline-flex rounded-full border border-border p-1"
+              className="inline-flex rounded-lg border border-border p-0.5"
               role="tablist"
               aria-label="Фильтр треков"
             >
@@ -943,19 +1062,19 @@ export function AiTracksStudioClient() {
                 role="tab"
                 aria-selected={filter === "all"}
                 className={cn(
-                  "min-h-11 rounded-full px-3 text-sm",
+                  "h-7 rounded-md px-2.5 text-xs",
                   filter === "all" ? "bg-primary/15 text-foreground" : "text-muted-foreground"
                 )}
                 onClick={() => setFilter("all")}
               >
-                Все треки ({totalResults})
+                Все ({totalResults})
               </button>
               <button
                 type="button"
                 role="tab"
                 aria-selected={filter === "favorites"}
                 className={cn(
-                  "min-h-11 rounded-full px-3 text-sm",
+                  "h-7 rounded-md px-2.5 text-xs",
                   filter === "favorites"
                     ? "bg-primary/15 text-foreground"
                     : "text-muted-foreground"
@@ -972,8 +1091,8 @@ export function AiTracksStudioClient() {
           </div>
 
           {liveMsg ? (
-            <div className="mb-4 flex items-center gap-2 rounded-2xl border border-border bg-[color:var(--background)] px-4 py-3 text-sm">
-              <Loader2 className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none" />
+            <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-[color:var(--background)] px-3 py-2 text-xs">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary motion-reduce:animate-none" />
               {liveMsg}
             </div>
           ) : null}
@@ -987,7 +1106,7 @@ export function AiTracksStudioClient() {
                 : AI_TRACKS_STATUS_MESSAGES.empty_results}
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {flatResults.map(({ result, settings }) => (
                 <ResultCard
                   key={result.id}

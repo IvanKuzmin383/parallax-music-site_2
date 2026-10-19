@@ -5,6 +5,7 @@ import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getAiTracksResultAudioForUser } from "@/lib/ai-tracks-jobs"
 import { getUploadsBasePath } from "@/lib/tracks"
+import { createFileRangeResponse } from "@/lib/node-file-range-response"
 
 function safeJoinUploads(base: string, storageKey: string): string | null {
   const normalized = storageKey.replace(/\\/g, "/").replace(/^\/+/, "")
@@ -44,21 +45,21 @@ export async function GET(
   }
 
   try {
-    const buf = await fs.readFile(filePath)
+    const info = await fs.stat(filePath)
     const contentType =
       meta.format === "wav"
         ? "audio/wav"
         : meta.format === "flac"
           ? "audio/flac"
           : "audio/mpeg"
-    return new NextResponse(buf, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": String(buf.byteLength),
-        "Cache-Control": "private, no-store",
-        "Content-Disposition": `inline; filename="${encodeURIComponent(meta.title)}.${meta.format || "mp3"}"`,
-      },
+    const safeName = encodeURIComponent(`${meta.title}.${meta.format || "mp3"}`)
+
+    return createFileRangeResponse({
+      contentType,
+      fileSize: info.size,
+      absPath: filePath,
+      rangeHeader: request.headers.get("range"),
+      contentDisposition: `inline; filename="${safeName}"`,
     })
   } catch {
     return NextResponse.json({ error: "Файл недоступен" }, { status: 404 })

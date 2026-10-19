@@ -62,6 +62,8 @@ export interface OrderSubscription extends OrderBase {
   userId?: string
   /** Автопродление (рекуррент), не первичная оплата */
   isRecurringRenewal?: boolean
+  /** Детали (intent доп. слота и т.п.) */
+  serviceDetails?: OrderServiceDetails
 }
 
 export interface OrderFixPack extends OrderBase {
@@ -398,6 +400,7 @@ function rowToOrder(row: OrderRow): Order {
     totalAmount: row.total_amount,
     userId: row.user_id ?? undefined,
     isRecurringRenewal: row.is_recurring_renewal === true,
+    serviceDetails: parseServiceDetails(row.service_details_json) ?? undefined,
   }
 }
 
@@ -440,8 +443,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     const recurring = o.isRecurringRenewal ?? false
     await execute(
       `
-      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, is_recurring_renewal)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, is_recurring_renewal, service_details_json)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         id,
@@ -458,6 +461,7 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         o.userId ?? null,
         null,
         recurring,
+        stringifyServiceDetails(o.serviceDetails),
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)

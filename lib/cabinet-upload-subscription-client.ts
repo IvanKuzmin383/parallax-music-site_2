@@ -4,6 +4,15 @@
 export const UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED =
   "Для загрузки треков необходима активная подписка."
 
+/** Блок из-за тарифа/слотов (не профиль) - открываем paywall. */
+export function isUploadSubscriptionPaywallReason(reason: string): boolean {
+  const t = reason.trim().toLowerCase()
+  if (!t) return true
+  if (t.includes("профиль")) return false
+  if (t.includes("подписк") || t.includes("тариф") || t.includes("слот")) return true
+  return t === UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED.toLowerCase()
+}
+
 export function isArtistSubscriptionSlotActive(
   expiresAt: string | null | undefined,
   now = new Date()

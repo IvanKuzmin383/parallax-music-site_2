@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { CabinetSubscriptionExpiredGuard } from "@/components/cabinet-subscription-expired-guard"
 import { CabinetSessionProvider } from "@/lib/cabinet/hooks/cabinet-session-provider"
 import { CabinetKycProvider } from "@/components/cabinet/kyc/cabinet-kyc-provider"
+import { CabinetSubscriptionProvider } from "@/components/cabinet/subscription/cabinet-subscription-provider"
 import { CabinetRouteShell } from "@/components/cabinet/shell/cabinet-route-shell"
 import { CabinetThemeRoot } from "@/components/cabinet/shell/cabinet-theme-root"
 import { CABINET_THEME_BOOTSTRAP_SCRIPT } from "@/lib/cabinet/cabinet-theme"
@@ -21,14 +22,16 @@ export default function CabinetLayout({
     <CabinetSubscriptionExpiredGuard>
       <CabinetSessionProvider>
         <CabinetKycProvider>
-          <script
-            dangerouslySetInnerHTML={{ __html: CABINET_THEME_BOOTSTRAP_SCRIPT }}
-          />
-          <CabinetThemeRoot>
-            <div className="min-h-screen bg-background text-foreground">
-              <CabinetRouteShell>{children}</CabinetRouteShell>
-            </div>
-          </CabinetThemeRoot>
+          <CabinetSubscriptionProvider>
+            <script
+              dangerouslySetInnerHTML={{ __html: CABINET_THEME_BOOTSTRAP_SCRIPT }}
+            />
+            <CabinetThemeRoot>
+              <div className="min-h-screen bg-background text-foreground">
+                <CabinetRouteShell>{children}</CabinetRouteShell>
+              </div>
+            </CabinetThemeRoot>
+          </CabinetSubscriptionProvider>
         </CabinetKycProvider>
       </CabinetSessionProvider>
     </CabinetSubscriptionExpiredGuard>

@@ -115,6 +115,11 @@ import {
 import { CabinetUploadProfileGateBanner } from "@/components/cabinet-upload-profile-gate-banner"
 import { uploadReleaseTrackAudio } from "@/lib/cabinet-release-audio-upload"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
+import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
+import {
+  isUploadSubscriptionPaywallReason,
+  UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED,
+} from "@/lib/cabinet-upload-subscription-client"
 
 type AudioUploadItem = {
   id: string
@@ -130,6 +135,7 @@ type WizardProps = {
 
 export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps) {
   const router = useRouter()
+  const { handleUploadBlock } = useCabinetSubscription()
   const searchParams = useSearchParams()
   const stepFromUrl = Number(searchParams.get("step") ?? "1")
   const [releaseId, setReleaseId] = useState<string | undefined>(initialReleaseId)
@@ -301,19 +307,22 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         }
         setProfileCompleteForUpload(data.user?.profileCompleteForUpload === true)
 
-        // Новый релиз: без активной подписки сразу назад, не после выбора обложки
+        // Новый релиз: без активной подписки - paywall / профиль, не после выбора обложки
         if (!initialReleaseId && data.user?.canUploadRelease === false) {
-          toast.error(
-            data.user.uploadBlockReason?.trim() ||
-              "Для загрузки треков необходима активная подписка."
+          const reason =
+            data.user.uploadBlockReason?.trim() || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED
+          handleUploadBlock(reason)
+          router.replace(
+            isUploadSubscriptionPaywallReason(reason)
+              ? "/cabinet/subscription"
+              : "/cabinet/settings?tab=profile"
           )
-          router.replace("/cabinet/distribution/music")
         }
       } catch {
         setProfileCompleteForUpload(false)
       }
     })()
-  }, [initialReleaseId, router])
+  }, [initialReleaseId, router, handleUploadBlock])
 
   useEffect(() => {
     if (!isUploadingAudio) return

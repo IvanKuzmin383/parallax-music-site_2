@@ -10,10 +10,15 @@ import {
 import { createOrder } from "@/lib/orders"
 import { assertTbankConfigured } from "@/lib/tbank-cabinet-payment"
 import { createTbankSubscriptionPayment } from "@/lib/tbank-subscription"
+import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
+import { getCabinetUserByEmail } from "@/lib/cabinet-users"
+import { listActiveCabinetArtistSubscriptionsByUserId } from "@/lib/cabinet-artist-subscriptions"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const CABINET_RETURN = "/cabinet/subscription"
 
 type Period = "month" | "year"
+type PurchaseIntent = "extra_slot"
 
 type ValidInput = {
   planId: PlanId
@@ -22,6 +27,20 @@ type ValidInput = {
   email: string
   telegram?: string
   enableRecurrent: boolean
+  fromCabinet: boolean
+  purchaseIntent?: PurchaseIntent
+}
+
+function sanitizeReturnPath(raw: unknown): string | null {
+  if (typeof raw !== "string") return null
+  const v = raw.trim()
+  if (!v.startsWith("/cabinet")) return null
+  if (v.includes("://") || v.includes("..")) return null
+  return v.slice(0, 200)
+}
+
+function parsePurchaseIntent(raw: unknown): PurchaseIntent | undefined {
+  return raw === "extra_slot" ? "extra_slot" : undefined
 }
 
 function validateInput(body: unknown): ValidInput | { error: string; code: string } {
@@ -35,6 +54,7 @@ function validateInput(body: unknown): ValidInput | { error: string; code: strin
   const periodsCountRaw = b.periodsCount
   const emailRaw = b.email
   const telegramRaw = b.telegram
+  const purchaseIntent = parsePurchaseIntent(b.purchaseIntent)
 
   if (
     b.consentPublicOffer !== true ||
@@ -51,6 +71,13 @@ function validateInput(body: unknown): ValidInput | { error: string; code: strin
 
   if (typeof planIdRaw !== "string" || !isPlanId(planIdRaw)) {
     return { error: "Invalid plan", code: "invalid_plan" }
+  }
+
+  if (purchaseIntent === "extra_slot" && planIdRaw === "label") {
+    return {
+      error: "Для неограниченного числа артистов оформите тариф Label, а не доп. слот",
+      code: "invalid_intent",
+    }
   }
 
   const period = periodRaw === "month" || periodRaw === "year" ? periodRaw : null
@@ -77,6 +104,8 @@ function validateInput(body: unknown): ValidInput | { error: string; code: strin
     email: email.toLowerCase(),
     telegram: typeof telegramRaw === "string" && telegramRaw.trim() ? telegramRaw.trim() : undefined,
     enableRecurrent: b.enableRecurrent !== false,
+    fromCabinet: b.fromCabinet === true || Boolean(sanitizeReturnPath(b.returnPath)),
+    purchaseIntent,
   }
 }
 
@@ -102,7 +131,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: validated.error, code: validated.code }, { status: 400 })
   }
 
-  const { planId, period, periodsCount, email, telegram, enableRecurrent } = validated
+  let { planId, period, periodsCount, email, telegram, enableRecurrent, fromCabinet, purchaseIntent } =
+    validated
+  const bodyObj = body as Record<string, unknown>
+  const returnPathHint = sanitizeReturnPath(bodyObj.returnPath)
+
+  // Залогиненный кабинет: привязываем заказ к userId, email из сессии
+  let userId: string | undefined
+  const token = getCabinetToken(request)
+  const session = getCabinetSession(token)
+  if (session) {
+    const user = await getCabinetUserByEmail(session.email)
+    if (user) {
+      userId = user.id
+      email = user.email.trim().toLowerCase()
+      fromCabinet = true
+    }
+  }
+
+  if (purchaseIntent === "extra_slot") {
+    if (!session || !userId) {
+      return NextResponse.json(
+        { error: "Доп. слот доступен только из кабинета", code: "auth_required" },
+        { status: 401 }
+      )
+    }
+    const activeSlots = await listActiveCabinetArtistSubscriptionsByUserId(userId)
+    if (activeSlots.some((s) => s.subscriptionName === "Label")) {
+      return NextResponse.json(
+        { error: "На тарифе Label дополнительные слоты не нужны", code: "label_unlimited" },
+        { status: 400 }
+      )
+    }
+    if (activeSlots.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Сначала оформите основную подписку, затем можно купить доп. слот артиста",
+          code: "no_base_subscription",
+        },
+        { status: 400 }
+      )
+    }
+  }
 
   const totalAmountNumber = calculateTotalAmount(planId, period, periodsCount)
   if (!Number.isFinite(totalAmountNumber) || totalAmountNumber <= 0) {
@@ -119,11 +189,20 @@ export async function POST(request: NextRequest) {
     period,
     periodsCount,
     totalAmount,
+    userId,
+    ...(purchaseIntent === "extra_slot"
+      ? { serviceDetails: { subscriptionPurchaseIntent: "extra_slot" as const } }
+      : {}),
   })
 
   const subscriptionName = planIdToSubscriptionName(planId)
   const periodLabel = period === "month" ? "мес" : "год"
-  const description = `Подписка ${subscriptionName}, ${periodLabel} x ${periodsCount}, email ${email}`
+  const description =
+    purchaseIntent === "extra_slot"
+      ? `Доп. слот артиста ${subscriptionName}, ${periodLabel} x ${periodsCount}, email ${email}`
+      : `Подписка ${subscriptionName}, ${periodLabel} x ${periodsCount}, email ${email}`
+
+  const returnPath = fromCabinet ? returnPathHint || CABINET_RETURN : null
 
   const pay = await createTbankSubscriptionPayment({
     orderId: order.id,
@@ -135,6 +214,7 @@ export async function POST(request: NextRequest) {
     periodsCount,
     telegram,
     enableRecurrent,
+    returnPath,
     logPrefix: "payments/create",
   })
 
@@ -145,5 +225,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId })
+  return NextResponse.json({
+    confirmationUrl: pay.confirmationUrl,
+    paymentId: pay.paymentId,
+    orderId: order.id,
+  })
 }

@@ -73,12 +73,17 @@ import { isReleaseDateSelectable } from "@/lib/release-date-tiers"
 import { cn } from "@/lib/utils"
 import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
 import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
+import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
 import { dashboardGlassPanelClass } from "./dashboard-glass"
 
-async function goUploadOrToast(router: ReturnType<typeof useRouter>, href: string) {
+async function goUploadOrToast(
+  router: ReturnType<typeof useRouter>,
+  href: string,
+  onBlock: (reason: string) => void
+) {
   const block = await getReleaseUploadStartBlockReason()
   if (block) {
-    toast.error(block.includes("профиль") ? block : block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
+    onBlock(block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
     return
   }
   router.push(href)
@@ -393,6 +398,7 @@ export function DashboardStatsPanel() {
 
 export function DashboardNextRelease({ release }: { release: ReleaseView | null }) {
   const router = useRouter()
+  const { handleUploadBlock } = useCabinetSubscription()
   const days = release ? daysUntilRelease(release.releaseDate) : null
   const href = release
     ? usesWizardAction(release)
@@ -407,7 +413,10 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-4 rounded-xl bg-muted/20 p-6 text-center">
           <Music className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Нет запланированных релизов</p>
-          <Button type="button" onClick={() => void goUploadOrToast(router, "/cabinet/upload")}>
+          <Button
+            type="button"
+            onClick={() => void goUploadOrToast(router, "/cabinet/upload", handleUploadBlock)}
+          >
             Загрузить релиз
           </Button>
         </div>
@@ -642,6 +651,7 @@ export function DashboardTasks({
 
 export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[] }) {
   const router = useRouter()
+  const { handleUploadBlock } = useCabinetSubscription()
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [pendingDate, setPendingDate] = useState<Date | null>(null)
 
@@ -682,7 +692,11 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
       return
     }
     const key = format(day, "yyyy-MM-dd")
-    void goUploadOrToast(router, `/cabinet/upload?date=${encodeURIComponent(key)}`)
+    void goUploadOrToast(
+      router,
+      `/cabinet/upload?date=${encodeURIComponent(key)}`,
+      handleUploadBlock
+    )
   }
 
   return (

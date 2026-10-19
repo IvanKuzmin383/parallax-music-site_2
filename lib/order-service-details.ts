@@ -41,6 +41,11 @@ export type OrderServiceDetails = {
   releaseId?: string
   /** Источник каталога: release | track | album */
   catalogSource?: string
+  /**
+   * Подписка: extra_slot = создать новый artist-slot, не продлевать существующий.
+   * Иначе обычное продление / первый слот.
+   */
+  subscriptionPurchaseIntent?: "extra_slot"
 }
 
 export function stringifyServiceDetails(
@@ -98,6 +103,9 @@ export function stringifyServiceDetails(
   const catalogSource = details.catalogSource?.trim()
   if (releaseId) out.releaseId = releaseId
   if (catalogSource) out.catalogSource = catalogSource
+  if (details.subscriptionPurchaseIntent === "extra_slot") {
+    out.subscriptionPurchaseIntent = "extra_slot"
+  }
   return Object.keys(out).length > 0 ? JSON.stringify(out) : null
 }
 

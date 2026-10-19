@@ -60,6 +60,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
   const periodsCount = periodsCountMeta
   const monthsToAdd = periodMeta === "year" ? 12 * periodsCount : periodsCount
   const isRenewal = Boolean(order.isRecurringRenewal)
+  const forceNewSlot = order.serviceDetails?.subscriptionPurchaseIntent === "extra_slot"
 
   const savedRebillId = params.tbankRebillId?.trim() || null
   const hasAutopayBinding = Boolean(savedRebillId)
@@ -74,21 +75,61 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
       user.subscriptionName === subscriptionName && user.subscriptionExpiresAt
         ? new Date(user.subscriptionExpiresAt)
         : null
-    const baseDate = currentExpires && currentExpires > now ? currentExpires : now
-    newExpiresAt = addMonths(baseDate, monthsToAdd).toISOString()
 
-    await updateCabinetUserSubscription(user.id, subscriptionName, newExpiresAt, user.subscriptionTrackLimit ?? null)
-    const tracks = await getTracksByUserId(user.email)
-    const latestTrackArtist = [...tracks]
-      .sort((a, b) => compareTimestampsDesc(a.createdAt, b.createdAt))
-      .find((t) => t.artistName?.trim())?.artistName
-    await applyPaidSubscriptionToArtistSlots({
-      userId: user.id,
-      subscriptionName,
-      subscriptionExpiresAt: newExpiresAt,
-      subscriptionTrackLimit: user.subscriptionTrackLimit ?? null,
-      preferredArtistNames: [user.artistName, latestTrackArtist],
-    })
+    let slotExpiresAt: string
+    if (forceNewSlot) {
+      // Доп. слот: срок от «сейчас», не наслаивать месяцы на конец основной подписки
+      slotExpiresAt = addMonths(now, monthsToAdd).toISOString()
+      const existingUserEnd = user.subscriptionExpiresAt
+        ? new Date(user.subscriptionExpiresAt)
+        : null
+      const userEnd =
+        existingUserEnd && !Number.isNaN(existingUserEnd.getTime()) && existingUserEnd > now
+          ? existingUserEnd
+          : now
+      const slotEnd = new Date(slotExpiresAt)
+      newExpiresAt = (userEnd > slotEnd ? userEnd : slotEnd).toISOString()
+      // Не понижаем тариф юзера; Label / пустой / Fix - берём оплаченный
+      const nextName =
+        subscriptionName === "Label" || !user.subscriptionName || user.subscriptionName === "Fix"
+          ? subscriptionName
+          : user.subscriptionName
+      await updateCabinetUserSubscription(
+        user.id,
+        nextName,
+        newExpiresAt,
+        user.subscriptionTrackLimit ?? null
+      )
+      await applyPaidSubscriptionToArtistSlots({
+        userId: user.id,
+        subscriptionName,
+        subscriptionExpiresAt: slotExpiresAt,
+        subscriptionTrackLimit: user.subscriptionTrackLimit ?? null,
+        forceNewSlot: true,
+      })
+    } else {
+      const baseDate = currentExpires && currentExpires > now ? currentExpires : now
+      newExpiresAt = addMonths(baseDate, monthsToAdd).toISOString()
+      slotExpiresAt = newExpiresAt
+
+      await updateCabinetUserSubscription(
+        user.id,
+        subscriptionName,
+        newExpiresAt,
+        user.subscriptionTrackLimit ?? null
+      )
+      const tracks = await getTracksByUserId(user.email)
+      const latestTrackArtist = [...tracks]
+        .sort((a, b) => compareTimestampsDesc(a.createdAt, b.createdAt))
+        .find((t) => t.artistName?.trim())?.artistName
+      await applyPaidSubscriptionToArtistSlots({
+        userId: user.id,
+        subscriptionName,
+        subscriptionExpiresAt: slotExpiresAt,
+        subscriptionTrackLimit: user.subscriptionTrackLimit ?? null,
+        preferredArtistNames: [user.artistName, latestTrackArtist],
+      })
+    }
     await updateOrderStatus(orderId, "paid", { paidAt, paymentId, userId: user.id })
     const { tryNotifyPaymentSuccess } = await import("@/lib/cabinet-notifications")
     await tryNotifyPaymentSuccess({
@@ -160,6 +201,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
       `<b>${title}</b> (${provider})`,
       "",
       `<b>Тариф:</b> ${escapeHtml(subscriptionName)}`,
+      ...(forceNewSlot ? ["<b>Тип:</b> дополнительный слот артиста"] : []),
       `<b>Email:</b> ${escapeHtml(email)}`,
       ...(newExpiresAt
         ? [`<b>Действует до:</b> ${format(new Date(newExpiresAt), "d MMM yyyy", { locale: ru })}`]

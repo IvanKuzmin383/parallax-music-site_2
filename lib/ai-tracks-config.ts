@@ -38,9 +38,9 @@ export const AI_TRACKS_MODELS: Array<{
   label: string
   hint: string
 }> = [
-  { id: "V6", label: "Стандарт", hint: "Более выразительный вокал и детали" },
-  { id: "V6_MINI", label: "Быстрая", hint: "Быстрее, баланс качества и скорости" },
-  { id: "V6_WILD", label: "Эксперимент", hint: "Смелее и необычнее" },
+  { id: "V6", label: "v6", hint: "Более выразительный вокал и детали" },
+  { id: "V6_MINI", label: "v6 Mini", hint: "Быстрее, баланс качества и скорости" },
+  { id: "V6_WILD", label: "v6 Wild", hint: "Смелее и необычнее" },
 ]
 
 export function isAiTracksModelId(v: unknown): v is AiTracksModelId {

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Music, Search, Upload } from "lucide-react"
-import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -34,6 +33,7 @@ import { DistributionSectionTabs } from "@/components/cabinet/distribution/distr
 import { useCabinetKyc } from "@/components/cabinet/kyc/cabinet-kyc-provider"
 import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
 import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
+import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
 
 const STAT_LABELS: Record<ReleaseFilterKey, string> = {
   all: "Все релизы",
@@ -95,6 +95,7 @@ function UploadReleaseButton({
 }) {
   const router = useRouter()
   const { isVerified, openRequired, loading: kycLoading, ready: kycReady } = useCabinetKyc()
+  const { handleUploadBlock } = useCabinetSubscription()
   const [gateReady, setGateReady] = useState(false)
   const [clickBusy, setClickBusy] = useState(false)
 
@@ -118,11 +119,7 @@ function UploadReleaseButton({
     try {
       const block = await getReleaseUploadStartBlockReason()
       if (block) {
-        if (block.includes("профиль")) {
-          toast.message("Заполните профиль", { description: block })
-        } else {
-          toast.error(block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
-        }
+        handleUploadBlock(block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
         return
       }
       router.push(uploadHref)

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PromotionFreeConsultButton } from "@/components/cabinet/promotion/promotion-free-consult-button"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import {
   getCabinetServiceHubBackLabel,
@@ -480,9 +481,12 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
             {backLabel}
           </Link>
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-          Задать вопрос
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по TikTok / блогерам." />
+          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+            Задать вопрос
+          </Button>
+        </div>
       </div>
 
       {/* A. Hero */}

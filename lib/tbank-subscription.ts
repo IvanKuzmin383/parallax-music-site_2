@@ -35,14 +35,30 @@ export function buildSubscriptionTbankReceipt(params: {
   })
 }
 
-export function subscriptionReturnUrls(planId: string, orderId: string): { successUrl: string; failUrl: string } {
+/**
+ * URL возврата после оплаты.
+ * @param returnPathOverride - относительный путь (например /cabinet/subscription) или полный URL
+ */
+export function subscriptionReturnUrls(
+  planId: string,
+  orderId: string,
+  returnPathOverride?: string | null
+): { successUrl: string; failUrl: string } {
   const siteBase = getSiteBaseUrl()
   const q = `payment=return&orderId=${encodeURIComponent(orderId)}`
   const fq = `payment=fail&orderId=${encodeURIComponent(orderId)}`
-  const returnPath =
-    process.env.TBANK_SUBSCRIPTION_RETURN_URL?.trim() ||
-    process.env.YOOKASSA_RETURN_URL?.trim() ||
-    `${siteBase}/pay/${planId}`
+  const override = returnPathOverride?.trim()
+  let returnPath: string
+  if (override) {
+    returnPath = override.startsWith("http")
+      ? override
+      : `${siteBase}${override.startsWith("/") ? override : `/${override}`}`
+  } else {
+    returnPath =
+      process.env.TBANK_SUBSCRIPTION_RETURN_URL?.trim() ||
+      process.env.YOOKASSA_RETURN_URL?.trim() ||
+      `${siteBase}/pay/${planId}`
+  }
   const base = returnPath.replace(/\/$/, "")
   const sep = base.includes("?") ? "&" : "?"
   return {
@@ -61,6 +77,8 @@ export type CreateTbankSubscriptionPaymentParams = {
   periodsCount: number
   telegram?: string
   enableRecurrent?: boolean
+  /** Куда вернуть после оплаты (кабинет /pay). */
+  returnPath?: string | null
   logPrefix?: string
 }
 
@@ -80,7 +98,11 @@ export async function createTbankSubscriptionPayment(
   }
 
   const customerKey = tbankCustomerKeyFromEmail(params.customerEmail)
-  const { successUrl, failUrl } = subscriptionReturnUrls(params.planId, params.orderId)
+  const { successUrl, failUrl } = subscriptionReturnUrls(
+    params.planId,
+    params.orderId,
+    params.returnPath
+  )
   const saveRecurrent = params.enableRecurrent !== false
 
   const receipt =

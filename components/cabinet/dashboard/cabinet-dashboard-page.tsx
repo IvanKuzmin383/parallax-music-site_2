@@ -17,6 +17,7 @@ import {
   DashboardStatsPanel,
   DashboardTasks,
 } from "./dashboard-widgets"
+import { CabinetSubscriptionExpiredBanner } from "@/components/cabinet/subscription/cabinet-subscription-expired-banner"
 import { cn } from "@/lib/utils"
 
 function CabinetDashboardPageContent() {
@@ -51,6 +52,8 @@ function CabinetDashboardPageContent() {
 
   return (
     <div className="w-full max-w-none space-y-4 md:space-y-5">
+      <CabinetSubscriptionExpiredBanner />
+
       <DashboardMetricCards
         releasesCount={releasesLoading ? 0 : scopedReleases.length}
         balance={walletBalance}
