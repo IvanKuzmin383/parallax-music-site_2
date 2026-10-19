@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Award } from "lucide-react"
 import type { GamificationProgress } from "@/lib/cabinet-achievements"
+import { dashboardGlassPanelClass } from "@/components/cabinet/dashboard/dashboard-glass"
+import { cn } from "@/lib/utils"
 
 export function DashboardAchievementsCard() {
   const [progress, setProgress] = useState<GamificationProgress | null>(null)
@@ -36,7 +38,10 @@ export function DashboardAchievementsCard() {
   return (
     <Link
       href="/cabinet/settings?tab=achievements"
-      className="block rounded-2xl border border-border/60 bg-card/40 p-4 transition-colors hover:bg-card/60"
+      className={cn(
+        dashboardGlassPanelClass,
+        "block p-4 transition-colors hover:border-primary/35 hover:bg-card/55"
+      )}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">

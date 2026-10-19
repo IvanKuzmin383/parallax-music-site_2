@@ -71,6 +71,7 @@ import type { MusicStatsResponse } from "@/lib/music-stats-shared"
 import { isReleaseDateWeekend } from "@/lib/release-date-validation"
 import { isReleaseDateSelectable } from "@/lib/release-date-tiers"
 import { cn } from "@/lib/utils"
+import { dashboardGlassPanelClass } from "./dashboard-glass"
 
 function formatRub(amount: number): string {
   const n = Math.abs(amount) % 100
@@ -139,8 +140,10 @@ export function DashboardMetricCards({
   balance: number
   royalty: number
 }) {
-  const metricCardClass =
-    "group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-border/70 bg-card/70 px-4 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card"
+  const metricCardClass = cn(
+    dashboardGlassPanelClass,
+    "group relative flex items-center justify-between gap-4 overflow-hidden px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/55 hover:shadow-[0_12px_36px_rgba(0,0,0,0.22)]"
+  )
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -288,7 +291,7 @@ export function DashboardStatsPanel() {
   ]
 
   return (
-    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
+    <section className={cn(dashboardGlassPanelClass, "flex h-full flex-col p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Статистика</h2>
@@ -387,7 +390,7 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
 
   if (!release) {
     return (
-      <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
+      <section className={cn(dashboardGlassPanelClass, "flex h-full flex-col p-5")}>
         <h2 className="text-lg font-semibold">Ближайший релиз</h2>
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-4 rounded-xl bg-muted/20 p-6 text-center">
           <Music className="h-10 w-10 text-muted-foreground" />
@@ -401,7 +404,7 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
   }
 
   return (
-    <section className="flex items-stretch overflow-hidden rounded-2xl bg-card/80">
+    <section className={cn(dashboardGlassPanelClass, "flex items-stretch overflow-hidden")}>
       <div className="relative aspect-square shrink-0 self-stretch bg-muted">
         {release.coverUrl ? (
           <Image
@@ -601,7 +604,7 @@ export function DashboardTasks({
   const tasks = releases.filter(isDashboardTask).slice(0, 5)
 
   return (
-    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
+    <section className={cn(dashboardGlassPanelClass, "flex h-full flex-col p-5")}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Задачи</h2>
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
@@ -671,7 +674,7 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
   }
 
   return (
-    <section className="flex h-full flex-col rounded-2xl bg-card/80 p-5">
+    <section className={cn(dashboardGlassPanelClass, "flex h-full flex-col p-5")}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Релизный календарь</h2>
         <div className="flex items-center gap-1">
