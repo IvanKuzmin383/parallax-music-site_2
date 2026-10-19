@@ -32,7 +32,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
       <div className="container mx-auto px-4 py-4 flex items-center justify-between md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-4 lg:gap-6">
         <Link
           href="/"
-          className="text-xl md:text-2xl font-bold tracking-tighter flex-shrink-0"
+          className="text-xl md:text-2xl font-black tracking-tighter flex-shrink-0"
         >
           <span className="text-foreground">PARALLAX</span>
           <span className="text-primary ml-1">MUSIC</span>

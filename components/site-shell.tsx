@@ -6,6 +6,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { CookieConsentBanner } from "@/components/cookie-consent"
 import { ReferralCapture } from "@/components/referral-capture"
+import { SiteAtmosphere } from "@/components/site-atmosphere"
 
 type SiteShellProps = {
   children: React.ReactNode
@@ -44,7 +45,7 @@ export function SiteShell({ children, bareShell = false }: SiteShellProps) {
     return (
       <>
         {referral}
-        {children}
+        <div className="relative z-10">{children}</div>
         <CookieConsentBanner />
       </>
     )
@@ -53,9 +54,12 @@ export function SiteShell({ children, bareShell = false }: SiteShellProps) {
   return (
     <>
       {referral}
-      <Header />
-      {children}
-      <Footer />
+      <SiteAtmosphere />
+      <div className="relative z-10">
+        <Header />
+        {children}
+        <Footer />
+      </div>
       <CookieConsentBanner />
     </>
   )
