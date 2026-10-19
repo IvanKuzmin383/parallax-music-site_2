@@ -1,7 +1,5 @@
 import { promises as fs } from "fs"
 import path from "path"
-import { execFile } from "child_process"
-import { promisify } from "util"
 import crypto from "crypto"
 import type { CabinetUser } from "@/lib/cabinet-users"
 import { getAiTracksResultBundleForUser } from "@/lib/ai-tracks-jobs"
@@ -11,14 +9,11 @@ import {
   type AiTracksDirectionId,
   type AiTracksMoodId,
 } from "@/lib/ai-tracks-config"
+import { ensureAiTracksWavFile } from "@/lib/ai-tracks-wav"
 import { createRelease, listReleasesByUserId, type Release } from "@/lib/releases"
 import { createTrack, getAudioDir, getUploadsBasePath } from "@/lib/tracks"
 import { GENRES, TRACK_MOODS, type TrackGenre, type TrackMood } from "@/lib/track-constants"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
-import { validateWavFormatFromFilePath } from "@/lib/node-wav-validation"
-import { copyFileToPathAtomic } from "@/lib/node-atomic-upload"
-
-const execFileAsync = promisify(execFile)
 
 function safeJoinUploads(base: string, storageKey: string): string | null {
   const normalized = storageKey.replace(/\\/g, "/").replace(/^\/+/, "")
@@ -46,52 +41,6 @@ function mapMoodToTrackMood(mood: AiTracksMoodId | null): TrackMood {
   if (mood === "melancholic") return "Грустное"
   if (mood === "calm") return "Спокойное"
   return TRACK_MOODS[0]
-}
-
-async function prepareDistributionWav(params: {
-  sourcePath: string
-  format: string | null
-  destPath: string
-}): Promise<{ ok: true } | { ok: false; error: string }> {
-  const format = (params.format || "").toLowerCase()
-  if (format === "wav") {
-    await copyFileToPathAtomic(params.sourcePath, params.destPath)
-    const wavError = await validateWavFormatFromFilePath(params.destPath)
-    if (wavError) return { ok: false, error: wavError }
-    return { ok: true }
-  }
-
-  try {
-    await execFileAsync(
-      "ffmpeg",
-      [
-        "-y",
-        "-i",
-        params.sourcePath,
-        "-acodec",
-        "pcm_s16le",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-        params.destPath,
-      ],
-      { timeout: 180_000, maxBuffer: 4 * 1024 * 1024 }
-    )
-  } catch {
-    return {
-      ok: false,
-      error:
-        "Не удалось подготовить WAV для дистрибуции. Скачайте трек и загрузите WAV (44.1 kHz) вручную в карточке релиза.",
-    }
-  }
-
-  const wavError = await validateWavFormatFromFilePath(params.destPath)
-  if (wavError) {
-    await fs.unlink(params.destPath).catch(() => undefined)
-    return { ok: false, error: wavError }
-  }
-  return { ok: true }
 }
 
 export type CreateReleaseFromAiTracksResult = {
@@ -189,7 +138,7 @@ export async function createReleaseFromAiTracksResult(params: {
         const trackId = crypto.randomUUID()
         const audioDir = await getAudioDir()
         const audioPath = path.join(audioDir, `${trackId}.wav`)
-        const prepared = await prepareDistributionWav({
+        const prepared = await ensureAiTracksWavFile({
           sourcePath,
           format: bundle.format,
           destPath: audioPath,

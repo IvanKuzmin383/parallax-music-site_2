@@ -59,6 +59,37 @@ export const AI_TRACKS_MOODS: Array<{ id: AiTracksMoodId; label: string; promptH
   { id: "calm", label: "Спокойное", promptHint: "спокойное настроение" },
 ]
 
+/**
+ * Меняет подсказку чипа в видимом тексте (стиль / идея):
+ * убирает старые hint из группы и при необходимости добавляет новый.
+ */
+export function rewriteAiTracksChipHint(
+  text: string,
+  group: ReadonlyArray<{ promptHint: string }>,
+  nextHint: string | null | undefined,
+  maxLen: number,
+): string {
+  let next = text
+  for (const item of group) {
+    const hint = item.promptHint?.trim()
+    if (!hint) continue
+    const escaped = hint.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    next = next
+      .replace(new RegExp(`(^|[.,;!?\\s]+)${escaped}(?=$|[.,;!?\\s])`, "gi"), "$1")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s*([.,;!?])\s*/g, "$1 ")
+      .replace(/^[.,;!\s]+|[.,;!\s]+$/g, "")
+      .trim()
+  }
+  const add = nextHint?.trim()
+  if (add) {
+    const already = next.toLowerCase().includes(add.toLowerCase())
+    if (!already) next = next ? `${next}. ${add}` : add
+  }
+  if (next.length > maxLen) next = next.slice(0, maxLen)
+  return next
+}
+
 export const AI_TRACKS_VOCALS: Array<{ id: AiTracksVocalId; label: string; promptHint: string }> = [
   { id: "auto", label: "На выбор модели", promptHint: "" },
   { id: "female", label: "Женский", promptHint: "женский вокал" },

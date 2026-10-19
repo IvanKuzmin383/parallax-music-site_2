@@ -1059,6 +1059,32 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   will-change: transform;
 }
 
+/* Демо синхронизации текста: винил крутится на Play, угол не сбрасывается на паузе */
+@keyframes lyrics-demo-vinyl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lyrics-demo-vinyl {
+  animation: lyrics-demo-vinyl-spin 2.8s linear infinite;
+  animation-play-state: paused;
+  will-change: transform;
+}
+
+.lyrics-demo-vinyl--playing {
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrics-demo-vinyl {
+    animation: none;
+  }
+}
+
 /* Кассета: корпус = обложка, поверх лёгкий пластик (цвета обложки читаются) */
 .sl-cassette-wrap {
   background:

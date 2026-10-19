@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useRef } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -15,11 +15,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
-import {
-  LyricsSyncDemo,
-  scrollToLyricsDemo,
-  type LyricsSyncDemoHandle,
-} from "@/components/cabinet/design/lyrics-sync-demo"
+import { LyricsSyncDemo } from "@/components/cabinet/design/lyrics-sync-demo"
 import {
   getCabinetServiceHubBackLabel,
   getCabinetServiceHubHref,
@@ -100,44 +96,17 @@ const FAQ_ITEMS = [
   },
   {
     q: "Как заказать?",
-    a: "Услуга оформляется при загрузке релиза в кабинете: отметьте "Синхронизация текста" в дополнительных услугах и оплатите вместе с релизом.",
+    a: "Услуга оформляется при загрузке релиза в кабинете: отметьте 'Синхронизация текста' в дополнительных услугах и оплатите вместе с релизом.",
   },
 ] as const
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  )
-}
 
 export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry }) {
   const pathname = usePathname()
   const backHref = getCabinetServiceHubHref(pathname)
   const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const phoneRef = useRef<HTMLDivElement | null>(null)
-  const demoRef = useRef<LyricsSyncDemoHandle | null>(null)
-
-  const [demoPlaying, setDemoPlaying] = useState(false)
-  const [demoEnded, setDemoEnded] = useState(false)
 
   const priceLabel = LYRICS_SYNC_PRICE_LABEL
-
-  const runDemo = useCallback(() => {
-    scrollToLyricsDemo(phoneRef)
-    window.setTimeout(
-      () => {
-        demoRef.current?.toggle()
-      },
-      prefersReducedMotion() ? 0 : 220
-    )
-  }, [])
-
-  const heroDemoLabel = demoPlaying
-    ? "Пауза"
-    : demoEnded
-      ? "Повторить пример"
-      : "Запустить пример"
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1180px] space-y-12 pb-12 text-foreground md:space-y-20">
@@ -179,14 +148,6 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             <Button size="lg" className="h-11 min-h-11 px-5" asChild>
               <Link href="/cabinet/upload">Заказать при загрузке релиза</Link>
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-11 min-h-11 px-5"
-              onClick={runDemo}
-            >
-              {heroDemoLabel}
-            </Button>
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -200,14 +161,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
 
         <div className="order-2 min-w-0 overflow-x-hidden">
           <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-end lg:justify-center lg:gap-5">
-            <LyricsSyncDemo
-              ref={demoRef}
-              phoneRef={phoneRef}
-              onPlayingChange={(playing, ended) => {
-                setDemoPlaying(playing)
-                setDemoEnded(ended)
-              }}
-            />
+            <LyricsSyncDemo phoneRef={phoneRef} />
             <div className="hidden max-w-[9.5rem] space-y-1 pb-16 text-left lg:block">
               <p className="text-sm font-semibold text-foreground">В нужный момент</p>
               <p className="text-xs leading-relaxed text-muted-foreground">

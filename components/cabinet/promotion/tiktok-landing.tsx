@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useId, useRef, useState } from "react"
+import { useCallback, useId, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils"
 
 type PlatformId = "tiktok" | "instagram" | "youtube"
 
-const EXAMPLE_VIDEO_SRC = "/videos/vertical-examples/example-2.mp4"
+const EXAMPLE_STILL_SRC = "/videoshot/example2-poster.jpg"
 const EXAMPLE_HANDLE = "your_artist"
 const EXAMPLE_TRACK = "Ваш трек"
 const EXAMPLE_ARTIST = "Артист"
@@ -238,48 +238,17 @@ function PlatformChrome({
   )
 }
 
-const PREVIEW_VIDEO_FALLBACKS = [
-  EXAMPLE_VIDEO_SRC,
-  "/videos/vertical-examples/example-1.mp4",
-  "/videos/vertical-examples/example-3.mp4",
-] as const
-
-function PreviewVideoFill({ label }: { label: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [srcIndex, setSrcIndex] = useState(0)
-  const [failed, setFailed] = useState(false)
-  const activeSrc = PREVIEW_VIDEO_FALLBACKS[srcIndex] ?? PREVIEW_VIDEO_FALLBACKS[0]
-
-  if (failed) {
-    return (
-      <div
-        className="absolute inset-0 bg-[linear-gradient(165deg,#2a1520_0%,#141418_50%,#0c0b0e_100%)]"
-        aria-hidden
-      />
-    )
-  }
-
+function PreviewStillFill({ label }: { label: string }) {
   return (
-    <video
-      key={activeSrc}
-      ref={videoRef}
-      src={activeSrc}
-      className="absolute inset-0 h-full w-full object-cover"
-      playsInline
-      muted
-      loop
-      autoPlay
-      preload="metadata"
-      onError={() => {
-        setSrcIndex((prev) => {
-          const next = prev + 1
-          if (next < PREVIEW_VIDEO_FALLBACKS.length) return next
-          setFailed(true)
-          return prev
-        })
-      }}
-      aria-label={label}
-    />
+    <div className="absolute inset-0 bg-[#0c0b0e]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={EXAMPLE_STILL_SRC}
+        alt={label}
+        className="absolute inset-0 h-full w-full object-cover"
+        draggable={false}
+      />
+    </div>
   )
 }
 
@@ -332,7 +301,7 @@ function PlatformPhone({
           aria-hidden
         />
         <div className="relative aspect-[9/16] w-full overflow-hidden">
-          <PreviewVideoFill label={`Пример в ${label}`} />
+          <PreviewStillFill label={`Как выглядит в ${label}`} />
           <PlatformChrome platform={platform} caption={caption} />
           <div
             className="pointer-events-none absolute inset-x-0 bottom-1 z-30 flex justify-center"

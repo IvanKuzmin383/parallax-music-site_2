@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   ArrowLeft,
   ChevronDown,
+  CircleHelp,
   Disc3,
   Download,
   Heart,
@@ -13,6 +14,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -35,6 +37,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   AI_TRACKS_DIRECTIONS,
   AI_TRACKS_LIMITS,
@@ -42,7 +45,11 @@ import {
   AI_TRACKS_MOODS,
   AI_TRACKS_PRICE_RUB,
   AI_TRACKS_VOCALS,
+  rewriteAiTracksChipHint,
+  type AiTracksDirectionId,
+  type AiTracksMoodId,
   type AiTracksPublicConfig,
+  type AiTracksVocalId,
 } from "@/lib/ai-tracks-config"
 import {
   getCabinetServiceHubBackLabel,
@@ -113,15 +120,17 @@ function Chip({
     <button
       type="button"
       disabled={disabled}
+      aria-pressed={Boolean(active)}
       onClick={onClick}
       className={cn(
-        "min-h-7 rounded-full border px-2.5 py-0.5 text-xs transition-colors",
+        "relative min-h-8 rounded-full border px-3 py-1 text-xs font-medium transition-all",
         active
-          ? "border-primary bg-primary font-semibold text-primary-foreground"
-          : "border-border bg-transparent text-muted-foreground hover:border-primary/40 hover:text-foreground",
-        disabled && "opacity-50"
+          ? "!border-primary !bg-primary !text-primary-foreground shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_40%,transparent),0_0_16px_color-mix(in_srgb,var(--primary)_30%,transparent)]"
+          : "border-border/80 bg-muted/30 text-muted-foreground hover:border-primary/45 hover:bg-muted/50 hover:text-foreground",
+        disabled && "opacity-50",
       )}
     >
+      {active ? <span className="mr-1 font-bold">✓</span> : null}
       {children}
     </button>
   )
@@ -245,7 +254,7 @@ function ResultCard({
   playingId,
   onPlayToggle,
   onFavorite,
-  onReuse,
+  onReuseRequest,
   onToRelease,
   busyFavorite,
   busyToRelease,
@@ -255,7 +264,7 @@ function ResultCard({
   playingId: string | null
   onPlayToggle: (id: string, audio: HTMLAudioElement | null) => void
   onFavorite: (id: string, next: boolean) => void
-  onReuse: (settings: AiTracksSettingsSnapshot) => void
+  onReuseRequest: (settings: AiTracksSettingsSnapshot) => void
   onToRelease: (result: AiTracksResultDto) => void
   busyFavorite: boolean
   busyToRelease: boolean
@@ -315,9 +324,9 @@ function ResultCard({
         </Button>
         {result.audioUrl ? (
           <Button variant="outline" size="sm" className="h-7 px-2 text-xs" asChild>
-            <a href={result.audioUrl} download>
+            <a href={`${result.audioUrl}?download=1`} download={`${result.title || "track"}.wav`}>
               <Download className="mr-1 h-3 w-3" />
-              Скачать
+              Скачать WAV
             </a>
           </Button>
         ) : null}
@@ -327,7 +336,7 @@ function ResultCard({
           size="sm"
           className="h-7 px-2 text-xs"
           title="Повторить настройки"
-          onClick={() => onReuse(settings)}
+          onClick={() => onReuseRequest(settings)}
         >
           <RotateCcw className="mr-1 h-3 w-3" />
           Ещё раз
@@ -366,6 +375,7 @@ export function AiTracksStudioClient() {
   const [toReleaseTarget, setToReleaseTarget] = useState<AiTracksResultDto | null>(null)
   const [toReleaseTitle, setToReleaseTitle] = useState("")
   const [toReleaseBusy, setToReleaseBusy] = useState(false)
+  const [reusePending, setReusePending] = useState<AiTracksSettingsSnapshot | null>(null)
 
   const activeJob =
     status?.activeJobs?.[0] ??
@@ -377,6 +387,52 @@ export function AiTracksStudioClient() {
   const patchDraft = useCallback((patch: Partial<AiTracksDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }))
   }, [])
+
+  /** Чип пишет подсказку в видимое поле: стиль (расширенный) или идея (простой). */
+  const applyChipToPromptField = useCallback(
+    (
+      group: "mood" | "direction" | "vocal",
+      nextId: AiTracksMoodId | AiTracksDirectionId | AiTracksVocalId | null,
+    ) => {
+      let openStyle = false
+      setDraft((prev) => {
+        const catalog =
+          group === "mood"
+            ? AI_TRACKS_MOODS
+            : group === "direction"
+              ? AI_TRACKS_DIRECTIONS
+              : AI_TRACKS_VOCALS
+        const nextHint =
+          nextId == null
+            ? null
+            : catalog.find((item) => item.id === nextId)?.promptHint ?? null
+        const fieldKey = prev.mode === "advanced" ? "style" : "idea"
+        openStyle = fieldKey === "style"
+        const maxLen =
+          fieldKey === "style"
+            ? (status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax)
+            : (status?.limits.ideaMax ?? AI_TRACKS_LIMITS.ideaMax)
+        const rewritten = rewriteAiTracksChipHint(prev[fieldKey], catalog, nextHint, maxLen)
+        if (group === "mood") {
+          return { ...prev, mood: nextId as AiTracksMoodId | null, [fieldKey]: rewritten }
+        }
+        if (group === "direction") {
+          return {
+            ...prev,
+            direction: nextId as AiTracksDirectionId | null,
+            [fieldKey]: rewritten,
+          }
+        }
+        return {
+          ...prev,
+          vocal: (nextId as AiTracksVocalId | null) ?? "auto",
+          [fieldKey]: rewritten,
+        }
+      })
+      if (openStyle) setStyleOpen(true)
+    },
+    [status?.limits.ideaMax, status?.limits.styleMax],
+  )
 
   useEffect(() => {
     try {
@@ -470,17 +526,15 @@ export function AiTracksStudioClient() {
     })
   }, [])
 
-  const reuseSettings = useCallback(
-    (settings: AiTracksSettingsSnapshot) => {
-      setDraft({ ...DEFAULT_AI_TRACKS_DRAFT, ...settings })
-      setFieldError(null)
-      toast.message("Настройки восстановлены. Запуск не начат.")
-      if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
-        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-      }
-    },
-    []
-  )
+  const reuseSettings = useCallback((settings: AiTracksSettingsSnapshot) => {
+    setDraft({ ...DEFAULT_AI_TRACKS_DRAFT, ...settings })
+    setFieldError(null)
+    setReusePending(null)
+    toast.message("Настройки восстановлены. Запуск не начат.")
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [])
 
   const onFavorite = useCallback(
     async (id: string, next: boolean) => {
@@ -652,30 +706,6 @@ export function AiTracksStudioClient() {
         </Button>
       </div>
 
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-            Генерация музыки
-          </p>
-          <p className="text-base text-muted-foreground sm:text-[15px]">
-            Опишите, что хотите услышать, или добавьте свой текст. Создавайте песни с вокалом и
-            инструментальную музыку прямо в Parallax.
-          </p>
-        </div>
-        <div className="flex flex-col items-start gap-2 lg:items-end">
-          <p className="hidden text-right text-sm text-muted-foreground lg:block">
-            <span className="block font-medium text-foreground">От мысли до звучания</span>
-            Для песен, демо и новых музыкальных идей
-          </p>
-          <div className="rounded-full border border-border bg-card px-4 py-2 text-sm">
-            Цена генерации:{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              {loading ? "…" : formatRub(priceRub)}
-            </span>
-          </div>
-        </div>
-      </header>
-
       <div className="grid gap-5 lg:grid-cols-[minmax(0,55%)_minmax(0,45%)] lg:gap-6">
         <section
           ref={formRef}
@@ -749,32 +779,49 @@ export function AiTracksStudioClient() {
 
                 {!draft.instrumental ? (
                   <div className="rounded-2xl border border-border">
-                    <button
-                      type="button"
-                      className="flex min-h-10 w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
-                      onClick={() => setLyricsOpen((v) => !v)}
-                      aria-expanded={lyricsOpen}
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium">Текст песни</span>
-                        {!lyricsOpen ? (
-                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                            {draft.lyrics.trim()
-                              ? draft.lyrics.trim().replace(/\s+/g, " ").slice(0, 80)
-                              : "Пусто - нажмите, чтобы добавить"}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
-                        {draft.lyrics.length}/{status?.limits.lyricsMax ?? AI_TRACKS_LIMITS.lyricsMax}
-                        <ChevronDown
-                          className={cn(
-                            "h-4 w-4 transition-transform",
-                            lyricsOpen && "rotate-180"
-                          )}
-                        />
-                      </span>
-                    </button>
+                    <div className="flex min-h-10 items-stretch gap-0.5 px-2 py-1">
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-left hover:bg-muted/40"
+                        onClick={() => setLyricsOpen((v) => !v)}
+                        aria-expanded={lyricsOpen}
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">Текст песни</span>
+                          {!lyricsOpen ? (
+                            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                              {draft.lyrics.trim()
+                                ? draft.lyrics.trim().replace(/\s+/g, " ").slice(0, 80)
+                                : "Пусто - нажмите, чтобы добавить"}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+                          {draft.lyrics.length}/{status?.limits.lyricsMax ?? AI_TRACKS_LIMITS.lyricsMax}
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              lyricsOpen && "rotate-180"
+                            )}
+                          />
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Очистить текст песни"
+                        title="Очистить"
+                        disabled={!draft.lyrics.trim()}
+                        className={cn(
+                          "inline-flex h-9 w-9 shrink-0 self-center items-center justify-center rounded-lg transition-colors",
+                          draft.lyrics.trim()
+                            ? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            : "opacity-35",
+                        )}
+                        onClick={() => patchDraft({ lyrics: "" })}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                     {lyricsOpen ? (
                       <div className="space-y-2 border-t border-border px-4 py-3">
                         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -805,32 +852,49 @@ export function AiTracksStudioClient() {
                 ) : null}
 
                 <div className="rounded-2xl border border-border">
-                  <button
-                    type="button"
-                    className="flex min-h-10 w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
-                    onClick={() => setStyleOpen((v) => !v)}
-                    aria-expanded={styleOpen}
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium">Стиль звучания</span>
-                      {!styleOpen ? (
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {draft.style.trim()
-                            ? draft.style.trim().replace(/\s+/g, " ").slice(0, 80)
-                            : "Пусто - нажмите, чтобы описать"}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
-                      {draft.style.length}/{status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax}
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform",
-                          styleOpen && "rotate-180"
-                        )}
-                      />
-                    </span>
-                  </button>
+                  <div className="flex min-h-10 items-stretch gap-0.5 px-2 py-1">
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-left hover:bg-muted/40"
+                      onClick={() => setStyleOpen((v) => !v)}
+                      aria-expanded={styleOpen}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">Стиль звучания</span>
+                        {!styleOpen ? (
+                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                            {draft.style.trim()
+                              ? draft.style.trim().replace(/\s+/g, " ").slice(0, 80)
+                              : "Пусто - нажмите, чтобы описать"}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+                        {draft.style.length}/{status?.limits.styleMax ?? AI_TRACKS_LIMITS.styleMax}
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            styleOpen && "rotate-180"
+                          )}
+                        />
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Очистить стиль звучания"
+                      title="Очистить"
+                      disabled={!draft.style.trim()}
+                      className={cn(
+                        "inline-flex h-9 w-9 shrink-0 self-center items-center justify-center rounded-lg transition-colors",
+                        draft.style.trim()
+                          ? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          : "opacity-35",
+                      )}
+                      onClick={() => patchDraft({ style: "" })}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   {styleOpen ? (
                     <div className="space-y-2 border-t border-border px-4 py-3">
                       <Label htmlFor={styleId} className="sr-only">
@@ -851,7 +915,14 @@ export function AiTracksStudioClient() {
             )}
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Модель</p>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-medium">Модель</p>
+                <span className="text-xs font-medium text-primary">
+                  {(status?.models?.length ? status.models : AI_TRACKS_MODELS).find(
+                    (m) => m.id === draft.modelId
+                  )?.label ?? "-"}
+                </span>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {(status?.models?.length ? status.models : AI_TRACKS_MODELS).map((m) => (
                   <Chip
@@ -872,16 +943,22 @@ export function AiTracksStudioClient() {
 
             {draft.mode === "simple" ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Быстрые направления</p>
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-medium">Быстрые направления</p>
+                  <span className="text-xs font-medium text-primary">
+                    {AI_TRACKS_DIRECTIONS.find((d) => d.id === draft.direction)?.label ?? "Не выбрано"}
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {AI_TRACKS_DIRECTIONS.map((d) => (
                     <Chip
                       key={d.id}
                       active={draft.direction === d.id}
                       onClick={() =>
-                        patchDraft({
-                          direction: draft.direction === d.id ? null : d.id,
-                        })
+                        applyChipToPromptField(
+                          "direction",
+                          draft.direction === d.id ? null : d.id,
+                        )
                       }
                     >
                       {d.label}
@@ -892,14 +969,19 @@ export function AiTracksStudioClient() {
             ) : null}
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Настроение</p>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-medium">Настроение</p>
+                <span className="text-xs font-medium text-primary">
+                  {AI_TRACKS_MOODS.find((m) => m.id === draft.mood)?.label ?? "Не выбрано"}
+                </span>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {AI_TRACKS_MOODS.map((m) => (
                   <Chip
                     key={m.id}
                     active={draft.mood === m.id}
                     onClick={() =>
-                      patchDraft({ mood: draft.mood === m.id ? null : m.id })
+                      applyChipToPromptField("mood", draft.mood === m.id ? null : m.id)
                     }
                   >
                     {m.label}
@@ -922,7 +1004,12 @@ export function AiTracksStudioClient() {
 
             {!draft.instrumental ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Вокал</p>
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-medium">Вокал</p>
+                  <span className="text-xs font-medium text-primary">
+                    {AI_TRACKS_VOCALS.find((v) => v.id === draft.vocal)?.label ?? "-"}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Пожелание, не гарантия точного исполнения.
                 </p>
@@ -931,7 +1018,7 @@ export function AiTracksStudioClient() {
                     <Chip
                       key={v.id}
                       active={draft.vocal === v.id}
-                      onClick={() => patchDraft({ vocal: v.id })}
+                      onClick={() => applyChipToPromptField("vocal", v.id)}
                     >
                       {v.label}
                     </Chip>
@@ -956,8 +1043,26 @@ export function AiTracksStudioClient() {
                 <div className="space-y-4 border-t border-border px-4 py-4">
                   {status?.capabilities.weirdness ? (
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Экспериментальность</span>
+                      <div className="flex justify-between gap-2 text-sm">
+                        <span className="inline-flex items-center">
+                          Экспериментальность
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="ml-1.5 inline-flex text-muted-foreground hover:text-foreground"
+                                aria-label="Подсказка: Экспериментальность"
+                              >
+                                <CircleHelp className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-balance">
+                              Насколько модель может отойти от привычного звучания. Низкие значения -
+                              более предсказуемый результат, высокие - смелее и неожиданнее
+                              аранжировка и вокал.
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
                         <span className="tabular-nums text-muted-foreground">
                           {draft.weirdnessPct}%
                         </span>
@@ -977,8 +1082,26 @@ export function AiTracksStudioClient() {
                   )}
                   {status?.capabilities.styleWeight ? (
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Следовать описанию стиля</span>
+                      <div className="flex justify-between gap-2 text-sm">
+                        <span className="inline-flex items-center">
+                          Следовать описанию стиля
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="ml-1.5 inline-flex text-muted-foreground hover:text-foreground"
+                                aria-label="Подсказка: Следовать описанию стиля"
+                              >
+                                <CircleHelp className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-balance">
+                              Насколько строго держаться вашего текста стиля. Выше - ближе к
+                              описанному жанру и характеру, ниже - модель свободнее интерпретирует
+                              запрос.
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
                         <span className="tabular-nums text-muted-foreground">
                           {draft.styleWeightPct}%
                         </span>
@@ -1115,7 +1238,7 @@ export function AiTracksStudioClient() {
                   playingId={playingId}
                   onPlayToggle={onPlayToggle}
                   onFavorite={onFavorite}
-                  onReuse={reuseSettings}
+                  onReuseRequest={setReusePending}
                   onToRelease={openToRelease}
                   busyFavorite={favoriteBusy === result.id}
                   busyToRelease={toReleaseBusy && toReleaseTarget?.id === result.id}
@@ -1125,6 +1248,37 @@ export function AiTracksStudioClient() {
           )}
         </section>
       </div>
+
+      <Dialog
+        open={Boolean(reusePending)}
+        onOpenChange={(open) => {
+          if (!open) setReusePending(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Повторить настройки?</DialogTitle>
+            <DialogDescription>
+              Подставим в форму параметры этой генерации. Текущие поля (текст, стиль, модель и
+              остальное) будут заменены. Генерация сама не запустится - нужно нажать создание
+              отдельно.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setReusePending(null)}>
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (reusePending) reuseSettings(reusePending)
+              }}
+            >
+              Да, подставить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(toReleaseTarget)}

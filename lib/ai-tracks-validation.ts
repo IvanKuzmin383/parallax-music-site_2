@@ -121,21 +121,25 @@ export function buildPromptParts(draft: AiTracksDraft): {
   if (mood?.promptHint) hints.push(mood.promptHint)
   if (vocal?.promptHint) hints.push(vocal.promptHint)
 
+  const mergeHints = (base: string) => {
+    const trimmed = base.trim()
+    const lower = trimmed.toLowerCase()
+    const missing = hints.filter((h) => h && !lower.includes(h.toLowerCase()))
+    if (!missing.length) return trimmed
+    return trimmed ? `${trimmed}. ${missing.join(", ")}` : missing.join(", ")
+  }
+
   if (draft.mode === "simple") {
-    const base = draft.idea.trim()
-    const prompt = hints.length ? `${base}. ${hints.join(", ")}` : base
     return {
-      prompt,
+      prompt: mergeHints(draft.idea),
       lyrics: null,
       title: draft.title.trim() || null,
       instrumental: draft.instrumental,
     }
   }
 
-  const style = draft.style.trim()
-  const prompt = hints.length ? `${style}. ${hints.join(", ")}` : style
   return {
-    prompt,
+    prompt: mergeHints(draft.style),
     lyrics: draft.instrumental ? null : draft.lyrics,
     title: draft.title.trim() || null,
     instrumental: draft.instrumental,

@@ -14,13 +14,17 @@ import {
 import { Pause, Play, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const DEMO_DURATION_SEC = 18
+const DEMO_AUDIO_SRC = "/audio/lyrics-sync-demo.mp3"
+/** Fallback, пока metadata ещё не загрузилась (~15.96 сек у файла). */
+const DEMO_DURATION_FALLBACK_SEC = 15.96
 
 const DEMO_LINES = [
-  { start: 0, text: "Город засыпает в огнях" },
-  { start: 4.5, text: "Мы ещё не спим" },
-  { start: 9, text: "Этот вечер сохрани" },
-  { start: 13.5, text: "В памяти двоих" },
+  { start: 0.0, text: "Ах, глазки" },
+  { start: 1.0, text: "что со мной?" },
+  { start: 4.0, text: "Пленили вы меня." },
+  { start: 8.0, text: "Ах, глазки" },
+  { start: 9.0, text: "что со мной?" },
+  { start: 12.0, text: "Красавица моя." },
 ] as const
 
 export type LyricsDemoMode = "sync" | "plain"
@@ -41,9 +45,9 @@ function activeLineIndex(timeSec: number): number {
   return idx
 }
 
-function formatClock(sec: number): string {
-  const clamped = Math.max(0, Math.min(DEMO_DURATION_SEC, sec))
-  const whole = Math.round(clamped)
+function formatClock(sec: number, durationSec: number): string {
+  const clamped = Math.max(0, Math.min(durationSec, sec))
+  const whole = Math.floor(clamped + 1e-6)
   const m = Math.floor(whole / 60)
   const s = whole % 60
   return `${m}:${s.toString().padStart(2, "0")}`
@@ -78,74 +82,92 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
   function LyricsSyncDemo({ phoneRef, onPlayingChange, className }, ref) {
     const sliderId = useId()
     const modeId = useId()
-    const [currentTime, setCurrentTime] = useState(4.5)
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const rafRef = useRef<number | null>(null)
+    const playingRef = useRef(false)
+
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(DEMO_DURATION_FALLBACK_SEC)
     const [playing, setPlaying] = useState(false)
     const [mode, setMode] = useState<LyricsDemoMode>("sync")
-    const currentTimeRef = useRef(4.5)
-    const playingRef = useRef(false)
-    const rafRef = useRef<number | null>(null)
-    const lastTsRef = useRef<number | null>(null)
+    const [audioError, setAudioError] = useState(false)
 
     const stopRaf = useCallback(() => {
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current)
         rafRef.current = null
       }
-      lastTsRef.current = null
-    }, [])
-
-    const setTime = useCallback((next: number) => {
-      const clamped = Math.max(0, Math.min(DEMO_DURATION_SEC, next))
-      currentTimeRef.current = clamped
-      setCurrentTime(clamped)
-      return clamped
     }, [])
 
     const notify = useCallback(
-      (isPlaying: boolean, time: number) => {
-        onPlayingChange?.(isPlaying, time >= DEMO_DURATION_SEC)
+      (isPlaying: boolean, time: number, dur: number) => {
+        onPlayingChange?.(isPlaying, dur > 0 && time >= dur - 0.05)
       },
-      [onPlayingChange]
+      [onPlayingChange],
     )
 
+    const syncFromAudio = useCallback(() => {
+      const audio = audioRef.current
+      if (!audio) return
+      const t = Number.isFinite(audio.currentTime) ? audio.currentTime : 0
+      setCurrentTime(t)
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration)
+      }
+    }, [])
+
     const pause = useCallback(() => {
+      const audio = audioRef.current
       playingRef.current = false
       setPlaying(false)
       stopRaf()
-      notify(false, currentTimeRef.current)
-    }, [notify, stopRaf])
+      audio?.pause()
+      syncFromAudio()
+      const dur =
+        audio && Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration
+          : DEMO_DURATION_FALLBACK_SEC
+      notify(false, audio?.currentTime ?? 0, dur)
+    }, [notify, stopRaf, syncFromAudio])
 
-    const tick = useCallback(
-      (ts: number) => {
-        if (!playingRef.current) return
-        if (lastTsRef.current == null) lastTsRef.current = ts
-        const delta = (ts - lastTsRef.current) / 1000
-        lastTsRef.current = ts
-        const next = setTime(currentTimeRef.current + delta)
-        if (next >= DEMO_DURATION_SEC) {
-          playingRef.current = false
-          setPlaying(false)
-          stopRaf()
-          notify(false, DEMO_DURATION_SEC)
-          return
-        }
+    const tick = useCallback(() => {
+      if (!playingRef.current) return
+      syncFromAudio()
+      const audio = audioRef.current
+      if (audio && !audio.paused && !audio.ended) {
         rafRef.current = requestAnimationFrame(tick)
-      },
-      [notify, setTime, stopRaf]
-    )
+      }
+    }, [syncFromAudio])
 
     const play = useCallback(() => {
-      let start = currentTimeRef.current
-      if (start >= DEMO_DURATION_SEC) {
-        start = setTime(0)
+      const audio = audioRef.current
+      if (!audio || audioError) return
+
+      const dur =
+        Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration
+          : DEMO_DURATION_FALLBACK_SEC
+      if (audio.ended || audio.currentTime >= dur - 0.05) {
+        audio.currentTime = 0
+        setCurrentTime(0)
       }
+
       playingRef.current = true
       setPlaying(true)
-      notify(true, start)
+      notify(true, audio.currentTime, dur)
       stopRaf()
-      lastTsRef.current = null
-      rafRef.current = requestAnimationFrame(tick)
-    }, [notify, setTime, stopRaf, tick])
+      void audio
+        .play()
+        .then(() => {
+          rafRef.current = requestAnimationFrame(tick)
+        })
+        .catch(() => {
+          playingRef.current = false
+          setPlaying(false)
+          setAudioError(true)
+          notify(false, audio.currentTime, dur)
+        })
+    }, [audioError, notify, stopRaf, tick])
 
     const toggle = useCallback(() => {
       if (playingRef.current) pause()
@@ -159,34 +181,100 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
         pause,
         toggle,
         isPlaying: () => playingRef.current,
-        isEnded: () => currentTimeRef.current >= DEMO_DURATION_SEC,
+        isEnded: () => {
+          const audio = audioRef.current
+          if (!audio) return false
+          const dur =
+            Number.isFinite(audio.duration) && audio.duration > 0
+              ? audio.duration
+              : DEMO_DURATION_FALLBACK_SEC
+          return audio.ended || audio.currentTime >= dur - 0.05
+        },
       }),
-      [play, pause, toggle]
+      [play, pause, toggle],
     )
 
     useEffect(() => {
-      return () => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      const onLoaded = () => {
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+          setDuration(audio.duration)
+        }
+        setAudioError(false)
+      }
+      const onEnded = () => {
         playingRef.current = false
+        setPlaying(false)
+        stopRaf()
+        syncFromAudio()
+        const dur =
+          Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : DEMO_DURATION_FALLBACK_SEC
+        notify(false, dur, dur)
+      }
+      const onPause = () => {
+        if (!playingRef.current) return
+        // Пауза извне (не наша кнопка) - синхронизируем UI
+        if (audio.paused && !audio.ended) {
+          playingRef.current = false
+          setPlaying(false)
+          stopRaf()
+        }
+      }
+      const onError = () => {
+        setAudioError(true)
+        playingRef.current = false
+        setPlaying(false)
         stopRaf()
       }
-    }, [stopRaf])
 
-    const ended = currentTime >= DEMO_DURATION_SEC
+      audio.addEventListener("loadedmetadata", onLoaded)
+      audio.addEventListener("durationchange", onLoaded)
+      audio.addEventListener("ended", onEnded)
+      audio.addEventListener("pause", onPause)
+      audio.addEventListener("error", onError)
+      return () => {
+        audio.removeEventListener("loadedmetadata", onLoaded)
+        audio.removeEventListener("durationchange", onLoaded)
+        audio.removeEventListener("ended", onEnded)
+        audio.removeEventListener("pause", onPause)
+        audio.removeEventListener("error", onError)
+        playingRef.current = false
+        audio.pause()
+        stopRaf()
+      }
+    }, [notify, stopRaf, syncFromAudio])
+
+    const ended = currentTime >= duration - 0.05 || (audioRef.current?.ended ?? false)
     const activeIdx = activeLineIndex(currentTime)
 
-    const primaryLabel = playing ? "Пауза" : ended ? "Повторить пример" : "Запустить пример"
+    const primaryLabel = playing
+      ? "Пауза"
+      : ended
+        ? "Повторить пример"
+        : audioError
+          ? "Аудио недоступно"
+          : "Запустить пример"
     const PrimaryIcon = playing ? Pause : ended ? RotateCcw : Play
 
     const onSliderChange = (e: ChangeEvent<HTMLInputElement>) => {
       const value = Number(e.target.value)
       if (!Number.isFinite(value)) return
+      const audio = audioRef.current
       if (playingRef.current) pause()
-      setTime(Math.round(value * 10) / 10)
-      notify(false, currentTimeRef.current)
+      if (audio) {
+        audio.currentTime = Math.max(0, Math.min(duration, value))
+      }
+      setCurrentTime(Math.max(0, Math.min(duration, value)))
+      notify(false, value, duration)
     }
 
     return (
       <div className={cn("mx-auto w-full max-w-[300px]", className)}>
+        <audio ref={audioRef} src={DEMO_AUDIO_SRC} preload="metadata" playsInline />
         <div
           ref={phoneRef}
           id="lyrics-sync-demo"
@@ -195,7 +283,7 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
           <div
             className={cn(
               "rounded-[28px] border-[3px] border-[#3A323C] bg-[#0C0B10]",
-              "p-2.5 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.85)]"
+              "p-2.5 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.85)]",
             )}
           >
             <div className="overflow-hidden rounded-[22px] border border-[#302831] bg-[#151419]">
@@ -213,16 +301,27 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                   className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-[#2A1820] via-[#161218] to-[#0A090C]"
                   aria-hidden
                 >
-                  <div className="relative flex h-[72%] w-[72%] items-center justify-center rounded-full border border-[#F21D43]/25 bg-[#1A1218]">
-                    <div className="absolute inset-[22%] rounded-full border border-[#F21D43]/35 bg-[#0C0A0E]" />
-                    <div className="relative h-3 w-3 rounded-full bg-[#F21D43]" />
+                  <div
+                    className={cn(
+                      "lyrics-demo-vinyl relative flex h-[78%] w-[78%] items-center justify-center rounded-full",
+                      "border border-[#F21D43]/30 bg-[radial-gradient(circle_at_50%_45%,#2a1a22_0%,#141018_55%,#0a090c_100%)]",
+                      "shadow-[0_0_0_1px_rgba(242,29,67,0.12),inset_0_0_24px_rgba(0,0,0,0.55)]",
+                      playing && "lyrics-demo-vinyl--playing",
+                    )}
+                  >
+                    <div className="absolute inset-[8%] rounded-full border border-[#F21D43]/18" />
+                    <div className="absolute inset-[18%] rounded-full border border-[#F21D43]/22" />
+                    <div className="absolute inset-[28%] rounded-full border border-[#F21D43]/28" />
+                    <div className="absolute inset-[38%] rounded-full border border-[#F21D43]/20" />
+                    <div className="absolute inset-[48%] rounded-full border border-[#F21D43]/35 bg-[#0C0A0E]/90" />
+                    <div className="relative z-[1] h-3 w-3 rounded-full bg-[#F21D43] shadow-[0_0_10px_rgba(242,29,67,0.55)]" />
                   </div>
                 </div>
                 <div className="mt-3 space-y-0.5">
                   <p className="truncate text-sm font-semibold tracking-tight text-[#F7F4F6]">
-                    Пример трека
+                    Ах, глазки
                   </p>
-                  <p className="truncate text-xs text-[#B8AFBD]">Parallax Music</p>
+                  <p className="truncate text-xs text-[#B8AFBD]">Пример синхронизации</p>
                 </div>
               </div>
 
@@ -231,12 +330,12 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                   const isActive = mode === "sync" && i === activeIdx
                   return (
                     <p
-                      key={line.text}
+                      key={`${line.start}-${line.text}-${i}`}
                       className={cn(
                         "text-[13px] leading-snug transition-colors duration-200 motion-reduce:transition-none",
                         mode === "plain" && "font-normal text-[#F7F4F6]",
                         mode === "sync" && !isActive && "font-normal text-[#B8AFBD]/75",
-                        isActive && "font-semibold text-[#F21D43]"
+                        isActive && "font-semibold text-[#F21D43]",
                       )}
                     >
                       {line.text}
@@ -247,26 +346,27 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
 
               <div className="mt-3 space-y-2 px-3.5 pb-3.5">
                 <div className="flex items-center justify-between text-[10px] tabular-nums text-[#B8AFBD]">
-                  <span>{formatClock(currentTime)}</span>
-                  <span>{formatClock(DEMO_DURATION_SEC)}</span>
+                  <span>{formatClock(currentTime, duration)}</span>
+                  <span>{formatClock(duration, duration)}</span>
                 </div>
                 <label className="sr-only" htmlFor={sliderId}>
-                  Позиция визуального примера в секундах
+                  Позиция примера в секундах
                 </label>
                 <input
                   id={sliderId}
                   type="range"
                   min={0}
-                  max={DEMO_DURATION_SEC}
-                  step={0.1}
-                  value={currentTime}
+                  max={duration || DEMO_DURATION_FALLBACK_SEC}
+                  step={0.05}
+                  value={Math.min(currentTime, duration || DEMO_DURATION_FALLBACK_SEC)}
                   onChange={onSliderChange}
                   className="h-2 w-full cursor-pointer accent-[#F21D43]"
                 />
                 <div className="flex justify-center pt-0.5">
                   <button
                     type="button"
-                    className="inline-flex h-11 min-h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-[#F21D43] px-4 text-sm font-semibold text-white hover:bg-[#F21D43]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]/60"
+                    disabled={audioError}
+                    className="inline-flex h-11 min-h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-[#F21D43] px-4 text-sm font-semibold text-white hover:bg-[#F21D43]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]/60 disabled:opacity-50"
                     onClick={toggle}
                     aria-label={primaryLabel}
                   >
@@ -280,7 +380,9 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
         </div>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Демонстрация подсветки · без звука
+          {audioError
+            ? "Не удалось загрузить демо-аудио"
+            : "Демонстрация подсветки со звуком"}
         </p>
 
         <div
@@ -308,7 +410,7 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                   "h-10 min-h-10 flex-1 rounded-[10px] px-2 text-xs font-medium transition-colors",
                   selected
                     ? "bg-primary/15 text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 onClick={() => setMode(opt.id)}
               >
@@ -319,7 +421,7 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
         </div>
       </div>
     )
-  }
+  },
 )
 
-export { DEMO_DURATION_SEC, DEMO_LINES }
+export { DEMO_DURATION_FALLBACK_SEC as DEMO_DURATION_SEC, DEMO_LINES, DEMO_AUDIO_SRC }

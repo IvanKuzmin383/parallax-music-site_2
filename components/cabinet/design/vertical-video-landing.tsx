@@ -22,13 +22,9 @@ import {
   MessageCircle,
   Minus,
   Music2,
-  Pause,
-  Play,
   Plus,
   Scissors,
   Share2,
-  Volume2,
-  VolumeX,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
@@ -61,7 +57,8 @@ import {
 } from "@/lib/vertical-video-pricing"
 import { cn } from "@/lib/utils"
 
-const EXAMPLE_VIDEO_SRC = "/videos/vertical-examples/example-2.mp4"
+/** Статичный кадр «как открыто в приложении» - без видеоплеера. */
+const EXAMPLE_STILL_SRC = "/videoshot/example2-poster.jpg"
 const EXAMPLE_ARTIST = "Имя артиста"
 const EXAMPLE_TRACK = "Название трека"
 const EXAMPLE_HANDLE = "your_artist"
@@ -323,129 +320,22 @@ function PhoneShell({
   )
 }
 
-const EXAMPLE_VIDEO_FALLBACKS = [
-  EXAMPLE_VIDEO_SRC,
-  "/videos/vertical-examples/example-1.mp4",
-  "/videos/vertical-examples/example-3.mp4",
-] as const
-
-function ExampleVideoPlayer({
+function ExamplePlatformStill({
   className,
   label,
 }: {
   className?: string
   label: string
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [srcIndex, setSrcIndex] = useState(0)
-  const [failed, setFailed] = useState(false)
-  const [playing, setPlaying] = useState(false)
-  const [muted, setMuted] = useState(true)
-  const activeSrc = EXAMPLE_VIDEO_FALLBACKS[srcIndex] ?? EXAMPLE_VIDEO_FALLBACKS[0]
-
-  const togglePlay = useCallback(() => {
-    const video = videoRef.current
-    if (!video || failed) return
-    if (video.paused) {
-      // Отказ play() (автоплей-политика) - не считаем файл битым
-      void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
-    } else {
-      video.pause()
-      setPlaying(false)
-    }
-  }, [failed])
-
-  const toggleMute = useCallback(() => {
-    const video = videoRef.current
-    if (!video || failed) return
-    video.muted = !video.muted
-    setMuted(video.muted)
-  }, [failed])
-
-  const onVideoError = useCallback(() => {
-    setSrcIndex((prev) => {
-      const next = prev + 1
-      if (next < EXAMPLE_VIDEO_FALLBACKS.length) return next
-      setFailed(true)
-      return prev
-    })
-  }, [])
-
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    const onEnded = () => setPlaying(false)
-    const onPause = () => setPlaying(false)
-    const onPlay = () => setPlaying(true)
-    video.addEventListener("ended", onEnded)
-    video.addEventListener("pause", onPause)
-    video.addEventListener("play", onPlay)
-    return () => {
-      video.removeEventListener("ended", onEnded)
-      video.removeEventListener("pause", onPause)
-      video.removeEventListener("play", onPlay)
-    }
-  }, [activeSrc])
-
-  if (failed) {
-    return (
-      <div
-        className={cn(
-          "absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[linear-gradient(165deg,#1a1216_0%,#141418_45%,#0c0b0e_100%)] px-4",
-          className,
-        )}
-      >
-        <Film className="h-8 w-8 text-[#FFB4C5]/80" aria-hidden />
-        <p className="text-center text-[11px] leading-snug text-muted-foreground">
-          Пример временно недоступен. Показан заменяемый постер монтажа.
-        </p>
-        <button
-          type="button"
-          className="mt-1 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] text-white"
-          onClick={() => {
-            setFailed(false)
-            setSrcIndex(0)
-          }}
-        >
-          Повторить
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div className={cn("absolute inset-0", className)}>
-      <video
-        key={activeSrc}
-        ref={videoRef}
-        src={activeSrc}
+    <div className={cn("absolute inset-0 bg-[#0c0b0e]", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={EXAMPLE_STILL_SRC}
+        alt={label}
         className="absolute inset-0 h-full w-full object-cover"
-        playsInline
-        muted={muted}
-        preload="metadata"
-        loop
-        onError={onVideoError}
-        aria-label={label}
+        draggable={false}
       />
-      <div className="absolute bottom-[5.25rem] left-2.5 z-40 flex gap-1.5">
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-lg border border-white/25 bg-black/55 px-2.5 text-[11px] font-medium text-white backdrop-blur-sm"
-          aria-label={playing ? "Пауза примера" : "Смотреть пример"}
-        >
-          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-          <span className="hidden sm:inline">{playing ? "Пауза" : "Смотреть"}</span>
-        </button>
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-white/25 bg-black/55 px-2 text-white backdrop-blur-sm"
-          aria-label={muted ? "Включить звук" : "Выключить звук"}
-        >
-          {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-        </button>
-      </div>
     </div>
   )
 }
@@ -466,13 +356,13 @@ function PhonesComposition({
       {/* Desktop / tablet: three phones */}
       <div className="hidden max-w-full items-end justify-center gap-1 overflow-x-clip px-2 md:flex lg:gap-2">
         <PhoneShell platform="tiktok" size="side" tilt="left">
-          <ExampleVideoPlayer label="Пример монтажа в TikTok" />
+          <ExamplePlatformStill label="Как выглядит ролик в TikTok" />
         </PhoneShell>
         <PhoneShell platform="instagram" size="center">
-          <ExampleVideoPlayer label="Пример монтажа в Instagram Reels" />
+          <ExamplePlatformStill label="Как выглядит ролик в Instagram Reels" />
         </PhoneShell>
         <PhoneShell platform="youtube" size="side" tilt="right">
-          <ExampleVideoPlayer label="Пример монтажа в YouTube Shorts" />
+          <ExamplePlatformStill label="Как выглядит ролик в YouTube Shorts" />
         </PhoneShell>
       </div>
 
@@ -505,7 +395,9 @@ function PhonesComposition({
           })}
         </div>
         <PhoneShell platform={platform} size="mobile">
-          <ExampleVideoPlayer label={`Пример монтажа в ${PLATFORMS.find((p) => p.id === platform)?.label}`} />
+          <ExamplePlatformStill
+            label={`Как выглядит ролик в ${PLATFORMS.find((p) => p.id === platform)?.label}`}
+          />
         </PhoneShell>
       </div>
 
