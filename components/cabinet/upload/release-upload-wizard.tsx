@@ -1849,7 +1849,10 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                             const entirelyPast = week.days.every(
                               (d) => d.date.getTime() < boundary.getTime()
                             )
-                            if (entirelyPast) return null
+                            // Тип DayPicker Week не допускает null - прячем прошлые недели
+                            if (entirelyPast) {
+                              return <tr {...weekProps} className="hidden" aria-hidden />
+                            }
                             return <tr {...weekProps} />
                           },
                         }}
