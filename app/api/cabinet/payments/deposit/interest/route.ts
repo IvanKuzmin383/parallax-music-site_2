@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const message = [
     "<b>Интерес к услуге: Депонирование</b>",
     "",
-    "<b>Деньги не списаны</b> - клиент нажал "Хочу задепонировать".",
+    "<b>Деньги не списаны</b> - клиент нажал 'Хочу задепонировать'.",
     "",
     `<b>Аккаунт:</b> ${escapeHtml(user.email)}`,
     `<b>User ID:</b> ${escapeHtml(user.id)}`,

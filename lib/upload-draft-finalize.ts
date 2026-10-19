@@ -395,7 +395,7 @@ export async function finalizeUploadDraftCore(
     if (!draft.coverRelPath && !Boolean(payload.addons?.trackCover?.enabled)) {
       return {
         ok: false,
-        error: "Загрузите обложку альбома или включите услугу "Обложка для релиза"",
+        error: "Загрузите обложку альбома или включите услугу 'Обложка для релиза'",
         status: 400,
       }
     }
@@ -544,7 +544,7 @@ export async function finalizeUploadDraftCore(
     if (sourceTrack.status !== "upload_pending" && sourceTrack.status !== "rejected") {
       return {
         ok: false,
-        error: "Редактирование доступно только для треков в статусе "Требуется доработка" или "Отклонён"",
+        error: "Редактирование доступно только для треков в статусе 'Требуется доработка' или 'Отклонён'",
         status: 400,
       }
     }

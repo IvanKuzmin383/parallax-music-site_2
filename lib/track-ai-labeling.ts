@@ -54,7 +54,7 @@ export const AI_LABELING_DETAIL_TERNARY_LABELS: Record<AiTernaryChoice, string> 
 }
 
 export const AI_LABELING_COMPOSITION_FIELDS = [
-  { key: "musicAuthorship", label: "Авторство музыки ("ноты")" },
+  { key: "musicAuthorship", label: "Авторство музыки ('ноты')" },
   { key: "lyricsAuthorship", label: "Авторство слов" },
 ] as const satisfies ReadonlyArray<{ key: keyof TrackAiLabelingDetails; label: string }>
 

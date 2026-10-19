@@ -733,7 +733,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
     if (!releaseId) {
       toast.error(
         requestAiCover
-          ? "Сначала нажмите "Далее" на шаге "Основное", чтобы создать черновик"
+          ? "Сначала нажмите 'Далее' на шаге 'Основное', чтобы создать черновик"
           : "Сначала заполните основную информацию и загрузите обложку"
       )
       return
@@ -1161,7 +1161,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const validateStep3 = (): StepIssue | null => {
     if (tracks.length === 0) {
       return {
-        message: "Сначала загрузите треки на шаге "Файлы"",
+        message: "Сначала загрузите треки на шаге 'Файлы'",
         fieldId: wizardFieldId("release-tracks"),
         step: 2,
       }
@@ -1188,7 +1188,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   const validateStep4 = (): StepIssue | null => {
     if (tracks.length === 0) {
       return {
-        message: "Сначала загрузите треки на шаге "Файлы"",
+        message: "Сначала загрузите треки на шаге 'Файлы'",
         fieldId: wizardFieldId("release-tracks"),
         step: 2,
       }
@@ -1294,7 +1294,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         if (!requestAiCover) {
           focusStepIssue({
             message: coverPreview
-              ? "Обложка ещё не сохранилась на сервере. Выберите файл снова и дождитесь сообщения "Обложка сохранена""
+              ? "Обложка ещё не сохранилась на сервере. Выберите файл снова и дождитесь сообщения 'Обложка сохранена'"
               : "Загрузите обложку для создания черновика",
             fieldId: wizardFieldId("release-cover"),
             step: 1,

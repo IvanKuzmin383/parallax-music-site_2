@@ -69,7 +69,7 @@ export function validateAiCoverOrder(input: AiCoverOrderInput): AiCoverValidatio
   }
 
   if (!comment) {
-    fieldErrors.comment = "Поле "Пожелания / комментарии" обязательно"
+    fieldErrors.comment = "Поле 'Пожелания / комментарии' обязательно"
   }
 
   if (!isAiCoverContactType(contactTypeRaw)) {

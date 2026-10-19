@@ -49,7 +49,7 @@ export function getUploadArtistPolicyViolation(
 
   if (looksLikeMultiplePerformersInArtistField(incomingArtistName)) {
     return (
-      "На вашем тарифе в поле "Исполнитель" указывается один артист, без совместных релизов " +
+      "На вашем тарифе в поле 'Исполнитель' указывается один артист, без совместных релизов " +
       "(без feat., ft., &, приглашённых исполнителей и т. п.). На тарифе Label это разрешено."
     )
   }
@@ -112,7 +112,7 @@ export async function getUploadArtistPolicyViolationWithSlots(
 
   if (looksLikeMultiplePerformersInArtistField(incomingArtistName)) {
     return (
-      "На вашем тарифе в поле "Исполнитель" указывается один артист, без совместных релизов " +
+      "На вашем тарифе в поле 'Исполнитель' указывается один артист, без совместных релизов " +
       "(без feat., ft., &, приглашённых исполнителей и т. п.). На тарифе Label это разрешено."
     )
   }

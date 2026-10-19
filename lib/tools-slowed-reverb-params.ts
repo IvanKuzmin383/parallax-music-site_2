@@ -26,7 +26,7 @@ export const SLOWED_REVERB_PRESETS: SlowedReverbPreset[] = [
   {
     id: "ultra_slowed",
     label: "ULTRA SLOWED",
-    hint: "Очень медленно, глубокий бас и плотный реверб - атмосферный "ultra" вайб.",
+    hint: "Очень медленно, глубокий бас и плотный реверб - атмосферный 'ultra' вайб.",
     params: { speed: 0.55, bassBoost: 70, reverb: 7.5 },
   },
   {

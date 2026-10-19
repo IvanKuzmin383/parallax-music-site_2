@@ -382,7 +382,7 @@ export async function tryNotifyPaymentSuccess(params: {
         : "Средства зачислены на баланс кабинета."
       : amount
         ? `Сумма ${amount}. Заказ доступен в разделе "Заказы".`
-        : "Заказ доступен в разделе "Заказы".",
+        : "Заказ доступен в разделе 'Заказы'.",
     href: isWalletTopup ? "/cabinet/finance/balance" : `/cabinet/orders/${params.orderId}`,
     entityType: isWalletTopup ? "balance" : "order",
     entityId: isWalletTopup ? userId : params.orderId,

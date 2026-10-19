@@ -168,6 +168,6 @@ export async function PUT(request: NextRequest) {
     paymentId: state.paymentId,
     state: await getTbankReceiptTestState(),
     message:
-      "Запрос Cancel отправлен. Дождитесь refund_status в статусе (REFUNDED/CANCELED), затем "Проверить" в ЛК для теста №8.",
+      "Запрос Cancel отправлен. Дождитесь refund_status в статусе (REFUNDED/CANCELED), затем 'Проверить' в ЛК для теста №8.",
   })
 }

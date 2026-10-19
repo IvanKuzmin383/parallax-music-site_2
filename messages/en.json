@@ -678,7 +678,7 @@
         "priceSuffix": "₽ / track",
         "popular": "Best value",
         "features": [
-          "Everything in the "1 song" plan",
+          "Everything in the \"1 song\" plan",
           "Discount when ordering 5+ poems",
           "Great for collections and poetry cycles"
         ]
@@ -696,7 +696,7 @@
         },
         {
           "id": "two-variants",
-          "question": "What does "2 versions to choose from" mean?",
+          "question": "What does \"2 versions to choose from\" mean?",
           "answer": "We prepare two different song versions from your text - with different mood or arrangement. You pick the one you prefer for release."
         },
         {
@@ -717,7 +717,7 @@
         {
           "id": "how-to-order",
           "question": "How do I order?",
-          "answer": "Click "Order" on this page and message us on Telegram, VK or email. Send your poem - our manager will follow up with details."
+          "answer": "Click \"Order\" on this page and message us on Telegram, VK or email. Send your poem - our manager will follow up with details."
         }
       ]
     },

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     if (text.startsWith("/start")) {
       await reply(
         chatId,
-        "Чтобы подключить уведомления, откройте настройки кабинета Parallax Music и нажмите "Подключить", затем отправьте сюда код привязки."
+        "Чтобы подключить уведомления, откройте настройки кабинета Parallax Music и нажмите 'Подключить', затем отправьте сюда код привязки."
       )
     }
     return NextResponse.json({ ok: true })
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   if (result.ok) {
     await reply(
       chatId,
-      "Готово! Telegram подключён к кабинету Parallax Music. Уведомления можно настроить в разделе "Настройки → Уведомления"."
+      "Готово! Telegram подключён к кабинету Parallax Music. Уведомления можно настроить в разделе 'Настройки → Уведомления'."
     )
   } else if (result.reason === "expired") {
     await reply(chatId, "Код устарел. Создайте новый код в настройках кабинета.")

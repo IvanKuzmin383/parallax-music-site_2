@@ -356,7 +356,7 @@ export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
   const isPolaroid = isPolaroidCover
   /** Cinema letterbox на странице - фон; cinema-кнопки - отдельно. */
   const isCinema = isCinemaBtn
-  /** Diary-кнопки; diary-фон/обложка - через bg*/cover*. */
+  /** Diary-кнопки; diary-фон/обложка - через bg* / cover*. */
   const isDiary = isDiaryBtn
 
   const isGlassCard = bgStyle === "glass"

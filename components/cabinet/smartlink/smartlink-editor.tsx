@@ -1263,7 +1263,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
       {!isTools && !data.isPublic ? (
         <p className="shrink-0 text-xs text-muted-foreground">
           {data.canEnablePromo
-            ? "Включите "Промо-смартлинк" и сохраните - страница станет доступна по ссылке (нужна обложка)."
+            ? "Включите 'Промо-смартлинк' и сохраните - страница станет доступна по ссылке (нужна обложка)."
             : "Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее."}
         </p>
       ) : null}
