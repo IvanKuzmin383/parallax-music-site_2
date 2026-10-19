@@ -1,22 +1,24 @@
 ---
-description: Production is on Yandex Cloud (not AdminVPS/Amvera) — SSH, paths, deploy
+description: Production is on Selectel (not Yandex Cloud/AdminVPS/Amvera) - SSH, paths, deploy
 alwaysApply: true
 ---
 
 # Production hosting
 
-**Прод = Yandex Cloud Compute VM.** Не AdminVPS, не Amvera. Документ `docs/migration-amvera-to-adminvps.md` — исторический; при вопросах про прод/деплой/логи не ссылайся на AdminVPS как на текущий хостинг.
+**Прод = Selectel VPS `136.234.69.46`.** Не Yandex Cloud, не AdminVPS, не Amvera. Старый IP Yandex Cloud `111.88.251.195` больше не использовать. Документ `docs/migration-amvera-to-adminvps.md` - исторический.
 
 ## Доступ
 
 ```powershell
-ssh -i C:\Users\Admin\.ssh\id_ed25519 ubuntu@111.88.251.195
+ssh -i C:\Users\Admin\.ssh\id_ed25519 root@136.234.69.46
 ```
 
-- User: `ubuntu`
+- Host: `136.234.69.46` (Selectel)
+- User: `root`
 - App path: `/var/www/parallaxmusic`
 - Process manager: `pm2`, имя процесса: `parallaxmusic`
-- Data: `/data` (БД, uploads) — не в Git
+- Data: `/data` (uploads, reviews) - не в Git
+- БД: PostgreSQL на сервере, `DATABASE_URL` в `/var/www/parallaxmusic/.env` (не SQLite)
 
 ## Обновление прода
 
