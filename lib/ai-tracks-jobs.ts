@@ -1,10 +1,10 @@
 import crypto from "crypto"
 import {
   AI_TRACKS_MODEL_ID,
-  AI_TRACKS_MODEL_LABEL,
   AI_TRACKS_PRICE_RUB,
   AI_TRACKS_PROVIDER_ID,
   AI_TRACKS_DIRECTIONS,
+  aiTracksModelLabel,
 } from "@/lib/ai-tracks-config"
 import { chargeAiTracksGeneration, refundAiTracksGeneration } from "@/lib/ai-tracks-billing"
 import { getAiTracksPublicConfig } from "@/lib/ai-tracks-config-server"
@@ -98,10 +98,12 @@ function mapResult(row: ResultRow, settings: AiTracksSettingsSnapshot): AiTracks
     audioUrl: row.audio_storage_key
       ? `/api/cabinet/ai-tracks/results/${encodeURIComponent(row.id)}/audio`
       : null,
-    coverUrl: null,
+    coverUrl: row.cover_storage_key
+      ? `/api/cabinet/ai-tracks/results/${encodeURIComponent(row.id)}/cover`
+      : null,
     audioFormat: row.audio_format,
     isFavorite: row.is_favorite === true,
-    modelLabel: AI_TRACKS_MODEL_LABEL,
+    modelLabel: aiTracksModelLabel(settings.modelId),
     directionLabel: directionLabel(settings),
     createdAt: iso(row.created_at),
   }
@@ -116,8 +118,8 @@ function mapJob(row: JobRow, results: ResultRow[]): AiTracksJobDto {
     mode: settings.mode,
     settings,
     provider: row.provider,
-    modelId: row.model_id,
-    modelLabel: AI_TRACKS_MODEL_LABEL,
+    modelId: row.model_id || settings.modelId || AI_TRACKS_MODEL_ID,
+    modelLabel: aiTracksModelLabel(row.model_id || settings.modelId),
     priceRub,
     /** @deprecated колонка cost_attempts хранит цену в ₽ */
     costAttempts: priceRub,
@@ -294,7 +296,7 @@ export async function createAiTracksJob(params: {
             settings.mode,
             JSON.stringify(settings),
             AI_TRACKS_PROVIDER_ID,
-            AI_TRACKS_MODEL_ID,
+            settings.modelId || AI_TRACKS_MODEL_ID,
             priceRub,
             now,
             now,

@@ -1,9 +1,26 @@
-import { AI_TRACKS_MODEL_ID, AI_TRACKS_PROVIDER_ID } from "@/lib/ai-tracks-config"
 import {
+  AI_TRACKS_MODEL_ID,
+  AI_TRACKS_PROVIDER_ID,
+  AI_TRACKS_DIRECTIONS,
+  AI_TRACKS_MOODS,
+  isAiTracksModelId,
+  type AiTracksModelId,
+} from "@/lib/ai-tracks-config"
+import {
+  getAiTracksCallbackSecret,
   getAiTracksPublicConfig,
   isAiTracksProviderConfigured,
 } from "@/lib/ai-tracks-config-server"
+import {
+  isRemoteTerminalFailure,
+  isRemoteTerminalSuccess,
+  remoteCreateGenerateTask,
+  remoteGetGenerateDetails,
+  sanitizeRemoteMessage,
+  type RemoteGenerateBody,
+} from "@/lib/ai-tracks-remote"
 import type { AiTracksSettingsSnapshot } from "@/lib/ai-tracks-types"
+import { getSiteBaseUrl } from "@/lib/tbank-cabinet-payment"
 
 export type AiTracksProviderCreateInput = {
   jobId: string
@@ -30,6 +47,7 @@ export type AiTracksProviderStatus =
         durationSec?: number
         coverUrl?: string
         format?: string
+        externalId?: string
       }>
     }
   | { status: "failed"; message: string }
@@ -41,7 +59,7 @@ export interface AiTracksProviderAdapter {
   getStatus: (externalTaskId: string) => Promise<AiTracksProviderStatus>
 }
 
-/** Заглушка до подключения реального провайдера. Не имитирует успех. */
+/** Заглушка, когда генерация выключена. */
 export class UnavailableAiTracksProvider implements AiTracksProviderAdapter {
   readonly id = AI_TRACKS_PROVIDER_ID
   readonly modelId = AI_TRACKS_MODEL_ID
@@ -63,10 +81,133 @@ export class UnavailableAiTracksProvider implements AiTracksProviderAdapter {
   }
 }
 
+function buildStyleHints(settings: AiTracksSettingsSnapshot): string {
+  const parts: string[] = []
+  if (settings.direction) {
+    const d = AI_TRACKS_DIRECTIONS.find((x) => x.id === settings.direction)
+    if (d?.promptHint) parts.push(d.promptHint)
+  }
+  if (settings.mood) {
+    const m = AI_TRACKS_MOODS.find((x) => x.id === settings.mood)
+    if (m?.promptHint) parts.push(m.promptHint)
+  }
+  return parts.join(", ")
+}
+
+function resolveModel(settings: AiTracksSettingsSnapshot): AiTracksModelId {
+  return isAiTracksModelId(settings.modelId) ? settings.modelId : AI_TRACKS_MODEL_ID
+}
+
+function buildCallbackUrl(): string {
+  const base = getSiteBaseUrl()
+  const t = getAiTracksCallbackSecret()
+  return `${base}/api/webhooks/ai-tracks/callback?t=${encodeURIComponent(t)}`
+}
+
+function pctToUnit(pct: number): number {
+  const n = Math.round((Math.min(100, Math.max(0, pct)) / 100) * 100) / 100
+  return n
+}
+
+export function buildRemoteGenerateBody(
+  input: AiTracksProviderCreateInput
+): RemoteGenerateBody {
+  const { settings } = input
+  const model = resolveModel(settings)
+  const callBackUrl = buildCallbackUrl()
+  const hints = buildStyleHints(settings)
+
+  if (settings.mode === "simple") {
+    const style = hints || "pop"
+    const prompt = input.prompt.trim()
+    return {
+      customMode: false,
+      instrumental: input.instrumental,
+      model,
+      callBackUrl,
+      prompt,
+      style,
+    }
+  }
+
+  const body: RemoteGenerateBody = {
+    customMode: true,
+    instrumental: input.instrumental,
+    model,
+    callBackUrl,
+    style: (settings.style.trim() || hints || "pop").slice(0, 1000),
+  }
+
+  if (input.title?.trim()) body.title = input.title.trim().slice(0, 80)
+
+  if (!input.instrumental) {
+    const lyrics = (input.lyrics || "").trim()
+    if (lyrics) body.lyrics = lyrics.slice(0, 5000)
+    if (settings.vocal === "female") body.vocalGender = "f"
+    if (settings.vocal === "male") body.vocalGender = "m"
+  }
+
+  body.styleWeight = pctToUnit(settings.styleWeightPct)
+  body.weirdnessConstraint = pctToUnit(settings.weirdnessPct)
+
+  return body
+}
+
+export class RemoteAiTracksProvider implements AiTracksProviderAdapter {
+  readonly id = AI_TRACKS_PROVIDER_ID
+  readonly modelId = AI_TRACKS_MODEL_ID
+
+  async createTask(input: AiTracksProviderCreateInput): Promise<AiTracksProviderCreateResult> {
+    const body = buildRemoteGenerateBody(input)
+    const created = await remoteCreateGenerateTask(body)
+    if (!created.ok) {
+      return {
+        ok: false,
+        code: created.code === 402 || created.code === 429 ? "rejected" : "unavailable",
+        message: created.message,
+      }
+    }
+    return { ok: true, externalTaskId: created.taskId }
+  }
+
+  async getStatus(externalTaskId: string): Promise<AiTracksProviderStatus> {
+    const details = await remoteGetGenerateDetails(externalTaskId)
+    if (!details.ok) {
+      return { status: "running" }
+    }
+    if (isRemoteTerminalSuccess(details.status) && details.variants.length > 0) {
+      return {
+        status: "succeeded",
+        variants: details.variants.map((v, index) => ({
+          index,
+          title: v.title,
+          audioUrl: v.audioUrl,
+          coverUrl: v.coverUrl,
+          durationSec: v.durationSec,
+          format: "mp3",
+          externalId: v.id,
+        })),
+      }
+    }
+    if (isRemoteTerminalFailure(details.status)) {
+      return {
+        status: "failed",
+        message:
+          details.errorMessage ||
+          sanitizeRemoteMessage("Не удалось завершить генерацию") ||
+          "Не удалось завершить генерацию",
+      }
+    }
+    if (details.status === "PENDING" || details.status === "TEXT_SUCCESS") {
+      return { status: "pending" }
+    }
+    return { status: "running" }
+  }
+}
+
 export function getAiTracksProvider(): AiTracksProviderAdapter {
-  // Когда появится ключ и адаптер (например Kie.ai) - выбирать здесь по конфигу.
   if (!isAiTracksProviderConfigured()) {
     return new UnavailableAiTracksProvider()
   }
-  return new UnavailableAiTracksProvider()
+  return new RemoteAiTracksProvider()
 }

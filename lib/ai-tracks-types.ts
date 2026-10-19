@@ -1,6 +1,7 @@
 import type {
   AiTracksDirectionId,
   AiTracksMode,
+  AiTracksModelId,
   AiTracksMoodId,
   AiTracksVocalId,
 } from "@/lib/ai-tracks-config"
@@ -15,6 +16,7 @@ export type AiTracksJobStatus =
 
 export type AiTracksSettingsSnapshot = {
   mode: AiTracksMode
+  modelId: AiTracksModelId
   idea: string
   title: string
   lyrics: string
@@ -31,6 +33,7 @@ export type AiTracksDraft = AiTracksSettingsSnapshot
 
 export const DEFAULT_AI_TRACKS_DRAFT: AiTracksDraft = {
   mode: "simple",
+  modelId: "V6",
   idea: "",
   title: "",
   lyrics: "",

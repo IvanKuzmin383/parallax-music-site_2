@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getAiTracksJobForUser } from "@/lib/ai-tracks-jobs"
+import { syncAiTracksJobWithProvider } from "@/lib/ai-tracks-settle"
 
 export async function GET(
   request: NextRequest,
@@ -19,6 +20,7 @@ export async function GET(
   }
 
   const { id } = await context.params
+  await syncAiTracksJobWithProvider(id)
   const job = await getAiTracksJobForUser(user.id, id)
   if (!job) {
     return NextResponse.json({ error: "Задача не найдена" }, { status: 404 })

@@ -3,6 +3,7 @@ import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getAiTracksPublicConfig } from "@/lib/ai-tracks-config-server"
 import { listActiveAiTracksJobs } from "@/lib/ai-tracks-jobs"
+import { syncAiTracksJobsWithProvider } from "@/lib/ai-tracks-settle"
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -19,7 +20,11 @@ export async function GET(request: NextRequest) {
   const walletBalance = Math.max(0, Number(user.walletBalance ?? 0) || 0)
 
   try {
-    const activeJobs = await listActiveAiTracksJobs(user.id)
+    let activeJobs = await listActiveAiTracksJobs(user.id)
+    if (activeJobs.length > 0) {
+      await syncAiTracksJobsWithProvider(activeJobs.map((j) => j.id))
+      activeJobs = await listActiveAiTracksJobs(user.id)
+    }
 
     return NextResponse.json({
       ...getAiTracksPublicConfig(),

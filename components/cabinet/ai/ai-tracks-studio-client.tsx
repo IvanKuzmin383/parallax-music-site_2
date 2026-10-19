@@ -38,6 +38,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   AI_TRACKS_DIRECTIONS,
   AI_TRACKS_LIMITS,
+  AI_TRACKS_MODELS,
   AI_TRACKS_MOODS,
   AI_TRACKS_PRICE_RUB,
   AI_TRACKS_VOCALS,
@@ -105,9 +106,9 @@ function Chip({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "min-h-11 rounded-full border px-3.5 py-2 text-sm transition-colors",
+        "min-h-7 rounded-full border px-2.5 py-0.5 text-xs transition-colors",
         active
-          ? "border-primary bg-primary font-semibold text-primary-foreground shadow-[0_0_0_1px] shadow-primary"
+          ? "border-primary bg-primary font-semibold text-primary-foreground"
           : "border-border bg-transparent text-muted-foreground hover:border-primary/40 hover:text-foreground",
         disabled && "opacity-50"
       )}
@@ -626,7 +627,7 @@ export function AiTracksStudioClient() {
           </div>
 
           <div
-            className="mb-5 inline-flex rounded-full border border-border p-1"
+            className="mb-5 inline-flex rounded-full border border-border p-0.5"
             role="tablist"
             aria-label="Режим создания"
           >
@@ -637,7 +638,7 @@ export function AiTracksStudioClient() {
                 role="tab"
                 aria-selected={draft.mode === mode}
                 className={cn(
-                  "min-h-11 rounded-full px-4 text-sm",
+                  "min-h-7 rounded-full px-3 text-xs",
                   draft.mode === mode
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -730,10 +731,30 @@ export function AiTracksStudioClient() {
               </>
             )}
 
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Модель</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(status?.models?.length ? status.models : AI_TRACKS_MODELS).map((m) => (
+                  <Chip
+                    key={m.id}
+                    active={draft.modelId === m.id}
+                    onClick={() => patchDraft({ modelId: m.id })}
+                  >
+                    {m.label}
+                  </Chip>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {(status?.models?.length ? status.models : AI_TRACKS_MODELS).find(
+                  (m) => m.id === draft.modelId
+                )?.hint ?? null}
+              </p>
+            </div>
+
             {draft.mode === "simple" ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Быстрые направления</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {AI_TRACKS_DIRECTIONS.map((d) => (
                     <Chip
                       key={d.id}
@@ -753,7 +774,7 @@ export function AiTracksStudioClient() {
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Настроение</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {AI_TRACKS_MOODS.map((m) => (
                   <Chip
                     key={m.id}
@@ -786,7 +807,7 @@ export function AiTracksStudioClient() {
                 <p className="text-xs text-muted-foreground">
                   Пожелание, не гарантия точного исполнения.
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {AI_TRACKS_VOCALS.map((v) => (
                     <Chip
                       key={v.id}

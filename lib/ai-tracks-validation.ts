@@ -1,10 +1,12 @@
 import {
-  AI_TRACKS_CAPABILITIES,
   AI_TRACKS_DIRECTIONS,
   AI_TRACKS_LIMITS,
+  AI_TRACKS_MODEL_ID,
   AI_TRACKS_MOODS,
   AI_TRACKS_VOCALS,
+  isAiTracksModelId,
   type AiTracksDirectionId,
+  type AiTracksModelId,
   type AiTracksMoodId,
   type AiTracksVocalId,
 } from "@/lib/ai-tracks-config"
@@ -46,6 +48,9 @@ function asDirection(v: unknown): AiTracksDirectionId | null {
 export function normalizeAiTracksDraft(input: unknown): AiTracksDraft {
   const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {}
   const mode = raw.mode === "advanced" ? "advanced" : "simple"
+  const modelId: AiTracksModelId = isAiTracksModelId(raw.modelId)
+    ? raw.modelId
+    : AI_TRACKS_MODEL_ID
   const idea = typeof raw.idea === "string" ? raw.idea : ""
   const title = typeof raw.title === "string" ? raw.title : ""
   const lyrics = typeof raw.lyrics === "string" ? raw.lyrics : ""
@@ -54,6 +59,7 @@ export function normalizeAiTracksDraft(input: unknown): AiTracksDraft {
 
   return {
     mode,
+    modelId,
     idea: idea.slice(0, AI_TRACKS_LIMITS.ideaMax),
     title: title.slice(0, AI_TRACKS_LIMITS.titleMax),
     lyrics: lyrics.slice(0, AI_TRACKS_LIMITS.lyricsMax),
@@ -139,6 +145,7 @@ export function buildPromptParts(draft: AiTracksDraft): {
 export function toSettingsSnapshot(draft: AiTracksDraft): AiTracksSettingsSnapshot {
   return {
     mode: draft.mode,
+    modelId: draft.modelId,
     idea: draft.idea,
     title: draft.title,
     lyrics: draft.lyrics,
@@ -147,9 +154,7 @@ export function toSettingsSnapshot(draft: AiTracksDraft): AiTracksSettingsSnapsh
     vocal: draft.vocal,
     instrumental: draft.instrumental,
     direction: draft.direction,
-    weirdnessPct: AI_TRACKS_CAPABILITIES.weirdness ? draft.weirdnessPct : draft.weirdnessPct,
-    styleWeightPct: AI_TRACKS_CAPABILITIES.styleWeight
-      ? draft.styleWeightPct
-      : draft.styleWeightPct,
+    weirdnessPct: draft.weirdnessPct,
+    styleWeightPct: draft.styleWeightPct,
   }
 }

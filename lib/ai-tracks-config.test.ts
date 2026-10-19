@@ -12,4 +12,5 @@ test("packs are empty; generation billed from wallet at fixed price", () => {
   assert.equal(cfg.costAttempts, 0)
   assert.equal(cfg.generationEnabled, false)
   assert.ok(cfg.unavailableReason)
+  assert.ok(cfg.models.some((m) => m.id === "V6"))
 })
