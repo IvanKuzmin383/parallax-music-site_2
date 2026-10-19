@@ -1,19 +1,13 @@
 import crypto from "crypto"
 import {
-  AI_TRACKS_COST_ATTEMPTS,
-  AI_TRACKS_DIRECTIONS,
   AI_TRACKS_MODEL_ID,
   AI_TRACKS_MODEL_LABEL,
+  AI_TRACKS_PRICE_RUB,
   AI_TRACKS_PROVIDER_ID,
+  AI_TRACKS_DIRECTIONS,
 } from "@/lib/ai-tracks-config"
+import { chargeAiTracksGeneration, refundAiTracksGeneration } from "@/lib/ai-tracks-billing"
 import { getAiTracksPublicConfig } from "@/lib/ai-tracks-config-server"
-import {
-  getAiTracksAttempts,
-  runCommitAttempt,
-  runRefundAttempt,
-  runReserveAttempt,
-  type AttemptLedgerStore,
-} from "@/lib/ai-tracks-attempts"
 import { getAiTracksProvider } from "@/lib/ai-tracks-provider"
 import {
   AI_TRACKS_STATUS_MESSAGES,
@@ -28,15 +22,8 @@ import {
   toSettingsSnapshot,
   validateAiTracksDraft,
 } from "@/lib/ai-tracks-validation"
-import {
-  clientExecute,
-  clientQuery,
-  execute,
-  query,
-  queryOne,
-  withTransaction,
-} from "@/lib/database"
-import type { PoolClient } from "pg"
+import { getCabinetUserById } from "@/lib/cabinet-users"
+import { clientExecute, execute, query, queryOne, withTransaction } from "@/lib/database"
 
 type JobRow = {
   id: string
@@ -95,6 +82,11 @@ function directionLabel(settings: AiTracksSettingsSnapshot): string | null {
   return AI_TRACKS_DIRECTIONS.find((d) => d.id === settings.direction)?.label ?? null
 }
 
+async function getWalletBalance(userId: string): Promise<number> {
+  const user = await getCabinetUserById(userId)
+  return Math.max(0, Number(user?.walletBalance ?? 0) || 0)
+}
+
 function mapResult(row: ResultRow, settings: AiTracksSettingsSnapshot): AiTracksResultDto {
   return {
     id: row.id,
@@ -117,6 +109,7 @@ function mapResult(row: ResultRow, settings: AiTracksSettingsSnapshot): AiTracks
 
 function mapJob(row: JobRow, results: ResultRow[]): AiTracksJobDto {
   const settings = parseSettings(row.settings_json)
+  const priceRub = Number(row.cost_attempts) || AI_TRACKS_PRICE_RUB
   return {
     id: row.id,
     status: row.status as AiTracksJobStatus,
@@ -125,7 +118,9 @@ function mapJob(row: JobRow, results: ResultRow[]): AiTracksJobDto {
     provider: row.provider,
     modelId: row.model_id,
     modelLabel: AI_TRACKS_MODEL_LABEL,
-    costAttempts: Number(row.cost_attempts) || AI_TRACKS_COST_ATTEMPTS,
+    priceRub,
+    /** @deprecated колонка cost_attempts хранит цену в ₽ */
+    costAttempts: priceRub,
     errorMessage: row.error_message,
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
@@ -221,7 +216,7 @@ export async function getAiTracksJobForUser(
 }
 
 export type CreateAiTracksJobResult =
-  | { ok: true; job: AiTracksJobDto; attempts: number; reused: boolean }
+  | { ok: true; job: AiTracksJobDto; walletBalance: number; reused: boolean }
   | {
       ok: false
       error:
@@ -231,7 +226,7 @@ export type CreateAiTracksJobResult =
         | "user_not_found"
       message: string
       fieldErrors?: Array<{ field: string; message: string }>
-      attempts?: number
+      walletBalance?: number
     }
 
 export async function createAiTracksJob(params: {
@@ -262,11 +257,11 @@ export async function createAiTracksJob(params: {
   )
   if (existing) {
     const job = await getAiTracksJobForUser(params.userId, existing.id)
-    const attempts = await getAiTracksAttempts(params.userId)
+    const walletBalance = await getWalletBalance(params.userId)
     if (!job) {
       return { ok: false, error: "user_not_found", message: "Задача не найдена" }
     }
-    return { ok: true, job, attempts, reused: true }
+    return { ok: true, job, walletBalance, reused: true }
   }
 
   if (!cfg.generationEnabled) {
@@ -274,16 +269,15 @@ export async function createAiTracksJob(params: {
       ok: false,
       error: "unavailable",
       message: cfg.unavailableReason ?? AI_TRACKS_STATUS_MESSAGES.service_unavailable,
-      attempts: await getAiTracksAttempts(params.userId),
+      walletBalance: await getWalletBalance(params.userId),
     }
   }
 
   const settings = toSettingsSnapshot(draft)
-  const cost = cfg.costAttempts
+  const priceRub = cfg.priceRub > 0 ? cfg.priceRub : AI_TRACKS_PRICE_RUB
   const jobId = crypto.randomUUID()
   const now = new Date().toISOString()
 
-  let reservedAttempts = 0
   try {
     const txResult = await withTransaction(async (client) => {
       try {
@@ -301,7 +295,7 @@ export async function createAiTracksJob(params: {
             JSON.stringify(settings),
             AI_TRACKS_PROVIDER_ID,
             AI_TRACKS_MODEL_ID,
-            cost,
+            priceRub,
             now,
             now,
           ]
@@ -314,12 +308,7 @@ export async function createAiTracksJob(params: {
         }
         throw e
       }
-
-      const reserved = await runReserveAttempt(pgAttemptStore(client), params.userId, jobId, cost)
-      if (!reserved.ok) {
-        throw Object.assign(new Error(reserved.error), { reserveError: reserved })
-      }
-      return { kind: "created" as const, attempts: reserved.attempts }
+      return { kind: "created" as const }
     })
 
     if (txResult.kind === "duplicate") {
@@ -329,29 +318,49 @@ export async function createAiTracksJob(params: {
       )
       if (again) {
         const job = await getAiTracksJobForUser(params.userId, again.id)
-        const attempts = await getAiTracksAttempts(params.userId)
-        if (job) return { ok: true, job, attempts, reused: true }
+        const walletBalance = await getWalletBalance(params.userId)
+        if (job) return { ok: true, job, walletBalance, reused: true }
       }
       return { ok: false, error: "user_not_found", message: "Задача не найдена" }
     }
-    reservedAttempts = txResult.attempts
-  } catch (e: unknown) {
-    const reserveError =
-      e && typeof e === "object" && "reserveError" in e
-        ? (e as { reserveError: { error: string; attempts: number } }).reserveError
-        : null
-    if (reserveError?.error === "insufficient") {
+  } catch (e) {
+    throw e
+  }
+
+  const charged = await chargeAiTracksGeneration({
+    userId: params.userId,
+    jobId,
+    priceRub,
+  })
+
+  if (!charged.ok) {
+    await execute(`DELETE FROM ai_tracks_jobs WHERE id = ? AND user_id = ?`, [
+      jobId,
+      params.userId,
+    ])
+    if (charged.status === 404) {
+      return {
+        ok: false,
+        error: "user_not_found",
+        message: charged.error,
+        walletBalance: 0,
+      }
+    }
+    const walletBalance = await getWalletBalance(params.userId)
+    if (charged.status === 400) {
       return {
         ok: false,
         error: "insufficient",
-        message: AI_TRACKS_STATUS_MESSAGES.no_attempts,
-        attempts: reserveError.attempts,
+        message: AI_TRACKS_STATUS_MESSAGES.insufficient_balance,
+        walletBalance,
       }
     }
-    if (reserveError?.error === "user_not_found") {
-      return { ok: false, error: "user_not_found", message: "Пользователь не найден", attempts: 0 }
+    return {
+      ok: false,
+      error: "unavailable",
+      message: charged.error || AI_TRACKS_STATUS_MESSAGES.service_unavailable,
+      walletBalance,
     }
-    throw e
   }
 
   const provider = getAiTracksProvider()
@@ -366,22 +375,22 @@ export async function createAiTracksJob(params: {
   })
 
   if (!created.ok) {
-    await withTransaction(async (client) => {
-      await clientExecute(
-        client,
-        `UPDATE ai_tracks_jobs
-         SET status = 'FAILED', error_code = ?, error_message = ?, updated_at = NOW(), finished_at = NOW()
-         WHERE id = ?`,
-        [created.code, created.message, jobId]
-      )
-      await runRefundAttempt(pgAttemptStore(client), params.userId, jobId)
+    await execute(
+      `UPDATE ai_tracks_jobs
+       SET status = 'FAILED', error_code = ?, error_message = ?, updated_at = NOW(), finished_at = NOW()
+       WHERE id = ?`,
+      [created.code, created.message, jobId]
+    )
+    await refundAiTracksGeneration({
+      userId: params.userId,
+      jobId,
+      priceRub,
     })
-    const attempts = await getAiTracksAttempts(params.userId)
     return {
       ok: false,
       error: "unavailable",
       message: created.message,
-      attempts,
+      walletBalance: await getWalletBalance(params.userId),
     }
   }
 
@@ -393,78 +402,28 @@ export async function createAiTracksJob(params: {
   )
 
   const job = await getAiTracksJobForUser(params.userId, jobId)
-  const attempts = await getAiTracksAttempts(params.userId)
   if (!job) {
     return {
       ok: false,
       error: "user_not_found",
       message: "Задача не найдена",
-      attempts: attempts || reservedAttempts,
+      walletBalance: charged.walletBalance,
     }
   }
-  return { ok: true, job, attempts, reused: false }
+  return { ok: true, job, walletBalance: charged.walletBalance, reused: false }
 }
 
-function pgAttemptStore(client: PoolClient): AttemptLedgerStore {
-  return {
-    async getBalanceForUpdate(userId) {
-      const rows = await clientQuery<{ ai_tracks_attempts: number | null }>(
-        client,
-        `SELECT ai_tracks_attempts FROM cabinet_users WHERE id = ? FOR UPDATE`,
-        [userId]
-      )
-      const row = rows[0]
-      if (!row) return null
-      return Math.max(0, Number(row.ai_tracks_attempts ?? 0) || 0)
-    },
-    async setBalance(userId, attempts) {
-      await clientExecute(client, `UPDATE cabinet_users SET ai_tracks_attempts = ? WHERE id = ?`, [
-        Math.max(0, attempts),
-        userId,
-      ])
-    },
-    async findOp(jobId, kind) {
-      const rows = await clientQuery<{ id: string; amount: number }>(
-        client,
-        `SELECT id, amount FROM ai_tracks_attempt_ops WHERE job_id = ? AND kind = ?`,
-        [jobId, kind]
-      )
-      const row = rows[0]
-      return row ? { id: row.id, amount: Number(row.amount) } : null
-    },
-    async insertOp(input) {
-      try {
-        await clientExecute(
-          client,
-          `INSERT INTO ai_tracks_attempt_ops (id, user_id, job_id, kind, amount) VALUES (?, ?, ?, ?, ?)`,
-          [input.id, input.userId, input.jobId, input.kind, input.amount]
-        )
-        return "inserted"
-      } catch (e: unknown) {
-        const code =
-          e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : ""
-        if (code === "23505") return "duplicate"
-        throw e
-      }
-    },
-  }
-}
-
-/** Завершить job успехом (для будущего воркера). Идемпотентный commit. */
+/** Завершить job успехом (для будущего воркера). Списание уже сделано при создании. */
 export async function markAiTracksJobSucceeded(params: {
   userId: string
   jobId: string
 }): Promise<void> {
-  await withTransaction(async (client) => {
-    await runCommitAttempt(pgAttemptStore(client), params.userId, params.jobId)
-    await clientExecute(
-      client,
-      `UPDATE ai_tracks_jobs
-       SET status = 'SUCCEEDED', updated_at = NOW(), finished_at = NOW()
-       WHERE id = ? AND user_id = ?`,
-      [params.jobId, params.userId]
-    )
-  })
+  await execute(
+    `UPDATE ai_tracks_jobs
+     SET status = 'SUCCEEDED', updated_at = NOW(), finished_at = NOW()
+     WHERE id = ? AND user_id = ?`,
+    [params.jobId, params.userId]
+  )
 }
 
 export async function setAiTracksResultFavorite(params: {

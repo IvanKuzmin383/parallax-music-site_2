@@ -4,6 +4,7 @@ import {
   listActiveCabinetArtistSubscriptionsByUserId,
 } from "@/lib/cabinet-artist-subscriptions"
 import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-gate"
 
 export { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 
@@ -103,7 +104,7 @@ export async function getUploadArtistPolicyViolationWithSlots(
     return null
   }
   if (activeSlots.length === 0) {
-    return "Для загрузки треков необходима активная подписка."
+    return UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED
   }
 
   const hasLabelSlot = activeSlots.some((s) => s.subscriptionName === "Label")

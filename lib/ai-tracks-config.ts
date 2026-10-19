@@ -11,7 +11,10 @@ export const AI_TRACKS_MODEL_ID = "default" as const
 /** Показное имя модели пользователю (без агрегаторов и ключей). */
 export const AI_TRACKS_MODEL_LABEL = "Parallax Studio" as const
 
-/** Стоимость обычного запуска в попытках. */
+/** Стоимость одной генерации с баланса кабинета, ₽. */
+export const AI_TRACKS_PRICE_RUB = 30
+
+/** @deprecated Используйте AI_TRACKS_PRICE_RUB - попытки убраны. */
 export const AI_TRACKS_COST_ATTEMPTS = 1
 
 export type AiTracksMoodId =
@@ -95,6 +98,9 @@ export type AiTracksPublicConfig = {
   providerConfigured: boolean
   modelId: string
   modelLabel: string
+  /** Цена одной генерации с баланса, ₽. */
+  priceRub: number
+  /** @deprecated Совместимость; всегда 0 - попытки убраны. */
   costAttempts: number
   limits: typeof AI_TRACKS_LIMITS
   capabilities: AiTracksCapabilityFlags

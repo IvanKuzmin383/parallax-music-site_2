@@ -670,14 +670,17 @@ function drawTemplate(
       const size = width * 0.58
       const x = (width - size) / 2
       const y = height * 0.22
-      ctx.save()
-      ctx.shadowColor = accent
-      ctx.shadowBlur = width * 0.08
-      roundRectPath(ctx, x - 2, y - 2, size + 4, size + 4, width * 0.04)
-      ctx.strokeStyle = accent
-      ctx.lineWidth = Math.max(2, width * 0.008)
-      ctx.stroke()
-      ctx.restore()
+      const frameColor = project.frameColor || accent
+      if (project.showFrame !== false) {
+        ctx.save()
+        ctx.shadowColor = frameColor
+        ctx.shadowBlur = width * 0.08
+        roundRectPath(ctx, x - 2, y - 2, size + 4, size + 4, width * 0.04)
+        ctx.strokeStyle = frameColor
+        ctx.lineWidth = Math.max(2, width * 0.008)
+        ctx.stroke()
+        ctx.restore()
+      }
       drawRoundedCover(ctx, cover, x, y, size, width * 0.035, scale, false)
       break
     }
@@ -694,8 +697,10 @@ function drawTemplate(
       ctx.fillRect(0, 0, width, height)
       const size = width * 0.55
       drawRoundedCover(ctx, cover, (width - size) / 2, height * 0.24, size, width * 0.02, scale)
-      ctx.fillStyle = accent
-      ctx.fillRect(width * 0.08, height * 0.72, width * 0.84, Math.max(3, height * 0.004))
+      if (project.showFrame !== false) {
+        ctx.fillStyle = project.frameColor || accent
+        ctx.fillRect(width * 0.08, height * 0.72, width * 0.84, Math.max(3, height * 0.004))
+      }
       break
     }
     case "ticket": {
@@ -813,7 +818,34 @@ export function drawStoryVideoFrame(input: StoryVideoDrawInput): void {
   }
 
   if (project.showWaveform && peaks && peaks.length > 0) {
-    drawWaveform(ctx, width, height, peaks, timeSec, project.durationSec, project.accent)
+    drawWaveform(
+      ctx,
+      width,
+      height,
+      peaks,
+      timeSec,
+      project.durationSec,
+      project.waveformColor || project.accent
+    )
+  }
+
+  // Рамка кадра (у Neon своя обводка обложки; здесь - общая окантовка ролика)
+  if (project.showFrame !== false && project.template !== "neon") {
+    const inset = width * 0.032
+    const frameColor = project.frameColor || project.accent
+    ctx.save()
+    roundRectPath(
+      ctx,
+      inset,
+      inset,
+      width - inset * 2,
+      height - inset * 2,
+      width * 0.045
+    )
+    ctx.strokeStyle = frameColor
+    ctx.lineWidth = Math.max(2, width * 0.006)
+    ctx.stroke()
+    ctx.restore()
   }
 
   // Фильтры grain/vhs читают пиксели - после всей графики

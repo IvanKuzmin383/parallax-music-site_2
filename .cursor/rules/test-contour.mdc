@@ -16,7 +16,8 @@ ssh -i C:\Users\Admin\.ssh\id_ed25519 root@83.217.192.143
 - Host: `83.217.192.143` (`8659557-ya635027.twc1.net`)
 - User: `root`
 - Key: тот же `id_ed25519`, что и для прода
-- URL: `https://soundbridge.ru` (`www.soundbridge.ru`)
+- URL: `https://digitalreachmusic.ru` (`www.digitalreachmusic.ru`)
+- Не путать со `soundbridge.ru` - это не актуальный URL стейджа
 - App path: `/var/www/parallaxmusic`
 - Process manager: `pm2`, имя процесса: `parallaxmusic`
 - Обычно крутится ветка `feature/cabinet-saas-redesign` (проверяй `git branch` на сервере)

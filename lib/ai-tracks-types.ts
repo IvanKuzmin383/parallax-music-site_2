@@ -67,6 +67,9 @@ export type AiTracksJobDto = {
   provider: string
   modelId: string
   modelLabel: string
+  /** Цена генерации с баланса, ₽ (хранится в cost_attempts). */
+  priceRub: number
+  /** @deprecated Используйте priceRub. */
   costAttempts: number
   errorMessage: string | null
   createdAt: string
@@ -84,7 +87,7 @@ export type AiTracksStatusMessageKey =
   | "reconciling"
   | "transferring"
   | "failed_refunded"
-  | "no_attempts"
+  | "insufficient_balance"
   | "service_unavailable"
 
 export const AI_TRACKS_STATUS_MESSAGES: Record<AiTracksStatusMessageKey, string> = {
@@ -96,8 +99,8 @@ export const AI_TRACKS_STATUS_MESSAGES: Record<AiTracksStatusMessageKey, string>
   generating: "Создаём вашу музыку. Результат появится здесь.",
   reconciling: "Проверяем состояние генерации. Повторный запуск пока не требуется.",
   transferring: "Сохраняем готовые треки.",
-  failed_refunded: "Не удалось завершить генерацию. Попытка возвращена.",
-  no_attempts: "Попытки закончились.",
+  failed_refunded: "Не удалось завершить генерацию. Средства возвращены на баланс.",
+  insufficient_balance: "Недостаточно средств на балансе.",
   service_unavailable: "Генерация временно недоступна. Попробуйте позже.",
 }
 

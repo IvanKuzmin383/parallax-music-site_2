@@ -1,44 +1,90 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Award, Check, Copy, Gift, Lock, Trophy } from "lucide-react"
+import {
+  Award,
+  Briefcase,
+  Check,
+  Copy,
+  Disc3,
+  Gift,
+  Lock,
+  Music2,
+  Share2,
+  Sparkles,
+  Trophy,
+  Upload,
+  Video,
+  Wallet,
+} from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
+import { dashboardGlassPanelClass } from "@/components/cabinet/dashboard/dashboard-glass"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import type { GamificationProgress, UserAchievementView } from "@/lib/cabinet-achievements"
 import type { CabinetCoupon } from "@/lib/cabinet-coupons"
-import type { AchievementCategory } from "@/lib/cabinet/achievements-catalog"
+import { ARTIST_LEVELS } from "@/lib/cabinet/achievements-catalog"
 
-const CATEGORY_ORDER: AchievementCategory[] = [
-  "onboarding",
-  "catalog",
-  "finance",
-  "services",
-  "referrals",
-]
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"] as const
 
-const CATEGORY_LABELS: Record<AchievementCategory, string> = {
-  onboarding: "Старт",
-  catalog: "Каталог",
-  finance: "Финансы",
-  services: "Услуги",
-  referrals: "Партнёрка",
+const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  welcome: Sparkles,
+  first_draft: Upload,
+  first_moderation: Music2,
+  first_released: Disc3,
+  releases_3: Trophy,
+  releases_10: Award,
+  first_wallet_topup: Wallet,
+  first_service: Gift,
+  first_music_video: Video,
+  first_publicka: Briefcase,
+  referral_1: Share2,
+  referral_3: Share2,
 }
 
-const CATEGORY_HINTS: Record<AchievementCategory, string> = {
-  onboarding: "Первые шаги в кабинете",
-  catalog: "Релизы на площадках",
-  finance: "Баланс и пополнения",
-  services: "Оплата услуг кабинета",
-  referrals: "Приглашённые артисты",
+function levelIndex(levelId: string): number {
+  const idx = ARTIST_LEVELS.findIndex((l) => l.id === levelId)
+  return idx >= 0 ? idx : 0
+}
+
+function levelRoman(levelId: string): string {
+  return ROMAN[levelIndex(levelId)] ?? String(levelIndex(levelId) + 1)
+}
+
+function progressRatio(a: UserAchievementView): number {
+  if (a.unlocked) return 1
+  if (a.progressTarget <= 0) return 0
+  return Math.min(1, a.progressCurrent / a.progressTarget)
+}
+
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n) % 100
+  const last = abs % 10
+  if (abs > 10 && abs < 20) return `${n} ${many}`
+  if (last === 1) return `${n} ${one}`
+  if (last >= 2 && last <= 4) return `${n} ${few}`
+  return `${n} ${many}`
+}
+
+function remainingLabel(a: UserAchievementView): string {
+  const left = Math.max(0, a.progressTarget - a.progressCurrent)
+  if (a.id.startsWith("releases_") || a.id === "first_released") {
+    return pluralRu(left, "релиз", "релиза", "релизов")
+  }
+  if (a.id.startsWith("referral_")) {
+    return pluralRu(left, "реферал", "реферала", "рефералов")
+  }
+  return pluralRu(left, "шаг", "шага", "шагов")
 }
 
 export function CabinetAchievementsTab() {
   const [progress, setProgress] = useState<GamificationProgress | null>(null)
   const [coupons, setCoupons] = useState<CabinetCoupon[]>([])
   const [loading, setLoading] = useState(true)
+  const [showLevels, setShowLevels] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -64,19 +110,22 @@ export function CabinetAchievementsTab() {
     void load().finally(() => setLoading(false))
   }, [load])
 
-  const grouped = useMemo(() => {
-    if (!progress) return []
-    return CATEGORY_ORDER.map((category) => {
-      const items = progress.achievements.filter((a) => a.category === category)
-      return {
-        category,
-        label: CATEGORY_LABELS[category],
-        hint: CATEGORY_HINTS[category],
-        items,
-        unlocked: items.filter((a) => a.unlocked).length,
-        total: items.length,
-      }
-    }).filter((g) => g.total > 0)
+  const nextRewardAchievement = useMemo(() => {
+    if (!progress) return null
+    return (
+      progress.achievements.find((a) => !a.unlocked && a.rewardLabel) ??
+      progress.achievements.find((a) => !a.unlocked) ??
+      null
+    )
+  }, [progress])
+
+  const nearComplete = useMemo(() => {
+    if (!progress) return null
+    const candidates = progress.achievements.filter(
+      (a) => !a.unlocked && a.progressTarget > 1 && a.progressCurrent > 0
+    )
+    if (candidates.length === 0) return null
+    return candidates.sort((a, b) => progressRatio(b) - progressRatio(a))[0] ?? null
   }, [progress])
 
   if (loading) {
@@ -97,13 +146,6 @@ export function CabinetAchievementsTab() {
     )
   }
 
-  const levels = progress.levels?.length
-    ? progress.levels
-    : [
-        progress.level,
-        ...(progress.nextLevel ? [progress.nextLevel] : []),
-      ]
-  const currentIdx = levels.findIndex((l) => l.id === progress.level.id)
   const next = progress.nextLevel
   const xpToNext = next ? Math.max(0, next.minXp - progress.xp) : 0
   const span =
@@ -112,108 +154,206 @@ export function CabinetAchievementsTab() {
     next && progress.level
       ? Math.min(100, ((progress.xp - progress.level.minXp) / span) * 100)
       : 100
-  const maxXp = levels[levels.length - 1]?.minXp ?? progress.xp
+  const levelNum = levelIndex(progress.level.id) + 1
+  const nextLevelNum = next ? levelIndex(next.id) + 1 : null
+  const availableBonuses = coupons.length
+  const levels = progress.levels?.length ? progress.levels : ARTIST_LEVELS
 
   return (
-    <div className="w-full max-w-none space-y-6">
-      <p className="w-full text-sm text-muted-foreground">
-        Совершайте действия в кабинете - получаете XP и открываете новые уровни. Некоторые ачивки
-        дают купон или деньги на баланс
-      </p>
+    <div className="w-full max-w-none space-y-5 md:space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            Достижения и бонусы
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Важные этапы вашего проекта. Награды за каждый шаг.
+          </p>
+        </div>
+        {availableBonuses > 0 ? (
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById("achievements-coupons")
+              el?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/15 px-3.5 py-1.5 text-sm font-medium text-primary shadow-[0_0_24px_rgba(240,31,67,0.2)] transition-colors hover:bg-primary/25"
+          >
+            <Gift className="h-4 w-4" />
+            {availableBonuses}{" "}
+            {availableBonuses === 1
+              ? "бонус доступен"
+              : availableBonuses < 5
+                ? "бонуса доступно"
+                : "бонусов доступно"}
+          </button>
+        ) : null}
+      </div>
 
-      <section className="rounded-2xl border border-border/60 bg-card/40 p-4 sm:p-5 space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Текущий уровень
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className={cn(dashboardGlassPanelClass, "relative overflow-hidden p-5")}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
+                <div
+                  className="absolute inset-0 rotate-45 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent shadow-[0_0_28px_rgba(240,31,67,0.25)]"
+                  aria-hidden
+                />
+                <span className="relative text-xl font-bold tracking-wide text-primary">
+                  {levelRoman(progress.level.id)}
+                </span>
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <p className="text-xs text-muted-foreground">Ваш уровень в Parallax</p>
+                <p className="mt-0.5 text-2xl font-semibold tracking-tight">
+                  Уровень {levelNum}
+                </p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{progress.level.title}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowLevels((v) => !v)}
+              className="shrink-0 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {showLevels ? "Скрыть" : "Все уровни"}
+              <span className="ml-0.5">›</span>
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <div className="flex items-center justify-between text-xs tabular-nums text-muted-foreground">
+              <span>
+                {progress.xp}
+                {next ? ` / ${next.minXp}` : ""} XP
+              </span>
+              {next ? <span>Ещё {xpToNext} XP до уровня {nextLevelNum}</span> : <span>Макс. уровень</span>}
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-muted/60">
+              <div
+                className="h-full rounded-full bg-primary transition-[width]"
+                style={{ width: `${filled}%` }}
+              />
+            </div>
+          </div>
+
+          {showLevels ? (
+            <ol className="mt-4 grid gap-2 sm:grid-cols-2">
+              {levels.map((level, index) => {
+                const reached = progress.xp >= level.minXp
+                const isCurrent = level.id === progress.level.id
+                return (
+                  <li
+                    key={level.id}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-sm",
+                      isCurrent
+                        ? "border-primary/40 bg-primary/10"
+                        : reached
+                          ? "border-emerald-500/25 bg-emerald-500/5"
+                          : "border-border/40 bg-muted/10"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={cn(!reached && !isCurrent && "text-muted-foreground")}>
+                        {ROMAN[index] ?? index + 1}. {level.title}
+                      </span>
+                      {isCurrent ? (
+                        <span className="text-[10px] uppercase tracking-wide text-primary">Сейчас</span>
+                      ) : reached ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Lock className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">от {level.minXp} XP</p>
+                  </li>
+                )
+              })}
+            </ol>
+          ) : null}
+        </section>
+
+        <section
+          className={cn(
+            dashboardGlassPanelClass,
+            "relative overflow-hidden p-5",
+            "bg-gradient-to-br from-primary/20 via-card/40 to-card/20"
+          )}
+        >
+          <div
+            className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-primary/25 blur-3xl"
+            aria-hidden
+          />
+          <p className="relative text-xs text-muted-foreground">Следующая награда</p>
+          {nextRewardAchievement ? (
+            <>
+              <p className="relative mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
+                {nextRewardAchievement.rewardLabel ?? `+${nextRewardAchievement.xp} XP`}
+              </p>
+              <p className="relative mt-1 text-sm text-muted-foreground">
+                {nextRewardAchievement.title} - {nextRewardAchievement.description}
+              </p>
+              <div className="relative mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5" />
+                  {nextRewardAchievement.progressTarget > 1
+                    ? `${nextRewardAchievement.progressCurrent} из ${nextRewardAchievement.progressTarget}`
+                    : "Ещё не открыто"}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="relative mt-2 text-xl font-semibold tracking-tight">Все награды открыты</p>
+              <p className="relative mt-1 text-sm text-muted-foreground">
+                Продолжайте пользоваться кабинетом - новые ачивки появятся позже
+              </p>
+            </>
+          )}
+        </section>
+      </div>
+
+      {nearComplete ? (
+        <section
+          className={cn(
+            dashboardGlassPanelClass,
+            "flex flex-wrap items-center gap-3 px-4 py-3.5 sm:px-5"
+          )}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+            <Disc3 className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">
+              До достижения «{nearComplete.title}» осталось {remainingLabel(nearComplete)}
             </p>
-            <p className="text-2xl font-bold tracking-tight">{progress.level.title}</p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {progress.xp} XP из {maxXp} · открыто {progress.unlockedCount} из{" "}
-              {progress.totalCount} достижений
+            <p className="text-xs text-muted-foreground">
+              Уже {nearComplete.progressCurrent} из {nearComplete.progressTarget}
+              {nearComplete.id.startsWith("releases_") || nearComplete.id === "first_released"
+                ? " релизов"
+                : nearComplete.id.startsWith("referral_")
+                  ? " рефералов"
+                  : ""}
             </p>
           </div>
-          {next ? (
-            <p className="text-sm text-muted-foreground">
-              До «{next.title}»: ещё {xpToNext} XP
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Максимальный уровень</p>
-          )}
-        </div>
-
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full bg-primary transition-[width]"
-            style={{ width: `${filled}%` }}
-          />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium mb-2">Лестница уровней</p>
-          <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {levels.map((level, index) => {
-              const reached = progress.xp >= level.minXp
-              const isCurrent = level.id === progress.level.id
-              const prevMin = index > 0 ? levels[index - 1]!.minXp : 0
-              const needFromPrev = level.minXp - prevMin
-              return (
-                <li
-                  key={level.id}
-                  className={cn(
-                    "rounded-xl border px-3 py-2.5",
-                    isCurrent
-                      ? "border-primary/50 bg-primary/10"
-                      : reached
-                        ? "border-emerald-500/25 bg-emerald-500/5"
-                        : "border-border/50 bg-muted/15"
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p
-                      className={cn(
-                        "text-sm font-semibold",
-                        !reached && !isCurrent && "text-muted-foreground"
-                      )}
-                    >
-                      {index + 1}. {level.title}
-                    </p>
-                    {isCurrent ? (
-                      <span className="text-[10px] uppercase tracking-wide text-primary">
-                        Сейчас
-                      </span>
-                    ) : reached ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    от {level.minXp} XP
-                    {index > 0 ? ` · +${needFromPrev} XP с прошлого` : ""}
-                    {isCurrent && next
-                      ? ` · до следующего ${xpToNext} XP`
-                      : ""}
-                  </p>
-                </li>
-              )
-            })}
-          </ol>
-          {currentIdx >= 0 && next ? (
-            <p className="text-xs text-muted-foreground mt-2">
-              Уровень {currentIdx + 1} из {levels.length}. Наберите ещё {xpToNext}{" "}
-              XP за достижения ниже.
-            </p>
-          ) : null}
-        </div>
-      </section>
+          <span className="shrink-0 text-sm font-semibold text-primary tabular-nums">
+            +{nearComplete.xp} XP
+          </span>
+        </section>
+      ) : null}
 
       {coupons.length > 0 ? (
-        <section className="space-y-2">
+        <section id="achievements-coupons" className="space-y-2">
           <p className="text-sm font-medium">Активные купоны</p>
-          <ul className="space-y-2">
+          <ul className="grid gap-2 sm:grid-cols-2">
             {coupons.map((c) => (
               <li
                 key={c.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-card/30 px-3 py-2.5"
+                className={cn(
+                  dashboardGlassPanelClass,
+                  "flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"
+                )}
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{c.title}</p>
@@ -222,7 +362,6 @@ export function CabinetAchievementsTab() {
                     {c.expiresAt
                       ? ` · до ${new Date(c.expiresAt).toLocaleDateString("ru-RU")}`
                       : ""}
-                    {c.maxDiscountRub ? ` · до ${c.maxDiscountRub} ₽` : ""}
                   </p>
                 </div>
                 <Button
@@ -244,91 +383,97 @@ export function CabinetAchievementsTab() {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-muted-foreground">
-            Купон применяется при заказе услуги (скидка с лимитом в рублях).
-          </p>
         </section>
       ) : null}
 
-      <section className="space-y-5">
-        <div>
-          <p className="text-sm font-medium">Что нужно сделать</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Открытая ачивка уже засчитана. Закрытая - условие ещё не выполнено.
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-base font-semibold">Ваша коллекция</h3>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {progress.unlockedCount} из {progress.totalCount} получено
           </p>
         </div>
 
-        {grouped.map((group) => (
-          <div key={group.category} className="space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-semibold">{group.label}</h2>
-                <p className="text-xs text-muted-foreground">{group.hint}</p>
-              </div>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {group.unlocked}/{group.total}
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {group.items.map((a) => (
-                <AchievementCard key={a.id} achievement={a} />
-              ))}
-            </div>
-          </div>
-        ))}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {progress.achievements.map((a) => (
+            <AchievementCollectionCard key={a.id} achievement={a} />
+          ))}
+        </div>
       </section>
     </div>
   )
 }
 
-function AchievementCard({ achievement: a }: { achievement: UserAchievementView }) {
+function AchievementCollectionCard({ achievement: a }: { achievement: UserAchievementView }) {
+  const Icon = ACHIEVEMENT_ICONS[a.id] ?? Trophy
+  const ratio = progressRatio(a)
+  const inProgress = !a.unlocked && a.progressCurrent > 0 && a.progressTarget > 1
+
   return (
-    <div
+    <article
       className={cn(
-        "rounded-xl border px-3 py-3 space-y-1.5",
-        a.unlocked
-          ? "border-emerald-500/30 bg-emerald-500/10"
-          : "border-border/50 bg-muted/20"
+        dashboardGlassPanelClass,
+        "flex flex-col items-center px-3 py-4 text-center",
+        a.unlocked && "border-emerald-500/25"
       )}
     >
-      <div className="flex items-start gap-2">
-        {a.unlocked ? (
-          <Award className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
-        ) : (
-          <Lock className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+      <div
+        className={cn(
+          "relative mb-3 flex h-16 w-16 items-center justify-center rounded-2xl",
+          a.unlocked
+            ? "bg-gradient-to-br from-amber-400/25 via-primary/20 to-transparent ring-1 ring-amber-400/30 shadow-[0_0_24px_rgba(240,31,67,0.18)]"
+            : inProgress
+              ? "bg-primary/10 ring-1 ring-primary/25"
+              : "bg-muted/30 ring-1 ring-border/40"
         )}
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold">{a.title}</p>
-            <span
-              className={cn(
-                "text-[10px] uppercase tracking-wide",
-                a.unlocked ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
-              )}
-            >
-              {a.unlocked ? "Открыто" : "Закрыто"}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            <span className="text-foreground/80">Условие: </span>
-            {a.description}
-          </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-            <span>+{a.xp} XP</span>
-            {a.rewardLabel ? (
-              <span className="inline-flex items-center gap-1 text-foreground/80">
-                <Gift className="h-3 w-3 shrink-0" />
-                {a.rewardLabel}
-              </span>
-            ) : (
-              <span>Без доп. награды</span>
-            )}
-            {a.unlockedAt ? (
-              <span>{new Date(a.unlockedAt).toLocaleDateString("ru-RU")}</span>
-            ) : null}
-          </div>
-        </div>
+      >
+        <Icon
+          className={cn(
+            "h-7 w-7",
+            a.unlocked
+              ? "text-amber-300"
+              : inProgress
+                ? "text-primary"
+                : "text-muted-foreground/70"
+          )}
+        />
+        {a.unlocked ? (
+          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow">
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+        ) : null}
       </div>
-    </div>
+
+      <p className="text-sm font-semibold leading-snug">{a.title}</p>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{a.description}</p>
+
+      <div className="mt-auto w-full pt-3">
+        {a.unlocked ? (
+          <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
+            <Check className="h-3.5 w-3.5" />
+            Получено +{a.xp} XP
+          </p>
+        ) : inProgress ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] tabular-nums text-muted-foreground">
+              <span>
+                {a.progressCurrent} из {a.progressTarget}
+              </span>
+              <span className="text-primary">+{a.xp} XP</span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-muted/60">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.round(ratio * 100)}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Впереди · +{a.xp} XP
+          </p>
+        )}
+      </div>
+    </article>
   )
 }

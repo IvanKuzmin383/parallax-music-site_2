@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { format } from "date-fns"
+import { format, startOfMonth, startOfWeek } from "date-fns"
 import { ru } from "date-fns/locale"
 import {
   ArrowLeft,
@@ -292,13 +292,28 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
           setProfileCompleteForUpload(false)
           return
         }
-        const data = (await res.json()) as { user?: { profileCompleteForUpload?: boolean } }
+        const data = (await res.json()) as {
+          user?: {
+            profileCompleteForUpload?: boolean
+            canUploadRelease?: boolean
+            uploadBlockReason?: string | null
+          }
+        }
         setProfileCompleteForUpload(data.user?.profileCompleteForUpload === true)
+
+        // Новый релиз: без активной подписки сразу назад, не после выбора обложки
+        if (!initialReleaseId && data.user?.canUploadRelease === false) {
+          toast.error(
+            data.user.uploadBlockReason?.trim() ||
+              "Для загрузки треков необходима активная подписка."
+          )
+          router.replace("/cabinet/distribution/music")
+        }
       } catch {
         setProfileCompleteForUpload(false)
       }
     })()
-  }, [])
+  }, [initialReleaseId, router])
 
   useEffect(() => {
     if (!isUploadingAudio) return
@@ -1789,6 +1804,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                           if (date) setDatePopoverOpen(false)
                         }}
                         autoFocus
+                        showOutsideDays={false}
+                        startMonth={startOfMonth(new Date())}
                         disabled={(date) =>
                           formDisabled ||
                           !isReleaseDateSelectable(date) ||
@@ -1824,6 +1841,17 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                           today: "bg-transparent",
                           selected:
                             "[&_button]:!bg-primary [&_button]:!text-primary-foreground [&_button]:!border-primary",
+                        }}
+                        components={{
+                          // Не рисуем недели до недели с сегодня (пн) - первая строка = текущая неделя
+                          Week: ({ week, ...weekProps }) => {
+                            const boundary = startOfWeek(new Date(), { weekStartsOn: 1 })
+                            const entirelyPast = week.days.every(
+                              (d) => d.date.getTime() < boundary.getTime()
+                            )
+                            if (entirelyPast) return null
+                            return <tr {...weekProps} />
+                          },
                         }}
                       />
                       <div className="space-y-1.5 border-t border-border px-3 py-2.5 text-xs">

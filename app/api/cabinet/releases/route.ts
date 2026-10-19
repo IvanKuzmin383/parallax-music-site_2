@@ -17,6 +17,7 @@ import { getCoversDir } from "@/lib/tracks"
 import { createRelease, listReleasesByUserId } from "@/lib/releases"
 import { getEffectiveReleaseLabelName } from "@/lib/release-label"
 import { parseCoverAiLevel } from "@/lib/cover-ai-level"
+import { getServerUploadSubscriptionBlockReason } from "@/lib/cabinet-upload-subscription-gate"
 
 function coverExtFromUpload(file: File): string | undefined {
   const fromName = (file.name ?? "").toLowerCase().split(".").pop()
@@ -46,6 +47,10 @@ export async function POST(request: NextRequest) {
   if (profileGate) return NextResponse.json(profileGate.body, { status: profileGate.status })
   const kycGate = checkKycVerifiedForDistribution(user)
   if (kycGate) return NextResponse.json(kycGate.body, { status: kycGate.status })
+  const uploadSubGate = await getServerUploadSubscriptionBlockReason(user)
+  if (uploadSubGate) {
+    return NextResponse.json({ error: uploadSubGate }, { status: 403 })
+  }
 
   let tempCoverPath: string | null = null
   try {

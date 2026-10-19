@@ -129,7 +129,14 @@ export type StoryVideoProject = {
   title: string
   artist: string
   hookText: string
+  /** Акцент текста (артист, линия под хуком) и мелкий декор шаблонов. */
   accent: string
+  /** Цвет рамки / обводки обложки (Neon и т.п.). */
+  frameColor: string
+  /** Рисовать рамку вокруг обложки / акцентную полосу шаблона. */
+  showFrame: boolean
+  /** Цвет активных полос waveform. */
+  waveformColor: string
   startSec: number
   /** Длина отрывка, сек (5-30). */
   durationSec: number
@@ -159,6 +166,9 @@ export const DEFAULT_STORY_VIDEO_PROJECT: StoryVideoProject = {
   artist: "Имя артиста",
   hookText: "Слушай сейчас",
   accent: "#E2532F",
+  frameColor: "#E2532F",
+  showFrame: false,
+  waveformColor: "#E2532F",
   startSec: 0,
   durationSec: STORY_VIDEO_DURATION_SEC,
   motionSpeed: 100,
@@ -343,11 +353,16 @@ export function toggleStoryVideoBadge(
   return STORY_VIDEO_BADGE_IDS.filter((b) => next.includes(b))
 }
 
-export function normalizeAccentHex(value: string): string {
+export function normalizeAccentHex(
+  value: string,
+  fallback: string = DEFAULT_STORY_VIDEO_PROJECT.accent
+): string {
   const raw = value.trim()
   if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toUpperCase()
   if (/^[0-9a-fA-F]{6}$/.test(raw)) return `#${raw.toUpperCase()}`
-  return DEFAULT_STORY_VIDEO_PROJECT.accent
+  return fallback.toUpperCase().startsWith("#")
+    ? fallback.toUpperCase()
+    : DEFAULT_STORY_VIDEO_PROJECT.accent
 }
 
 export function applyStoryVideoTemplate(
@@ -362,5 +377,7 @@ export function applyStoryVideoTemplate(
     filter: look.filter,
     textLayout: look.textLayout,
     showWaveform: look.showWaveform,
+    // Neon / Noir завязаны на рамку - включаем при выборе шаблона
+    ...(template === "neon" || template === "noir" ? { showFrame: true } : {}),
   }
 }

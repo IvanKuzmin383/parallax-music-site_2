@@ -10,11 +10,11 @@ import { platformBrandColor } from "@/lib/smartlink-platforms"
 import {
   SMARTLINK_FONT_META,
   contrastTextOnAccent,
-  isLightSmartlinkPreset,
+  resolveSmartlinkVisualFlags,
   smartlinkAnimationDurationMs,
   smartlinkForcesIcons,
+  type SmartlinkCoverFormat,
   type SmartlinkLinkItem,
-  type SmartlinkPreset,
   type SmartlinkTheme,
 } from "@/lib/smartlink-theme"
 import { cn } from "@/lib/utils"
@@ -33,13 +33,13 @@ export type SmartlinkLandingProps = {
   previewAudioSrc?: string | null
 }
 
-function coverRadiusClass(shape: SmartlinkTheme["cover"], preset: SmartlinkPreset) {
-  if (preset === "vinyl" || preset === "orbit") return "rounded-full"
+function coverRadiusClass(shape: SmartlinkTheme["cover"], coverFormat: SmartlinkCoverFormat) {
+  if (coverFormat === "vinyl" || coverFormat === "orbit") return "rounded-full"
   if (
-    preset === "cinema" ||
-    preset === "poster" ||
-    preset === "ticket" ||
-    preset === "polaroid"
+    coverFormat === "cinema" ||
+    coverFormat === "poster" ||
+    coverFormat === "ticket" ||
+    coverFormat === "polaroid"
   ) {
     return "rounded-none"
   }
@@ -131,45 +131,47 @@ export function SmartlinkLanding({
   preview = false,
   previewAudioSrc = null,
 }: SmartlinkLandingProps) {
-  const preset = theme.preset
   const accentText = contrastTextOnAccent(theme.accent)
-  const isSheet = isLightSmartlinkPreset(preset)
-  const isTicket = preset === "ticket"
-  const isPolaroid = preset === "polaroid"
-  const isArcade = preset === "arcade"
-  const isVhs = preset === "vhs"
-  const isZine = preset === "zine"
-  const isChrome = preset === "chrome"
-  const isNoir = preset === "noir"
-  const isOrbit = preset === "orbit"
-  const isStamp = preset === "stamp"
-  const isHolo = preset === "holo"
-  const isDiary = preset === "diary"
-  /** Светлый текст внутри контента (лист / билет / дневник / зин). */
-  const contentLight = isSheet || isTicket || isDiary || isZine
-  const isBlurBg =
-    preset === "blur" ||
-    preset === "glass" ||
-    preset === "film" ||
-    preset === "neon" ||
-    isHolo
-  const isGlassCard = preset === "glass"
-  const isSignal = preset === "signal"
-  const isTerminal = preset === "terminal"
-  const isPoster = preset === "poster"
-  const isVinyl = preset === "vinyl"
-  const isCassette = preset === "cassette"
-  const isCinema = preset === "cinema"
-  const isCapsule = preset === "capsule"
-  const isGrid = preset === "grid"
-  const isNeon = preset === "neon"
-  const isFilm = preset === "film"
-  const isInkblot = preset === "inkblot"
-  const isCarbon = preset === "carbon"
-  const isSunset = preset === "sunset"
-  const isGraffiti = preset === "graffiti"
-  const isStage = preset === "stage"
-  const isRave = preset === "rave"
+  const visuals = resolveSmartlinkVisualFlags(theme)
+  const {
+    shellLight,
+    isSheetCard,
+    contentLight,
+    isBlurBg,
+    isGlassCard,
+    isSignal,
+    isTicket,
+    isPolaroid,
+    isArcade,
+    isVhs,
+    isZine,
+    isChrome,
+    isNoir,
+    isOrbit,
+    isStamp,
+    isHolo,
+    isDiary,
+    isTerminal,
+    isPoster,
+    isVinyl,
+    isCassette,
+    isCinema,
+    isCapsule,
+    isGrid,
+    isNeon,
+    isFilm,
+    isInkblot,
+    isCarbon,
+    isSunset,
+    isGraffiti,
+    isStage,
+    isRave,
+    usePaperTear,
+    paperTearVertical,
+    coverFormat,
+  } = visuals
+  /** Совместимость со старыми проверками isSheet (светлый шелл). */
+  const isSheet = shellLight
 
   const fontStack = SMARTLINK_FONT_META[theme.font]?.stack ?? SMARTLINK_FONT_META.sans.stack
 
@@ -181,7 +183,7 @@ export function SmartlinkLanding({
   const socialsAbove = socialItems.length > 0 && socials?.position === "above"
   const socialsBelow = socialItems.length > 0 && socials?.position !== "above"
 
-  const forceIcons = smartlinkForcesIcons(preset)
+  const forceIcons = smartlinkForcesIcons(theme.preset, theme)
   const iconsOnly = forceIcons || theme.platformLayout === "icons"
 
   const shellClass = cn(
@@ -189,7 +191,7 @@ export function SmartlinkLanding({
     // justify-start + py: контент сверху при длинной странице; короткий всё ещё читается нормально
     "relative flex min-h-full w-full flex-col items-center justify-start overflow-x-hidden overflow-y-auto",
     preview ? "min-h-[520px] px-3 py-6" : "min-h-screen px-4 py-6 sm:px-6 sm:py-8",
-    isSheet ? "bg-[#F3EFE6] text-[#161616]" : "bg-[#0B0B0C] text-[#F5F5F5]",
+    shellLight ? "bg-[#F3EFE6] text-[#161616]" : "bg-[#0B0B0C] text-[#F5F5F5]",
     isCarbon && "sl-carbon-bg",
     isGraffiti && "sl-graffiti-bg",
     isStage && "sl-stage-bg",
@@ -206,10 +208,10 @@ export function SmartlinkLanding({
   )
 
   const cardClass = cn(
-    // my-auto: короткий контент по центру экрана; длинный - просто скроллится
-    "relative z-[1] my-auto flex w-full shrink-0 flex-col items-center gap-4",
+    // flex-1 + justify-center: контент по центру; Powered by - отдельным футером внизу шелла
+    "relative z-[1] flex w-full flex-1 flex-col items-center justify-center gap-4",
     preview ? "max-w-[280px]" : "max-w-md",
-    isSheet && !isDiary && !isZine && "rounded-2xl bg-white/90 px-4 py-6 shadow-[0_18px_50px_rgba(20,16,10,0.12)]",
+    isSheetCard && "rounded-2xl bg-white/90 px-4 py-6 shadow-[0_18px_50px_rgba(20,16,10,0.12)]",
     isSignal && "rounded-2xl border border-white/10 bg-black/35 px-4 py-6 backdrop-blur-md",
     isGlassCard &&
       "rounded-2xl border border-white/20 bg-white/10 px-4 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl",
@@ -230,14 +232,11 @@ export function SmartlinkLanding({
   )
 
   const useIcons = iconsOnly
-  /** Разрыв «как бумага» на hover - лист / билет / зин, только список кнопок. */
-  const usePaperTear = !useIcons && (preset === "sheet" || preset === "ticket" || preset === "zine")
-  /** Лист и билет - вертикальный разрыв; зин - горизонтальный. */
-  const paperTearVertical = usePaperTear && (preset === "sheet" || preset === "ticket")
+  const paperTearActive = !useIcons && usePaperTear
 
   const buttonBase = cn(
     "inline-flex items-center font-medium no-underline transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]",
-    usePaperTear && "hover:!scale-100 active:!scale-100",
+    paperTearActive && "hover:!scale-100 active:!scale-100",
     useIcons && !isVinyl && !isOrbit
       ? "h-12 w-12 shrink-0 justify-center"
       : isVinyl || isOrbit
@@ -658,7 +657,9 @@ export function SmartlinkLanding({
                 loading="lazy"
                 decoding="async"
               />
-              {!useIcons ? <span className="truncate">{link.label}</span> : null}
+              {!useIcons ? (
+                <span className={cn("truncate", isDiary && "sl-diary-label")}>{link.label}</span>
+              ) : null}
               {isCapsule && !useIcons ? (
                 <span className="opacity-70" aria-hidden>
                   →
@@ -694,11 +695,11 @@ export function SmartlinkLanding({
               className={cn(
                 buttonClassFor(linkIndex),
                 animClass(theme),
-                usePaperTear && "sl-paper-tear",
-                paperTearVertical && "sl-paper-tear-v",
+                paperTearActive && "sl-paper-tear",
+                paperTearActive && paperTearVertical && "sl-paper-tear-v",
               )}
               style={
-                usePaperTear
+                paperTearActive
                   ? {
                       color: visual.color,
                       ...animStyle(theme, i),
@@ -709,7 +710,7 @@ export function SmartlinkLanding({
                     }
               }
             >
-              {usePaperTear ? (
+              {paperTearActive ? (
                 <>
                   <span className="sl-paper-tear-face sl-paper-tear-a" aria-hidden style={faceStyle}>
                     {faceContent}
@@ -936,7 +937,7 @@ export function SmartlinkLanding({
       className={cn(
         "relative aspect-square w-full overflow-hidden bg-black/20",
         isPoster ? posterCoverMax : coverMax,
-        coverRadiusClass(theme.cover, preset),
+        coverRadiusClass(theme.cover, coverFormat),
         theme.coverShadow && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
         isSignal && "ring-2 ring-[var(--sl-accent)]",
         isGraffiti && "rotate-[-1.5deg] border-2 border-white shadow-[5px_5px_0_#111]",
@@ -1098,19 +1099,19 @@ export function SmartlinkLanding({
         ) : null}
 
         {renderLinks()}
-
-        <a
-          href={brandHref}
-          className={cn(
-            "mt-0.5 text-xs opacity-55 transition-opacity hover:opacity-100",
-            contentLight ? "text-[#161616]" : "text-white",
-            animClass(theme),
-          )}
-          style={animStyle(theme, animIndex++)}
-        >
-          {brandLabel}
-        </a>
       </div>
+
+      <a
+        href={brandHref}
+        className={cn(
+          "relative z-[1] mt-auto shrink-0 pt-4 text-center text-xs opacity-55 transition-opacity hover:opacity-100",
+          contentLight ? "text-[#161616]" : "text-white",
+          animClass(theme),
+        )}
+        style={animStyle(theme, animIndex++)}
+      >
+        {brandLabel}
+      </a>
     </SmartlinkAudioGate>
   )
 }

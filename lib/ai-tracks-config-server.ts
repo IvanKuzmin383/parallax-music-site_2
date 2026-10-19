@@ -1,10 +1,10 @@
 import {
   AI_TRACKS_CAPABILITIES,
-  AI_TRACKS_COST_ATTEMPTS,
   AI_TRACKS_LIMITS,
   AI_TRACKS_MODEL_ID,
   AI_TRACKS_MODEL_LABEL,
   AI_TRACKS_PACKS,
+  AI_TRACKS_PRICE_RUB,
   type AiTracksPublicConfig,
 } from "@/lib/ai-tracks-config"
 
@@ -32,7 +32,8 @@ export function getAiTracksPublicConfig(): AiTracksPublicConfig {
     providerConfigured,
     modelId: AI_TRACKS_MODEL_ID,
     modelLabel: AI_TRACKS_MODEL_LABEL,
-    costAttempts: AI_TRACKS_COST_ATTEMPTS,
+    priceRub: AI_TRACKS_PRICE_RUB,
+    costAttempts: 0,
     limits: AI_TRACKS_LIMITS,
     capabilities: AI_TRACKS_CAPABILITIES,
     packs,

@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         error: result.message,
         code: result.error,
         fieldErrors: result.fieldErrors,
-        attempts: result.attempts,
+        walletBalance: result.walletBalance,
       },
       { status }
     )
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     job: result.job,
-    attempts: result.attempts,
+    walletBalance: result.walletBalance,
     reused: result.reused,
   })
 }

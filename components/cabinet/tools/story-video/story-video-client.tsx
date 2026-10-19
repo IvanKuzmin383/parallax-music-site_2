@@ -169,6 +169,59 @@ function ChipButton({
   )
 }
 
+function StoryColorField({
+  label,
+  hint,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string
+  hint?: string
+  value: string
+  onChange: (hex: string) => void
+  disabled?: boolean
+}) {
+  const hex = normalizeAccentHex(value, value)
+  return (
+    <div className={cn("space-y-2", disabled && "pointer-events-none opacity-45")}>
+      <div>
+        <Label>{label}</Label>
+        {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {STORY_VIDEO_ACCENT_SWATCHES.map((swatch) => (
+          <button
+            key={`${label}-${swatch}`}
+            type="button"
+            aria-label={`${label} ${swatch}`}
+            onClick={() => onChange(swatch)}
+            className={cn(
+              "h-8 w-8 rounded-full border-2 transition",
+              hex === swatch
+                ? "scale-110 border-white"
+                : "border-transparent opacity-80 hover:opacity-100"
+            )}
+            style={{ backgroundColor: swatch }}
+          />
+        ))}
+        <input
+          type="color"
+          aria-label={`${label} - палитра`}
+          value={hex.toLowerCase()}
+          onChange={(e) => onChange(normalizeAccentHex(e.target.value, hex))}
+          className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0.5"
+        />
+        <Input
+          className="h-8 w-28 font-mono text-xs uppercase"
+          value={hex}
+          onChange={(e) => onChange(normalizeAccentHex(e.target.value, hex))}
+        />
+      </div>
+    </div>
+  )
+}
+
 type PanelKey =
   | "source"
   | "hook"
@@ -476,18 +529,16 @@ export function StoryVideoClient() {
       URL.revokeObjectURL(localCoverObjectUrl.current)
       localCoverObjectUrl.current = null
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : null
-      if (!result) {
-        toast.error("Не удалось прочитать обложку")
-        return
+    void (async () => {
+      try {
+        const { compressImageForToolCover } = await import("@/lib/client-compress-image")
+        const compressed = await compressImageForToolCover(file)
+        setCoverUrl(compressed.dataUrl)
+        setSelectedTrackId("")
+      } catch {
+        toast.error("Не удалось обработать обложку")
       }
-      setCoverUrl(result)
-      setSelectedTrackId("")
-    }
-    reader.onerror = () => toast.error("Не удалось прочитать обложку")
-    reader.readAsDataURL(file)
+    })()
   }
 
   const onLocalAudio = (e: ChangeEvent<HTMLInputElement>) => {
@@ -1223,42 +1274,60 @@ export function StoryVideoClient() {
           </CollapsibleSection>
 
           <CollapsibleSection
-            title="8. Цвет и waveform"
-            summary={`${project.accent}${project.showWaveform ? " · waveform вкл." : ""}`}
+            title="8. Цвета"
+            summary={[
+              `акцент ${project.accent}`,
+              project.showFrame ? `рамка ${project.frameColor}` : "без рамки",
+              project.showWaveform ? `wave ${project.waveformColor}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
             open={openPanels.look}
             onOpenChange={(v) => setPanel("look", v)}
           >
-            <div className="flex flex-wrap items-center gap-2">
-              {STORY_VIDEO_ACCENT_SWATCHES.map((hex) => (
-                <button
-                  key={hex}
-                  type="button"
-                  aria-label={`Акцент ${hex}`}
-                  onClick={() => patch({ accent: hex })}
-                  className={cn(
-                    "h-8 w-8 rounded-full border-2 transition",
-                    project.accent.toUpperCase() === hex
-                      ? "border-white scale-110"
-                      : "border-transparent opacity-80 hover:opacity-100"
-                  )}
-                  style={{ backgroundColor: hex }}
+            <StoryColorField
+              label="Акцент текста"
+              hint="Цвет имени артиста и линии под хуком"
+              value={project.accent}
+              onChange={(hex) => patch({ accent: hex })}
+            />
+
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={project.showFrame}
+                  onChange={(e) => patch({ showFrame: e.target.checked })}
+                  className="h-4 w-4 rounded border-border"
                 />
-              ))}
-              <Input
-                className="h-8 w-28"
-                value={project.accent}
-                onChange={(e) => patch({ accent: normalizeAccentHex(e.target.value) })}
+                Показать рамку
+              </label>
+              <StoryColorField
+                label="Цвет рамки"
+                hint="Окантовка ролика / Neon-обводка. Палитра или hex"
+                value={project.frameColor}
+                onChange={(hex) => patch({ frameColor: hex })}
+                disabled={!project.showFrame}
               />
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={project.showWaveform}
-                onChange={(e) => patch({ showWaveform: e.target.checked })}
-                className="h-4 w-4 rounded border-border"
+
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={project.showWaveform}
+                  onChange={(e) => patch({ showWaveform: e.target.checked })}
+                  className="h-4 w-4 rounded border-border"
+                />
+                Показать waveform внизу ролика
+              </label>
+              <StoryColorField
+                label="Цвет waveform"
+                value={project.waveformColor}
+                onChange={(hex) => patch({ waveformColor: hex })}
+                disabled={!project.showWaveform}
               />
-              Показать waveform внизу ролика
-            </label>
+            </div>
           </CollapsibleSection>
         </div>
 

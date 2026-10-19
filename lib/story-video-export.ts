@@ -38,6 +38,36 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/** Ждём кадр композитинга - иначе captureStream на скрытом canvas залипает на 1-м кадре. */
+function waitAnimationFrame(): Promise<number> {
+  return new Promise((resolve) => {
+    requestAnimationFrame((t) => resolve(t))
+  })
+}
+
+/**
+ * Canvas должен участвовать в paint (не opacity:0 / 1×1 / -9999px),
+ * иначе Chrome часто отдаёт в MediaRecorder один статичный кадр.
+ */
+function mountExportCanvas(canvas: HTMLCanvasElement): void {
+  canvas.setAttribute("aria-hidden", "true")
+  canvas.style.cssText = [
+    "position:fixed",
+    "right:0",
+    "bottom:0",
+    `width:${STORY_VIDEO_WIDTH}px`,
+    `height:${STORY_VIDEO_HEIGHT}px`,
+    "max-width:24vw",
+    "max-height:42vh",
+    "opacity:0.02",
+    "pointer-events:none",
+    "z-index:-1",
+    "transform:translateZ(0)",
+    "image-rendering:auto",
+  ].join(";")
+  document.body.appendChild(canvas)
+}
+
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -146,9 +176,7 @@ export async function exportStoryVideo(params: {
   const canvas = document.createElement("canvas")
   canvas.width = STORY_VIDEO_WIDTH
   canvas.height = STORY_VIDEO_HEIGHT
-  canvas.style.cssText =
-    "position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none"
-  document.body.appendChild(canvas)
+  mountExportCanvas(canvas)
 
   let videoStream: MediaStream | null = null
   let dest: MediaStreamAudioDestinationNode | null = null
@@ -161,12 +189,14 @@ export async function exportStoryVideo(params: {
   }
 
   try {
-    const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: true })
+    // Без willReadFrequently: CPU-путь в Chrome часто залипал captureStream на 1-м кадре
+    const ctx = canvas.getContext("2d", { alpha: false })
     if (!ctx) throw new Error("Canvas недоступен")
 
     const fps = STORY_VIDEO_FPS
     const durationSec = project.durationSec || STORY_VIDEO_DURATION_SEC
     const totalFrames = Math.round(durationSec * fps)
+    const frameDurationMs = 1000 / fps
 
     drawStoryVideoFrame({
       ctx,
@@ -179,8 +209,12 @@ export async function exportStoryVideo(params: {
       frameIndex: 0,
       badgeIcons,
     })
+    // Даем браузеру один paint до старта записи
+    await waitAnimationFrame()
+    await waitAnimationFrame()
 
-    videoStream = canvas.captureStream(fps)
+    // 0 = захватывать при каждом изменении canvas (не дублировать первый кадр)
+    videoStream = canvas.captureStream(0)
     dest = context.createMediaStreamDestination()
     const source = context.createBufferSource()
     source.buffer = buffer
@@ -213,10 +247,10 @@ export async function exportStoryVideo(params: {
     recorder.start(250)
     source.start(0)
 
-    const frameDurationMs = 1000 / fps
     const startedAt = performance.now()
+    let frame = 0
 
-    for (let frame = 0; frame < totalFrames; frame++) {
+    while (frame < totalFrames) {
       if (signal?.aborted) {
         try {
           recorder.stop()
@@ -231,7 +265,14 @@ export async function exportStoryVideo(params: {
         throw new Error("Отменено")
       }
 
-      const timeSec = frame / fps
+      await waitAnimationFrame()
+
+      const elapsedMs = performance.now() - startedAt
+      const targetFrame = Math.min(totalFrames - 1, Math.floor(elapsedMs / frameDurationMs))
+      // Если rAF отстал - догоняем кадры отрисовкой (время ролика = wall-clock ≈ аудио)
+      const drawFrame = Math.max(frame, targetFrame)
+      const timeSec = drawFrame / fps
+
       drawStoryVideoFrame({
         ctx,
         width: canvas.width,
@@ -240,23 +281,27 @@ export async function exportStoryVideo(params: {
         project,
         cover,
         peaks,
-        frameIndex: frame,
+        frameIndex: drawFrame,
         badgeIcons,
       })
 
-      const target = startedAt + (frame + 1) * frameDurationMs
-      const delay = target - performance.now()
-      if (delay > 1) await wait(delay)
+      frame = drawFrame + 1
 
-      if (frame % 8 === 0) {
+      if (drawFrame % 8 === 0 || frame >= totalFrames) {
         report({
           phase: "recording",
-          progress: 0.1 + 0.85 * (frame / totalFrames),
-          message: `Кадр ${frame + 1} из ${totalFrames}`,
+          progress: 0.1 + 0.85 * (Math.min(frame, totalFrames) / totalFrames),
+          message: `Кадр ${Math.min(frame, totalFrames)} из ${totalFrames}`,
         })
       }
+
+      // Не убегаем вперёд аудио: если нарисовали рано - ждём слот
+      const slotEnd = startedAt + frame * frameDurationMs
+      const pause = slotEnd - performance.now()
+      if (pause > 2) await wait(pause)
     }
 
+    await waitAnimationFrame()
     await wait(frameDurationMs * 2)
     recorder.stop()
     try {

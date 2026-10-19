@@ -32,6 +32,8 @@ import {
 import { cn } from "@/lib/utils"
 import { DistributionSectionTabs } from "@/components/cabinet/distribution/distribution-section-tabs"
 import { useCabinetKyc } from "@/components/cabinet/kyc/cabinet-kyc-provider"
+import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-gate"
 
 const STAT_LABELS: Record<ReleaseFilterKey, string> = {
   all: "Все релизы",
@@ -93,46 +95,44 @@ function UploadReleaseButton({
 }) {
   const router = useRouter()
   const { isVerified, openRequired, loading: kycLoading, ready: kycReady } = useCabinetKyc()
-  const [profileComplete, setProfileComplete] = useState<boolean | null>(null)
+  const [gateReady, setGateReady] = useState(false)
+  const [clickBusy, setClickBusy] = useState(false)
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/cabinet/user", { credentials: "include" })
-        if (!res.ok) {
-          setProfileComplete(false)
-          return
-        }
-        const data = (await res.json()) as { user?: { profileCompleteForUpload?: boolean } }
-        setProfileComplete(data.user?.profileCompleteForUpload === true)
-      } catch {
-        setProfileComplete(false)
-      }
-    })()
+    // Прогрев /api/cabinet/user; готовность кнопки не ждёт полный ответ подписки
+    void fetch("/api/cabinet/user", { credentials: "include" }).finally(() => setGateReady(true))
   }, [])
 
-  const busy = profileComplete === null || kycLoading || !kycReady
+  const busy = !gateReady || kycLoading || !kycReady || clickBusy
   const uploadHref = artist
     ? `/cabinet/upload?artist=${encodeURIComponent(artist)}`
     : "/cabinet/upload"
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (busy) return
     if (!isVerified) {
       openRequired()
       return
     }
-    if (profileComplete === false) {
-      toast.message("Заполните профиль", {
-        description: "Укажите обязательные поля в настройках профиля, чтобы загрузить релиз",
-      })
-      return
+    setClickBusy(true)
+    try {
+      const block = await getReleaseUploadStartBlockReason()
+      if (block) {
+        if (block.includes("профиль")) {
+          toast.message("Заполните профиль", { description: block })
+        } else {
+          toast.error(block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
+        }
+        return
+      }
+      router.push(uploadHref)
+    } finally {
+      setClickBusy(false)
     }
-    router.push(uploadHref)
   }
 
   return (
-    <Button type="button" variant={variant} disabled={busy} onClick={handleClick}>
+    <Button type="button" variant={variant} disabled={busy} onClick={() => void handleClick()}>
       <Upload className="h-4 w-4 mr-2" />
       Загрузить релиз
     </Button>

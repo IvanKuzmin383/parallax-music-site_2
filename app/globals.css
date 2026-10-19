@@ -1716,59 +1716,26 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-/* Дневник: зачёркивание «карандашом» на hover */
-.sl-diary-btn {
-  position: relative;
-  isolation: isolate;
-  overflow: visible;
-}
-
-.sl-diary-btn > * {
-  position: relative;
-  z-index: 1;
-  transition: opacity 0.25s ease;
-}
-
-.sl-diary-btn::after {
-  content: "";
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  top: 42%;
-  height: 14px;
-  z-index: 2;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16' fill='none'%3E%3Cpath d='M2 9 C14 4 22 12 34 7 C46 2 54 13 66 8 C78 3 88 12 100 7 C108 4 116 10 118 8' stroke='%232a2a2a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' opacity='0.78'/%3E%3Cpath d='M3 10 C16 6 26 13 38 9 C50 5 58 14 70 9 C82 4 94 13 117 8' stroke='%234a4a4a' stroke-width='1.3' stroke-linecap='round' opacity='0.45'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-position: center;
-  transform: scaleX(0);
-  transform-origin: left center;
-  opacity: 0;
+/* Дневник: настоящее text-decoration зачёркивание на hover */
+.sl-diary-btn .sl-diary-label {
+  text-decoration-line: none;
+  text-decoration-thickness: 0.1em;
+  text-decoration-color: currentColor;
   transition:
-    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.2s ease;
+    text-decoration-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .sl-diary-btn:hover::after,
-  .sl-diary-btn:focus-visible::after {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-
-  .sl-diary-btn:hover > *,
-  .sl-diary-btn:focus-visible > * {
+  .sl-diary-btn:hover .sl-diary-label,
+  .sl-diary-btn:focus-visible .sl-diary-label {
+    text-decoration-line: line-through;
     opacity: 0.72;
   }
 }
 
-.sl-diary-btn:active::after {
-  transform: scaleX(1);
-  opacity: 1;
-}
-
-.sl-diary-btn:active > * {
+.sl-diary-btn:active .sl-diary-label {
+  text-decoration-line: line-through;
   opacity: 0.72;
 }
 
@@ -2000,20 +1967,10 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     transform: none !important;
   }
 
-  .sl-diary-btn::after {
-    transition: none !important;
-  }
-
-  .sl-diary-btn:hover::after,
-  .sl-diary-btn:focus-visible::after,
-  .sl-diary-btn:active::after {
-    transform: none !important;
-    opacity: 0 !important;
-  }
-
-  .sl-diary-btn:hover > *,
-  .sl-diary-btn:focus-visible > *,
-  .sl-diary-btn:active > * {
+  .sl-diary-btn:hover .sl-diary-label,
+  .sl-diary-btn:focus-visible .sl-diary-label,
+  .sl-diary-btn:active .sl-diary-label {
+    text-decoration-line: none !important;
     opacity: 1 !important;
   }
 }

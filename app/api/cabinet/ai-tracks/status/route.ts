@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { getAiTracksAttempts } from "@/lib/ai-tracks-attempts"
 import { getAiTracksPublicConfig } from "@/lib/ai-tracks-config-server"
 import { listActiveAiTracksJobs } from "@/lib/ai-tracks-jobs"
 
@@ -17,22 +16,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   }
 
+  const walletBalance = Math.max(0, Number(user.walletBalance ?? 0) || 0)
+
   try {
-    const [attempts, activeJobs] = await Promise.all([
-      getAiTracksAttempts(user.id),
-      listActiveAiTracksJobs(user.id),
-    ])
+    const activeJobs = await listActiveAiTracksJobs(user.id)
 
     return NextResponse.json({
       ...getAiTracksPublicConfig(),
-      attempts,
+      walletBalance,
       activeJobs,
     })
   } catch (e) {
     console.error("[ai-tracks/status]", e)
     return NextResponse.json({
       ...getAiTracksPublicConfig(),
-      attempts: 0,
+      walletBalance,
       activeJobs: [],
     })
   }

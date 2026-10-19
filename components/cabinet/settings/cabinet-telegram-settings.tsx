@@ -322,23 +322,17 @@ export function CabinetTelegramSettings() {
                     Мастер-выключатель. Колокольчик в кабинете не затрагивается.
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={
-                      status.prefs.enabled
-                        ? "text-xs font-medium text-emerald-400"
-                        : "text-xs text-muted-foreground"
-                    }
-                  >
-                    {status.prefs.enabled ? "Вкл" : "Выкл"}
-                  </span>
-                  <Switch
-                    id="tg-master"
-                    checked={status.prefs.enabled}
-                    disabled={prefsBusy}
-                    onCheckedChange={(v) => void patchPrefs({ enabled: v })}
-                  />
-                </div>
+                <Switch
+                  id="tg-master"
+                  checked={status.prefs.enabled}
+                  disabled={prefsBusy}
+                  onCheckedChange={(v) => void patchPrefs({ enabled: v })}
+                  aria-label={
+                    status.prefs.enabled
+                      ? "Уведомления в Telegram включены"
+                      : "Уведомления в Telegram выключены"
+                  }
+                />
               </div>
 
               <div
@@ -356,23 +350,13 @@ export function CabinetTelegramSettings() {
                       </Label>
                       <p className="text-xs text-muted-foreground">{row.description}</p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span
-                        className={
-                          status.prefs[row.key]
-                            ? "text-xs font-medium text-emerald-400"
-                            : "text-xs text-muted-foreground"
-                        }
-                      >
-                        {status.prefs[row.key] ? "Вкл" : "Выкл"}
-                      </span>
-                      <Switch
-                        id={`tg-${row.key}`}
-                        checked={status.prefs[row.key]}
-                        disabled={prefsBusy || !status.prefs.enabled}
-                        onCheckedChange={(v) => void patchPrefs({ [row.key]: v })}
-                      />
-                    </div>
+                    <Switch
+                      id={`tg-${row.key}`}
+                      checked={status.prefs[row.key]}
+                      disabled={prefsBusy || !status.prefs.enabled}
+                      onCheckedChange={(v) => void patchPrefs({ [row.key]: v })}
+                      aria-label={`${row.title}: ${status.prefs[row.key] ? "включено" : "выключено"}`}
+                    />
                   </div>
                 ))}
               </div>

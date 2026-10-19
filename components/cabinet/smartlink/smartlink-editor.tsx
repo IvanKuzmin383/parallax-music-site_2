@@ -27,14 +27,21 @@ import {
   SMARTLINK_ANIMATIONS,
   SMARTLINK_ANIM_SPEED_MAX,
   SMARTLINK_ANIM_SPEED_MIN,
+  SMARTLINK_BG_STYLES,
+  SMARTLINK_BG_STYLE_META,
+  SMARTLINK_BUTTON_FORMATS,
+  SMARTLINK_BUTTON_FORMAT_META,
   SMARTLINK_BUTTON_STYLES,
+  SMARTLINK_COVER_FORMATS,
+  SMARTLINK_COVER_FORMAT_META,
   SMARTLINK_COVER_SHAPES,
   SMARTLINK_FONTS,
   SMARTLINK_FONT_META,
+  SMARTLINK_HOVER_EFFECTS,
+  SMARTLINK_HOVER_EFFECT_META,
   SMARTLINK_PLATFORM_LAYOUTS,
   SMARTLINK_PLATFORM_LAYOUT_META,
   SMARTLINK_CUSTOM_DEFAULT_PRESET,
-  SMARTLINK_CUSTOM_SURFACE_META,
   SMARTLINK_PRESET_BASE,
   SMARTLINK_PRESET_LOOK,
   SMARTLINK_PRESET_META,
@@ -45,12 +52,15 @@ import {
   getOrderedSmartlinkLinks,
   normalizeAccentHex,
   parseSmartlinkTheme,
+  smartlinkForcesIcons,
   smartlinkPresetDetailsCaps,
   type SmartlinkAnimation,
+  type SmartlinkBgStyle,
   type SmartlinkButtonStyle,
   type SmartlinkCoverShape,
   type SmartlinkExtraLink,
   type SmartlinkFont,
+  type SmartlinkHoverEffect,
   type SmartlinkPlatformLayout,
   type SmartlinkPreset,
   type SmartlinkTheme,
@@ -703,8 +713,8 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   }, [activePlatformKeys, customAccent, theme])
 
   const detailsCaps = useMemo(
-    () => smartlinkPresetDetailsCaps(theme.preset),
-    [theme.preset],
+    () => smartlinkPresetDetailsCaps(theme.preset, theme),
+    [theme],
   )
 
   const previewLinks = useMemo(
@@ -724,6 +734,45 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   const applyPreset = (preset: SmartlinkPreset) => {
     const look = SMARTLINK_PRESET_LOOK[preset]
     setTheme((prev) => ({ ...prev, preset, ...look }))
+  }
+
+  const enterCustomMode = () => {
+    setTheme((prev) => {
+      if (isSmartlinkCustomMode(prev.preset)) return prev
+      // Сохраняем текущий визуал, каркас - базовый «Тёмный» (или уже выбранный bg из базы).
+      const surface = (SMARTLINK_PRESET_BASE as readonly string[]).includes(prev.bgStyle)
+        ? (prev.bgStyle as (typeof SMARTLINK_PRESET_BASE)[number])
+        : SMARTLINK_CUSTOM_DEFAULT_PRESET
+      return { ...prev, preset: surface }
+    })
+  }
+
+  const patchVisual = <K extends "bgStyle" | "buttonFormat" | "coverFormat" | "hoverEffect">(
+    key: K,
+    value: SmartlinkTheme[K],
+  ) => {
+    setTheme((prev) => {
+      const next: SmartlinkTheme = { ...prev, [key]: value }
+      // Любая ручная правка формата = произвольный конструктор (шаблон - только старт).
+      if (!isSmartlinkCustomMode(prev.preset)) {
+        const surface = (SMARTLINK_PRESET_BASE as readonly string[]).includes(prev.bgStyle)
+          ? (prev.bgStyle as (typeof SMARTLINK_PRESET_BASE)[number])
+          : SMARTLINK_CUSTOM_DEFAULT_PRESET
+        next.preset = surface
+      }
+      if (key === "bgStyle") {
+        const bg = value as SmartlinkBgStyle
+        if ((SMARTLINK_PRESET_BASE as readonly string[]).includes(bg)) {
+          next.preset = bg as (typeof SMARTLINK_PRESET_BASE)[number]
+        }
+      }
+      if (key === "coverFormat" || key === "buttonFormat") {
+        if (smartlinkForcesIcons(next.preset, next)) {
+          next.platformLayout = "icons"
+        }
+      }
+      return next
+    })
   }
 
   const patchSocials = (partial: Partial<typeof socials>) => {
@@ -908,21 +957,29 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
 
   const uploadToolsCover = async (file: File | null) => {
     if (!file || !isTools) return
-    const fd = new FormData()
-    fd.set("file", file)
-    const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}/cover`, {
-      method: "POST",
-      credentials: "include",
-      body: fd,
-    })
-    const json = (await res.json().catch(() => ({}))) as { error?: string }
-    if (!res.ok) {
-      toast.error(json.error || "Не удалось загрузить обложку")
-      return
+    try {
+      const { compressImageForToolCover, compressedCoverToFile } = await import(
+        "@/lib/client-compress-image"
+      )
+      const compressed = await compressImageForToolCover(file)
+      const fd = new FormData()
+      fd.set("file", compressedCoverToFile(compressed))
+      const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}/cover`, {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      })
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        toast.error(json.error || "Не удалось загрузить обложку")
+        return
+      }
+      toast.success("Обложка загружена")
+      setCoverTick((n) => n + 1)
+      void load()
+    } catch {
+      toast.error("Не удалось обработать обложку")
     }
-    toast.success("Обложка загружена")
-    setCoverTick((n) => n + 1)
-    void load()
   }
 
   const uploadToolsAudio = async (file: File | null) => {
@@ -1166,16 +1223,20 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
             <EditorSection title="Обложка и отрывок">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm">Обложка (JPG/PNG)</Label>
+                  <Label className="text-sm">Обложка (JPG/PNG/WebP)</Label>
                   <Input
                     type="file"
-                    accept="image/jpeg,image/png"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={(e) => void uploadToolsCover(e.target.files?.[0] ?? null)}
                   />
                   {data.coverUrl ? (
-                    <p className="text-xs text-muted-foreground">Обложка загружена</p>
+                    <p className="text-xs text-muted-foreground">
+                      Обложка загружена (сжимаем до ~1400 px WebP)
+                    </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Нужна для превью и публикации</p>
+                    <p className="text-xs text-muted-foreground">
+                      Нужна для превью и публикации. Большие файлы сжимаются автоматически.
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -1202,11 +1263,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                 <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!isSmartlinkCustomMode(theme.preset)) {
-                        applyPreset(SMARTLINK_CUSTOM_DEFAULT_PRESET)
-                      }
-                    }}
+                    onClick={enterCustomMode}
                     aria-pressed={isSmartlinkCustomMode(theme.preset)}
                     className={cn(
                       "relative rounded-lg border p-1.5 text-left transition-all",
@@ -1232,42 +1289,14 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                   </button>
                 </div>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  Свой каркас и все параметры ниже - собираете с нуля.
+                  Полный конструктор: фон, формат кнопок, обложка и все детали ниже. Шаблоны - те же
+                  настройки, уже собранные.
                 </p>
               </div>
 
-              {isSmartlinkCustomMode(theme.preset) ? (
-                <div className="space-y-2">
-                  <Label className="text-sm">Каркас</Label>
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
-                    {SMARTLINK_PRESET_BASE.map((surface) => {
-                      const meta = SMARTLINK_CUSTOM_SURFACE_META[surface]
-                      const active = theme.preset === surface
-                      return (
-                        <button
-                          key={surface}
-                          type="button"
-                          onClick={() => applyPreset(surface)}
-                          aria-pressed={active}
-                          title={meta.description}
-                          className={cn(
-                            "rounded-lg border px-2 py-2 text-center text-xs font-medium transition-all",
-                            active
-                              ? "border-primary bg-primary/15 text-primary"
-                              : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                          )}
-                        >
-                          {meta.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
               <div>
                 <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  Готовые
+                  Готовые шаблоны
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
                   {SMARTLINK_PRESET_SIGNATURE.map((preset) => (
@@ -1275,7 +1304,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                       key={preset}
                       preset={preset}
                       accent={theme.accent}
-                      active={theme.preset === preset}
+                      active={theme.preset === preset && !isSmartlinkCustomMode(theme.preset)}
                       onPick={() => applyPreset(preset)}
                     />
                   ))}
@@ -1283,9 +1312,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
               </div>
               <p className="text-sm text-muted-foreground">
                 {isSmartlinkCustomMode(theme.preset)
-                  ? SMARTLINK_CUSTOM_SURFACE_META[
-                      theme.preset as (typeof SMARTLINK_PRESET_BASE)[number]
-                    ].description
+                  ? `${SMARTLINK_BG_STYLE_META[theme.bgStyle].label} · ${SMARTLINK_BUTTON_FORMAT_META[theme.buttonFormat].label} · ${SMARTLINK_COVER_FORMAT_META[theme.coverFormat].label}`
                   : SMARTLINK_PRESET_META[theme.preset].description}
               </p>
               <div className="space-y-2">
@@ -1637,32 +1664,141 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
             title="Детали"
             defaultOpen={isSmartlinkCustomMode(theme.preset)}
           >
+            <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                Фон, формат кнопок и обложки - те же, что в шаблонах. Шаблоны выше только
+                подставляют готовый набор; дальше можно менять всё по отдельности.
+              </p>
+              <div className="space-y-2">
+                <Label className="text-sm">Фон</Label>
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                  {SMARTLINK_BG_STYLES.map((bg) => {
+                    const meta = SMARTLINK_BG_STYLE_META[bg]
+                    const active = theme.bgStyle === bg
+                    return (
+                      <button
+                        key={bg}
+                        type="button"
+                        title={meta.description}
+                        aria-pressed={active}
+                        onClick={() => patchVisual("bgStyle", bg)}
+                        className={cn(
+                          "rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
+                          active
+                            ? "border-primary bg-primary/15 text-primary"
+                            : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        {meta.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Формат кнопок стримов</Label>
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                  {SMARTLINK_BUTTON_FORMATS.map((fmt) => {
+                    const meta = SMARTLINK_BUTTON_FORMAT_META[fmt]
+                    const active = theme.buttonFormat === fmt
+                    return (
+                      <button
+                        key={fmt}
+                        type="button"
+                        title={meta.description}
+                        aria-pressed={active}
+                        onClick={() => patchVisual("buttonFormat", fmt)}
+                        className={cn(
+                          "rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
+                          active
+                            ? "border-primary bg-primary/15 text-primary"
+                            : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        {meta.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {theme.buttonFormat === "default" ? (
+                  <p className="text-xs text-muted-foreground">
+                    «Обычные» - ниже можно выбрать плотные / контур / стекло.
+                  </p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Формат обложки</Label>
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-3">
+                  {SMARTLINK_COVER_FORMATS.map((fmt) => {
+                    const meta = SMARTLINK_COVER_FORMAT_META[fmt]
+                    const active = theme.coverFormat === fmt
+                    return (
+                      <button
+                        key={fmt}
+                        type="button"
+                        title={meta.description}
+                        aria-pressed={active}
+                        onClick={() => patchVisual("coverFormat", fmt)}
+                        className={cn(
+                          "rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
+                          active
+                            ? "border-primary bg-primary/15 text-primary"
+                            : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        {meta.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Эффект наведения</Label>
+                <Segmented
+                  value={theme.hoverEffect}
+                  options={SMARTLINK_HOVER_EFFECTS}
+                  labels={{
+                    none: SMARTLINK_HOVER_EFFECT_META.none.label,
+                    paperTearV: SMARTLINK_HOVER_EFFECT_META.paperTearV.label,
+                    paperTearH: SMARTLINK_HOVER_EFFECT_META.paperTearH.label,
+                  }}
+                  onChange={(next) => patchVisual("hoverEffect", next as SmartlinkHoverEffect)}
+                  cols={3}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label className="text-sm">Кнопки</Label>
+              <Label className="text-sm">Стиль кнопок</Label>
               <Segmented
                 value={theme.buttons}
                 options={SMARTLINK_BUTTON_STYLES}
                 labels={BUTTON_LABELS}
                 onChange={(next) => patchTheme("buttons", next)}
                 cols={5}
-                disabled={!detailsCaps.buttons.enabled}
+                disabled={!detailsCaps.buttons.enabled || theme.buttonFormat !== "default"}
               />
-              {!detailsCaps.buttons.enabled ? (
-                <p className="text-xs text-muted-foreground">{detailsCaps.buttons.reason}</p>
+              {theme.buttonFormat !== "default" ? (
+                <p className="text-xs text-muted-foreground">
+                  Стиль плотные/контур доступен при формате «Обычные». Сейчас:{" "}
+                  {SMARTLINK_BUTTON_FORMAT_META[theme.buttonFormat].label}.
+                </p>
               ) : null}
             </div>
             <div className="space-y-2">
-              <Label className="text-sm">Обложка</Label>
+              <Label className="text-sm">Скругление обложки</Label>
               <Segmented
                 value={theme.cover}
                 options={SMARTLINK_COVER_SHAPES}
                 labels={COVER_LABELS}
                 onChange={(next) => patchTheme("cover", next)}
                 cols={3}
-                disabled={!detailsCaps.coverShape.enabled}
+                disabled={!detailsCaps.coverShape.enabled || theme.coverFormat !== "default"}
               />
-              {!detailsCaps.coverShape.enabled ? (
-                <p className="text-xs text-muted-foreground">{detailsCaps.coverShape.reason}</p>
+              {theme.coverFormat !== "default" ? (
+                <p className="text-xs text-muted-foreground">
+                  Скругление задаёт формат обложки «{SMARTLINK_COVER_FORMAT_META[theme.coverFormat].label}».
+                </p>
               ) : null}
             </div>
 

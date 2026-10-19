@@ -49,14 +49,17 @@ export type MasteringPreset = {
   params: MasteringPresetTone
 }
 
-/** Нейтраль для подмешивания характера (0% интенсивности). */
+/** Id режима без готового характера: тон задаётся крутилками вручную. */
+export const MANUAL_PRESET_ID = "manual"
+
+/** Нейтраль: почти без окраски (0% интенсивности и старт «Без характера»). */
 export const PRESET_NEUTRAL: MasteringPresetTone = {
   hpfHz: 20,
   lfShelfDb: 0,
   mfPeakDb: 0,
   hfShelfDb: 0,
-  thresholdDb: -24,
-  ratio: 1.2,
+  thresholdDb: 0,
+  ratio: 1,
   attackMs: 20,
   releaseMs: 160,
   ceilingDb: -0.1,
@@ -67,6 +70,12 @@ export const PRESET_NEUTRAL: MasteringPresetTone = {
 }
 
 export const MASTERING_PRESETS: MasteringPreset[] = [
+  {
+    id: MANUAL_PRESET_ID,
+    label: "Без характера",
+    hint: "Без готового стиля: почти исходный звук. Дальше доводите крутилками в тонкой настройке или уровнями выше.",
+    params: { ...PRESET_NEUTRAL },
+  },
   {
     id: "universal",
     label: "Универсальная",
@@ -230,14 +239,39 @@ export const MASTERING_PRESETS: MasteringPreset[] = [
 ]
 
 export const DEFAULT_MASTERING_PARAMS: MasteringParams = {
-  presetId: "universal",
-  presetAmount: 100,
+  presetId: MANUAL_PRESET_ID,
+  presetAmount: 0,
   loudness: "med",
   density: "med",
   smooth: "off",
   outputGainDb: 0,
   magicMakeup: true,
-  ...MASTERING_PRESETS[0].params,
+  ...PRESET_NEUTRAL,
+}
+
+export function isManualPreset(presetId: string): boolean {
+  return presetId === MANUAL_PRESET_ID
+}
+
+/** Поля тона, которые задаёт характер (или ручные крутилки). */
+export const MASTERING_TONE_KEYS = [
+  "hpfHz",
+  "lfShelfDb",
+  "mfPeakDb",
+  "hfShelfDb",
+  "thresholdDb",
+  "ratio",
+  "attackMs",
+  "releaseMs",
+  "ceilingDb",
+  "softClip",
+  "saturation",
+  "stereoWidth",
+  "monoBass",
+] as const satisfies ReadonlyArray<keyof MasteringPresetTone>
+
+export function patchTouchesTone(patch: Partial<MasteringParams>): boolean {
+  return MASTERING_TONE_KEYS.some((key) => patch[key] !== undefined)
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -322,7 +356,15 @@ export function applyPreset(
   current: MasteringParams,
   amountPct: number = current.presetAmount
 ): MasteringParams {
-  const preset = MASTERING_PRESETS.find((p) => p.id === presetId) ?? MASTERING_PRESETS[0]
+  const preset = MASTERING_PRESETS.find((p) => p.id === presetId)
+  if (!preset || isManualPreset(preset.id)) {
+    return {
+      ...current,
+      presetId: MANUAL_PRESET_ID,
+      presetAmount: 0,
+      ...PRESET_NEUTRAL,
+    }
+  }
   const amount = Math.min(100, Math.max(0, amountPct))
   return {
     ...current,
@@ -334,6 +376,9 @@ export function applyPreset(
 
 /** Только крутилка интенсивности - пересчитывает тон текущего характера. */
 export function applyPresetAmount(current: MasteringParams, amountPct: number): MasteringParams {
+  if (isManualPreset(current.presetId)) {
+    return { ...current, presetAmount: Math.min(100, Math.max(0, amountPct)) }
+  }
   return applyPreset(current.presetId, current, amountPct)
 }
 

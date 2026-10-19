@@ -33,7 +33,10 @@ import {
   applyPreset,
   applyPresetAmount,
   DEFAULT_MASTERING_PARAMS,
+  isManualPreset,
+  MANUAL_PRESET_ID,
   MASTERING_PRESETS,
+  patchTouchesTone,
   type DensityLevel,
   type LoudnessLevel,
   type MasteringParams,
@@ -154,6 +157,7 @@ function RotaryKnob({
   step,
   unit,
   onChange,
+  disabled = false,
 }: {
   label: string
   tip: string
@@ -163,6 +167,7 @@ function RotaryKnob({
   step: number
   unit?: string
   onChange: (v: number) => void
+  disabled?: boolean
 }) {
   const gradId = useId().replace(/:/g, "")
   const dragRef = useRef<{ startY: number; startValue: number } | null>(null)
@@ -171,17 +176,24 @@ function RotaryKnob({
   const arcLen = 270 * (Math.PI / 180) * 40
 
   const applyFromDeltaY = (deltaY: number, startValue: number) => {
+    if (disabled) return
     const range = max - min
     const next = startValue - (deltaY / 110) * range
     onChange(clampStepped(next, min, max, step))
   }
 
   return (
-    <div className="flex w-[5.5rem] flex-col items-center gap-1.5 sm:w-[6rem]">
+    <div
+      className={cn(
+        "flex w-[5.5rem] flex-col items-center gap-1.5 sm:w-[6rem]",
+        disabled && "pointer-events-none opacity-45"
+      )}
+    >
       <p className="tabular-nums text-[11px] font-medium text-primary">{formatKnobValue(value, unit)}</p>
       <div
         role="slider"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled || undefined}
         aria-label={label}
         aria-valuemin={min}
         aria-valuemax={max}
@@ -189,6 +201,7 @@ function RotaryKnob({
         aria-valuetext={formatKnobValue(value, unit)}
         className="relative h-[4.25rem] w-[4.25rem] cursor-ns-resize touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:h-[4.75rem] sm:w-[4.75rem]"
         onPointerDown={(e) => {
+          if (disabled) return
           e.preventDefault()
           ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
           dragRef.current = { startY: e.clientY, startValue: value }
@@ -204,11 +217,13 @@ function RotaryKnob({
           dragRef.current = null
         }}
         onWheel={(e) => {
+          if (disabled) return
           e.preventDefault()
           const dir = e.deltaY > 0 ? -1 : 1
           onChange(clampStepped(value + dir * step, min, max, step))
         }}
         onKeyDown={(e) => {
+          if (disabled) return
           if (e.key === "ArrowUp" || e.key === "ArrowRight") {
             e.preventDefault()
             onChange(clampStepped(value + step, min, max, step))
@@ -553,7 +568,15 @@ function ToolsMasteringInner() {
   }
 
   const patchParams = (patch: Partial<MasteringParams>) => {
-    setParams((prev) => ({ ...prev, ...patch }))
+    setParams((prev) => {
+      const next = { ...prev, ...patch }
+      // Ручная правка тона снимает готовый характер - иначе интенсивность всё перетрёт.
+      if (patchTouchesTone(patch) && !isManualPreset(prev.presetId)) {
+        next.presetId = MANUAL_PRESET_ID
+        next.presetAmount = 0
+      }
+      return next
+    })
   }
 
   const togglePlay = async () => {
@@ -711,7 +734,7 @@ function ToolsMasteringInner() {
         />
       </div>
 
-      <section className="space-y-3 rounded-lg border border-border bg-card/30 p-4">
+      <section className="space-y-3 rounded-lg bg-card/30 p-4">
         <p className="text-sm font-medium">Исходный WAV</p>
         <input
           ref={fileInputRef}
@@ -750,7 +773,7 @@ function ToolsMasteringInner() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <div className="order-2 min-w-0 space-y-6 xl:order-1">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
-            <section className="rounded-lg border border-border bg-card/30">
+            <section className="rounded-lg bg-card/30">
               <div
                 role="button"
                 tabIndex={0}
@@ -776,7 +799,7 @@ function ToolsMasteringInner() {
                 >
                   <HintIcon
                     label="Пресеты и уровни"
-                    tip="Быстрый старт: выберите характер звука, громкость и плотность. Тонкую настройку крутилками можно открыть ниже."
+                    tip="Можно начать без характера и крутить настройки вручную, либо выбрать готовый стиль. Громкость и плотность - отдельно."
                   />
                 </span>
                 <ChevronDown
@@ -790,17 +813,19 @@ function ToolsMasteringInner() {
               <CollapsibleContent>
                 <div className="space-y-4 border-t border-border px-4 py-4">
                   <p className="text-xs text-muted-foreground">
-                    Выберите характер, затем подкрутите уровни. Звук в превью меняется сразу.
+                    По умолчанию без характера - звук почти как исходник. Выберите стиль или доведите
+                    крутилками ниже.
                   </p>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <KnobGroup
                       title="Характер"
-                      hint="Готовый стиль мастеринга. Интенсивность подмешивает пресет к нейтрали: 100% - полный характер, 40% - мягче."
+                      hint="Готовый стиль мастеринга. «Без характера» - ручной режим: тон не подменяется пресетом. Интенсивность работает только у готовых стилей."
                     >
                       <div className="flex w-full flex-col gap-3">
                         <div className="grid w-full grid-cols-2 gap-2">
                           {MASTERING_PRESETS.map((preset) => {
                             const active = params.presetId === preset.id
+                            const manual = isManualPreset(preset.id)
                             return (
                               <div
                                 key={preset.id}
@@ -808,12 +833,21 @@ function ToolsMasteringInner() {
                                   "group relative flex min-h-[3.25rem] items-start gap-1 rounded-xl border px-2.5 py-2.5 transition-all",
                                   active
                                     ? "border-primary bg-primary/15 shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent),0_10px_24px_-14px_var(--primary)]"
-                                    : "border-border/70 bg-background/35 hover:border-primary/40 hover:bg-muted/30"
+                                    : "border-border/70 bg-background/35 hover:border-primary/40 hover:bg-muted/30",
+                                  manual && "col-span-2 sm:col-span-1"
                                 )}
                               >
                                 <button
                                   type="button"
-                                  onClick={() => setParams((prev) => applyPreset(preset.id, prev))}
+                                  onClick={() =>
+                                    setParams((prev) =>
+                                      applyPreset(
+                                        preset.id,
+                                        prev,
+                                        isManualPreset(preset.id) ? 0 : prev.presetAmount || 100
+                                      )
+                                    )
+                                  }
                                   className="absolute inset-0 rounded-xl"
                                   aria-pressed={active}
                                   aria-label={`Пресет ${preset.label}`}
@@ -844,18 +878,21 @@ function ToolsMasteringInner() {
                         <div className="flex items-center justify-center gap-4 border-t border-border/40 pt-3 sm:justify-start">
                           <RotaryKnob
                             label="Интенсивность"
-                            tip="Насколько сильно применён выбранный характер. 100% - как в пресете, 40% - мягче, ближе к нейтрали."
+                            tip="Насколько сильно применён выбранный характер. В режиме «Без характера» не используется - крутите тонкую настройку."
                             value={params.presetAmount}
                             min={0}
                             max={100}
                             step={1}
                             unit="%"
+                            disabled={isManualPreset(params.presetId)}
                             onChange={(presetAmount) =>
                               setParams((prev) => applyPresetAmount(prev, presetAmount))
                             }
                           />
                           <p className="max-w-[12rem] text-[11px] leading-snug text-muted-foreground">
-                            Подмешивание характера к нейтральной обработке.
+                            {isManualPreset(params.presetId)
+                              ? "Характер выключен. Настраивайте EQ, компрессор и окрас вручную ниже."
+                              : "Подмешивание характера к нейтральной обработке."}
                           </p>
                         </div>
                       </div>
@@ -933,7 +970,7 @@ function ToolsMasteringInner() {
           </Collapsible>
 
           <Collapsible open={fineTuneOpen} onOpenChange={setFineTuneOpen}>
-            <section className="rounded-lg border border-border bg-card/30">
+            <section className="rounded-lg bg-card/30">
               <div
                 role="button"
                 tabIndex={0}
@@ -959,7 +996,7 @@ function ToolsMasteringInner() {
                 >
                   <HintIcon
                     label="Тонкая настройка"
-                    tip="Для тех, кто хочет подкрутить звук вручную. Если не уверены - оставьте пресет и сглаживание."
+                    tip="Ручная доводка звука. Любая правка тона переключает характер в «Без характера», чтобы пресет не перетёр ваши настройки."
                   />
                 </span>
                 <ChevronDown
@@ -973,8 +1010,8 @@ function ToolsMasteringInner() {
               <CollapsibleContent>
                 <div className="space-y-4 border-t border-border px-4 py-4">
                   <p className="text-xs text-muted-foreground">
-                    Тяните крутилки вверх/вниз или крутите колесом мыши. Группы как в VST: тон,
-                    динамика, окрас, лимитер.
+                    Тяните крутилки вверх/вниз или крутите колесом мыши. В режиме «Без характера»
+                    здесь основной контроль звука: тон, динамика, окрас, лимитер.
                   </p>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <KnobGroup
@@ -1129,7 +1166,7 @@ function ToolsMasteringInner() {
         </div>
 
         <aside className="sticky top-16 z-10 order-1 min-w-0 self-start xl:order-2">
-          <div className="space-y-4 rounded-lg border border-border bg-background/95 p-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
+          <div className="space-y-4 rounded-lg bg-background/95 p-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium">Предпрослушивание</p>

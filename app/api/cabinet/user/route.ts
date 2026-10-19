@@ -3,6 +3,7 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { cabinetProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { listCabinetArtistSubscriptionsByUserId } from "@/lib/cabinet-artist-subscriptions"
+import { getServerUploadSubscriptionBlockReason } from "@/lib/cabinet-upload-subscription-gate"
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     const artistSubscriptions = await listCabinetArtistSubscriptionsByUserId(user.id)
+    const uploadBlockReason = await getServerUploadSubscriptionBlockReason(user)
 
     return NextResponse.json({
       user: {
@@ -36,6 +38,8 @@ export async function GET(request: NextRequest) {
         kycStatus: user.kycStatus ?? "unverified",
         kycRejectionReason: user.kycRejectionReason ?? null,
         artistSubscriptions,
+        canUploadRelease: uploadBlockReason == null,
+        uploadBlockReason,
       },
     })
   } catch (error) {

@@ -26,6 +26,9 @@ export type UserAchievementView = {
   rewardLabel: string | null
   unlocked: boolean
   unlockedAt: string | null
+  /** Прогресс к цели (для UI «2 из 3»). Для бинарных: 0/1 или 1/1. */
+  progressCurrent: number
+  progressTarget: number
 }
 
 export type GamificationProgress = {
@@ -180,12 +183,175 @@ export async function unlockAchievement(
   return { unlocked: true, rewardNote }
 }
 
+type AchievementCounters = {
+  releasedCount: number
+  hasDraft: boolean
+  hadModeration: boolean
+  hasTopup: boolean
+  hasService: boolean
+  hasClip: boolean
+  hasPublicka: boolean
+  referralPaidCount: number
+}
+
+async function loadAchievementCounters(userId: string): Promise<AchievementCounters> {
+  const empty: AchievementCounters = {
+    releasedCount: 0,
+    hasDraft: false,
+    hadModeration: false,
+    hasTopup: false,
+    hasService: false,
+    hasClip: false,
+    hasPublicka: false,
+    referralPaidCount: 0,
+  }
+  try {
+    const user = await getCabinetUserById(userId)
+    const byId = await listReleasesByUserId(userId, 300)
+    const byEmail =
+      user?.email && user.email.toLowerCase() !== userId.toLowerCase()
+        ? await listReleasesByUserId(user.email, 300)
+        : []
+    const seen = new Set<string>()
+    const releases = [...byId, ...byEmail].filter((r) => {
+      if (seen.has(r.id)) return false
+      seen.add(r.id)
+      return true
+    })
+    empty.hasDraft = releases.length > 0
+    empty.hadModeration = releases.some(
+      (r) =>
+        r.status === "on_moderation" ||
+        r.status === "sent_to_platforms" ||
+        r.status === "approved_by_platforms" ||
+        r.status === "released"
+    )
+    empty.releasedCount = releases.filter((r) => r.status === "released").length
+  } catch {
+    // keep defaults
+  }
+
+  try {
+    const topup = await queryOne<{ id: string }>(
+      `SELECT id FROM cabinet_balance_transactions WHERE user_id = ? AND type = 'topup' LIMIT 1`,
+      [userId]
+    )
+    empty.hasTopup = Boolean(topup)
+  } catch {
+    /* ignore */
+  }
+  try {
+    const servicePaid = await queryOne<{ id: string }>(
+      `
+      SELECT id FROM orders
+      WHERE user_id = ?
+        AND status = 'paid'
+        AND order_type IN (
+          'ai_mastering','vertical_video','track_cover','ai_cover',
+          'yandex_videoshot','yandex_videoshot_creation','yandex_videoavatar',
+          'spotify_videoshot','business_music','music_video','lyrics_sync','upload_addon_bundle'
+        )
+      LIMIT 1
+      `,
+      [userId]
+    )
+    empty.hasService = Boolean(servicePaid)
+  } catch {
+    /* ignore */
+  }
+  try {
+    const clip = await queryOne<{ id: string }>(
+      `SELECT id FROM video_clips WHERE user_id = ? LIMIT 1`,
+      [userId]
+    )
+    empty.hasClip = Boolean(clip)
+  } catch {
+    /* ignore */
+  }
+  try {
+    const pub = await queryOne<{ id: string }>(
+      `SELECT id FROM publicka_placements WHERE user_id = ? LIMIT 1`,
+      [userId]
+    )
+    empty.hasPublicka = Boolean(pub)
+  } catch {
+    /* ignore */
+  }
+  try {
+    const refCount = await queryOne<{ c: number | string }>(
+      `SELECT COUNT(*)::int AS c FROM cabinet_referral_rewards WHERE referrer_user_id = ?`,
+      [userId]
+    )
+    empty.referralPaidCount = Number(refCount?.c) || 0
+  } catch {
+    /* ignore */
+  }
+  return empty
+}
+
+function progressForAchievement(
+  id: string,
+  unlocked: boolean,
+  c: AchievementCounters
+): { progressCurrent: number; progressTarget: number } {
+  const done = (ok: boolean) => ({
+    progressCurrent: unlocked || ok ? 1 : 0,
+    progressTarget: 1,
+  })
+  switch (id) {
+    case "welcome":
+      return done(true)
+    case "first_draft":
+      return done(c.hasDraft)
+    case "first_moderation":
+      return done(c.hadModeration)
+    case "first_released":
+      return {
+        progressCurrent: Math.min(1, c.releasedCount),
+        progressTarget: 1,
+      }
+    case "releases_3":
+      return {
+        progressCurrent: Math.min(3, c.releasedCount),
+        progressTarget: 3,
+      }
+    case "releases_10":
+      return {
+        progressCurrent: Math.min(10, c.releasedCount),
+        progressTarget: 10,
+      }
+    case "first_wallet_topup":
+      return done(c.hasTopup)
+    case "first_service":
+      return done(c.hasService)
+    case "first_music_video":
+      return done(c.hasClip)
+    case "first_publicka":
+      return done(c.hasPublicka)
+    case "referral_1":
+      return {
+        progressCurrent: Math.min(1, c.referralPaidCount),
+        progressTarget: 1,
+      }
+    case "referral_3":
+      return {
+        progressCurrent: Math.min(3, c.referralPaidCount),
+        progressTarget: 3,
+      }
+    default:
+      return done(unlocked)
+  }
+}
+
 export async function getGamificationProgress(userId: string): Promise<GamificationProgress> {
   const unlocked = await listUnlockedIds(userId)
+  const counters = await loadAchievementCounters(userId)
   let xp = 0
   const achievements: UserAchievementView[] = ACHIEVEMENTS_CATALOG.map((def) => {
     const row = unlocked.get(def.id)
-    if (row) xp += def.xp
+    const isUnlocked = Boolean(row)
+    if (isUnlocked) xp += def.xp
+    const progress = progressForAchievement(def.id, isUnlocked, counters)
     return {
       id: def.id,
       title: def.title,
@@ -193,8 +359,9 @@ export async function getGamificationProgress(userId: string): Promise<Gamificat
       category: def.category,
       xp: def.xp,
       rewardLabel: formatAchievementReward(def.reward),
-      unlocked: Boolean(row),
+      unlocked: isUnlocked,
       unlockedAt: row?.unlocked_at ?? null,
+      ...progress,
     }
   })
   return {

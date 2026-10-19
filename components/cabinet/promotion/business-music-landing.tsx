@@ -1,13 +1,13 @@
 "use client"
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import {
   ArrowLeft,
   BarChart3,
-  Building2,
   Coffee,
   Dumbbell,
   FileCheck2,
@@ -164,11 +164,14 @@ function BiznesZvukCatalogSample() {
           </div>
 
           <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-[#D9CFC2] bg-[#FAF6F0] p-3">
-            <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[10px] bg-[#2A272F] text-[#FFB4C5]"
-              aria-hidden
-            >
-              <Building2 className="h-6 w-6" />
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-[#2A272F]">
+              <Image
+                src="/business-music/cafe-lounge.jpg"
+                alt="Атмосфера кафе и лаунж-бара"
+                fill
+                sizes="56px"
+                className="object-cover"
+              />
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#1A1614]">Ваш трек</p>

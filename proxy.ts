@@ -77,6 +77,11 @@ function handleMainHostSmartlinkRedirect(request: NextRequest): NextResponse | n
   return NextResponse.redirect(target, 308)
 }
 
+/** Статика из public - не уводим на /maintenance (иначе <video>/<audio> получают HTML 503). */
+function isPublicMediaPath(pathname: string): boolean {
+  return /\.(?:mp4|webm|mp3|wav|ogg|m4a|aac)(?:$|\?)/i.test(pathname)
+}
+
 function handleMaintenance(request: NextRequest): NextResponse | null {
   if (!isMaintenanceModeEnabled()) return null
 
@@ -111,8 +116,8 @@ function handleMaintenance(request: NextRequest): NextResponse | null {
     return res
   }
 
-  // Публичные смартлинки доступны и во время maintenance
-  if (pathname.startsWith("/s/")) {
+  // Публичные смартлинки и медиа-примеры доступны и во время maintenance
+  if (pathname.startsWith("/s/") || isPublicMediaPath(pathname) || pathname.startsWith("/videos/")) {
     return NextResponse.next()
   }
 
@@ -151,8 +156,8 @@ export const config = {
      * Всё, кроме:
      * - api (в т.ч. payment webhooks)
      * - _next/static, _next/image
-     * - статика в public (изображения, иконки, maintenance.html)
+     * - статика в public (изображения, видео, аудио, иконки, maintenance.html)
      */
-    "/((?!api|_next/static|_next/image|favicon\\.ico|icon\\.svg|robots\\.txt|sitemap\\.xml|maintenance\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!api|_next/static|_next/image|favicon\\.ico|icon\\.svg|robots\\.txt|sitemap\\.xml|maintenance\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|mp4|webm|mp3|wav|ogg|m4a|aac)$).*)",
   ],
 }

@@ -13,20 +13,28 @@ export type PublicServicePrice = {
 }
 
 let cache: PublicServicePrice[] | null = null
+let cacheAt = 0
 let cachePromise: Promise<PublicServicePrice[] | null> | null = null
+/** После правки в админке карточки не должны жить на старом in-memory кэше весь сеанс. */
+const CACHE_TTL_MS = 15_000
 
-async function fetchServicePrices(): Promise<PublicServicePrice[] | null> {
-  if (cache) return cache
+async function fetchServicePrices(force = false): Promise<PublicServicePrice[] | null> {
+  const fresh = cache && Date.now() - cacheAt < CACHE_TTL_MS
+  if (!force && fresh) return cache
   if (cachePromise) return cachePromise
   cachePromise = (async () => {
     try {
-      const res = await fetch("/api/cabinet/service-prices", { credentials: "include" })
-      if (!res.ok) return null
+      const res = await fetch("/api/cabinet/service-prices", {
+        credentials: "include",
+        cache: "no-store",
+      })
+      if (!res.ok) return cache
       const data = (await res.json()) as { items?: PublicServicePrice[] }
       cache = data.items ?? []
+      cacheAt = Date.now()
       return cache
     } catch {
-      return null
+      return cache
     } finally {
       cachePromise = null
     }
@@ -39,9 +47,8 @@ export function useServicePrices() {
   const [loading, setLoading] = useState(!cache)
 
   const reload = useCallback(async () => {
-    cache = null
     setLoading(true)
-    const next = await fetchServicePrices()
+    const next = await fetchServicePrices(true)
     setItems(next)
     setLoading(false)
   }, [])
@@ -49,7 +56,7 @@ export function useServicePrices() {
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const next = await fetchServicePrices()
+      const next = await fetchServicePrices(true)
       if (!cancelled) {
         setItems(next)
         setLoading(false)

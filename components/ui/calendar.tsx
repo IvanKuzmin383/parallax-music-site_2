@@ -124,7 +124,8 @@ function Calendar({
           'text-muted-foreground opacity-50',
           defaultClassNames.disabled,
         ),
-        hidden: cn('invisible', defaultClassNames.hidden),
+        // display:none - иначе hidden-дни/недели оставляют пустые строки (invisible)
+        hidden: cn('hidden', defaultClassNames.hidden),
         ...classNames,
       }}
       components={{

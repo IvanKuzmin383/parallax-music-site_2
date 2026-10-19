@@ -36,10 +36,10 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  AI_TRACKS_COST_ATTEMPTS,
   AI_TRACKS_DIRECTIONS,
   AI_TRACKS_LIMITS,
   AI_TRACKS_MOODS,
+  AI_TRACKS_PRICE_RUB,
   AI_TRACKS_VOCALS,
   type AiTracksPublicConfig,
 } from "@/lib/ai-tracks-config"
@@ -60,8 +60,12 @@ import {
 import { cn } from "@/lib/utils"
 
 type StudioStatus = AiTracksPublicConfig & {
-  attempts: number
+  walletBalance: number
   activeJobs: AiTracksJobDto[]
+}
+
+function formatRub(value: number): string {
+  return `${Math.round(value).toLocaleString("ru-RU")} ₽`
 }
 
 type HistoryFilter = "all" | "favorites"
@@ -503,8 +507,9 @@ export function AiTracksStudioClient() {
       toast.error(AI_TRACKS_STATUS_MESSAGES.service_unavailable)
       return
     }
-    if ((status?.attempts ?? 0) < (status?.costAttempts ?? AI_TRACKS_COST_ATTEMPTS)) {
-      toast.error(AI_TRACKS_STATUS_MESSAGES.no_attempts)
+    const priceRub = status?.priceRub ?? AI_TRACKS_PRICE_RUB
+    if ((status?.walletBalance ?? 0) < priceRub) {
+      toast.error(AI_TRACKS_STATUS_MESSAGES.insufficient_balance)
       return
     }
 
@@ -527,22 +532,22 @@ export function AiTracksStudioClient() {
         error?: string
         code?: string
         fieldErrors?: Array<{ field: string; message: string }>
-        attempts?: number
+        walletBalance?: number
         job?: AiTracksJobDto
       }
 
       if (!res.ok) {
         const msg = data.fieldErrors?.[0]?.message || data.error || "Не удалось запустить"
         setFieldError(msg)
-        if (typeof data.attempts === "number") {
-          setStatus((prev) => (prev ? { ...prev, attempts: data.attempts! } : prev))
+        if (typeof data.walletBalance === "number") {
+          setStatus((prev) => (prev ? { ...prev, walletBalance: data.walletBalance! } : prev))
         }
         toast.error(msg)
         return
       }
 
-      if (typeof data.attempts === "number") {
-        setStatus((prev) => (prev ? { ...prev, attempts: data.attempts! } : prev))
+      if (typeof data.walletBalance === "number") {
+        setStatus((prev) => (prev ? { ...prev, walletBalance: data.walletBalance! } : prev))
       }
       await Promise.all([loadStatus(), loadHistory(filter)])
       toast.success("Генерация запущена")
@@ -553,14 +558,14 @@ export function AiTracksStudioClient() {
     }
   }
 
-  const cost = status?.costAttempts ?? AI_TRACKS_COST_ATTEMPTS
-  const attempts = status?.attempts ?? 0
+  const priceRub = status?.priceRub ?? AI_TRACKS_PRICE_RUB
+  const walletBalance = status?.walletBalance ?? 0
   const generationEnabled = status?.generationEnabled === true
-  const packsAvailable = status?.packsAvailable === true
+  const canAfford = walletBalance >= priceRub
   const submitDisabled = submitting || Boolean(activeJob) || !generationEnabled
   const ctaLabel = draft.instrumental
-    ? `Создать музыку · ${cost} попытк${cost === 1 ? "а" : "и"}`
-    : `Создать песню · ${cost} попытк${cost === 1 ? "а" : "и"}`
+    ? `Создать музыку · ${formatRub(priceRub)}`
+    : `Создать песню · ${formatRub(priceRub)}`
 
   const flatResults: Array<{ result: AiTracksResultDto; settings: AiTracksSettingsSnapshot }> = []
   for (const job of jobs) {
@@ -598,9 +603,9 @@ export function AiTracksStudioClient() {
             Для песен, демо и новых музыкальных идей
           </p>
           <div className="rounded-full border border-border bg-card px-4 py-2 text-sm">
-            Попытки:{" "}
+            Цена генерации:{" "}
             <span className="font-semibold tabular-nums text-foreground">
-              {loading ? "…" : attempts}
+              {loading ? "…" : formatRub(priceRub)}
             </span>
           </div>
         </div>
@@ -867,29 +872,24 @@ export function AiTracksStudioClient() {
               </p>
             ) : null}
 
-            {generationEnabled && attempts < cost ? (
+            {generationEnabled && !canAfford ? (
               <div className="space-y-2 text-sm">
-                <p role="status">{AI_TRACKS_STATUS_MESSAGES.no_attempts}</p>
-                {packsAvailable ? (
-                  <Button type="button" variant="outline" className="min-h-11" disabled>
-                    Пополнить попытки
-                  </Button>
-                ) : (
-                  <p className="text-muted-foreground">
-                    Пополнение пока недоступно: тарифы не настроены.
-                  </p>
-                )}
+                <p role="status">{AI_TRACKS_STATUS_MESSAGES.insufficient_balance}</p>
+                <Button type="button" variant="outline" className="min-h-11" asChild>
+                  <Link href="/cabinet/finance/balance">Пополнить баланс</Link>
+                </Button>
               </div>
             ) : null}
 
             <p className="text-xs text-muted-foreground">
-              Неудачный по вкусу результат не возвращает попытку. Технический сбой - возвращает.
+              Списание {formatRub(priceRub)} с баланса при запуске. Технический сбой - средства
+              возвращаются.
             </p>
 
             <Button
               type="button"
               className="min-h-12 w-full text-base"
-              disabled={submitDisabled || (generationEnabled && attempts < cost)}
+              disabled={submitDisabled || (generationEnabled && !canAfford)}
               onClick={() => void submit()}
             >
               {submitting || activeJob ? (

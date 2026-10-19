@@ -323,6 +323,12 @@ function PhoneShell({
   )
 }
 
+const EXAMPLE_VIDEO_FALLBACKS = [
+  EXAMPLE_VIDEO_SRC,
+  "/videos/vertical-examples/example-1.mp4",
+  "/videos/vertical-examples/example-3.mp4",
+] as const
+
 function ExampleVideoPlayer({
   className,
   label,
@@ -331,15 +337,18 @@ function ExampleVideoPlayer({
   label: string
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [srcIndex, setSrcIndex] = useState(0)
   const [failed, setFailed] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
+  const activeSrc = EXAMPLE_VIDEO_FALLBACKS[srcIndex] ?? EXAMPLE_VIDEO_FALLBACKS[0]
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current
     if (!video || failed) return
     if (video.paused) {
-      void video.play().then(() => setPlaying(true)).catch(() => setFailed(true))
+      // Отказ play() (автоплей-политика) - не считаем файл битым
+      void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
     } else {
       video.pause()
       setPlaying(false)
@@ -352,6 +361,15 @@ function ExampleVideoPlayer({
     video.muted = !video.muted
     setMuted(video.muted)
   }, [failed])
+
+  const onVideoError = useCallback(() => {
+    setSrcIndex((prev) => {
+      const next = prev + 1
+      if (next < EXAMPLE_VIDEO_FALLBACKS.length) return next
+      setFailed(true)
+      return prev
+    })
+  }, [])
 
   useEffect(() => {
     const video = videoRef.current
@@ -367,7 +385,7 @@ function ExampleVideoPlayer({
       video.removeEventListener("pause", onPause)
       video.removeEventListener("play", onPlay)
     }
-  }, [])
+  }, [activeSrc])
 
   if (failed) {
     return (
@@ -381,6 +399,16 @@ function ExampleVideoPlayer({
         <p className="text-center text-[11px] leading-snug text-muted-foreground">
           Пример временно недоступен. Показан заменяемый постер монтажа.
         </p>
+        <button
+          type="button"
+          className="mt-1 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] text-white"
+          onClick={() => {
+            setFailed(false)
+            setSrcIndex(0)
+          }}
+        >
+          Повторить
+        </button>
       </div>
     )
   }
@@ -388,14 +416,15 @@ function ExampleVideoPlayer({
   return (
     <div className={cn("absolute inset-0", className)}>
       <video
+        key={activeSrc}
         ref={videoRef}
-        src={EXAMPLE_VIDEO_SRC}
+        src={activeSrc}
         className="absolute inset-0 h-full w-full object-cover"
         playsInline
         muted={muted}
         preload="metadata"
         loop
-        onError={() => setFailed(true)}
+        onError={onVideoError}
         aria-label={label}
       />
       <div className="absolute bottom-[5.25rem] left-2.5 z-40 flex gap-1.5">

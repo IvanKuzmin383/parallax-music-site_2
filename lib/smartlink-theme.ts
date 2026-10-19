@@ -11,6 +11,39 @@ import {
   parseSmartlinkSocials,
   type SmartlinkSocials,
 } from "@/lib/smartlink-socials"
+import {
+  isSmartlinkBgStyle,
+  isSmartlinkButtonFormat,
+  isSmartlinkCoverFormat,
+  isSmartlinkHoverEffect,
+  SMARTLINK_PRESET_VISUALS,
+  type SmartlinkBgStyle,
+  type SmartlinkButtonFormat,
+  type SmartlinkCoverFormat,
+  type SmartlinkHoverEffect,
+  type SmartlinkVisualPack,
+} from "@/lib/smartlink-visuals"
+
+export type {
+  SmartlinkBgStyle,
+  SmartlinkButtonFormat,
+  SmartlinkCoverFormat,
+  SmartlinkHoverEffect,
+  SmartlinkVisualPack,
+} from "@/lib/smartlink-visuals"
+export {
+  SMARTLINK_BG_STYLES,
+  SMARTLINK_BG_STYLE_META,
+  SMARTLINK_BUTTON_FORMATS,
+  SMARTLINK_BUTTON_FORMAT_META,
+  SMARTLINK_COVER_FORMATS,
+  SMARTLINK_COVER_FORMAT_META,
+  SMARTLINK_HOVER_EFFECTS,
+  SMARTLINK_HOVER_EFFECT_META,
+  SMARTLINK_PRESET_VISUALS,
+  resolveSmartlinkVisualFlags,
+  resolveSmartlinkVisualPack,
+} from "@/lib/smartlink-visuals"
 
 /** Базовые + характерные пресеты. Ключи ink/blur/... сохранены для совместимости. */
 export const SMARTLINK_PRESETS = [
@@ -138,6 +171,14 @@ export type SmartlinkTheme = {
   previewAudioEnabled: boolean
   /** Секунда старта хука в исходном треке. */
   previewAudioStartSec: number
+  /** Фон - в произвольном режиме выбирается отдельно от шаблона. */
+  bgStyle: SmartlinkBgStyle
+  /** Формат кнопок стримов (неон, капсула, дневник…). */
+  buttonFormat: SmartlinkButtonFormat
+  /** Как показана обложка (винил, кассета, постер…). */
+  coverFormat: SmartlinkCoverFormat
+  /** Hover у списка кнопок. */
+  hoverEffect: SmartlinkHoverEffect
   platformOrder?: PlatformLinkKey[]
   otherLabel?: string
   extraLinks?: SmartlinkExtraLink[]
@@ -158,6 +199,7 @@ export const DEFAULT_SMARTLINK_THEME: SmartlinkTheme = {
   animationSpeed: 100,
   previewAudioEnabled: false,
   previewAudioStartSec: 0,
+  ...SMARTLINK_PRESET_VISUALS.ink,
   socials: { ...DEFAULT_SMARTLINK_SOCIALS, items: [] },
 }
 
@@ -227,10 +269,23 @@ export const SMARTLINK_CUSTOM_DEFAULT_PRESET: SmartlinkCustomSurface = "ink"
 /** Рекомендуемые поля при выборе пресета в редакторе. */
 export type SmartlinkPresetLook = Pick<
   SmartlinkTheme,
-  "buttons" | "buttonBorder" | "buttonShadow" | "cover" | "coverShadow" | "font" | "platformLayout"
+  | "buttons"
+  | "buttonBorder"
+  | "buttonShadow"
+  | "cover"
+  | "coverShadow"
+  | "font"
+  | "platformLayout"
+  | "bgStyle"
+  | "buttonFormat"
+  | "coverFormat"
+  | "hoverEffect"
 >
 
-export const SMARTLINK_PRESET_LOOK: Record<SmartlinkPreset, SmartlinkPresetLook> = {
+const SMARTLINK_PRESET_LOOK_CORE: Record<
+  SmartlinkPreset,
+  Omit<SmartlinkPresetLook, keyof SmartlinkVisualPack>
+> = {
   ink: {
     buttons: "solid",
     buttonBorder: true,
@@ -512,6 +567,14 @@ export const SMARTLINK_PRESET_LOOK: Record<SmartlinkPreset, SmartlinkPresetLook>
   },
 }
 
+export const SMARTLINK_PRESET_LOOK: Record<SmartlinkPreset, SmartlinkPresetLook> =
+  Object.fromEntries(
+    SMARTLINK_PRESETS.map((preset) => [
+      preset,
+      { ...SMARTLINK_PRESET_LOOK_CORE[preset], ...SMARTLINK_PRESET_VISUALS[preset] },
+    ]),
+  ) as Record<SmartlinkPreset, SmartlinkPresetLook>
+
 export const SMARTLINK_FONT_META: Record<SmartlinkFont, { label: string; stack: string }> = {
   sans: {
     label: "Sans",
@@ -663,8 +726,10 @@ export function parseSmartlinkTheme(raw: unknown): SmartlinkTheme {
       ? obj.otherLabel.trim().slice(0, 40)
       : undefined
   const socials = parseSmartlinkSocials(obj.socials)
+  const preset = isSmartlinkPreset(obj.preset) ? obj.preset : DEFAULT_SMARTLINK_THEME.preset
+  const presetVisuals = SMARTLINK_PRESET_VISUALS[preset]
   return {
-    preset: isSmartlinkPreset(obj.preset) ? obj.preset : DEFAULT_SMARTLINK_THEME.preset,
+    preset,
     accent,
     buttons: isSmartlinkButtonStyle(obj.buttons) ? obj.buttons : DEFAULT_SMARTLINK_THEME.buttons,
     buttonBorder:
@@ -687,6 +752,16 @@ export function parseSmartlinkTheme(raw: unknown): SmartlinkTheme {
         ? obj.previewAudioEnabled
         : DEFAULT_SMARTLINK_THEME.previewAudioEnabled,
     previewAudioStartSec: clampPreviewStartSec(obj.previewAudioStartSec),
+    bgStyle: isSmartlinkBgStyle(obj.bgStyle) ? obj.bgStyle : presetVisuals.bgStyle,
+    buttonFormat: isSmartlinkButtonFormat(obj.buttonFormat)
+      ? obj.buttonFormat
+      : presetVisuals.buttonFormat,
+    coverFormat: isSmartlinkCoverFormat(obj.coverFormat)
+      ? obj.coverFormat
+      : presetVisuals.coverFormat,
+    hoverEffect: isSmartlinkHoverEffect(obj.hoverEffect)
+      ? obj.hoverEffect
+      : presetVisuals.hoverEffect,
     platformOrder: sanitizePlatformOrder(obj.platformOrder),
     otherLabel,
     extraLinks: sanitizeExtraLinks(obj.extraLinks),
@@ -727,6 +802,10 @@ export function serializeSmartlinkTheme(theme: SmartlinkTheme): string {
     animationSpeed: normalized.animationSpeed,
     previewAudioEnabled: normalized.previewAudioEnabled,
     previewAudioStartSec: normalized.previewAudioStartSec,
+    bgStyle: normalized.bgStyle,
+    buttonFormat: normalized.buttonFormat,
+    coverFormat: normalized.coverFormat,
+    hoverEffect: normalized.hoverEffect,
     socials: normalized.socials,
   }
   if (normalized.platformOrder?.length) payload.platformOrder = normalized.platformOrder
@@ -831,53 +910,40 @@ function detailOff(reason: string): SmartlinkDetailCap {
   return { enabled: false, reason }
 }
 
-/** Пресеты, где вид кнопок целиком задан характером стиля. */
-const PRESETS_LOCK_BUTTONS = new Set<SmartlinkPreset>([
-  "neon",
-  "film",
-  "ticket",
-  "terminal",
-  "inkblot",
-  "carbon",
-  "sunset",
-  "grid",
-  "graffiti",
-  "stage",
-  "rave",
-  "arcade",
-  "vhs",
-  "zine",
-  "chrome",
-  "noir",
-  "stamp",
-  "holo",
-  "diary",
-  "polaroid",
-])
+/** Cover/layout formats that imply icons-only presentation. */
+const COVER_FORCE_ICONS = new Set<SmartlinkCoverFormat>(["vinyl", "orbit"])
+const BUTTON_FORCE_ICONS = new Set<SmartlinkButtonFormat>(["grid", "rave"])
 
-const PRESETS_LOCK_COVER_SHAPE = new Set<SmartlinkPreset>([
-  "vinyl",
-  "orbit",
-  "cassette",
-  "cinema",
-  "poster",
-  "ticket",
-  "polaroid",
-])
+/**
+ * В произвольном режиме всё доступно.
+ * У готового шаблона часть полей можно менять; формат кнопок/фона - через отдельные селекты.
+ */
+export function smartlinkPresetDetailsCaps(
+  preset: SmartlinkPreset,
+  theme?: Pick<SmartlinkTheme, "buttonFormat" | "coverFormat" | "platformLayout">,
+): SmartlinkPresetDetailsCaps {
+  if (isSmartlinkCustomMode(preset)) {
+    return {
+      buttons: DETAIL_ON,
+      coverShape: DETAIL_ON,
+      platformLayout: DETAIL_ON,
+      buttonBorder: DETAIL_ON,
+      buttonShadow: DETAIL_ON,
+      coverShadow: DETAIL_ON,
+      font: DETAIL_ON,
+    }
+  }
 
-const PRESETS_FORCE_ICONS = new Set<SmartlinkPreset>(["vinyl", "grid", "rave", "orbit"])
+  const coverFormat = theme?.coverFormat ?? SMARTLINK_PRESET_VISUALS[preset].coverFormat
+  const buttonFormat = theme?.buttonFormat ?? SMARTLINK_PRESET_VISUALS[preset].buttonFormat
+  const forcesIcons =
+    COVER_FORCE_ICONS.has(coverFormat) || BUTTON_FORCE_ICONS.has(buttonFormat)
 
-export function smartlinkPresetDetailsCaps(preset: SmartlinkPreset): SmartlinkPresetDetailsCaps {
-  const label = SMARTLINK_PRESET_META[preset].label
   return {
-    buttons: PRESETS_LOCK_BUTTONS.has(preset)
-      ? detailOff(`Вид кнопок задаёт стиль «${label}»`)
-      : DETAIL_ON,
-    coverShape: PRESETS_LOCK_COVER_SHAPE.has(preset)
-      ? detailOff(`Форма обложки задана стилем «${label}»`)
-      : DETAIL_ON,
-    platformLayout: PRESETS_FORCE_ICONS.has(preset)
-      ? detailOff(`Стиль «${label}» - только значки`)
+    buttons: DETAIL_ON,
+    coverShape: DETAIL_ON,
+    platformLayout: forcesIcons
+      ? detailOff("Этот формат обложки / кнопок использует только значки")
       : DETAIL_ON,
     buttonBorder: DETAIL_ON,
     buttonShadow: DETAIL_ON,
@@ -886,6 +952,11 @@ export function smartlinkPresetDetailsCaps(preset: SmartlinkPreset): SmartlinkPr
   }
 }
 
-export function smartlinkForcesIcons(preset: SmartlinkPreset): boolean {
-  return PRESETS_FORCE_ICONS.has(preset)
+export function smartlinkForcesIcons(
+  preset: SmartlinkPreset,
+  theme?: Pick<SmartlinkTheme, "buttonFormat" | "coverFormat">,
+): boolean {
+  const coverFormat = theme?.coverFormat ?? SMARTLINK_PRESET_VISUALS[preset].coverFormat
+  const buttonFormat = theme?.buttonFormat ?? SMARTLINK_PRESET_VISUALS[preset].buttonFormat
+  return COVER_FORCE_ICONS.has(coverFormat) || BUTTON_FORCE_ICONS.has(buttonFormat)
 }

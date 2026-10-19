@@ -1,14 +1,18 @@
 "use client"
 
-import { useCallback, useId, useState } from "react"
+import { useCallback, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 import {
   ArrowLeft,
-  AudioLines,
   BarChart3,
+  Bookmark,
   Clapperboard,
+  Heart,
+  MessageCircle,
+  Music2,
+  Share2,
   Users,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -24,30 +28,21 @@ import {
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { cn } from "@/lib/utils"
 
-type PreviewItem = {
-  id: string
-  title: string
-  caption: string
-  poster?: string
-  video?: string
-}
+type PlatformId = "tiktok" | "instagram" | "youtube"
 
-const PREVIEWS: PreviewItem[] = [
-  {
-    id: "lifestyle",
-    title: "Лайфстайл",
-    caption: "Этот момент звучит так",
-  },
-  {
-    id: "music-in-frame",
-    title: "Музыка в кадре",
-    caption: "Твой трек на повторе",
-  },
-  {
-    id: "motion",
-    title: "Движение",
-    caption: "Поймал ритм",
-  },
+const EXAMPLE_VIDEO_SRC = "/videos/vertical-examples/example-2.mp4"
+const EXAMPLE_HANDLE = "your_artist"
+const EXAMPLE_TRACK = "Ваш трек"
+const EXAMPLE_ARTIST = "Артист"
+
+const PLATFORM_PREVIEWS: Array<{
+  id: PlatformId
+  label: string
+  caption: string
+}> = [
+  { id: "tiktok", label: "TikTok", caption: "Этот момент звучит так" },
+  { id: "instagram", label: "Instagram Reels", caption: "Твой трек на повторе" },
+  { id: "youtube", label: "YouTube Shorts", caption: "Поймал ритм" },
 ]
 
 const BENEFITS = [
@@ -155,12 +150,148 @@ function scrollToId(id: string) {
   el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })
 }
 
-function VerticalPreviewCard({
-  item,
+function PlatformChrome({
+  platform,
+  caption,
+}: {
+  platform: PlatformId
+  caption: string
+}) {
+  if (platform === "tiktok") {
+    return (
+      <>
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/60 to-transparent px-2.5 pb-8 pt-2">
+          <div className="flex items-center justify-center gap-3 text-[10px] font-medium text-white/80">
+            <span>Подписки</span>
+            <span className="border-b border-white pb-0.5 font-semibold text-white">Для вас</span>
+          </div>
+        </div>
+        <div className="pointer-events-none absolute bottom-12 right-2 z-20 flex flex-col items-center gap-3 text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-[#1a1a1a]">
+            <span className="text-[10px] font-bold">A</span>
+          </div>
+          <Heart className="h-5 w-5 fill-white/15" aria-hidden />
+          <MessageCircle className="h-5 w-5" aria-hidden />
+          <Bookmark className="h-5 w-5" aria-hidden />
+          <Share2 className="h-5 w-5" aria-hidden />
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 to-transparent px-2.5 pb-3 pt-10">
+          <p className="truncate text-[11px] font-semibold text-white">@{EXAMPLE_HANDLE}</p>
+          <p className="mt-0.5 line-clamp-2 text-[10px] text-white/90">{caption}</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-white/85">
+            <Music2 className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="truncate">
+              {EXAMPLE_ARTIST} - {EXAMPLE_TRACK}
+            </span>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (platform === "instagram") {
+    return (
+      <>
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-2.5 pb-8 pt-2">
+          <span className="text-[11px] font-semibold text-white">Reels</span>
+          <span className="text-[10px] text-white/70">Камера</span>
+        </div>
+        <div className="pointer-events-none absolute bottom-12 right-2 z-20 flex flex-col items-center gap-3 text-white">
+          <Heart className="h-5 w-5" aria-hidden />
+          <MessageCircle className="h-5 w-5" aria-hidden />
+          <Share2 className="h-5 w-5" aria-hidden />
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 to-transparent px-2.5 pb-3 pt-10">
+          <p className="truncate text-[11px] font-semibold text-white">{EXAMPLE_HANDLE}</p>
+          <p className="mt-0.5 line-clamp-2 text-[10px] text-white/90">{caption}</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-white/85">
+            <Music2 className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="truncate">
+              {EXAMPLE_ARTIST} · {EXAMPLE_TRACK}
+            </span>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/60 to-transparent px-2.5 pb-8 pt-2">
+        <span className="text-[11px] font-semibold text-white">Shorts</span>
+      </div>
+      <div className="pointer-events-none absolute bottom-12 right-2 z-20 flex flex-col items-center gap-3 text-white">
+        <Heart className="h-5 w-5" aria-hidden />
+        <MessageCircle className="h-5 w-5" aria-hidden />
+        <Share2 className="h-5 w-5" aria-hidden />
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 to-transparent px-2.5 pb-3 pt-10">
+        <p className="truncate text-[11px] font-semibold text-white">{EXAMPLE_HANDLE}</p>
+        <p className="mt-0.5 line-clamp-2 text-[10px] text-white/90">{caption}</p>
+        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-white/85">
+          <Music2 className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="truncate">Звук · {EXAMPLE_TRACK}</span>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const PREVIEW_VIDEO_FALLBACKS = [
+  EXAMPLE_VIDEO_SRC,
+  "/videos/vertical-examples/example-1.mp4",
+  "/videos/vertical-examples/example-3.mp4",
+] as const
+
+function PreviewVideoFill({ label }: { label: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [srcIndex, setSrcIndex] = useState(0)
+  const [failed, setFailed] = useState(false)
+  const activeSrc = PREVIEW_VIDEO_FALLBACKS[srcIndex] ?? PREVIEW_VIDEO_FALLBACKS[0]
+
+  if (failed) {
+    return (
+      <div
+        className="absolute inset-0 bg-[linear-gradient(165deg,#2a1520_0%,#141418_50%,#0c0b0e_100%)]"
+        aria-hidden
+      />
+    )
+  }
+
+  return (
+    <video
+      key={activeSrc}
+      ref={videoRef}
+      src={activeSrc}
+      className="absolute inset-0 h-full w-full object-cover"
+      playsInline
+      muted
+      loop
+      autoPlay
+      preload="metadata"
+      onError={() => {
+        setSrcIndex((prev) => {
+          const next = prev + 1
+          if (next < PREVIEW_VIDEO_FALLBACKS.length) return next
+          setFailed(true)
+          return prev
+        })
+      }}
+      aria-label={label}
+    />
+  )
+}
+
+function PlatformPhone({
+  platform,
+  label,
+  caption,
   size,
   tilt,
 }: {
-  item: PreviewItem
+  platform: PlatformId
+  label: string
+  caption: string
   size: "side" | "center"
   tilt?: "left" | "right"
 }) {
@@ -168,64 +299,83 @@ function VerticalPreviewCard({
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-[12px] border border-border",
-        "bg-[#141418] shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]",
+        "relative shrink-0",
         isCenter
           ? "z-10 w-[9.5rem] sm:w-[11rem] md:w-[12.5rem]"
-          : "z-0 w-[7.25rem] opacity-80 sm:w-[8.25rem] md:w-[9rem]",
+          : "z-0 w-[7.25rem] opacity-95 sm:w-[8.25rem] md:w-[9rem]",
         tilt === "left" && "origin-bottom rotate-[-8deg] translate-y-4 sm:translate-y-5",
         tilt === "right" && "origin-bottom rotate-[8deg] translate-y-4 sm:translate-y-5",
         isCenter && "translate-y-0",
       )}
     >
-      <div className="relative aspect-[9/16] w-full">
-        {item.poster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div
-            className={cn(
-              "absolute inset-0 flex flex-col justify-between p-3 sm:p-3.5",
-              "bg-[linear-gradient(165deg,#1a1216_0%,#141418_45%,#0c0b0e_100%)]",
-            )}
-            aria-hidden="true"
-          >
-            <p
-              className={cn(
-                "font-semibold leading-snug tracking-tight text-foreground",
-                isCenter ? "text-sm sm:text-base" : "text-xs sm:text-sm",
-              )}
-            >
-              {item.caption}
-            </p>
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#FFB2BF]/90">
-                {item.title}
-              </p>
-              <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-border bg-muted/75 px-2 py-1.5">
-                <AudioLines className="h-3.5 w-3.5 shrink-0 text-[#F51B40]" aria-hidden />
-                <span className="truncate text-[11px] text-muted-foreground">Звук: ваш трек</span>
-              </div>
-            </div>
-          </div>
+      <p
+        className={cn(
+          "mb-1.5 text-center font-medium text-muted-foreground",
+          isCenter ? "text-[11px]" : "text-[10px]",
         )}
+      >
+        {label}
+      </p>
+      <div
+        className={cn(
+          "relative overflow-hidden border-[5px] border-[#1A181E] bg-[#0B0A0E]",
+          "shadow-[0_16px_36px_-20px_rgba(0,0,0,0.85)]",
+          isCenter ? "rounded-[28px]" : "rounded-[24px]",
+        )}
+      >
+        <div
+          className={cn(
+            "absolute left-1/2 top-[6px] z-40 h-3.5 -translate-x-1/2 rounded-full bg-[#050506]",
+            isCenter ? "w-14" : "w-11",
+          )}
+          aria-hidden
+        />
+        <div className="relative aspect-[9/16] w-full overflow-hidden">
+          <PreviewVideoFill label={`Пример в ${label}`} />
+          <PlatformChrome platform={platform} caption={caption} />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-1 z-30 flex justify-center"
+            aria-hidden
+          >
+            <span className="h-1 w-16 rounded-full bg-white/50" />
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
 function PreviewComposition() {
-  const left = PREVIEWS[0]
-  const center = PREVIEWS[1]
-  const right = PREVIEWS[2]
+  const left = PLATFORM_PREVIEWS[0]!
+  const center = PLATFORM_PREVIEWS[1]!
+  const right = PLATFORM_PREVIEWS[2]!
   return (
     <div className="mx-auto w-full max-w-md">
       <div className="flex items-end justify-center gap-2 px-2 sm:gap-3 sm:px-4">
-        <VerticalPreviewCard item={left} size="side" tilt="left" />
-        <VerticalPreviewCard item={center} size="center" />
-        <VerticalPreviewCard item={right} size="side" tilt="right" />
+        <PlatformPhone
+          platform={left.id}
+          label={left.label}
+          caption={left.caption}
+          size="side"
+          tilt="left"
+        />
+        <PlatformPhone
+          platform={center.id}
+          label={center.label}
+          caption={center.caption}
+          size="center"
+        />
+        <PlatformPhone
+          platform={right.id}
+          label={right.label}
+          caption={right.caption}
+          size="side"
+          tilt="right"
+        />
       </div>
-      <p className="mt-5 text-center text-xs text-muted-foreground">Примеры визуальной подачи</p>
+      <p className="mt-5 text-center text-xs text-muted-foreground">
+        Примеры визуальной подачи в TikTok, Reels и Shorts
+      </p>
     </div>
   )
 }

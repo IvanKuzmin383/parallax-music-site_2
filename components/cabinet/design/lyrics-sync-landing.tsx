@@ -161,11 +161,11 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
           <h1 className="text-[2rem] font-bold leading-[1.08] tracking-tight break-words text-foreground sm:text-4xl md:text-5xl lg:text-[3.15rem]">
             Вашу песню слушают.
             <br />
-            Теперь ей подпевают.
+            Теперь ей подпевают
           </h1>
           <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
             Синхронизируем строки текста с вокалом. В плеере с поддержкой синхронизации слова
-            появляются в нужный момент - слушателю проще следить за песней и подпевать.
+            появляются в нужный момент - слушателю проще следить за песней и подпевать
           </p>
 
           <div className="space-y-1">
@@ -194,7 +194,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
           </p>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
             Оформление доступно в шаге дополнительных услуг при загрузке релиза. Эта страница -
-            описание услуги.
+            описание услуги
           </p>
         </div>
 
@@ -230,11 +230,11 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             Зачем это вашему треку
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-[1.75rem]">
-            Слушать. Читать. Подпевать.
+            Слушать Читать Подпевать
           </h2>
           <p className="max-w-2xl text-[15px] text-muted-foreground">
             Слова становятся частью прослушивания. Любимые строчки можно прочитать и повторить
-            вместе с песней.
+            вместе с песней
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
@@ -264,10 +264,10 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             Что входит в работу
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-[1.75rem]">
-            У каждой строки своё время.
+            У каждой строки своё время
           </h2>
           <p className="max-w-2xl text-[15px] text-muted-foreground">
-            Подготовим разметку по финальной записи песни и проверим её вместе с аудио.
+            Подготовим разметку по финальной записи песни и проверим её вместе с аудио
           </p>
         </div>
         <ul className="space-y-3">
@@ -291,7 +291,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
         </ul>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Отображение зависит от поддержки функции конкретным плеером и способа размещения. Мы
-          готовим разметку для дальнейшей передачи - без обещания публикации на всех площадках.
+          готовим разметку для дальнейшей передачи - без обещания публикации на всех площадках
         </p>
       </section>
 
@@ -301,7 +301,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             Как проходит работа
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-[1.75rem]">
-            От готового текста до строки на экране.
+            От готового текста до строки на экране
           </h2>
         </div>
         <ol className="grid gap-3 md:grid-cols-3">
@@ -328,7 +328,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
           Отметьте «Синхронизация текста» в дополнительных услугах при загрузке релиза. Текст песни
           уже есть в карточке трека - отдельно форму на этой странице заполнять не нужно. Стоимость:{" "}
-          <span className="font-semibold text-foreground">{priceLabel}</span> за трек.
+          <span className="font-semibold text-foreground">{priceLabel}</span> за трек
         </p>
         <div className="mt-5">
           <Button className="h-11 min-h-11 px-5" asChild>

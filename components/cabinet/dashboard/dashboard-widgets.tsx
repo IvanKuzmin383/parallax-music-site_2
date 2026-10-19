@@ -71,7 +71,18 @@ import type { MusicStatsResponse } from "@/lib/music-stats-shared"
 import { isReleaseDateWeekend } from "@/lib/release-date-validation"
 import { isReleaseDateSelectable } from "@/lib/release-date-tiers"
 import { cn } from "@/lib/utils"
+import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-gate"
 import { dashboardGlassPanelClass } from "./dashboard-glass"
+
+async function goUploadOrToast(router: ReturnType<typeof useRouter>, href: string) {
+  const block = await getReleaseUploadStartBlockReason()
+  if (block) {
+    toast.error(block.includes("профиль") ? block : block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
+    return
+  }
+  router.push(href)
+}
 
 function formatRub(amount: number): string {
   const n = Math.abs(amount) % 100
@@ -381,6 +392,7 @@ export function DashboardStatsPanel() {
 }
 
 export function DashboardNextRelease({ release }: { release: ReleaseView | null }) {
+  const router = useRouter()
   const days = release ? daysUntilRelease(release.releaseDate) : null
   const href = release
     ? usesWizardAction(release)
@@ -395,8 +407,8 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-4 rounded-xl bg-muted/20 p-6 text-center">
           <Music className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Нет запланированных релизов</p>
-          <Button asChild>
-            <Link href="/cabinet/upload">Загрузить релиз</Link>
+          <Button type="button" onClick={() => void goUploadOrToast(router, "/cabinet/upload")}>
+            Загрузить релиз
           </Button>
         </div>
       </section>
@@ -670,7 +682,7 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
       return
     }
     const key = format(day, "yyyy-MM-dd")
-    router.push(`/cabinet/upload?date=${encodeURIComponent(key)}`)
+    void goUploadOrToast(router, `/cabinet/upload?date=${encodeURIComponent(key)}`)
   }
 
   return (

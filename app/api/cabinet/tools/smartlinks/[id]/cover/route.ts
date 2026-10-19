@@ -10,6 +10,11 @@ import {
   smartlinkUploadsDir,
   updateSmartlink,
 } from "@/lib/cabinet-smartlinks"
+import {
+  isToolCoverInputMime,
+  normalizeToolCoverBuffer,
+  TOOL_COVER_MAX_INPUT_BYTES,
+} from "@/lib/normalize-tool-cover"
 
 export const runtime = "nodejs"
 
@@ -21,9 +26,29 @@ async function requireOwned(id: string, email: string) {
   return link
 }
 
+function contentTypeForCoverPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase()
+  if (ext === ".webp") return "image/webp"
+  if (ext === ".png") return "image/png"
+  return "image/jpeg"
+}
+
+async function removeSiblingCovers(dir: string, keepName: string) {
+  try {
+    const names = await fs.readdir(dir)
+    await Promise.all(
+      names
+        .filter((n) => /^cover\.(jpe?g|png|webp)$/i.test(n) && n !== keepName)
+        .map((n) => fs.unlink(path.join(dir, n)).catch(() => undefined)),
+    )
+  } catch {
+    // dir may not exist yet
+  }
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const token = getCabinetToken(request)
   const session = getCabinetSession(token)
@@ -35,10 +60,11 @@ export async function GET(
 
   try {
     const stream = createReadStream(link.coverPath)
-    const ext = path.extname(link.coverPath).toLowerCase()
-    const type = ext === ".png" ? "image/png" : "image/jpeg"
     return new NextResponse(Readable.toWeb(stream) as ReadableStream, {
-      headers: { "Content-Type": type, "Cache-Control": "private, max-age=60" },
+      headers: {
+        "Content-Type": contentTypeForCoverPath(link.coverPath),
+        "Cache-Control": "private, max-age=60",
+      },
     })
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -47,7 +73,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const token = getCabinetToken(request)
   const session = getCabinetSession(token)
@@ -62,19 +88,39 @@ export async function POST(
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Файл не передан" }, { status: 400 })
   }
-  if (file.size > 8 * 1024 * 1024) {
+  if (file.size > TOOL_COVER_MAX_INPUT_BYTES) {
     return NextResponse.json({ error: "Обложка не больше 8 МБ" }, { status: 400 })
   }
-  const type = file.type
-  if (type !== "image/jpeg" && type !== "image/png") {
-    return NextResponse.json({ error: "Нужен JPEG или PNG" }, { status: 400 })
+  if (!isToolCoverInputMime(file.type)) {
+    return NextResponse.json(
+      { error: "Нужен JPEG, PNG или WebP" },
+      { status: 400 },
+    )
+  }
+
+  let normalized
+  try {
+    const raw = Buffer.from(await file.arrayBuffer())
+    normalized = await normalizeToolCoverBuffer(raw)
+  } catch (error) {
+    console.error("[tools/smartlinks/cover] normalize", error)
+    return NextResponse.json(
+      { error: "Не удалось обработать обложку" },
+      { status: 400 },
+    )
   }
 
   const dir = await smartlinkUploadsDir(id)
-  const ext = type === "image/png" ? "png" : "jpg"
-  const dest = path.join(dir, `cover.${ext}`)
-  const buf = Buffer.from(await file.arrayBuffer())
-  await fs.writeFile(dest, buf)
+  const fileName = `cover.${normalized.ext}`
+  const dest = path.join(dir, fileName)
+  await fs.writeFile(dest, normalized.buffer)
+  await removeSiblingCovers(dir, fileName)
   await updateSmartlink(id, { coverPath: dest })
-  return NextResponse.json({ ok: true, coverUrl: `/api/cabinet/tools/smartlinks/${id}/cover` })
+
+  return NextResponse.json({
+    ok: true,
+    coverUrl: `/api/cabinet/tools/smartlinks/${id}/cover`,
+    width: normalized.width,
+    height: normalized.height,
+  })
 }

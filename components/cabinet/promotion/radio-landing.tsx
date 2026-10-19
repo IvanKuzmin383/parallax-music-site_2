@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import {
   ArrowLeft,
   CheckCircle2,
-  Disc3,
   FileCheck2,
   Radio,
   Sparkles,
@@ -23,6 +22,7 @@ import {
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { ServicePriceText } from "@/components/cabinet/shared/service-price-text"
 import { cn } from "@/lib/utils"
 
 const INCLUDE_CARDS = [
@@ -123,14 +123,14 @@ function RadioVitrineSample() {
 
           <div className="relative mx-auto mt-4 flex aspect-square w-full max-w-[12.5rem] items-center justify-center overflow-hidden rounded-[12px] bg-gradient-to-br from-[#2A1A22] via-[#1A1218] to-[#0E0C10]">
             <div
-              className="absolute inset-[18%] rounded-full border border-[#FFB4C3]/25 bg-[#1C1218]"
+              className="absolute inset-[14%] rounded-[18px] border border-[#FFB4C3]/20 bg-[#1C1218]/80"
               aria-hidden
             />
             <div
-              className="absolute inset-[34%] rounded-full border border-[#F01F43]/40 bg-[#0C0A0E]"
+              className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(240,31,67,0.22),transparent_58%)]"
               aria-hidden
             />
-            <Disc3 className="relative h-10 w-10 text-[#FFB4C3]/90" aria-hidden />
+            <Radio className="relative h-12 w-12 text-[#FFB4C3]" strokeWidth={1.5} aria-hidden />
           </div>
 
           <div className="mt-4 space-y-1">
@@ -180,8 +180,9 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
-  const priceLabel = service.priceLabel
   const features = service.features
+  const priceKey = service.priceKey ?? "radio"
+  const priceFallback = service.priceLabel
 
   const openOrderForm = useCallback((expandForm: boolean) => {
     if (expandForm) setFormOpen(true)
@@ -304,7 +305,9 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{priceLabel}</span>
+              <span className="font-medium text-foreground">
+                <ServicePriceText priceKey={priceKey} fallback={priceFallback} />
+              </span>
               {" "}
               за трек
             </p>
@@ -395,7 +398,9 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             <h3 className="text-lg font-semibold tracking-tight text-foreground">
               Размещение в радио-витрине
             </h3>
-            <p className="mt-2 text-2xl font-bold text-[#F01F43]">{priceLabel}</p>
+            <p className="mt-2 text-2xl font-bold text-[#F01F43]">
+              <ServicePriceText priceKey={priceKey} fallback={priceFallback} />
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">За один трек</p>
           </div>
 
