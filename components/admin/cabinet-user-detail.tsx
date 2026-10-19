@@ -167,6 +167,8 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
       artistName: str(u.artist_name),
       phone: str(u.phone),
       telegram: str(u.telegram),
+      vk: str(u.vk),
+      maxContact: str(u.max_contact ?? u.maxContact),
       lastName: str(u.last_name),
       firstName: str(u.first_name),
       patronymic: str(u.patronymic),
@@ -332,6 +334,8 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
       artistName: profile.artistName || null,
       phone: profile.phone || null,
       telegram: profile.telegram || null,
+      vk: profile.vk || null,
+      maxContact: profile.maxContact || null,
       lastName: profile.lastName || null,
       firstName: profile.firstName || null,
       patronymic: profile.patronymic || null,
@@ -664,10 +668,22 @@ export function CabinetUserDetail({ userId }: { userId: string }) {
                 <Field label="Телефон">
                   <Input value={profile.phone} onChange={(e) => setProfileField("phone", e.target.value)} />
                 </Field>
-                <Field label="Telegram">
+                <Field label="Телеграм">
                   <Input
                     value={profile.telegram}
                     onChange={(e) => setProfileField("telegram", e.target.value)}
+                  />
+                </Field>
+                <Field label="ВК">
+                  <Input
+                    value={profile.vk}
+                    onChange={(e) => setProfileField("vk", e.target.value)}
+                  />
+                </Field>
+                <Field label="Макс">
+                  <Input
+                    value={profile.maxContact}
+                    onChange={(e) => setProfileField("maxContact", e.target.value)}
                   />
                 </Field>
                 <Field label="Email для документов">

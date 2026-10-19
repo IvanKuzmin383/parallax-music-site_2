@@ -96,6 +96,8 @@ const optionalBankCorrespondentSchema = z.preprocess(
 const sharedProfileFields = {
   phone: phoneSchema,
   telegram: telegramSchema.optional(),
+  vk: optionalTrimmed(200),
+  maxContact: optionalTrimmed(200),
   artistName: optionalTrimmed(100),
   bankAccountNumber: optionalBankAccountSchema,
   bankBic: optionalBankBicSchema,
@@ -121,7 +123,8 @@ const individualProfileSchema = z.object({
   counterpartyType: z.literal("individual"),
   lastName: z.string().trim().min(1, "Фамилия обязательна").max(100),
   firstName: z.string().trim().min(1, "Имя обязательно").max(100),
-  patronymic: z.string().trim().min(1, "Отчество обязательно").max(100),
+  /** Пусто допустимо, если в форме отмечено «Без отчества». */
+  patronymic: optionalTrimmed(100),
   registrationAddress: z.string().trim().min(5, "Укажите адрес регистрации").max(300),
   ...sharedProfileFields,
 })
@@ -168,12 +171,18 @@ const legalEntityProfileSchema = z.object({
   signatoryFullName: z.string().trim().min(3, "Укажите ФИО подписанта").max(200),
   signatoryPosition: z.string().trim().min(2, "Укажите должность").max(100),
   signatoryAuthorityBasis: z.string().trim().min(2, "Укажите основание полномочий").max(300),
-  bankAccountNumber: bankAccountSchema,
-  bankBic: bankBicSchema,
-  bankName: z.string().trim().min(2, "Укажите наименование банка").max(200),
+  /** Реквизиты указываются в заявке на вывод, в профиле не обязательны. */
+  bankAccountNumber: optionalBankAccountSchema,
+  bankBic: optionalBankBicSchema,
+  bankName: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z.string().trim().min(2, "Укажите наименование банка").max(200).optional()
+  ),
   bankCorrespondentAccount: optionalBankCorrespondentSchema,
   phone: phoneSchema,
   telegram: telegramSchema.optional(),
+  vk: optionalTrimmed(200),
+  maxContact: optionalTrimmed(200),
   artistName: optionalTrimmed(100),
   documentsEmail: z
     .string()
@@ -215,13 +224,6 @@ function phoneOk(user: CabinetUser): boolean {
   return phone.length >= 5 && /[0-9]/.test(phone) && /^[0-9+\-() ]+$/.test(phone)
 }
 
-function bankOkForLegal(user: CabinetUser): boolean {
-  const acc = user.bankAccountNumber?.trim() ?? ""
-  const bic = user.bankBic?.trim() ?? ""
-  const bank = user.bankName?.trim() ?? ""
-  return validateBankAccount(normalizeDigits(acc)) && validateBik(normalizeDigits(bic)) && bank.length >= 2
-}
-
 export function cabinetProfileCompleteForUpload(user: CabinetUser | null | undefined): boolean {
   if (!user || !phoneOk(user)) return false
 
@@ -233,9 +235,8 @@ export function cabinetProfileCompleteForUpload(user: CabinetUser | null | undef
   if (type === "individual") {
     const lastName = user.lastName?.trim() ?? ""
     const firstName = user.firstName?.trim() ?? ""
-    const patronymic = user.patronymic?.trim() ?? ""
     const address = user.registrationAddress?.trim() ?? ""
-    return lastName.length >= 1 && firstName.length >= 1 && patronymic.length >= 1 && address.length >= 5
+    return lastName.length >= 1 && firstName.length >= 1 && address.length >= 5
   }
 
   if (type === "sole_proprietor") {
@@ -270,8 +271,7 @@ export function cabinetProfileCompleteForUpload(user: CabinetUser | null | undef
     legalAddress.length >= 5 &&
     signatory.length >= 3 &&
     position.length >= 2 &&
-    basis.length >= 2 &&
-    bankOkForLegal(user)
+    basis.length >= 2
   )
 }
 
@@ -293,9 +293,13 @@ export type ProfileFormValues = {
   lastName: string
   firstName: string
   patronymic: string
+  /** UI: нет отчества в документах - поле не обязательно. */
+  noPatronymic: boolean
   ipFullName: string
   phone: string
   telegram: string
+  vk: string
+  maxContact: string
   registrationAddress: string
   legalAddress: string
   postalAddress: string
@@ -325,9 +329,12 @@ export const emptyProfileFormValues = (): ProfileFormValues => ({
   lastName: "",
   firstName: "",
   patronymic: "",
+  noPatronymic: false,
   ipFullName: "",
   phone: "",
   telegram: "",
+  vk: "",
+  maxContact: "",
   registrationAddress: "",
   legalAddress: "",
   postalAddress: "",
@@ -358,15 +365,21 @@ export function cabinetUserToProfileFormValues(user: Omit<CabinetUser, "password
       ? user.counterpartyType
       : "individual"
 
+  const patronymic = user.patronymic ?? ""
+  const hasName = Boolean((user.lastName ?? "").trim() || (user.firstName ?? "").trim())
+
   return {
     ...emptyProfileFormValues(),
     counterpartyType: type,
     lastName: user.lastName ?? "",
     firstName: user.firstName ?? "",
-    patronymic: user.patronymic ?? "",
+    patronymic,
+    noPatronymic: hasName && !patronymic.trim(),
     ipFullName: user.ipFullName ?? "",
     phone: user.phone ?? "",
     telegram: user.telegram ?? "",
+    vk: user.vk ?? "",
+    maxContact: user.maxContact ?? "",
     registrationAddress: user.registrationAddress ?? "",
     legalAddress: user.legalAddress ?? "",
     postalAddress: user.postalAddress ?? "",
@@ -426,6 +439,8 @@ export function profileFormValuesToPatch(
   const shared = {
     phone: values.phone,
     telegram: values.telegram || undefined,
+    vk: values.vk || undefined,
+    maxContact: values.maxContact || undefined,
     artistName: values.artistName || undefined,
     bankAccountNumber: values.bankAccountNumber || undefined,
     bankBic: values.bankBic || undefined,
@@ -459,12 +474,14 @@ export function profileFormValuesToPatch(
       signatoryFullName: values.signatoryFullName,
       signatoryPosition: values.signatoryPosition,
       signatoryAuthorityBasis: values.signatoryAuthorityBasis,
-      bankAccountNumber: values.bankAccountNumber,
-      bankBic: values.bankBic,
-      bankName: values.bankName,
+      bankAccountNumber: values.bankAccountNumber || undefined,
+      bankBic: values.bankBic || undefined,
+      bankName: values.bankName || undefined,
       bankCorrespondentAccount: values.bankCorrespondentAccount || undefined,
       phone: values.phone,
       telegram: values.telegram || undefined,
+      vk: values.vk || undefined,
+      maxContact: values.maxContact || undefined,
       artistName: values.artistName || undefined,
       documentsEmail: values.documentsEmail || undefined,
       vatPayer: values.vatPayer,
@@ -478,7 +495,7 @@ export function profileFormValuesToPatch(
     counterpartyType: "individual",
     lastName: values.lastName,
     firstName: values.firstName,
-    patronymic: values.patronymic,
+    patronymic: values.noPatronymic ? "" : values.patronymic,
     registrationAddress: values.registrationAddress,
     ...shared,
   }

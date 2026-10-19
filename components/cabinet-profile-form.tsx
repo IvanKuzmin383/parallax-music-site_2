@@ -42,9 +42,22 @@ export function CabinetProfileForm({
   const form = useForm<ProfileFormValues>({ defaultValues })
   const counterpartyType = defaultValues.counterpartyType
   const edoRequired = form.watch("edoRequired")
+  const noPatronymic = form.watch("noPatronymic")
   const showTaxBlock = counterpartyType === "legal_entity" || counterpartyType === "sole_proprietor"
 
   const onSubmit = async (values: ProfileFormValues) => {
+    if (
+      counterpartyType === "individual" &&
+      !values.noPatronymic &&
+      !values.patronymic.trim()
+    ) {
+      form.setError("patronymic", {
+        message: "Укажите отчество или отметьте «Без отчества»",
+      })
+      toast.error("Укажите отчество или отметьте «Без отчества»")
+      return
+    }
+
     onSavingChange(true)
     const payload = profileFormValuesToPatch(values, counterpartyType)
     const parsed = profilePatchSchema.safeParse(payload)
@@ -98,8 +111,27 @@ export function CabinetProfileForm({
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Отчество *</Label>
-            <Input placeholder="Иванович" {...form.register("patronymic")} disabled={saving} />
+            <Label>{noPatronymic ? "Отчество" : "Отчество *"}</Label>
+            <Input
+              placeholder={noPatronymic ? "Не требуется" : "Иванович"}
+              {...form.register("patronymic")}
+              disabled={saving || noPatronymic}
+            />
+            <label className="flex items-center gap-2 pt-1 text-sm text-muted-foreground cursor-pointer">
+              <Checkbox
+                checked={noPatronymic}
+                disabled={saving}
+                onCheckedChange={(checked) => {
+                  const on = checked === true
+                  form.setValue("noPatronymic", on, { shouldDirty: true })
+                  if (on) {
+                    form.setValue("patronymic", "", { shouldDirty: true, shouldValidate: true })
+                    form.clearErrors("patronymic")
+                  }
+                }}
+              />
+              Без отчества
+            </label>
             <FieldError message={form.formState.errors.patronymic?.message} />
           </div>
           <div className="space-y-2">
@@ -225,10 +257,36 @@ export function CabinetProfileForm({
         <FieldError message={form.formState.errors.phone?.message} />
       </div>
 
-      <div className="space-y-2">
-        <Label>Telegram username</Label>
-        <Input placeholder="@username" {...form.register("telegram")} disabled={saving} />
-        <FieldError message={form.formState.errors.telegram?.message} />
+      <div className="space-y-3 rounded-lg border p-4">
+        <h3 className="text-sm font-medium">Контакты/связь</h3>
+        <p className="text-xs text-muted-foreground">
+          Укажите удобные способы связи - хотя бы один дополнительно к телефону.
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label>Телеграм</Label>
+            <Input placeholder="@username" {...form.register("telegram")} disabled={saving} />
+            <FieldError message={form.formState.errors.telegram?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>ВК</Label>
+            <Input
+              placeholder="vk.com/id или @page"
+              {...form.register("vk")}
+              disabled={saving}
+            />
+            <FieldError message={form.formState.errors.vk?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Макс</Label>
+            <Input
+              placeholder="Ник или номер в Макс"
+              {...form.register("maxContact")}
+              disabled={saving}
+            />
+            <FieldError message={form.formState.errors.maxContact?.message} />
+          </div>
+        </div>
       </div>
 
       {(counterpartyType === "legal_entity" || counterpartyType === "sole_proprietor") && (
@@ -248,38 +306,6 @@ export function CabinetProfileForm({
         <Label>Имя артиста</Label>
         <Input placeholder="Название артиста" {...form.register("artistName")} disabled={saving} />
         <FieldError message={form.formState.errors.artistName?.message} />
-      </div>
-
-      <div className="space-y-3 rounded-lg border p-4">
-        <h3 className="text-sm font-medium">
-          Реквизиты для выплат роялти
-          {counterpartyType === "legal_entity" ? " *" : ""}
-        </h3>
-
-        <div className="space-y-2">
-          <Label>Расчётный счёт{counterpartyType === "legal_entity" ? " *" : ""}</Label>
-          <Input placeholder="20 цифр" {...form.register("bankAccountNumber")} disabled={saving} inputMode="numeric" />
-          <FieldError message={form.formState.errors.bankAccountNumber?.message} />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>БИК{counterpartyType === "legal_entity" ? " *" : ""}</Label>
-            <Input placeholder="044525225" {...form.register("bankBic")} disabled={saving} inputMode="numeric" />
-            <FieldError message={form.formState.errors.bankBic?.message} />
-          </div>
-          <div className="space-y-2">
-            <Label>Корреспондентский счёт</Label>
-            <Input placeholder="20 цифр" {...form.register("bankCorrespondentAccount")} disabled={saving} inputMode="numeric" />
-            <FieldError message={form.formState.errors.bankCorrespondentAccount?.message} />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Наименование банка{counterpartyType === "legal_entity" ? " *" : ""}</Label>
-          <Input placeholder="АО «Банк ...»" {...form.register("bankName")} disabled={saving} />
-          <FieldError message={form.formState.errors.bankName?.message} />
-        </div>
       </div>
 
       {showTaxBlock ? (

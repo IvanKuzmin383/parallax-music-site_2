@@ -13,6 +13,10 @@ export interface CabinetUser {
   createdAt: string
   artistName?: string
   telegram?: string
+  /** Username / ссылка ВКонтакте */
+  vk?: string
+  /** Контакт в мессенджере Макс */
+  maxContact?: string
   lastName?: string
   firstName?: string
   patronymic?: string
@@ -83,6 +87,8 @@ interface CabinetUserRow {
   created_at: string
   artist_name: string | null
   telegram: string | null
+  vk?: string | null
+  max_contact?: string | null
   last_name: string | null
   first_name: string | null
   patronymic: string | null
@@ -171,6 +177,8 @@ function rowToUser(row: CabinetUserRow): CabinetUser {
     createdAt: row.created_at,
     artistName: row.artist_name ?? undefined,
     telegram: row.telegram ?? undefined,
+    vk: row.vk ?? undefined,
+    maxContact: row.max_contact ?? undefined,
     lastName: row.last_name ?? undefined,
     firstName: row.first_name ?? undefined,
     patronymic: row.patronymic ?? undefined,
@@ -528,6 +536,8 @@ export async function updateCabinetUserAdminProfile(
   const allowed: Record<string, string> = {
     artistName: "artist_name",
     telegram: "telegram",
+    vk: "vk",
+    maxContact: "max_contact",
     phone: "phone",
     lastName: "last_name",
     firstName: "first_name",
@@ -650,6 +660,8 @@ export async function updateCabinetUserProfile(
     counterparty_type: params.counterpartyType,
     phone: params.phone,
     telegram: params.telegram?.trim() || null,
+    vk: nullIfEmpty(params.vk ?? null),
+    max_contact: nullIfEmpty(params.maxContact ?? null),
     artist_name: nullIfEmpty(params.artistName ?? null),
     documents_email: nullIfEmpty(
       "documentsEmail" in params ? (params.documentsEmail as string | undefined) : null
@@ -665,11 +677,23 @@ export async function updateCabinetUserProfile(
 
   let typeFields: Record<string, string | boolean | null>
 
+  /** Банковские реквизиты больше не редактируются в профиле - не затираем при пустом PATCH. */
+  const keepBank = {
+    account: user.bankAccountNumber ?? null,
+    bic: user.bankBic ?? null,
+    name: user.bankName ?? null,
+    corr: user.bankCorrespondentAccount ?? null,
+  }
+  const nextBankAccount = nullIfEmpty(params.bankAccountNumber ?? null) ?? keepBank.account
+  const nextBankBic = nullIfEmpty(params.bankBic ?? null) ?? keepBank.bic
+  const nextBankName = nullIfEmpty(params.bankName ?? null) ?? keepBank.name
+  const nextBankCorr = nullIfEmpty(params.bankCorrespondentAccount ?? null) ?? keepBank.corr
+
   if (params.counterpartyType === "individual") {
     typeFields = {
       last_name: params.lastName,
       first_name: params.firstName,
-      patronymic: params.patronymic,
+      patronymic: nullIfEmpty(params.patronymic ?? null),
       registration_address: params.registrationAddress.trim(),
       ip_full_name: null,
       company_full_name: null,
@@ -683,10 +707,10 @@ export async function updateCabinetUserProfile(
       signatory_full_name: null,
       signatory_position: null,
       signatory_authority_basis: null,
-      bank_account_number: nullIfEmpty(params.bankAccountNumber ?? null),
-      bank_bic: nullIfEmpty(params.bankBic ?? null),
-      bank_name: nullIfEmpty(params.bankName ?? null),
-      bank_correspondent_account: nullIfEmpty(params.bankCorrespondentAccount ?? null),
+      bank_account_number: nextBankAccount,
+      bank_bic: nextBankBic,
+      bank_name: nextBankName,
+      bank_correspondent_account: nextBankCorr,
     }
   } else if (params.counterpartyType === "sole_proprietor") {
     typeFields = {
@@ -706,10 +730,10 @@ export async function updateCabinetUserProfile(
       signatory_full_name: null,
       signatory_position: null,
       signatory_authority_basis: null,
-      bank_account_number: nullIfEmpty(params.bankAccountNumber ?? null),
-      bank_bic: nullIfEmpty(params.bankBic ?? null),
-      bank_name: nullIfEmpty(params.bankName ?? null),
-      bank_correspondent_account: nullIfEmpty(params.bankCorrespondentAccount ?? null),
+      bank_account_number: nextBankAccount,
+      bank_bic: nextBankBic,
+      bank_name: nextBankName,
+      bank_correspondent_account: nextBankCorr,
     }
   } else {
     typeFields = {
@@ -729,10 +753,10 @@ export async function updateCabinetUserProfile(
       signatory_full_name: params.signatoryFullName.trim(),
       signatory_position: params.signatoryPosition.trim(),
       signatory_authority_basis: params.signatoryAuthorityBasis.trim(),
-      bank_account_number: params.bankAccountNumber,
-      bank_bic: params.bankBic,
-      bank_name: params.bankName.trim(),
-      bank_correspondent_account: nullIfEmpty(params.bankCorrespondentAccount ?? null),
+      bank_account_number: nextBankAccount,
+      bank_bic: nextBankBic,
+      bank_name: nextBankName,
+      bank_correspondent_account: nextBankCorr,
     }
   }
 
@@ -746,6 +770,8 @@ export async function updateCabinetUserProfile(
       patronymic = ?,
       phone = ?,
       telegram = ?,
+      vk = ?,
+      max_contact = ?,
       registration_address = ?,
       artist_name = ?,
       bank_account_number = ?,
@@ -778,6 +804,8 @@ export async function updateCabinetUserProfile(
       typeFields.patronymic,
       shared.phone,
       shared.telegram,
+      shared.vk,
+      shared.max_contact,
       typeFields.registration_address,
       shared.artist_name,
       typeFields.bank_account_number,
