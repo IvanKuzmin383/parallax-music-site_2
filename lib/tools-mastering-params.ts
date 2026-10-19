@@ -52,7 +52,7 @@ export type MasteringPreset = {
 /** Id режима без готового характера: тон задаётся крутилками вручную. */
 export const MANUAL_PRESET_ID = "manual"
 
-/** Нейтраль: почти без окраски (0% интенсивности и старт «Без характера»). */
+/** Нейтраль: почти без окраски (0% интенсивности и старт "Без характера"). */
 export const PRESET_NEUTRAL: MasteringPresetTone = {
   hpfHz: 20,
   lfShelfDb: 0,
@@ -99,7 +99,7 @@ export const MASTERING_PRESETS: MasteringPreset[] = [
   {
     id: "fire",
     label: "Огонь",
-    hint: "Громче и плотнее, с ярким верхом - для энергичных треков, которые должны «бить».",
+    hint: "Громче и плотнее, с ярким верхом - для энергичных треков, которые должны "бить".",
     params: {
       hpfHz: 28,
       lfShelfDb: 1.2,
@@ -139,7 +139,7 @@ export const MASTERING_PRESETS: MasteringPreset[] = [
   {
     id: "tape",
     label: "Лента",
-    hint: "Тёплый «аналоговый» характер: плотнее низ, мягче самые верха, лёгкая насыщенность.",
+    hint: "Тёплый "аналоговый" характер: плотнее низ, мягче самые верха, лёгкая насыщенность.",
     params: {
       hpfHz: 32,
       lfShelfDb: 1.8,
@@ -199,7 +199,7 @@ export const MASTERING_PRESETS: MasteringPreset[] = [
   {
     id: "cinematic",
     label: "Кинематографичность",
-    hint: "Глубже низ и мягкая динамика - более «киношный», атмосферный характер.",
+    hint: "Глубже низ и мягкая динамика - более "киношный", атмосферный характер.",
     params: {
       hpfHz: 28,
       lfShelfDb: 2,
@@ -299,7 +299,7 @@ export function blendPresetTone(preset: MasteringPresetTone, amountPct: number):
   }
 }
 
-/** EQ + soft gate for «Сглаживание». Cuts only - no compressor makeup. */
+/** EQ + soft gate for "Сглаживание". Cuts only - no compressor makeup. */
 export function smoothSettings(level: SmoothLevel): {
   enabled: boolean
   /** Peaking cut around presence / harshness (~3.5 kHz) */

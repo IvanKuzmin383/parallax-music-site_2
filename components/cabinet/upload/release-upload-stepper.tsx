@@ -77,7 +77,7 @@ export function ReleaseUploadStepper({
                 type="button"
                 className={className}
                 onClick={() => onStepClick?.(step.id)}
-                aria-label={`${step.id < currentStep ? "Перейти" : "Перейти вперёд"} к этапу «${step.label}»${ariaExtra}`}
+                aria-label={`${step.id < currentStep ? "Перейти" : "Перейти вперёд"} к этапу "${step.label}"${ariaExtra}`}
               >
                 {content}
               </button>

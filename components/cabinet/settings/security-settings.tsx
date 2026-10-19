@@ -373,7 +373,7 @@ export function SecuritySettings() {
             Активные сессии
           </CardTitle>
           <CardDescription>
-            Завершите чужие или старые входы. Текущую сессию завершите через «Выйти».
+            Завершите чужие или старые входы. Текущую сессию завершите через "Выйти".
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

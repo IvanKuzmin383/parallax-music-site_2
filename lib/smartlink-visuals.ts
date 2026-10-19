@@ -287,43 +287,84 @@ export function resolveSmartlinkVisualPack(theme: SmartlinkThemeVisualInput): Sm
   }
 }
 
-/** Флаги для лендинга - те же ветки, что раньше от preset ===. */
+/**
+ * Флаги для лендинга.
+ * Слои независимы: фон (bg*), кнопки (btn* / короткие is* для кнопок), обложка (cover*).
+ * Раньше `isVhs = bg || buttons` ломало конструктор - фон VHS красил кнопки и обложку.
+ */
 export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
   const pack = resolveSmartlinkVisualPack(theme)
   const { bgStyle, buttonFormat, coverFormat, hoverEffect } = pack
 
-  const isTicket = buttonFormat === "ticket" || coverFormat === "ticket"
-  const isPolaroid = bgStyle === "polaroid" || buttonFormat === "polaroid" || coverFormat === "polaroid"
-  const isArcade = bgStyle === "arcade" || buttonFormat === "arcade"
-  const isVhs = bgStyle === "vhs" || buttonFormat === "vhs"
-  const isZine = bgStyle === "zine" || buttonFormat === "zine"
-  const isChrome = bgStyle === "chrome" || buttonFormat === "chrome"
-  const isNoir = bgStyle === "noir" || buttonFormat === "noir"
-  const isOrbit = coverFormat === "orbit"
-  const isStamp = bgStyle === "stamp" || buttonFormat === "stamp"
-  const isHolo = bgStyle === "holo" || buttonFormat === "holo"
-  const isDiary = bgStyle === "diary" || buttonFormat === "diary" || coverFormat === "diary"
-  const isGlassCard = bgStyle === "glass"
-  const isSignal = bgStyle === "signal"
+  /** Фон страницы / шелл / оверлеи. */
+  const bgArcade = bgStyle === "arcade"
+  const bgVhs = bgStyle === "vhs"
+  const bgZine = bgStyle === "zine"
+  const bgChrome = bgStyle === "chrome"
+  const bgNoir = bgStyle === "noir"
+  const bgStamp = bgStyle === "stamp"
+  const bgHolo = bgStyle === "holo"
+  const bgDiary = bgStyle === "diary"
+  const bgNeon = bgStyle === "neon"
+  const bgFilm = bgStyle === "film"
+  const bgCarbon = bgStyle === "carbon"
+  const bgSunset = bgStyle === "sunset"
+  const bgGraffiti = bgStyle === "graffiti"
+  const bgStage = bgStyle === "stage"
+  const bgRave = bgStyle === "rave"
+  const bgPolaroid = bgStyle === "polaroid"
+  const bgCinema = bgStyle === "cinema"
+
+  /** Характер кнопок стримов - только buttonFormat. */
+  const isArcade = buttonFormat === "arcade"
+  const isVhs = buttonFormat === "vhs"
+  const isZine = buttonFormat === "zine"
+  const isChrome = buttonFormat === "chrome"
+  const isNoir = buttonFormat === "noir"
+  const isStamp = buttonFormat === "stamp"
+  const isHolo = buttonFormat === "holo"
+  const isDiaryBtn = buttonFormat === "diary"
+  const isNeon = buttonFormat === "neon"
+  const isFilm = buttonFormat === "film"
+  const isCarbon = buttonFormat === "carbon"
+  const isSunset = buttonFormat === "sunset"
+  const isGraffiti = buttonFormat === "graffiti"
+  const isStage = buttonFormat === "stage"
+  const isRave = buttonFormat === "rave"
   const isTerminal = buttonFormat === "terminal"
-  const isPoster = buttonFormat === "poster" || coverFormat === "poster"
-  const isVinyl = coverFormat === "vinyl"
-  const isCassette = coverFormat === "cassette"
-  const isCinema = bgStyle === "cinema" || buttonFormat === "cinema" || coverFormat === "cinema"
   const isCapsule = buttonFormat === "capsule"
   const isGrid = buttonFormat === "grid"
-  const isNeon = bgStyle === "neon" || buttonFormat === "neon"
-  const isFilm = bgStyle === "film" || buttonFormat === "film"
   const isInkblot = buttonFormat === "inkblot"
-  const isCarbon = bgStyle === "carbon" || buttonFormat === "carbon"
-  const isSunset = bgStyle === "sunset" || buttonFormat === "sunset"
-  const isGraffiti = bgStyle === "graffiti" || buttonFormat === "graffiti"
-  const isStage = bgStyle === "stage" || buttonFormat === "stage"
-  const isRave = bgStyle === "rave" || buttonFormat === "rave"
+  const isPosterBtn = buttonFormat === "poster"
+  const isCinemaBtn = buttonFormat === "cinema"
+  const isPolaroidBtn = buttonFormat === "polaroid"
+  const isTicketBtn = buttonFormat === "ticket"
+
+  /** Форма / раскладка обложки - только coverFormat. */
+  const isOrbit = coverFormat === "orbit"
+  const isVinyl = coverFormat === "vinyl"
+  const isCassette = coverFormat === "cassette"
+  const isPosterCover = coverFormat === "poster"
+  const isPolaroidCover = coverFormat === "polaroid"
+  const isCinemaCover = coverFormat === "cinema"
+  const isDiaryCover = coverFormat === "diary"
+  const isTicketCover = coverFormat === "ticket"
+
+  const isTicket = isTicketBtn || isTicketCover
+  /** Постер/полароид для скрытия titleBlock - только обложка. */
+  const isPoster = isPosterCover
+  const isPolaroid = isPolaroidCover
+  /** Cinema letterbox на странице - фон; cinema-кнопки - отдельно. */
+  const isCinema = isCinemaBtn
+  /** Diary-кнопки; diary-фон/обложка - через bg*/cover*. */
+  const isDiary = isDiaryBtn
+
+  const isGlassCard = bgStyle === "glass"
+  const isSignal = bgStyle === "signal"
 
   /** Светлый шелл (как старый isLightSmartlinkPreset). */
   const shellLight = bgStyle === "sheet" || bgStyle === "diary" || bgStyle === "zine"
-  /** Белая карточка только у «Лист». */
+  /** Белая карточка только у "Лист". */
   const isSheetCard = bgStyle === "sheet"
   const contentLight = shellLight || isTicket
 
@@ -342,8 +383,30 @@ export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
     isBlurBg,
     isGlassCard,
     isSignal,
+    // bg layer
+    bgArcade,
+    bgVhs,
+    bgZine,
+    bgChrome,
+    bgNoir,
+    bgStamp,
+    bgHolo,
+    bgDiary,
+    bgNeon,
+    bgFilm,
+    bgCarbon,
+    bgSunset,
+    bgGraffiti,
+    bgStage,
+    bgRave,
+    bgPolaroid,
+    bgCinema,
+    // button layer (короткие имена - для стилей кнопок)
     isTicket,
+    isTicketBtn,
     isPolaroid,
+    isPolaroidBtn,
+    isPolaroidCover,
     isArcade,
     isVhs,
     isZine,
@@ -353,11 +416,17 @@ export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
     isStamp,
     isHolo,
     isDiary,
+    isDiaryBtn,
+    isDiaryCover,
     isTerminal,
     isPoster,
+    isPosterBtn,
+    isPosterCover,
     isVinyl,
     isCassette,
     isCinema,
+    isCinemaBtn,
+    isCinemaCover,
     isCapsule,
     isGrid,
     isNeon,

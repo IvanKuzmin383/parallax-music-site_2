@@ -26,7 +26,7 @@ export type UserAchievementView = {
   rewardLabel: string | null
   unlocked: boolean
   unlockedAt: string | null
-  /** Прогресс к цели (для UI «2 из 3»). Для бинарных: 0/1 или 1/1. */
+  /** Прогресс к цели (для UI "2 из 3"). Для бинарных: 0/1 или 1/1. */
   progressCurrent: number
   progressTarget: number
 }

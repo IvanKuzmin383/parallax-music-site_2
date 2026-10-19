@@ -329,7 +329,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
         <div>
           <h2 className="text-xl font-semibold">Что можно сделать?</h2>
           <p className="text-sm text-muted-foreground">
-            Следующие шаги для релиза «{title}» - продвижение, оформление и инструменты
+            Следующие шаги для релиза "{title}" - продвижение, оформление и инструменты
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

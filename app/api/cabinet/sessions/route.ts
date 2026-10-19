@@ -65,7 +65,7 @@ export async function DELETE(request: NextRequest) {
     }
     if (target.current) {
       return NextResponse.json(
-        { error: "Нельзя завершить текущую сессию здесь - используйте «Выйти»" },
+        { error: "Нельзя завершить текущую сессию здесь - используйте "Выйти"" },
         { status: 400 }
       )
     }

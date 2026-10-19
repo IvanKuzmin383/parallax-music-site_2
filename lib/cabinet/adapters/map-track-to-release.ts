@@ -26,7 +26,7 @@ const RELEASE_STATUS_LABELS: Record<string, string> = {
   postponed: "Отозван",
 }
 
-/** Чем меньше индекс - тем «важнее» показать этот статус на групповой карточке. */
+/** Чем меньше индекс - тем "важнее" показать этот статус на групповой карточке. */
 const TRACK_STATUS_PRIORITY: Record<string, number> = {
   rejected: 0,
   postponed: 1,
@@ -193,7 +193,7 @@ export function mapAlbumTracksToRelease(
   }
 }
 
-/** «Сингл · 1 трек» / «Альбом · 12 треков» */
+/** "Сингл · 1 трек" / "Альбом · 12 треков" */
 export function formatReleaseKindMeta(release: Pick<ReleaseView, "format" | "trackCount" | "kind">): string | null {
   const format =
     release.format ??

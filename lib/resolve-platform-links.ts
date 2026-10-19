@@ -104,7 +104,7 @@ function normalizeMatchText(value: string): string {
   return value
     .toLowerCase()
     .replace(/\s*-\s*single\b/gi, "")
-    .replace(/[«»"']/g, "")
+    .replace(/["""']/g, "")
     .replace(/\s+/g, " ")
     .trim()
 }

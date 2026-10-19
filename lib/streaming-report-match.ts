@@ -110,7 +110,7 @@ function manualResult(
 
 /**
  * Match report to cabinet user.
- * Prefer filename artist when valid; fall back to «Исполнитель» from file content
+ * Prefer filename artist when valid; fall back to "Исполнитель" from file content
  * (needed when multipart mangled Cyrillic filenames).
  */
 export async function matchStreamingReport(params: {
@@ -186,7 +186,7 @@ export async function matchStreamingReport(params: {
       displayFallback,
       [
         ...warnings,
-        `Несколько пользователей для артиста «${ambiguous[0].artist}» - выберите вручную`,
+        `Несколько пользователей для артиста "${ambiguous[0].artist}" - выберите вручную`,
       ],
       ids,
     )
@@ -194,7 +194,7 @@ export async function matchStreamingReport(params: {
 
   if (resolved.length === 0) {
     for (const u of unresolved) {
-      warnings.push(`Артист из файла «${u.artist}» не найден в базе`)
+      warnings.push(`Артист из файла "${u.artist}" не найден в базе`)
     }
     warnings.push("Пользователь с таким именем артиста не найден")
     return manualResult(displayFallback, warnings)
@@ -211,7 +211,7 @@ export async function matchStreamingReport(params: {
 
   if (unresolved.length > 0) {
     for (const u of unresolved) {
-      warnings.push(`Артист из файла «${u.artist}» не найден в базе`)
+      warnings.push(`Артист из файла "${u.artist}" не найден в базе`)
     }
     return manualResult(
       displayFallback,

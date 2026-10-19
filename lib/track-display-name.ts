@@ -1,6 +1,6 @@
 /**
  * Имя WAV при загрузке раньше попадало в track_name.
- * Такие значения в админке/UI лучше не показывать как «название трека».
+ * Такие значения в админке/UI лучше не показывать как "название трека".
  */
 export function looksLikeAudioFileBaseName(
   trackName: string | null | undefined,

@@ -248,7 +248,7 @@ export function YandexAdsAdPreview({
         <div
           className="overflow-hidden rounded-[14px] border border-[#303038] bg-white shadow-[0_18px_40px_-24px_rgba(0,0,0,0.75)]"
           role="img"
-          aria-label={`Пример объявления Яндекс Директ ${modeLabel}: «${headline}». Назначение - ${object.destination}.`}
+          aria-label={`Пример объявления Яндекс Директ ${modeLabel}: "${headline}". Назначение - ${object.destination}.`}
         >
           <BrowserChrome title={browserTitle} />
           {mode === "sites" ? (

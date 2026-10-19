@@ -191,15 +191,22 @@ export function CabinetAchievementsTab() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className={cn(dashboardGlassPanelClass, "relative overflow-hidden p-5")}>
+        <section
+          className={cn(
+            dashboardGlassPanelClass,
+            "group/level relative overflow-hidden p-5 transition-all duration-300",
+            "motion-safe:hover:-translate-y-0.5 hover:border-primary/40",
+            "hover:shadow-[0_12px_36px_rgba(240,31,67,0.14)]",
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-4">
               <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
                 <div
-                  className="absolute inset-0 rotate-45 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent shadow-[0_0_28px_rgba(240,31,67,0.25)]"
+                  className="absolute inset-0 rotate-45 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent shadow-[0_0_28px_rgba(240,31,67,0.25)] transition-transform duration-500 motion-safe:group-hover/level:rotate-[50deg] motion-safe:group-hover/level:scale-105"
                   aria-hidden
                 />
-                <span className="relative text-xl font-bold tracking-wide text-primary">
+                <span className="relative text-xl font-bold tracking-wide text-primary transition-transform duration-300 motion-safe:group-hover/level:scale-110">
                   {levelRoman(progress.level.id)}
                 </span>
               </div>
@@ -229,9 +236,9 @@ export function CabinetAchievementsTab() {
               </span>
               {next ? <span>Ещё {xpToNext} XP до уровня {nextLevelNum}</span> : <span>Макс. уровень</span>}
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-muted/60">
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
               <div
-                className="h-full rounded-full bg-primary transition-[width]"
+                className="h-full rounded-full bg-primary transition-[width] duration-500 shadow-[0_0_12px_rgba(240,31,67,0.55)]"
                 style={{ width: `${filled}%` }}
               />
             </div>
@@ -277,12 +284,18 @@ export function CabinetAchievementsTab() {
         <section
           className={cn(
             dashboardGlassPanelClass,
-            "relative overflow-hidden p-5",
-            "bg-gradient-to-br from-primary/20 via-card/40 to-card/20"
+            "group/reward relative overflow-hidden p-5",
+            "bg-gradient-to-br from-primary/20 via-card/40 to-card/20",
+            "transition-all duration-300 motion-safe:hover:-translate-y-0.5",
+            "hover:border-primary/45 hover:shadow-[0_12px_40px_rgba(240,31,67,0.2)]",
           )}
         >
           <div
-            className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-primary/25 blur-3xl"
+            className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-primary/25 blur-3xl transition-all duration-500 group-hover/reward:bg-primary/40 group-hover/reward:scale-125"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent transition-transform duration-700 ease-out group-hover/reward:translate-x-full"
             aria-hidden
           />
           <p className="relative text-xs text-muted-foreground">Следующая награда</p>
@@ -326,7 +339,7 @@ export function CabinetAchievementsTab() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
-              До достижения «{nearComplete.title}» осталось {remainingLabel(nearComplete)}
+              До достижения "{nearComplete.title}" осталось {remainingLabel(nearComplete)}
             </p>
             <p className="text-xs text-muted-foreground">
               Уже {nearComplete.progressCurrent} из {nearComplete.progressTarget}
@@ -413,43 +426,70 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
     <article
       className={cn(
         dashboardGlassPanelClass,
-        "flex flex-col items-center px-3 py-4 text-center",
-        a.unlocked && "border-emerald-500/25"
+        "group relative flex flex-col items-center overflow-hidden px-3 py-4 text-center",
+        "transition-all duration-300 ease-out",
+        "motion-safe:hover:-translate-y-1.5",
+        a.unlocked
+          ? "border-emerald-500/25 hover:border-emerald-400/55 hover:bg-emerald-500/[0.07] hover:shadow-[0_14px_40px_rgba(16,185,129,0.18)]"
+          : inProgress
+            ? "hover:border-primary/50 hover:bg-primary/[0.08] hover:shadow-[0_14px_40px_rgba(240,31,67,0.16)]"
+            : "hover:border-primary/35 hover:bg-card/60 hover:shadow-[0_12px_32px_rgba(0,0,0,0.28)]",
       )}
     >
       <div
+        className="pointer-events-none absolute inset-0 -translate-x-[120%] bg-gradient-to-r from-transparent via-white/[0.07] to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[120%]"
+        aria-hidden
+      />
+      <div
         className={cn(
-          "relative mb-3 flex h-16 w-16 items-center justify-center rounded-2xl",
+          "pointer-events-none absolute inset-x-6 -top-8 h-16 rounded-full blur-2xl transition-opacity duration-300",
           a.unlocked
-            ? "bg-gradient-to-br from-amber-400/25 via-primary/20 to-transparent ring-1 ring-amber-400/30 shadow-[0_0_24px_rgba(240,31,67,0.18)]"
+            ? "bg-amber-400/25 opacity-60 group-hover:opacity-100"
             : inProgress
-              ? "bg-primary/10 ring-1 ring-primary/25"
-              : "bg-muted/30 ring-1 ring-border/40"
+              ? "bg-primary/30 opacity-0 group-hover:opacity-80"
+              : "bg-primary/20 opacity-0 group-hover:opacity-60",
+        )}
+        aria-hidden
+      />
+
+      <div
+        className={cn(
+          "relative mb-3 flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-300",
+          "motion-safe:group-hover:scale-110 motion-safe:group-hover:-rotate-3",
+          a.unlocked
+            ? "bg-gradient-to-br from-amber-400/25 via-primary/20 to-transparent ring-1 ring-amber-400/30 shadow-[0_0_24px_rgba(240,31,67,0.18)] group-hover:shadow-[0_0_36px_rgba(251,191,36,0.4)] group-hover:ring-amber-300/50"
+            : inProgress
+              ? "bg-primary/10 ring-1 ring-primary/25 group-hover:bg-primary/20 group-hover:ring-primary/45 group-hover:shadow-[0_0_28px_rgba(240,31,67,0.28)]"
+              : "bg-muted/30 ring-1 ring-border/40 group-hover:bg-primary/10 group-hover:ring-primary/30 group-hover:shadow-[0_0_20px_rgba(240,31,67,0.15)]",
         )}
       >
         <Icon
           className={cn(
-            "h-7 w-7",
+            "h-7 w-7 transition-all duration-300",
             a.unlocked
-              ? "text-amber-300"
+              ? "text-amber-300 motion-safe:group-hover:drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
               : inProgress
                 ? "text-primary"
-                : "text-muted-foreground/70"
+                : "text-muted-foreground/70 group-hover:text-foreground/90",
           )}
         />
         {a.unlocked ? (
-          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow">
+          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow transition-transform duration-300 motion-safe:group-hover:scale-110">
             <Check className="h-3 w-3" strokeWidth={3} />
           </span>
         ) : null}
       </div>
 
-      <p className="text-sm font-semibold leading-snug">{a.title}</p>
-      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{a.description}</p>
+      <p className="relative text-sm font-semibold leading-snug transition-colors group-hover:text-foreground">
+        {a.title}
+      </p>
+      <p className="relative mt-1 line-clamp-2 text-xs text-muted-foreground transition-colors group-hover:text-muted-foreground/90">
+        {a.description}
+      </p>
 
-      <div className="mt-auto w-full pt-3">
+      <div className="relative mt-auto w-full pt-3">
         {a.unlocked ? (
-          <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
+          <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500 transition-all group-hover:text-emerald-400">
             <Check className="h-3.5 w-3.5" />
             Получено +{a.xp} XP
           </p>
@@ -461,15 +501,15 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
               </span>
               <span className="text-primary">+{a.xp} XP</span>
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-muted/60">
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
               <div
-                className="h-full rounded-full bg-primary"
+                className="h-full rounded-full bg-primary transition-[width] duration-500 group-hover:shadow-[0_0_10px_rgba(240,31,67,0.55)]"
                 style={{ width: `${Math.round(ratio * 100)}%` }}
               />
             </div>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground transition-colors group-hover:text-primary/90">
             Впереди · +{a.xp} XP
           </p>
         )}

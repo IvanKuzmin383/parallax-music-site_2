@@ -163,7 +163,7 @@ function CabinetPublickaPageInner() {
 
           {placements.length === 0 ? (
             <EmptyState
-              title="Треков в «Музыка для бизнеса» пока нет"
+              title="Треков в "Музыка для бизнеса" пока нет"
               description="Оформите заявку на размещение - после проверки менеджером трек появится здесь."
               icon={Building2}
               action={

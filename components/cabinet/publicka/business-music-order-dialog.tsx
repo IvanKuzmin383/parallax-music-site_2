@@ -116,7 +116,7 @@ export function BusinessMusicOrderDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Размещение в «Музыка для бизнеса»</DialogTitle>
+          <DialogTitle>Размещение в "Музыка для бизнеса"</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">

@@ -164,15 +164,15 @@ export async function submitReleaseToModeration(
     const aiError = validateTrackAiLabeling(track.aiLabeling)
     if (aiError) {
       const label = track.trackName.trim() || "Трек"
-      return { ok: false, error: `${aiError} («${label}»)`, status: 400 }
+      return { ok: false, error: `${aiError} ("${label}")`, status: 400 }
     }
     try {
       await fs.access(track.audioPath)
     } catch {
-      return { ok: false, error: `Файл аудио «${track.trackName}» не найден`, status: 400 }
+      return { ok: false, error: `Файл аудио "${track.trackName}" не найден`, status: 400 }
     }
     const wavError = await validateWavFormatFromFilePath(track.audioPath)
-    if (wavError) return { ok: false, error: `«${track.trackName}»: ${wavError}`, status: 400 }
+    if (wavError) return { ok: false, error: `"${track.trackName}": ${wavError}`, status: 400 }
   }
 
   const pricingPayload = releasePayloadForPricing(release)

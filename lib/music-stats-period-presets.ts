@@ -4,7 +4,7 @@ export function toYmdLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-/** Вчера по локальному календарю (конец периода для пресетов «Неделя» / «Месяц» / «Квартал»). */
+/** Вчера по локальному календарю (конец периода для пресетов "Неделя" / "Месяц" / "Квартал"). */
 export function getYesterdayIsoLocal(): string {
   const d = new Date()
   d.setDate(d.getDate() - 1)

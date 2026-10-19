@@ -72,7 +72,7 @@ export const ACHIEVEMENTS_CATALOG: AchievementDef[] = [
   {
     id: "releases_3",
     title: "Каталог",
-    description: "3 релиза со статусом «Выпущен»",
+    description: "3 релиза со статусом "Выпущен"",
     category: "catalog",
     xp: 40,
     reward: { type: "none" },

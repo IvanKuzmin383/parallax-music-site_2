@@ -375,7 +375,7 @@
 
 **Исполнитель:**
 
-«Parallax Music» в лице ИП Кузьмин И.В.  
+"Parallax Music" в лице ИП Кузьмин И.В.  
 ИНН: 638204066049  
 ОГРН: 326774600370162  
 E-mail: parallaxmusiclabel@gmail.com

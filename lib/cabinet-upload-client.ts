@@ -5,7 +5,7 @@ import { MAX_CABINET_WAV_MB } from "@/lib/cabinet-wav-upload-limits"
 const WAV_MIME_HINTS = ["audio/wav", "audio/wave", "audio/x-wav", "audio/vnd.wave"] as const
 
 export const WAV_FILE_READ_ERROR =
-  "Не удалось прочитать файл на устройстве. Сохраните WAV на телефон (не «только в iCloud») и выберите снова."
+  "Не удалось прочитать файл на устройстве. Сохраните WAV на телефон (не "только в iCloud") и выберите снова."
 
 /** Имя .wav или MIME WAV; пустой type на iOS - допускаем, сервер проверит содержимое. */
 export function isLikelyWavFile(file: File): boolean {
@@ -50,7 +50,7 @@ export const COVER_HEIC_ERROR =
   "Формат HEIC с iPhone не поддерживается. Сохраните обложку как JPEG или PNG (3000×3000 px) и выберите снова."
 
 export const COVER_IMAGE_READ_ERROR =
-  "Не удалось прочитать изображение на устройстве. Скачайте файл на телефон (не «только в iCloud») и выберите снова."
+  "Не удалось прочитать изображение на устройстве. Скачайте файл на телефон (не "только в iCloud") и выберите снова."
 
 export function isHeicCoverFile(file: File): boolean {
   const name = (file.name ?? "").toLowerCase()

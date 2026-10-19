@@ -82,7 +82,7 @@ export const SMARTLINK_PRESETS = [
 export type SmartlinkPreset = (typeof SMARTLINK_PRESETS)[number]
 
 /**
- * Каркасы режима «Произвольный» (не отдельные пресеты в UI).
+ * Каркасы режима "Произвольный" (не отдельные пресеты в UI).
  * Старые смартлинки с этими ключами остаются валидными.
  */
 export const SMARTLINK_PRESET_BASE = ["ink", "blur", "sheet", "signal", "glass"] as const
@@ -240,7 +240,7 @@ export const SMARTLINK_PRESET_META: Record<
   diary: { label: "Дневник", description: "Линованная бумага и скрепка" },
 }
 
-/** Короткие подписи каркаса в режиме «Произвольный». */
+/** Короткие подписи каркаса в режиме "Произвольный". */
 export const SMARTLINK_CUSTOM_SURFACE_META: Record<
   SmartlinkCustomSurface,
   { label: string; description: string }
@@ -263,7 +263,7 @@ export function isSmartlinkCustomMode(preset: SmartlinkPreset): boolean {
   return isSmartlinkCustomSurfacePreset(preset)
 }
 
-/** Стартовый каркас для кнопки «Произвольный». */
+/** Стартовый каркас для кнопки "Произвольный". */
 export const SMARTLINK_CUSTOM_DEFAULT_PRESET: SmartlinkCustomSurface = "ink"
 
 /** Рекомендуемые поля при выборе пресета в редакторе. */
@@ -890,7 +890,7 @@ export function isLightSmartlinkPreset(preset: SmartlinkPreset): boolean {
   return preset === "sheet" || preset === "diary" || preset === "zine"
 }
 
-/** Какие поля «Деталей» можно менять для пресета (остальное - характер стиля). */
+/** Какие поля "Деталей" можно менять для пресета (остальное - характер стиля). */
 export type SmartlinkDetailKey =
   | "buttons"
   | "coverShape"

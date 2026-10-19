@@ -27,7 +27,7 @@ export async function buildSmartlinkMetadata(slug: string): Promise<Metadata> {
   const pageUrl = smartlinkPublicUrl(slug)
   const coverPath = smartlinkOgImagePath(slug)
   const title = `${pub.title} - ${pub.artistName} | Parallax Music`
-  const description = `Слушайте «${pub.title}» от ${pub.artistName} на всех платформах`
+  const description = `Слушайте "${pub.title}" от ${pub.artistName} на всех платформах`
 
   return {
     title,

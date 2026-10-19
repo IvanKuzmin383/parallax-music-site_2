@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   const contactValue = typeof raw.contactValue === "string" ? raw.contactValue.trim() : ""
 
   if (comment.length < 2) {
-    return NextResponse.json({ error: "Поле «Пожелания / комментарии» обязательно" }, { status: 400 })
+    return NextResponse.json({ error: "Поле "Пожелания / комментарии" обязательно" }, { status: 400 })
   }
 
   if (!CONTACT_TYPE_VALUES.has(contactType)) {

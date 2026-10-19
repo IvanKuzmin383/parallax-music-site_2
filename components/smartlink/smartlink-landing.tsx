@@ -141,7 +141,9 @@ export function SmartlinkLanding({
     isGlassCard,
     isSignal,
     isTicket,
+    isTicketCover,
     isPolaroid,
+    isPolaroidBtn,
     isArcade,
     isVhs,
     isZine,
@@ -151,21 +153,39 @@ export function SmartlinkLanding({
     isStamp,
     isHolo,
     isDiary,
+    isDiaryCover,
     isTerminal,
     isPoster,
+    isPosterBtn,
     isVinyl,
     isCassette,
-    isCinema,
+    isCinemaBtn,
     isCapsule,
     isGrid,
     isNeon,
-    isFilm,
     isInkblot,
     isCarbon,
     isSunset,
     isGraffiti,
     isStage,
     isRave,
+    bgArcade,
+    bgVhs,
+    bgZine,
+    bgChrome,
+    bgNoir,
+    bgStamp,
+    bgHolo,
+    bgDiary,
+    bgNeon,
+    bgFilm,
+    bgCarbon,
+    bgSunset,
+    bgGraffiti,
+    bgStage,
+    bgRave,
+    bgPolaroid,
+    bgCinema,
     usePaperTear,
     paperTearVertical,
     coverFormat,
@@ -192,18 +212,18 @@ export function SmartlinkLanding({
     "relative flex min-h-full w-full flex-col items-center justify-start overflow-x-hidden overflow-y-auto",
     preview ? "min-h-[520px] px-3 py-6" : "min-h-screen px-4 py-6 sm:px-6 sm:py-8",
     shellLight ? "bg-[#F3EFE6] text-[#161616]" : "bg-[#0B0B0C] text-[#F5F5F5]",
-    isCarbon && "sl-carbon-bg",
-    isGraffiti && "sl-graffiti-bg",
-    isStage && "sl-stage-bg",
-    isRave && "sl-rave-bg",
-    isArcade && "sl-arcade-bg",
-    isVhs && "sl-vhs-bg",
-    isNoir && "sl-noir-bg",
-    isChrome && "sl-chrome-bg",
-    isPolaroid && "sl-polaroid-wall",
-    isDiary && "sl-diary-bg",
-    isZine && "sl-zine-bg",
-    isStamp && "sl-stamp-bg",
+    bgCarbon && "sl-carbon-bg",
+    bgGraffiti && "sl-graffiti-bg",
+    bgStage && "sl-stage-bg",
+    bgRave && "sl-rave-bg",
+    bgArcade && "sl-arcade-bg",
+    bgVhs && "sl-vhs-bg",
+    bgNoir && "sl-noir-bg",
+    bgChrome && "sl-chrome-bg",
+    bgPolaroid && "sl-polaroid-wall",
+    bgDiary && "sl-diary-bg",
+    bgZine && "sl-zine-bg",
+    bgStamp && "sl-stamp-bg",
     className,
   )
 
@@ -216,18 +236,18 @@ export function SmartlinkLanding({
     isGlassCard &&
       "rounded-2xl border border-white/20 bg-white/10 px-4 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl",
     isTicket && "sl-ticket-card px-4 py-6",
-    isCinema && "gap-3 px-0",
-    isCarbon && "rounded-2xl border border-white/10 bg-black/40 px-4 py-6 backdrop-blur-sm",
-    isStage && "rounded-2xl border border-white/15 bg-black/50 px-4 py-6 shadow-[0_0_40px_rgba(0,0,0,0.5)]",
-    isGraffiti && "gap-3 px-2",
-    isRave && "sl-rave-card rounded-2xl bg-black/40 px-4 py-6",
-    isArcade && "sl-arcade-card gap-3 px-3 py-5",
-    isVhs && "gap-3 px-2",
-    isNoir && "gap-3 border-l-2 border-[var(--sl-accent)] pl-4",
-    isChrome && "rounded-2xl border border-white/15 bg-black/30 px-4 py-6 backdrop-blur-sm",
-    isHolo && "rounded-2xl border border-white/20 bg-black/25 px-4 py-6 backdrop-blur-md",
-    isDiary && "sl-diary-card gap-3 px-4 py-5",
-    isZine && "gap-3 px-2",
+    bgCinema && "gap-3 px-0",
+    bgCarbon && "rounded-2xl border border-white/10 bg-black/40 px-4 py-6 backdrop-blur-sm",
+    bgStage && "rounded-2xl border border-white/15 bg-black/50 px-4 py-6 shadow-[0_0_40px_rgba(0,0,0,0.5)]",
+    bgGraffiti && "gap-3 px-2",
+    bgRave && "sl-rave-card rounded-2xl bg-black/40 px-4 py-6",
+    bgArcade && "sl-arcade-card gap-3 px-3 py-5",
+    bgVhs && "gap-3 px-2",
+    bgNoir && "gap-3 border-l-2 border-[var(--sl-accent)] pl-4",
+    bgChrome && "rounded-2xl border border-white/15 bg-black/30 px-4 py-6 backdrop-blur-sm",
+    bgHolo && "rounded-2xl border border-white/20 bg-black/25 px-4 py-6 backdrop-blur-md",
+    bgDiary && "sl-diary-card gap-3 px-4 py-5",
+    bgZine && "gap-3 px-2",
     isOrbit && "gap-5",
   )
 
@@ -243,11 +263,11 @@ export function SmartlinkLanding({
         ? "h-12 w-12 shrink-0 justify-center rounded-full"
         : isCapsule
           ? "h-10 w-full justify-between gap-2.5 rounded-full px-4 text-sm"
-          : isCinema
+          : isCinemaBtn
             ? "h-10 w-full justify-center gap-2.5 rounded-none px-3 text-sm tracking-wide uppercase"
             : isTerminal
               ? "h-9 w-full justify-start gap-2 rounded-none border-0 border-b px-1 text-sm"
-              : isPoster
+              : isPosterBtn
                 ? "h-9 w-full justify-center gap-2 rounded-none px-3 text-xs font-semibold uppercase tracking-wider"
                 : isArcade
                   ? "h-10 w-full justify-center gap-2.5 rounded-none px-3 text-xs font-bold uppercase tracking-wider"
@@ -260,8 +280,8 @@ export function SmartlinkLanding({
                         : "h-10 w-full justify-center gap-2.5 px-3 text-sm",
   )
 
-  const useGlassButton =
-    theme.buttons === "glass" || (isGlassCard && theme.buttons === "soft") || isFilm
+  /** Стекло кнопок - только из theme.buttons, не из фона Film/Glass. */
+  const useGlassButton = theme.buttons === "glass"
   const fgOnPage = contentLight ? "#161616" : "#F5F5F5"
 
   const inkblotShapeClass = (index: number) => {
@@ -274,9 +294,9 @@ export function SmartlinkLanding({
       buttonBase,
       !useIcons &&
         !isCapsule &&
-        !isCinema &&
+        !isCinemaBtn &&
         !isTerminal &&
-        !isPoster &&
+        !isPosterBtn &&
         !isArcade &&
         !isVhs &&
         !isStamp &&
@@ -299,13 +319,13 @@ export function SmartlinkLanding({
       isChrome && "rounded-full",
       isHolo && "sl-holo-btn rounded-xl",
       isDiary && "sl-diary-btn rounded-sm hover:!scale-100 active:!scale-[0.99]",
-      isPolaroid && "rounded-md",
+      isPolaroidBtn && "rounded-md",
     )
 
   const buttonVisualStyle = (linkKey?: string): CSSProperties => {
     const drop = theme.buttonShadow ? "0 10px 28px rgba(0,0,0,0.28)" : undefined
 
-    /** Тень/контур из «Деталей» поверх характера стиля. */
+    /** Тень/контур из "Деталей" поверх характера стиля. */
     const withDetails = (base: CSSProperties, opts?: { keepBorder?: boolean }): CSSProperties => {
       const next: CSSProperties = { ...base }
       if (!theme.buttonBorder && !opts?.keepBorder) {
@@ -480,7 +500,7 @@ export function SmartlinkLanding({
       }, { keepBorder: true })
     }
 
-    if (isPolaroid) {
+    if (isPolaroidBtn) {
       return withDetails({
         backgroundColor: "rgba(255,255,255,0.92)",
         color: "#222",
@@ -627,7 +647,7 @@ export function SmartlinkLanding({
             : cn(
                 "mx-auto flex w-full flex-col",
                 coverMax,
-                isPoster ? "gap-1" : isTerminal ? "gap-0" : "gap-1.5",
+                isPosterBtn ? "gap-1" : isTerminal ? "gap-0" : "gap-1.5",
               ),
         )}
       >
@@ -743,17 +763,6 @@ export function SmartlinkLanding({
               "font-semibold tracking-tight",
               preview ? "text-lg" : "text-2xl sm:text-[1.7rem]",
               isTerminal && "text-base tracking-normal uppercase sm:text-lg",
-              isCinema && "tracking-[0.08em] uppercase",
-              isGraffiti && "uppercase italic tracking-wide",
-              isStage && "tracking-[0.12em] uppercase",
-              isRave && "font-mono uppercase tracking-[0.14em]",
-              isArcade && "font-mono uppercase tracking-wider",
-              isVhs && "font-mono uppercase tracking-[0.16em]",
-              isNoir && "tracking-[0.14em] uppercase",
-              isZine && "uppercase italic",
-              isDiary && "italic font-normal",
-              isChrome && "tracking-tight",
-              isHolo && "tracking-wide",
             )}
           >
             {title}
@@ -763,8 +772,6 @@ export function SmartlinkLanding({
           "opacity-70",
           preview ? "text-sm" : "text-base sm:text-lg",
           isTerminal && "text-xs opacity-50",
-          isDiary && "opacity-55",
-          isNoir && "tracking-[0.08em] uppercase text-xs opacity-50",
         )}
       >
         {artist}
@@ -939,28 +946,10 @@ export function SmartlinkLanding({
         isPoster ? posterCoverMax : coverMax,
         coverRadiusClass(theme.cover, coverFormat),
         theme.coverShadow && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
-        isSignal && "ring-2 ring-[var(--sl-accent)]",
-        isGraffiti && "rotate-[-1.5deg] border-2 border-white shadow-[5px_5px_0_#111]",
-        isStage && "ring-1 ring-white/20",
-        isRave && "sl-rave-cover",
-        isZine && "rotate-[-2deg] border-2 border-black shadow-[6px_6px_0_var(--sl-accent)]",
-        isArcade && "border-4 border-black shadow-[4px_4px_0_var(--sl-accent)]",
-        isVhs && "sl-vhs-cover",
-        isNoir && "sl-noir-cover",
-        isChrome && "sl-chrome-cover",
-        isHolo && "sl-holo-cover",
-        isDiary && "border border-black/15 shadow-[2px_2px_0_rgba(0,0,0,0.08)]",
-        isStamp && "border-2 border-dashed border-white/40",
+        isDiaryCover && "border border-black/15 shadow-[2px_2px_0_rgba(0,0,0,0.08)]",
         animClass(theme),
       )}
-      style={{
-        ...animStyle(theme, animIndex++),
-        ...(isNeon || isRave || isHolo
-          ? {
-              boxShadow: `0 0 28px color-mix(in srgb, ${theme.accent} 40%, transparent)`,
-            }
-          : null),
-      }}
+      style={animStyle(theme, animIndex++)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -982,7 +971,7 @@ export function SmartlinkLanding({
           <p className={cn("mt-0.5 opacity-80", preview ? "text-sm" : "text-base")}>{artist}</p>
         </div>
       ) : null}
-      {isTicket ? (
+      {isTicketCover ? (
         <div
           aria-hidden
           className="sl-ticket-stamp pointer-events-none absolute -right-1 top-2 rotate-12 px-2 py-1 text-[10px] font-bold tracking-[0.2em] text-[var(--sl-accent)]"
@@ -990,15 +979,7 @@ export function SmartlinkLanding({
           LISTEN
         </div>
       ) : null}
-      {isVhs ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-2 top-2 rounded-sm border border-cyan-300/50 bg-black/50 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.2em] text-cyan-200"
-        >
-          PLAY ▶
-        </div>
-      ) : null}
-      {isDiary ? (
+      {isDiaryCover ? (
         <div
           aria-hidden
           className="sl-diary-clip pointer-events-none absolute -top-2 left-1/2 h-5 w-8 -translate-x-1/2 rounded-sm"
@@ -1009,7 +990,7 @@ export function SmartlinkLanding({
 
   return (
     <SmartlinkAudioGate
-      previewAudioSrc={!preview ? previewAudioSrc : null}
+      previewAudioSrc={previewAudioSrc}
       light={contentLight && isSheet}
       className={shellClass}
       style={
@@ -1031,20 +1012,20 @@ export function SmartlinkLanding({
             aria-hidden
             className={cn(
               "absolute inset-0",
-              isGlassCard || isFilm ? "bg-black/50" : "bg-black/55",
-              isNeon && "bg-black/65",
+              isGlassCard || bgFilm ? "bg-black/50" : "bg-black/55",
+              bgNeon && "bg-black/65",
             )}
           />
         </>
       ) : null}
 
-      {isFilm ? <div aria-hidden className="sl-film-grain pointer-events-none absolute inset-0 z-[2]" /> : null}
-      {isFilm ? <div aria-hidden className="sl-film-vignette pointer-events-none absolute inset-0 z-[2]" /> : null}
-      {isVhs ? <div aria-hidden className="sl-vhs-scanlines pointer-events-none absolute inset-0 z-[2]" /> : null}
-      {isHolo ? <div aria-hidden className="sl-holo-sheen pointer-events-none absolute inset-0 z-[2]" /> : null}
-      {isRave ? <SmartlinkRaveBlobs /> : null}
+      {bgFilm ? <div aria-hidden className="sl-film-grain pointer-events-none absolute inset-0 z-[2]" /> : null}
+      {bgFilm ? <div aria-hidden className="sl-film-vignette pointer-events-none absolute inset-0 z-[2]" /> : null}
+      {bgVhs ? <div aria-hidden className="sl-vhs-scanlines pointer-events-none absolute inset-0 z-[2]" /> : null}
+      {bgHolo ? <div aria-hidden className="sl-holo-sheen pointer-events-none absolute inset-0 z-[2]" /> : null}
+      {bgRave ? <SmartlinkRaveBlobs /> : null}
 
-      {isCinema ? (
+      {bgCinema ? (
         <>
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-[8%] bg-black" />
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[8%] bg-black" />
@@ -1053,18 +1034,18 @@ export function SmartlinkLanding({
 
       {!isBlurBg &&
       !isSheet &&
-      !isCarbon &&
-      !isArcade &&
-      !isVhs &&
-      !isNoir &&
-      !isChrome &&
-      !isPolaroid &&
-      !isStamp ? (
+      !bgCarbon &&
+      !bgArcade &&
+      !bgVhs &&
+      !bgNoir &&
+      !bgChrome &&
+      !bgPolaroid &&
+      !bgStamp ? (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-80"
           style={{
-            background: isSunset
+            background: bgSunset
               ? `radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, ${theme.accent} 45%, transparent), transparent 70%)`
               : `radial-gradient(60% 45% at 50% 0%, color-mix(in srgb, ${theme.accent} 35%, transparent), transparent 70%)`,
           }}
@@ -1080,15 +1061,11 @@ export function SmartlinkLanding({
 
         {coverBlock}
 
-        {socialsBelow && !isPoster && !isPolaroid ? (
-          <div className={animClass(theme)} style={animStyle(theme, animIndex++)}>
-            <SocialRow items={socialItems} iconStyle={socials!.iconStyle} light={contentLight} />
-          </div>
-        ) : null}
-
         {!isPoster && !isPolaroid ? titleBlock : null}
 
-        {(isPoster || isPolaroid) && socialsBelow ? (
+        {renderLinks()}
+
+        {socialsBelow ? (
           <div className={animClass(theme)} style={animStyle(theme, animIndex++)}>
             <SocialRow
               items={socialItems}
@@ -1097,8 +1074,6 @@ export function SmartlinkLanding({
             />
           </div>
         ) : null}
-
-        {renderLinks()}
       </div>
 
       <a

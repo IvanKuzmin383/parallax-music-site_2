@@ -63,7 +63,7 @@ export const TRACK_METADATA_FIELD_LABELS: Record<TrackMetadataFieldKey, string> 
 }
 
 export type ValidateTrackMetadataOptions = {
-  /** По умолчанию true - для финальной отправки. На шаге «Дополнительно» можно отключить. */
+  /** По умолчанию true - для финальной отправки. На шаге "Дополнительно" можно отключить. */
   requireAudio?: boolean
   /**
    * Требовать чекбокс подтверждения текста (кабинетный визард).
@@ -160,11 +160,11 @@ export function getFirstTrackMetadataIssue(
   const fieldLabel = TRACK_METADATA_FIELD_LABELS[field]
   return {
     field,
-    message: `Заполните «${fieldLabel}» для «${label}»`,
+    message: `Заполните "${fieldLabel}" для "${label}"`,
   }
 }
 
-/** Проверка обязательных метаданных трека (шаг «Дополнительно» / submit). */
+/** Проверка обязательных метаданных трека (шаг "Дополнительно" / submit). */
 export function validateTrackMetadata(
   track: Track,
   options?: ValidateTrackMetadataOptions

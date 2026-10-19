@@ -93,7 +93,7 @@ export function CabinetKycProvider({ children }: { children: ReactNode }) {
     void refresh()
   }, [refresh])
 
-  // API - источник истины; до ответа берём kycStatus из сессии, чтобы не мигать «unverified»
+  // API - источник истины; до ответа берём kycStatus из сессии, чтобы не мигать "unverified"
   const status: CabinetKycStatusView =
     state?.kycStatus ?? user?.kycStatus ?? "unverified"
   const isVerified = status === "verified"

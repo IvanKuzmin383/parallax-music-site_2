@@ -54,8 +54,8 @@ curl -X POST "https://api.telegram.org/bot${TELEGRAM_USER_BOT_TOKEN}/setWebhook"
 
 | Событие колокольчика | В Telegram |
 |----------------------|------------|
-| `release_status`, `release_moderation_note` | если «Релизы» |
-| `payment_success` | если «Оплаты» |
-| `withdrawal_status` | если «Выводы» |
-| `royalty_to_wallet` | если «Роялти» |
+| `release_status`, `release_moderation_note` | если "Релизы" |
+| `payment_success` | если "Оплаты" |
+| `withdrawal_status` | если "Выводы" |
+| `royalty_to_wallet` | если "Роялти" |
 | `release_ai_analysis` | никогда |

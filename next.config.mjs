@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Libvips (Sharp): без лимита параллельные /_next/image + обложки забивают все ядра cgroup → сайт «висит».
+// Libvips (Sharp): без лимита параллельные /_next/image + обложки забивают все ядра cgroup → сайт "висит".
 // Задаём до старта сервера; переопределить можно в панели хостинга (VIPS_CONCURRENCY).
 if (typeof process !== "undefined") {
   process.env.VIPS_CONCURRENCY ??= "1"

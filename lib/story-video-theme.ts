@@ -57,7 +57,7 @@ export type StoryVideoTextLayout = (typeof STORY_VIDEO_TEXT_LAYOUTS)[number]
 export const STORY_VIDEO_TEXT_ALIGNS = ["left", "center", "right"] as const
 export type StoryVideoTextAlign = (typeof STORY_VIDEO_TEXT_ALIGNS)[number]
 
-/** Бейджи «слушайте на…» - можно выбрать несколько, рисуются сеткой по 2 в ряд. */
+/** Бейджи "слушайте на…" - можно выбрать несколько, рисуются сеткой по 2 в ряд. */
 export const STORY_VIDEO_BADGE_IDS = ["spotify", "appleMusic", "yandex", "vk"] as const
 export type StoryVideoBadgeId = (typeof STORY_VIDEO_BADGE_IDS)[number]
 

@@ -1,7 +1,7 @@
 import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 import type { ReleaseView } from "./types"
 
-/** Ключ «все проекты» в переключателе артиста. */
+/** Ключ "все проекты" в переключателе артиста. */
 export const RELEASE_ARTIST_FILTER_ALL = "all"
 
 export function matchesReleaseArtist(

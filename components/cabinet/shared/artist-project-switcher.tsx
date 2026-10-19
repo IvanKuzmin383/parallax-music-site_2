@@ -20,7 +20,7 @@ type Props = {
   /** Выбранные проекты. Пустой массив = все. */
   value: string[]
   onChange: (artists: string[]) => void
-  /** Счётчик для пункта «Все». */
+  /** Счётчик для пункта "Все". */
   allCount: number
   className?: string
   /** Компактный вид для топбара. */

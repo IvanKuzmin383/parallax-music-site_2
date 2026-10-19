@@ -15,7 +15,7 @@ function isHttpUrl(value: string): boolean {
 }
 
 /**
- * Предварительная заявка на «Радио»: деньги не списываются,
+ * Предварительная заявка на "Радио": деньги не списываются,
  * заявка уходит в уведомление staff.
  */
 export async function POST(request: NextRequest) {

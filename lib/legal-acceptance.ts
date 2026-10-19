@@ -19,7 +19,7 @@ export function sha256Buffer(buf: Buffer): string {
   return crypto.createHash("sha256").update(buf).digest("hex")
 }
 
-/** Дата из строки «Последняя редакция: …» в шапке md, если есть */
+/** Дата из строки "Последняя редакция: …" в шапке md, если есть */
 export function extractRevisionLabelFromMarkdown(content: string): string | null {
   const m = content.match(/Последняя редакция:\s*(.+)/i)
   return m ? m[1].trim() : null

@@ -10,7 +10,7 @@ export function formatMoscowDateString(d: Date): string {
   }).format(d)
 }
 
-/** Начало календарного дня по Москве (локально в JS Date) для сравнения «сегодня» */
+/** Начало календарного дня по Москве (локально в JS Date) для сравнения "сегодня" */
 export function moscowCalendarDayStart(isoOrDate: string | Date): Date {
   const d = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate
   const parts = new Intl.DateTimeFormat("en-GB", {

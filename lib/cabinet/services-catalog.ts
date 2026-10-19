@@ -29,11 +29,11 @@ export interface ServiceCatalogEntry {
   requirements: string[]
   faq: { q: string; a: string }[]
   hasBackend: boolean
-  /** Кнопка «Оплатить» без списания - заявка интереса (спрос). */
+  /** Кнопка "Оплатить" без списания - заявка интереса (спрос). */
   paymentStub?: boolean
   paymentEndpoint?: string
   orderType?: string
-  /** Плашка «Скоро» на карточке и странице услуги. */
+  /** Плашка "Скоро" на карточке и странице услуги. */
   comingSoon?: boolean
   /** Скрыть из пользовательского каталога / поиска (запись нужна для заказов). */
   hiddenFromCatalog?: boolean
@@ -46,7 +46,7 @@ export interface ServiceCatalogEntry {
   linkFieldPlaceholder?: string
   linkFieldHint?: string
   linkFieldRequired?: boolean
-  /** form-focus: форма слева, без колонки «что входит / как работает». */
+  /** form-focus: форма слева, без колонки "что входит / как работает". */
   layout?: "default" | "form-focus"
   examples?: Array<{
     platform: "appleMusic" | "yandex" | "vk"
@@ -640,7 +640,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
       },
       {
         q: "Можно создать музыку без вокала?",
-        a: "Да. Включите «Инструментальная музыка» и опишите желаемое звучание",
+        a: "Да. Включите "Инструментальная музыка" и опишите желаемое звучание",
       },
       {
         q: "Можно выпустить полученную песню?",

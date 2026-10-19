@@ -78,7 +78,7 @@ function asApplicationStatus(value: string): KycApplicationStatus {
   return "pending"
 }
 
-/** node-pg отдаёт DATE как Date; String(date).slice(0,10) даёт «Sat Aug 17» - нельзя. */
+/** node-pg отдаёт DATE как Date; String(date).slice(0,10) даёт "Sat Aug 17" - нельзя. */
 function toDateOnly(value: string | Date | null | undefined): string {
   if (!value) return ""
   if (value instanceof Date) {

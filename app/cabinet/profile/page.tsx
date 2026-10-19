@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-/** Старый URL → настройки, вкладка «Профиль» (с сохранением hash). */
+/** Старый URL → настройки, вкладка "Профиль" (с сохранением hash). */
 export default function CabinetProfileRedirectPage() {
   const router = useRouter()
 

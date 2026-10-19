@@ -242,7 +242,7 @@ export type CabinetUploadAddonSelectionState = {
   addonLyricsSyncCount?: number
 }
 
-/** Сумма доп. услуг для UI и проверки «нужна ли оплата» (совпадает с расчётом на странице одного трека). */
+/** Сумма доп. услуг для UI и проверки "нужна ли оплата" (совпадает с расчётом на странице одного трека). */
 export function computeSelectedUploadAddonsTotalRub(s: CabinetUploadAddonSelectionState): number {
   const aiCoverAddonTotal = s.requestAiCover ? AI_COVER_REQUEST_PRICE_RUB : 0
   const verticalVideoUnitPrice = getVerticalVideoUnitPrice(s.addonVerticalVideoCount)
@@ -268,7 +268,7 @@ export function computeSelectedUploadAddonsTotalRub(s: CabinetUploadAddonSelecti
 
 export type CabinetUploadAdditionalServicesSectionProps = {
   formDisabled: boolean
-  /** Строка AI обложки; получает `openAddonInfo` для кнопки «Подробнее» */
+  /** Строка AI обложки; получает `openAddonInfo` для кнопки "Подробнее" */
   renderAiCoverRow: (openAddonInfo: (key: CabinetUploadAddonInfoKey) => void) => ReactNode
   requestAiCover: boolean
   aiCoverComment?: string
@@ -297,7 +297,7 @@ export type CabinetUploadAdditionalServicesSectionProps = {
   setAddonLyricsSync: (v: boolean) => void
   /** Число треков для тарифа (сингл - 1, альбом - число треков). */
   addonLyricsSyncCount?: number
-  /** Подсказка под итогом: «трек» или «альбом» */
+  /** Подсказка под итогом: "трек" или "альбом" */
   afterPaymentSubject: "трек" | "альбом"
   sectionClassName?: string
   /** plain - без рамки и заголовка, всегда развёрнуто (wizard) */

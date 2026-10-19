@@ -56,12 +56,12 @@ export async function GET(request: NextRequest) {
         "POST /api/payments/tbank/recurrent-test - создать родительский платёж (Recurrent=Y).",
         "Оплатить картой 4000 0000 0000 0333, 12/30, 111.",
         "Webhook сохранит RebillId из уведомления.",
-        "В ЛК Т-Бизнес нажать «Проверить» для теста №5.",
+        "В ЛК Т-Бизнес нажать "Проверить" для теста №5.",
       ],
       test6: [
         "PUT /api/payments/tbank/recurrent-test - Init child + Charge по RebillId.",
         "Дождаться child_status = CONFIRMED в статусе ниже.",
-        "В ЛК Т-Бизнес нажать «Проверить» для теста №6.",
+        "В ЛК Т-Бизнес нажать "Проверить" для теста №6.",
       ],
     },
   })
@@ -189,6 +189,6 @@ export async function PUT(request: NextRequest) {
     childPaymentId: childInit.paymentId,
     rebillId: state.rebillId,
     state: await getTbankRecurrentTestState(),
-    message: "Charge отправлен. Дождитесь webhook CONFIRMED для child-платежа, затем нажмите «Проверить» в ЛК Т-Бизнес.",
+    message: "Charge отправлен. Дождитесь webhook CONFIRMED для child-платежа, затем нажмите "Проверить" в ЛК Т-Бизнес.",
   })
 }

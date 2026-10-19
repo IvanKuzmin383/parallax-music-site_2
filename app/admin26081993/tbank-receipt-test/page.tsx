@@ -240,7 +240,7 @@ function TbankReceiptTestPageInner() {
                   <li>Создайте платёж - Init отправит Receipt.</li>
                   <li>Оплатите тестовой картой.</li>
                   <li>Дождитесь payment_status = CONFIRMED.</li>
-                  <li>В ЛК → «Проверить» для теста №7.</li>
+                  <li>В ЛК → "Проверить" для теста №7.</li>
                 </ol>
                 <Button type="button" disabled={busy !== null} onClick={() => void startPayment()}>
                   {busy === "pay" ? "Создание…" : "Создать платёж с чеком"}
@@ -255,9 +255,9 @@ function TbankReceiptTestPageInner() {
               <CardContent className="space-y-4 text-sm">
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                   <li>Сначала завершите тест №7.</li>
-                  <li>Нажмите «Выполнить Cancel» - полный возврат.</li>
+                  <li>Нажмите "Выполнить Cancel" - полный возврат.</li>
                   <li>Дождитесь refund_status = REFUNDED или CANCELED.</li>
-                  <li>В ЛК → «Проверить» для теста №8.</li>
+                  <li>В ЛК → "Проверить" для теста №8.</li>
                 </ol>
                 <Button
                   type="button"

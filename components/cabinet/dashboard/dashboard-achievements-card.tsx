@@ -59,7 +59,7 @@ export function DashboardAchievementsCard() {
           </div>
           <p className="text-xs text-muted-foreground">
             {next
-              ? `До «${next.title}»: ${Math.max(0, next.minXp - progress.xp)} XP`
+              ? `До "${next.title}": ${Math.max(0, next.minXp - progress.xp)} XP`
               : "Максимальный уровень"}
           </p>
         </div>

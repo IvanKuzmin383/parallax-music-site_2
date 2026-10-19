@@ -123,7 +123,7 @@ const individualProfileSchema = z.object({
   counterpartyType: z.literal("individual"),
   lastName: z.string().trim().min(1, "Фамилия обязательна").max(100),
   firstName: z.string().trim().min(1, "Имя обязательно").max(100),
-  /** Пусто допустимо, если в форме отмечено «Без отчества». */
+  /** Пусто допустимо, если в форме отмечено "Без отчества". */
   patronymic: optionalTrimmed(100),
   registrationAddress: z.string().trim().min(5, "Укажите адрес регистрации").max(300),
   ...sharedProfileFields,

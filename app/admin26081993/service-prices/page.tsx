@@ -71,7 +71,7 @@ export default function AdminServicePricesPage() {
       const cur = prev[key] ?? { priceRub: "", compareAtRub: "", discountPercent: "" }
       const next = { ...cur, ...patch }
 
-      // Автозаполнение: цена + % → «было»; цена + «было» → %
+      // Автозаполнение: цена + % → "было"; цена + "было" → %
       const price = parsePositive(next.priceRub)
       if (patch.discountPercent !== undefined && price != null) {
         const pct = parsePositive(next.discountPercent)

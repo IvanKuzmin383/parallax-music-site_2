@@ -184,7 +184,7 @@ const UPLOAD_DRAFT_STATUS_OPTIONS: { value: UploadDraftStatus; label: string }[]
   { value: "expired", label: "Истёк" },
   { value: "cancelled", label: "Отменён" },
 ]
-/** Сколько строк показывать в «Простом списке» до нажатия «Еще». */
+/** Сколько строк показывать в "Простом списке" до нажатия "Еще". */
 const SIMPLE_LIST_PAGE_SIZE = 15
 function uploadDraftMediaEditable(d: UploadDraft): boolean {
   return d.status === "collecting" || d.status === "awaiting_payment" || d.status === "paid"
@@ -1755,7 +1755,7 @@ export default function TracksPageClient() {
                                       <>
                                         {" "}
                                         <span className="font-medium text-foreground">
-                                          «{albumTitle}»
+                                          "{albumTitle}"
                                         </span>
                                       </>
                                     ) : null}
@@ -2103,7 +2103,7 @@ export default function TracksPageClient() {
                       : isUploadDraftsView
                         ? "Нет активных черновиков загрузки."
                         : viewFilter.type === "status" && viewFilter.status === "upload_pending"
-                          ? "Нет треков в статусе «Требуется доработка». Заявки из формы загрузки - в блоке «Черновики загрузки»."
+                          ? "Нет треков в статусе "Требуется доработка". Заявки из формы загрузки - в блоке "Черновики загрузки"."
                           : viewFilter.type === "releases_today"
                             ? "Нет треков с датой публикации на сегодня."
                             : "Нет треков по выбранным фильтрам (дата публикации / статус)."}
@@ -2285,7 +2285,7 @@ export default function TracksPageClient() {
                     <div className="space-y-3">
                       <p className="text-sm text-muted-foreground">
                         Заявки на загрузку (ещё не финализированы в трек), включая истёкшие и отменённые - можно
-                        открыть, поправить статус и при необходимости нажать «Создать трек на модерации».
+                        открыть, поправить статус и при необходимости нажать "Создать трек на модерации".
                       </p>
                       <div className="space-y-2">
                         {displayUploadDrafts.map((d) => {
@@ -2470,7 +2470,7 @@ export default function TracksPageClient() {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg">
-                        Артисты на «{groupedLetter}»
+                        Артисты на "{groupedLetter}"
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
                         {(artistsByLetter.get(groupedLetter) ?? []).length}{" "}
@@ -3127,7 +3127,7 @@ export default function TracksPageClient() {
                       <div className="space-y-2">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <Label htmlFor="admin-mod-note">
-                            Комментарий модерации (при «Отклонено» / «Отозван» / «Требуется доработка»)
+                            Комментарий модерации (при "Отклонено" / "Отозван" / "Требуется доработка")
                           </Label>
                           <AdminModerationNoteTemplates
                             onApply={(text) =>
@@ -3208,7 +3208,7 @@ export default function TracksPageClient() {
                             AI-анализ релиза
                           </Label>
                           <p className="text-xs text-muted-foreground">
-                            Если заполнено - в кабинете артиста появится бейдж «AI-анализ» и
+                            Если заполнено - в кабинете артиста появится бейдж "AI-анализ" и
                             уведомление. Для альбома текст один на весь релиз.
                           </p>
                           <Textarea
@@ -4061,8 +4061,8 @@ export default function TracksPageClient() {
             <DialogHeader>
               <DialogTitle>Статус и комментарий для альбома</DialogTitle>
               <DialogDescription>
-                Изменения применятся ко всем {albumModTrackCount} трекам этого альбома. Статус «не
-                менять» оставит текущий статус каждого трека без изменений.
+                Изменения применятся ко всем {albumModTrackCount} трекам этого альбома. Статус "не
+                менять" оставит текущий статус каждого трека без изменений.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -4130,7 +4130,7 @@ export default function TracksPageClient() {
             <AlertDialogHeader>
               <AlertDialogTitle>Очистить комментарии модерации?</AlertDialogTitle>
               <AlertDialogDescription>
-                У всех {albumModTrackCount} треков этого альбома поле «комментарий модерации» будет
+                У всех {albumModTrackCount} треков этого альбома поле "комментарий модерации" будет
                 сброшено. Статусы треков не изменятся.
               </AlertDialogDescription>
             </AlertDialogHeader>

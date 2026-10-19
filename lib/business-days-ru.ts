@@ -26,7 +26,7 @@ export function isRussianBusinessDayMoscow(d: Date): boolean {
 
 /**
  * Крайняя дата (календарный день по Москве, YYYY-MM-DD), до которой нужно отключить автоплатёж,
- * чтобы соблюсти «не позднее чем за 3 рабочих дня» до даты планового списания (оферта 5.5).
+ * чтобы соблюсти "не позднее чем за 3 рабочих дня" до даты планового списания (оферта 5.5).
  */
 export function getLatestMoscowDisableDateYmdBeforeCharge(chargeAt: Date): string | null {
   const chargeDay = moscowCalendarDayStart(chargeAt)

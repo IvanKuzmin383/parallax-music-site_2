@@ -443,7 +443,7 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
             <DialogDescription>
               Мы отправили код на{" "}
               <span className="font-medium text-foreground">{registerEmail.trim()}</span>. Код
-              действует {emailVerifyTtlMin} минут. Проверьте папку «Спам», если письма нет
+              действует {emailVerifyTtlMin} минут. Проверьте папку "Спам", если письма нет
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => void handleEmailVerifySubmit(e)} className="space-y-4">

@@ -524,7 +524,7 @@ export function StoryVideoClient() {
       toast.error("Нужен файл изображения")
       return
     }
-    // data: уже разрешён CSP (img-src); blob: раньше блокировался → «Не удалось загрузить обложку»
+    // data: уже разрешён CSP (img-src); blob: раньше блокировался → "Не удалось загрузить обложку"
     if (localCoverObjectUrl.current) {
       URL.revokeObjectURL(localCoverObjectUrl.current)
       localCoverObjectUrl.current = null

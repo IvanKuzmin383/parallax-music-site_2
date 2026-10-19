@@ -27,7 +27,7 @@ export default function SmartlinksMarketingPage() {
 
         <ul className="mt-10 space-y-3 text-white/80">
           <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-            Темы оформления (в том числе «винил»), свои цвета и соцсети
+            Темы оформления (в том числе "винил"), свои цвета и соцсети
           </li>
           <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
             Обложка и короткий превью-аудио для прослушивания на странице

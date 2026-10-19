@@ -130,13 +130,6 @@ export function CabinetSubscriptionPaywallDialog({
               </Link>
             </Button>
           )}
-          {!slotIssue ? (
-            <Button type="button" variant="outline" className="w-full" asChild>
-              <Link href="/cabinet/subscription" onClick={() => onOpenChange(false)}>
-                Смотреть все тарифы
-              </Link>
-            </Button>
-          ) : null}
           <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
             Закрыть
           </Button>

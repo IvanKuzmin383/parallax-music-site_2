@@ -3,7 +3,7 @@ export type ParsedStreamingReportFile = {
   amountUsd: number | null
   amountEur: number | null
   rowCount: number
-  /** Primary artist for display/match (most frequent in «Исполнитель»). */
+  /** Primary artist for display/match (most frequent in "Исполнитель"). */
   primaryArtist: string | null
   /** Unique artist names from content, frequency-desc. */
   artistsFromContent: string[]

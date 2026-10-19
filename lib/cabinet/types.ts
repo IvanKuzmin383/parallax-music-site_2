@@ -99,7 +99,7 @@ export interface ReleaseView {
   aiAnalysisText?: string | null
   /** Публичный slug смартлинка (с трека релиза). */
   smartlinkSlug?: string | null
-  /** Промо: страница открыта до статуса «выпущен». */
+  /** Промо: страница открыта до статуса "выпущен". */
   smartlinkPublic?: boolean
 }
 

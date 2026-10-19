@@ -97,7 +97,7 @@ export function PublickaStatsPanel() {
       ) : !stats || stats.placementsCount === 0 ? (
         <Card>
           <CardContent className="py-10 space-y-3 text-center">
-            <p className="font-medium">Пока нет треков в «Музыка для бизнеса»</p>
+            <p className="font-medium">Пока нет треков в "Музыка для бизнеса"</p>
             <p className="text-sm text-muted-foreground">
               Разместите музыку в фоновой трансляции в общественных местах - статистика и заработок появятся здесь
             </p>

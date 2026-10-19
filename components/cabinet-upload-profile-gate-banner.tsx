@@ -13,7 +13,7 @@ export function CabinetUploadProfileGateBanner() {
       <AlertDescription className="space-y-3">
         <p className="text-foreground/90 text-sm leading-relaxed">
           Укажите фамилию, имя, адрес регистрации и контактный телефон - без этого отправка релиза
-          недоступна. Отчество - если есть в паспорте, либо отметьте «Без отчества» в профиле.
+          недоступна. Отчество - если есть в паспорте, либо отметьте "Без отчества" в профиле.
         </p>
         <Button asChild size="sm" variant="default">
           <Link href="/cabinet/profile">Открыть профиль</Link>

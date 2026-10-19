@@ -1,4 +1,4 @@
-/** Склонение для 1 / 2-4 / 5+ (и 11-14 → форма «много») */
+/** Склонение для 1 / 2-4 / 5+ (и 11-14 → форма "много") */
 function ruPlural(n: number, one: string, few: string, many: string): string {
   const nAbs = Math.abs(n) % 100
   const n1 = nAbs % 10
@@ -8,7 +8,7 @@ function ruPlural(n: number, one: string, few: string, many: string): string {
   return many
 }
 
-/** Подпись пункта в списке «количество периодов» (1 месяц / 1 год и т.д.) */
+/** Подпись пункта в списке "количество периодов" (1 месяц / 1 год и т.д.) */
 export function formatPayPeriodOptionLabel(
   n: number,
   period: "month" | "year",
@@ -26,7 +26,7 @@ export function formatPayPeriodOptionLabel(
   return `${n} ${ruPlural(n, "год", "года", "лет")}`
 }
 
-/** Подпись «N месяцев» в строке итога (× ...) */
+/** Подпись "N месяцев" в строке итога (× ...) */
 export function formatMonthsCountLabel(totalMonths: number, locale: "ru" | "en"): string {
   if (locale === "en") {
     return totalMonths === 1 ? "1 month" : `${totalMonths} months`

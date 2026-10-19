@@ -46,7 +46,7 @@ export async function listPendingAnnouncementsForUser(userId: string): Promise<C
   return rows.map(rowToAnnouncement)
 }
 
-/** Все активные новости ЛК (для раздела «Новости»). */
+/** Все активные новости ЛК (для раздела "Новости"). */
 export async function listActiveCabinetAnnouncements(): Promise<CabinetAnnouncement[]> {
   const rows = await query<{
     id: string

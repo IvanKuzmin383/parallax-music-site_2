@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   }
   if (comment.length < 2) {
     return NextResponse.json(
-      { error: "Добавьте пожелания или напишите «На ваш вкус»" },
+      { error: "Добавьте пожелания или напишите "На ваш вкус"" },
       { status: 400 },
     )
   }

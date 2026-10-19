@@ -49,7 +49,7 @@ export interface CountryPlaysByDate {
   plays: number
 }
 
-/** Лимит треков в блоке «сравнение» на /cabinet/music-stats (один batch-запрос). */
+/** Лимит треков в блоке "сравнение" на /cabinet/music-stats (один batch-запрос). */
 export const CABINET_MUSIC_STATS_COMPARE_MAX_TRACKS = 5
 
 export interface MusicStatsResponse {
@@ -220,6 +220,6 @@ export function computeStatsFromMusicData(data: MusicStatsFile): {
   return { dailyStats, topTracksAgg, totalPlays, daysCount, totalTracksInFile, totalRows }
 }
 
-/** Размер страницы топа треков в админке (кнопка «Ещё»). */
+/** Размер страницы топа треков в админке (кнопка "Ещё"). */
 export const ADMIN_TOP_TRACKS_PAGE_SIZE = 10
 export const ADMIN_TOP_TRACKS_MAX_PAGE = 50

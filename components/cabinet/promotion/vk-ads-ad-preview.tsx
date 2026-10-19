@@ -204,7 +204,7 @@ export function VkAdsAdPreview({ goal, projectName, className }: VkAdsAdPreviewP
         <div
           className="mx-auto w-full max-w-[306px] rounded-[36px] border-[3px] border-[#1A1A1F] bg-[#0C0C10] p-[10px] shadow-[0_20px_48px_-24px_rgba(0,0,0,0.85)]"
           role="img"
-          aria-label={`Пример рекламной записи ВКонтакте: цель «${goal.title}», релиз «${releaseTitle}»`}
+          aria-label={`Пример рекламной записи ВКонтакте: цель "${goal.title}", релиз "${releaseTitle}"`}
         >
           <div
             className="overflow-hidden rounded-[26px] bg-white text-[#222222]"

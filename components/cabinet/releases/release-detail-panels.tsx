@@ -528,7 +528,7 @@ export function ModerationNoteAside({
   className,
 }: {
   note: string
-  /** Не выше блока обложки; длинный текст - скролл и «Показать полностью» в модалке. */
+  /** Не выше блока обложки; длинный текст - скролл и "Показать полностью" в модалке. */
   maxHeight?: number | null
   className?: string
 }) {

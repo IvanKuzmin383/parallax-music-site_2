@@ -69,7 +69,7 @@ NEXT_PUBLIC_YANDEX_METRIKA_ID=...
 
 MUSIC_STATS_IMPORT_TOKEN=...
 
-# Автосбор ссылок смартлинка по UPC (админка → «Подтянуть по UPC»)
+# Автосбор ссылок смартлинка по UPC (админка → "Подтянуть по UPC")
 # Bandlink - основной источник (Яндекс, VK, Звук, МТС и др.)
 BANDLINK_TOKEN=...
 BANDLINK_ARTIST_ID=642528
@@ -405,7 +405,7 @@ curl "https://parallaxmusic.ru/api/cron/upload-drafts-cleanup?secret=CRON_SECRET
 
 ---
 
-## Этап 10. Чеклист «всё работает»
+## Этап 10. Чеклист "всё работает"
 
 - [ ] Главная, блог, смартлинки
 - [ ] Регистрация / вход в кабинет

@@ -209,7 +209,7 @@ export default function AdminCabinetAnnouncementsPage() {
           <div>
             <h1 className="text-2xl font-bold">Новости личного кабинета</h1>
             <p className="text-muted-foreground text-sm">
-              Текст показывается пользователям один раз, пока они не нажмут «Ок»
+              Текст показывается пользователям один раз, пока они не нажмут "Ок"
             </p>
           </div>
         </div>
@@ -332,7 +332,7 @@ export default function AdminCabinetAnnouncementsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить новость?</AlertDialogTitle>
             <AlertDialogDescription>
-              «{toDelete?.title}» будет удалена. Для пользователей, которые уже нажали «Ок»,
+              "{toDelete?.title}" будет удалена. Для пользователей, которые уже нажали "Ок",
               ничего не изменится; новые пользователи не увидят эту запись.
             </AlertDialogDescription>
           </AlertDialogHeader>

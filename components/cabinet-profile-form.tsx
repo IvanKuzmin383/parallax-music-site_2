@@ -52,9 +52,9 @@ export function CabinetProfileForm({
       !values.patronymic.trim()
     ) {
       form.setError("patronymic", {
-        message: "Укажите отчество или отметьте «Без отчества»",
+        message: "Укажите отчество или отметьте "Без отчества"",
       })
-      toast.error("Укажите отчество или отметьте «Без отчества»")
+      toast.error("Укажите отчество или отметьте "Без отчества"")
       return
     }
 
@@ -187,7 +187,7 @@ export function CabinetProfileForm({
           <div className="space-y-2">
             <Label>Полное наименование *</Label>
             <Input
-              placeholder='Общество с ограниченной ответственностью «...»'
+              placeholder='Общество с ограниченной ответственностью "..."'
               {...form.register("companyFullName")}
               disabled={saving}
             />
@@ -195,7 +195,7 @@ export function CabinetProfileForm({
           </div>
           <div className="space-y-2">
             <Label>Краткое наименование</Label>
-            <Input placeholder="ООО «...»" {...form.register("companyShortName")} disabled={saving} />
+            <Input placeholder="ООО "..."" {...form.register("companyShortName")} disabled={saving} />
             <FieldError message={form.formState.errors.companyShortName?.message} />
           </div>
           <div className="grid gap-4 md:grid-cols-3">

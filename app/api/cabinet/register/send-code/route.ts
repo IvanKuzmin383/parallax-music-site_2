@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
   if (!isEmailConfigured()) {
     // Локальная/тестовая среда без Resend - пропускаем отправку, регистрация примет любой 6-значный код? 
-    // Нет: без письма регистрация всё равно потребует код. Разрешаем «dev»-код только если явно задано.
+    // Нет: без письма регистрация всё равно потребует код. Разрешаем "dev"-код только если явно задано.
     if (process.env.EMAIL_VERIFICATION_DEV_BYPASS === "1") {
       const created = await createEmailVerificationCode(email)
       if (!created.ok) {

@@ -54,7 +54,7 @@ export const AI_LABELING_DETAIL_TERNARY_LABELS: Record<AiTernaryChoice, string> 
 }
 
 export const AI_LABELING_COMPOSITION_FIELDS = [
-  { key: "musicAuthorship", label: "Авторство музыки («ноты»)" },
+  { key: "musicAuthorship", label: "Авторство музыки ("ноты")" },
   { key: "lyricsAuthorship", label: "Авторство слов" },
 ] as const satisfies ReadonlyArray<{ key: keyof TrackAiLabelingDetails; label: string }>
 
@@ -117,12 +117,12 @@ export function validateTrackAiLabeling(labeling: TrackAiLabeling | null | undef
     if (!d) return "Заполните подробную AI-маркировку"
     for (const field of AI_LABELING_COMPOSITION_FIELDS) {
       if (!AI_BINARY_CHOICES.includes(d[field.key] as AiBinaryChoice)) {
-        return `Укажите «${field.label}»`
+        return `Укажите "${field.label}"`
       }
     }
     for (const field of AI_LABELING_RECORDING_FIELDS) {
       if (!AI_TERNARY_CHOICES.includes(d[field.key] as AiTernaryChoice)) {
-        return `Укажите «${field.label}»`
+        return `Укажите "${field.label}"`
       }
     }
   }

@@ -12,7 +12,7 @@ export type TbankReceiptPayload = {
   }>
 }
 
-/** УСН «доходы» по умолчанию (ИП). Переопределение: TBANK_RECEIPT_TAXATION */
+/** УСН "доходы" по умолчанию (ИП). Переопределение: TBANK_RECEIPT_TAXATION */
 export function getTbankReceiptTaxation(): string {
   return process.env.TBANK_RECEIPT_TAXATION?.trim() || "usn_income"
 }
@@ -25,7 +25,7 @@ export function shouldSendTbankReceipt(): boolean {
   if (process.env.TBANK_SKIP_RECEIPT === "1" || process.env.TBANK_SKIP_RECEIPT === "true") {
     return false
   }
-  // DEMO-терминал часто без онлайн-кассы - Init с Receipt даёт «Неверные параметры».
+  // DEMO-терминал часто без онлайн-кассы - Init с Receipt даёт "Неверные параметры".
   const terminalKey = process.env.TBANK_TERMINAL_KEY?.trim() ?? ""
   if (/DEMO/i.test(terminalKey) && process.env.TBANK_SEND_RECEIPT !== "true") {
     return false

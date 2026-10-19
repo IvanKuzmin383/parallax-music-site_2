@@ -5,7 +5,7 @@ import { notifyStaffInBackground } from "@/lib/form-notifications"
 import { escapeHtml } from "@/lib/telegram"
 
 /**
- * Сбор интереса к «Депонированию»: деньги не списываются.
+ * Сбор интереса к "Депонированию": деньги не списываются.
  */
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const message = [
     "<b>Интерес к услуге: Депонирование</b>",
     "",
-    "<b>Деньги не списаны</b> - клиент нажал «Хочу задепонировать».",
+    "<b>Деньги не списаны</b> - клиент нажал "Хочу задепонировать".",
     "",
     `<b>Аккаунт:</b> ${escapeHtml(user.email)}`,
     `<b>User ID:</b> ${escapeHtml(user.id)}`,

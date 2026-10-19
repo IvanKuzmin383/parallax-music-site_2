@@ -178,35 +178,38 @@ async function sliceWavPreview(params: {
 }
 
 async function tryFfmpegMp3(params: {
-  sourceWavPath: string
+  sourcePath: string
   destPath: string
-  startSec: number
+  startSec?: number
+  durationSec?: number
 }): Promise<void> {
   const tmpPath = `${params.destPath}.${process.pid}.${Date.now()}.tmp.mp3`
+  const args = ["-y"]
+  if (params.startSec != null && params.startSec > 0) {
+    args.push("-ss", String(params.startSec))
+  }
+  if (params.durationSec != null && params.durationSec > 0) {
+    args.push("-t", String(params.durationSec))
+  }
+  args.push(
+    "-i",
+    params.sourcePath,
+    "-vn",
+    "-acodec",
+    "libmp3lame",
+    "-b:a",
+    "128k",
+    "-ac",
+    "2",
+    "-ar",
+    "44100",
+    tmpPath,
+  )
   try {
-    await execFileAsync(
-      "ffmpeg",
-      [
-        "-y",
-        "-ss",
-        String(params.startSec),
-        "-t",
-        String(SMARTLINK_PREVIEW_AUDIO_DURATION_SEC),
-        "-i",
-        params.sourceWavPath,
-        "-vn",
-        "-acodec",
-        "libmp3lame",
-        "-b:a",
-        "128k",
-        "-ac",
-        "2",
-        "-ar",
-        "44100",
-        tmpPath,
-      ],
-      { timeout: 90_000, maxBuffer: 2 * 1024 * 1024 },
-    )
+    await execFileAsync("ffmpeg", args, {
+      timeout: 180_000,
+      maxBuffer: 2 * 1024 * 1024,
+    })
     const info = await stat(tmpPath)
     if (info.size < 1024) throw new Error("preview mp3 too small")
     await rename(tmpPath, params.destPath)
@@ -214,6 +217,20 @@ async function tryFfmpegMp3(params: {
     await unlink(tmpPath).catch(() => undefined)
     throw err
   }
+}
+
+/**
+ * Перекодирует загруженный preview (wav/mp3) в единый preview.mp3 128k.
+ * Полный файл без нарезки - старт хука берётся из theme на публичной отдаче.
+ */
+export async function transcodeSmartlinkUploadToMp3(params: {
+  sourcePath: string
+  destPath: string
+}): Promise<void> {
+  await tryFfmpegMp3({
+    sourcePath: params.sourcePath,
+    destPath: params.destPath,
+  })
 }
 
 /**
@@ -251,9 +268,10 @@ export async function ensureSmartlinkPreviewAudio(params: {
     await access(params.sourceWavPath)
     try {
       await tryFfmpegMp3({
-        sourceWavPath: params.sourceWavPath,
+        sourcePath: params.sourceWavPath,
         destPath: mp3Path,
         startSec,
+        durationSec: SMARTLINK_PREVIEW_AUDIO_DURATION_SEC,
       })
       return { path: mp3Path, contentType: "audio/mpeg" }
     } catch (ffmpegErr) {

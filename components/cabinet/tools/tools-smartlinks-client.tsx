@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
-import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
 import { cn } from "@/lib/utils"
 
 type ListItem = {
@@ -39,7 +38,6 @@ export function ToolsSmartlinksClient() {
   const [importing, setImporting] = useState(false)
   const [importReleaseId, setImportReleaseId] = useState("")
   const [items, setItems] = useState<ListItem[]>([])
-  const [priceRub, setPriceRub] = useState(TOOLS_SMARTLINK_PRICE_RUB)
   const { releases, loading: releasesLoading } = useCabinetReleases()
   const importCandidates = releases.filter(
     (r) => r.kind !== "draft" && r.releaseStatus !== "draft" && r.status !== "Черновик"
@@ -53,9 +51,8 @@ export function ToolsSmartlinksClient() {
         toast.error("Не удалось загрузить смартлинки")
         return
       }
-      const data = (await res.json()) as { items?: ListItem[]; priceRub?: number }
+      const data = (await res.json()) as { items?: ListItem[] }
       setItems(data.items ?? [])
-      if (typeof data.priceRub === "number") setPriceRub(data.priceRub)
     } finally {
       setLoading(false)
     }
@@ -146,12 +143,6 @@ export function ToolsSmartlinksClient() {
           </Button>
         </div>
       </div>
-
-      <p className="rounded-lg border border-border/70 bg-card/40 px-4 py-3 text-sm text-muted-foreground">
-        Активация публичной страницы - {priceRub.toLocaleString("ru-RU")} ₽ с баланса (год). Для релизов
-        из дистрибуции можно включить бесплатный промо-смартлинк в карточке релиза или импортировать
-        релиз одной кнопкой ниже.
-      </p>
 
       {importCandidates.length > 0 ? (
         <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border/70 bg-card/30 px-4 py-3">

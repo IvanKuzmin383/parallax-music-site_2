@@ -181,7 +181,7 @@ export function formatRub(amount: number): string {
   return `${amount.toLocaleString("ru-RU")} ₽`
 }
 
-/** Короткая подпись для карточек: цена + опционально скидка и «было». */
+/** Короткая подпись для карточек: цена + опционально скидка и "было". */
 export function formatServicePriceCardLabel(p: ResolvedServicePrice): string {
   const prefix = p.unitHint === "от" ? "от " : ""
   const suffix =
@@ -247,7 +247,7 @@ export async function getServicePriceRubMap(): Promise<Record<ServicePriceKey, n
 export type UpsertServicePriceInput = {
   key: ServicePriceKey
   priceRub: number
-  /** null / undefined - без «старой» цены */
+  /** null / undefined - без "старой" цены */
   compareAtRub?: number | null
 }
 

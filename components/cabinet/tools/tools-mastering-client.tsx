@@ -353,7 +353,7 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`
 }
 
-function MeterBar({
+function CompactMeter({
   label,
   tip,
   valueText,
@@ -368,67 +368,49 @@ function MeterBar({
 }) {
   const pct = Math.round(Math.min(1, Math.max(0, fill)) * 100)
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="flex min-w-[5.5rem] max-w-[7.5rem] flex-1 flex-col gap-0.5">
+      <div className="flex items-center justify-between gap-1">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
           <HintIcon label={label} tip={tip} />
         </span>
         <span
           className={cn(
-            "tabular-nums text-xs font-semibold tracking-tight",
+            "tabular-nums text-[10px] font-semibold",
             hot ? "text-primary" : "text-foreground"
           )}
         >
           {valueText}
         </span>
       </div>
-      <div className="relative h-2 overflow-hidden rounded-full border border-border/60 bg-background/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)]">
+      <div className="h-1 overflow-hidden rounded-full bg-muted">
         <div
           className={cn(
-            "absolute inset-y-0 left-0 rounded-full transition-[width] duration-75 ease-out",
-            hot
-              ? "bg-gradient-to-r from-primary via-primary to-orange-400 shadow-[0_0_12px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
-              : "bg-gradient-to-r from-primary/70 via-primary to-primary/90"
+            "h-full rounded-full transition-[width] duration-75",
+            hot ? "bg-primary" : "bg-primary/80"
           )}
           style={{ width: `${pct}%` }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(90deg, transparent 0 6px, rgba(255,255,255,0.35) 6px 7px)",
-          }}
-          aria-hidden
         />
       </div>
     </div>
   )
 }
 
-function LoudnessMeters({ reading, live }: { reading: MeterReading; live: boolean }) {
+function CompactLoudnessMeters({ reading, live }: { reading: MeterReading; live: boolean }) {
   const lufsFill = live ? lufsBarLevel(reading.lufs) : 0
   const tpFill = live ? truePeakBarLevel(reading.truePeakDb) : 0
   const tpHot = live && reading.truePeakDb > -1
   return (
-    <div className="space-y-3 rounded-xl border border-border/70 bg-gradient-to-b from-card/55 to-card/20 p-3">
-      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Уровень
-        </p>
-        <span className="text-[10px] text-muted-foreground">
-          {live ? "live · текущий A/B" : "нажмите Play"}
-        </span>
-      </div>
-      <MeterBar
+    <div className="flex min-w-0 items-center gap-2.5">
+      <CompactMeter
         label="LUFS"
-        tip="Моментальная громкость (примерно как на стриминге). Ориентир Spotify/Apple - около −14 LUFS."
+        tip="Моментальная громкость (примерно как на стриминге). Ориентир Spotify/Apple - около -14 LUFS."
         valueText={formatLufs(reading.lufs, live)}
         fill={lufsFill}
       />
-      <MeterBar
-        label="True Peak"
-        tip="Пик с запасом (dBTP). Держите ниже −1 dBTP, чтобы на площадках не клиповало."
+      <CompactMeter
+        label="TP"
+        tip="True Peak (dBTP). Держите ниже -1 dBTP, чтобы на площадках не клиповало."
         valueText={formatTruePeak(reading.truePeakDb, live)}
         fill={tpFill}
         hot={tpHot}
@@ -753,163 +735,176 @@ function ToolsMasteringInner() {
           <ArrowLeft className="h-4 w-4" />
           К инструментам
         </Link>
-        <PageHeader
-          title="Онлайн-мастеринг"
-          className="mb-0 sm:mb-0 [&_p]:max-w-3xl"
-          description="Пресеты, EQ, компрессор и лимитер в браузере. A/B во время настройки. AI-мастеринг на заказ - в разделе услуг"
-        />
+        <PageHeader title="Онлайн-мастеринг" className="mb-0 sm:mb-0" />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
-      <section className="space-y-2.5 rounded-lg border border-border bg-card/40 p-3.5">
-        <p className="text-sm font-medium">Исходный WAV</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".wav,audio/wav,audio/x-wav"
-          className="hidden"
-          onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="mr-2 h-4 w-4" />
-            Выбрать файл
-          </Button>
-          {loadState === "ready" ? (
-            <span className="min-w-0 text-sm text-emerald-300">
-              Трек загружен и готов к мастерингу
-              {file ? (
-                <span className="text-muted-foreground"> · {file.name}</span>
-              ) : null}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".wav,audio/wav,audio/x-wav"
+        className="hidden"
+        onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+      />
+
+      <div className="sticky top-0 z-20 -mx-3 border-b border-border/70 bg-background/92 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 lg:flex-nowrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="mr-1.5 h-3.5 w-3.5" />
+              {file ? "Файл" : "WAV"}
+            </Button>
+            <span
+              className={cn(
+                "min-w-0 max-w-[10rem] truncate text-xs sm:max-w-[14rem]",
+                loadState === "ready" ? "text-emerald-400" : "text-muted-foreground"
+              )}
+              title={file?.name}
+            >
+              {loadState === "ready"
+                ? file?.name || "Готово"
+                : file
+                  ? file.name
+                  : "Файл не выбран"}
             </span>
-          ) : (
-            <span className="min-w-0 truncate text-sm text-muted-foreground">
-              {file ? file.name : "Файл не выбран"}
-            </span>
-          )}
-        </div>
 
-        {loadState === "loading" ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-muted-foreground">{loadPhase}</span>
-              <span className="tabular-nums text-muted-foreground">{loadPercent}%</span>
-            </div>
-            <Progress value={loadPercent} className="h-2" />
-          </div>
-        ) : null}
-      </section>
+            <div className="hidden h-5 w-px shrink-0 bg-border sm:block" aria-hidden />
 
-      <aside className="min-w-0 lg:sticky lg:top-16 lg:self-start">
-          <div className="space-y-3 rounded-lg border border-border bg-card/40 p-3.5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium">Предпрослушивание</p>
-                <HintIcon
-                  label="Предпрослушивание"
-                  tip="Слушайте результат до скачивания. A - исходник, B - с мастерингом. Крутилки меняют звук сразу в режиме B."
-                />
-              </div>
-              <div className="inline-flex rounded-md border border-border p-0.5">
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded px-3 py-1.5 text-xs font-semibold",
-                    abMode === "A"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => switchAb("A")}
-                  disabled={loadState !== "ready"}
-                >
-                  A · оригинал
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded px-3 py-1.5 text-xs font-semibold",
-                    abMode === "B"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => switchAb("B")}
-                  disabled={loadState !== "ready"}
-                >
-                  B · мастер
-                </button>
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Двигайте настройки во время воспроизведения - звук меняется сразу (B).
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
+            <div className="inline-flex shrink-0 rounded-md border border-border p-0.5">
+              <button
                 type="button"
-                variant="outline"
-                size="icon"
-                className="h-11 w-11 shrink-0"
-                disabled={loadState !== "ready"}
-                aria-label={playing ? "Пауза" : "Воспроизвести"}
-                onClick={() => void togglePlay()}
-              >
-                {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </Button>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
-                  <span>{formatTime(playhead)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-                <Slider
-                  value={[Math.min(playhead, duration || 0)]}
-                  min={0}
-                  max={duration > 0 ? duration : 1}
-                  step={0.01}
-                  disabled={loadState !== "ready" || duration <= 0}
-                  aria-label="Позиция воспроизведения"
-                  onValueChange={(value) => {
-                    scrubbingRef.current = true
-                    setPlayhead(value[0] ?? 0)
-                  }}
-                  onValueCommit={(value) => {
-                    scrubbingRef.current = false
-                    void seekTo(value[0] ?? 0)
-                  }}
-                />
-              </div>
-            </div>
-
-            <LoudnessMeters reading={meter} live={playing && loadState === "ready"} />
-
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-            <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                onClick={() => {
-                  if (needsPurchase) {
-                    setPayDialogOpen(true)
-                    return
-                  }
-                  void handleDownload()
-                }}
-                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
-                className="w-full"
-              >
-                {busy || paying ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : needsPurchase ? null : (
-                  <Download className="mr-2 h-4 w-4" />
+                className={cn(
+                  "rounded px-2 py-1 text-[11px] font-semibold",
+                  abMode === "A"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
-                {downloadLabel}
-              </Button>
-              <Button type="button" variant="ghost" asChild className="w-full">
-                <Link href="/cabinet/design/mastering">AI-мастеринг на заказ</Link>
-              </Button>
+                onClick={() => switchAb("A")}
+                disabled={loadState !== "ready"}
+              >
+                A
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded px-2 py-1 text-[11px] font-semibold",
+                  abMode === "B"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => switchAb("B")}
+                disabled={loadState !== "ready"}
+              >
+                B
+              </button>
             </div>
+            <HintIcon
+              label="A/B"
+              tip="A - исходник, B - мастер. Крутилки меняют звук сразу в режиме B."
+            />
+
+            <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
+
+            <button
+              type="button"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+              disabled={loadState !== "ready"}
+              aria-label={playing ? "Пауза" : "Воспроизвести"}
+              onClick={() => void togglePlay()}
+            >
+              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
+            </button>
+            <div className="flex min-w-[8rem] flex-1 items-center gap-2 sm:min-w-[12rem]">
+              <span className="w-8 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground">
+                {formatTime(playhead)}
+              </span>
+              <Slider
+                value={[Math.min(playhead, duration || 0)]}
+                min={0}
+                max={duration > 0 ? duration : 1}
+                step={0.01}
+                disabled={loadState !== "ready" || duration <= 0}
+                aria-label="Позиция воспроизведения"
+                className="flex-1"
+                onValueChange={(value) => {
+                  scrubbingRef.current = true
+                  setPlayhead(value[0] ?? 0)
+                }}
+                onValueCommit={(value) => {
+                  scrubbingRef.current = false
+                  void seekTo(value[0] ?? 0)
+                }}
+              />
+              <span className="w-8 shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                {formatTime(duration)}
+              </span>
+            </div>
+
+            <div className="hidden min-w-0 flex-1 lg:block xl:max-w-[14rem]">
+              <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              className="ml-auto h-8 shrink-0"
+              onClick={() => {
+                if (needsPurchase) {
+                  setPayDialogOpen(true)
+                  return
+                }
+                void handleDownload()
+              }}
+              disabled={needsPurchase ? paying : busy || loadState !== "ready"}
+            >
+              {busy || paying ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : needsPurchase ? null : (
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {downloadLabel}
+            </Button>
           </div>
-      </aside>
+
+          <div className="flex min-w-0 items-center gap-3 lg:hidden">
+            <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
+            <Link
+              href="/cabinet/design/mastering"
+              className="ml-auto shrink-0 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              AI на заказ
+            </Link>
+          </div>
+
+          {loadState === "loading" ? (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span>{loadPhase}</span>
+                <span className="tabular-nums">{loadPercent}%</span>
+              </div>
+              <Progress value={loadPercent} className="h-1" />
+            </div>
+          ) : null}
+
+          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+
+          <div className="hidden items-center justify-between gap-2 lg:flex">
+            <p className="text-[11px] text-muted-foreground">
+              Настройки меняют звук сразу в режиме B
+            </p>
+            <Link
+              href="/cabinet/design/mastering"
+              className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              AI-мастеринг на заказ
+            </Link>
+          </div>
+        </div>
       </div>
 
       <div className="min-w-0 space-y-3">
@@ -960,7 +955,7 @@ function ToolsMasteringInner() {
                   <div className="grid gap-3 lg:grid-cols-2">
                     <KnobGroup
                       title="Характер"
-                      hint="Готовый стиль мастеринга. «Без характера» - ручной режим: тон не подменяется пресетом. Интенсивность работает только у готовых стилей."
+                      hint='Готовый стиль мастеринга. "Без характера" - ручной режим: тон не подменяется пресетом. Интенсивность работает только у готовых стилей.'
                     >
                       <div className="flex w-full flex-col gap-3">
                         <div className="grid w-full grid-cols-2 gap-2">
@@ -1019,7 +1014,7 @@ function ToolsMasteringInner() {
                         <div className="flex items-center justify-center gap-4 border-t border-border/40 pt-3 sm:justify-start">
                           <RotaryKnob
                             label="Интенсивность"
-                            tip="Насколько сильно применён выбранный характер. В режиме «Без характера» не используется - крутите тонкую настройку."
+                            tip='Насколько сильно применён выбранный характер. В режиме "Без характера" не используется - крутите тонкую настройку.'
                             value={params.presetAmount}
                             min={0}
                             max={100}
@@ -1046,7 +1041,7 @@ function ToolsMasteringInner() {
                       <div className="flex w-full flex-col gap-3.5">
                         <LevelToggle<LoudnessLevel>
                           label="Громкость"
-                          tip="Насколько громко звучит готовый мастер. High - ближе к стриминговому «громкому» звуку, Low - спокойнее и с большим запасом."
+                          tip='Насколько громко звучит готовый мастер. High - ближе к стриминговому "громкому" звуку, Low - спокойнее и с большим запасом.'
                           value={params.loudness}
                           options={[
                             { id: "low", label: "Тише" },
@@ -1057,7 +1052,7 @@ function ToolsMasteringInner() {
                         />
                         <LevelToggle<DensityLevel>
                           label="Плотность"
-                          tip="Насколько сильно сжимается динамика. Выше - трек ровнее и «плотнее», ниже - больше живых пиков и тихих мест."
+                          tip='Насколько сильно сжимается динамика. Выше - трек ровнее и "плотнее", ниже - больше живых пиков и тихих мест.'
                           value={params.density}
                           options={[
                             { id: "low", label: "Легче" },
@@ -1068,7 +1063,7 @@ function ToolsMasteringInner() {
                         />
                         <LevelToggle<SmoothLevel>
                           label="Сглаживание"
-                          tip="Приглушает резкую середину и яркий верх (свист, «с/ч»). В скачанном файле дополнительно чуть тише шипение в паузах."
+                          tip='Приглушает резкую середину и яркий верх (свист, "с/ч"). В скачанном файле дополнительно чуть тише шипение в паузах.'
                           value={params.smooth}
                           options={[
                             { id: "off", label: "Выкл" },
@@ -1137,7 +1132,7 @@ function ToolsMasteringInner() {
                 >
                   <HintIcon
                     label="Тонкая настройка"
-                    tip="Ручная доводка звука. Любая правка тона переключает характер в «Без характера», чтобы пресет не перетёр ваши настройки."
+                    tip='Ручная доводка звука. Любая правка тона переключает характер в "Без характера", чтобы пресет не перетёр ваши настройки.'
                   />
                 </span>
                 <ChevronDown
@@ -1151,7 +1146,7 @@ function ToolsMasteringInner() {
               <CollapsibleContent>
                 <div className="space-y-4 border-t border-border px-4 py-4">
                   <p className="text-xs text-muted-foreground">
-                    Тяните крутилки вверх/вниз или крутите колесом мыши. В режиме «Без характера»
+                    Тяните крутилки вверх/вниз или крутите колесом мыши. В режиме "Без характера"
                     здесь основной контроль звука: тон, динамика, окрас, лимитер.
                   </p>
                   <div className="grid gap-3 lg:grid-cols-2">
@@ -1161,7 +1156,7 @@ function ToolsMasteringInner() {
                     >
                       <RotaryKnob
                         label="Обрезка низа"
-                        tip="Убирает лишний гул и шум ниже выбранной частоты. Чуть выше - чище низ, но можно потерять «тело» баса."
+                        tip='Убирает лишний гул и шум ниже выбранной частоты. Чуть выше - чище низ, но можно потерять "тело" баса.'
                         value={params.hpfHz}
                         min={20}
                         max={120}
@@ -1171,7 +1166,7 @@ function ToolsMasteringInner() {
                       />
                       <RotaryKnob
                         label="Низ"
-                        tip="Поднимает или опускает бас и «тело» трека. В плюс - мощнее низ, в минус - легче и суше."
+                        tip='Поднимает или опускает бас и "тело" трека. В плюс - мощнее низ, в минус - легче и суше.'
                         value={params.lfShelfDb}
                         min={-6}
                         max={6}
@@ -1203,7 +1198,7 @@ function ToolsMasteringInner() {
 
                     <KnobGroup
                       title="Динамика"
-                      hint="Компрессор: порог, сила, атака и восстановление - как громкость «прижимается»."
+                      hint='Компрессор: порог, сила, атака и восстановление - как громкость "прижимается".'
                     >
                       <RotaryKnob
                         label="Порог"
@@ -1217,7 +1212,7 @@ function ToolsMasteringInner() {
                       />
                       <RotaryKnob
                         label="Сила"
-                        tip="Насколько сильно прижимаются громкие моменты. Выше - ровнее и плотнее, но меньше «живости»."
+                        tip='Насколько сильно прижимаются громкие моменты. Выше - ровнее и плотнее, но меньше "живости".'
                         value={params.ratio}
                         min={1.1}
                         max={10}
@@ -1248,11 +1243,11 @@ function ToolsMasteringInner() {
 
                     <KnobGroup
                       title="Окрас"
-                      hint="Ширина стерео и насыщенность - объём и «тепло» звука."
+                      hint='Ширина стерео и насыщенность - объём и "тепло" звука.'
                     >
                       <RotaryKnob
                         label="Стерео"
-                        tip="1 - как в исходнике, выше - шире и объёмнее, ниже - уже, ближе к моно. Слишком широко может «плыть» на телефоне."
+                        tip='1 - как в исходнике, выше - шире и объёмнее, ниже - уже, ближе к моно. Слишком широко может "плыть" на телефоне.'
                         value={params.stereoWidth}
                         min={0}
                         max={2}
@@ -1261,7 +1256,7 @@ function ToolsMasteringInner() {
                       />
                       <RotaryKnob
                         label="Насыщенность"
-                        tip="Добавляет плотность и «тепло» за счёт мягкого искажения. Сильнее - жирнее и горячее, но можно пережать."
+                        tip='Добавляет плотность и "тепло" за счёт мягкого искажения. Сильнее - жирнее и горячее, но можно пережать.'
                         value={params.saturation}
                         min={0}
                         max={5}

@@ -165,9 +165,7 @@ export function DashboardMetricCards({
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Link href="/cabinet/distribution/music" className={metricCardClass}>
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-inset ring-primary/25">
-            <Disc3 className="h-5 w-5 text-primary" />
-          </div>
+          <Disc3 className="h-5 w-5 shrink-0 text-primary" />
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               Релизы
@@ -182,9 +180,7 @@ export function DashboardMetricCards({
 
       <Link href="/cabinet/finance/balance" className={metricCardClass}>
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-inset ring-emerald-500/25">
-            <Wallet className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
-          </div>
+          <Wallet className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-400" />
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               Баланс
@@ -204,9 +200,7 @@ export function DashboardMetricCards({
         className={cn(metricCardClass, "sm:col-span-2 lg:col-span-1")}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 ring-1 ring-inset ring-amber-500/25">
-            <Banknote className="h-5 w-5 text-amber-700 dark:text-amber-400" />
-          </div>
+          <Banknote className="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" />
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
               Роялти
@@ -589,7 +583,7 @@ function DashboardTaskRow({
               <AlertDialogHeader>
                 <AlertDialogTitle>Удалить черновик?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Релиз «{release.title || "Без названия"}» будет удалён полностью вместе с обложкой и
+                  Релиз "{release.title || "Без названия"}" будет удалён полностью вместе с обложкой и
                   аудиофайлами. Это действие нельзя отменить.
                 </AlertDialogDescription>
               </AlertDialogHeader>

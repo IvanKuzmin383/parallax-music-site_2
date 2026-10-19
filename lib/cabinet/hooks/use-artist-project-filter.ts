@@ -169,7 +169,7 @@ export function useArtistProjectFilter(availableArtists: string[]) {
     [availableArtists, pathname, router, searchParams, artistFilters],
   )
 
-  /** Совместимость: один артист или «все». */
+  /** Совместимость: один артист или "все". */
   const setArtist = useCallback(
     (value: string) => {
       if (!value || value === RELEASE_ARTIST_FILTER_ALL) setArtists([])

@@ -11,10 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { listCabinetPlanCards } from "@/lib/cabinet-subscription-catalog"
 import { subscriptionNameToPlanId, type PlanId } from "@/lib/plan-pricing"
+import {
+  FIX_PACK_PRICE_TIER_1_RUB,
+  FIX_PACK_PRICE_TIER_3_RUB,
+} from "@/lib/fix-pack-pricing"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
 import { CabinetSubscriptionAutopayPanel } from "@/components/cabinet/subscription/cabinet-subscription-autopay-panel"
 import { CabinetSubscriptionExpiredBanner } from "@/components/cabinet/subscription/cabinet-subscription-expired-banner"
+import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { isArtistSlotActive } from "@/lib/subscription-track-limits"
 
 type ArtistSlotView = {
@@ -55,6 +60,7 @@ export function CabinetSubscriptionHub() {
   const { openCheckout } = useCabinetSubscription()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserSub | null>(null)
+  const [fixDialogOpen, setFixDialogOpen] = useState(false)
   const paymentHandledRef = useRef(false)
 
   const loadUser = useCallback(async () => {
@@ -131,6 +137,24 @@ export function CabinetSubscriptionHub() {
     openCheckout({ planId, purchaseIntent })
   }
 
+  const isOnFix = user?.subscriptionName === "Fix"
+  const hasOtherSubscription =
+    !!user?.subscriptionName && user.subscriptionName !== "Fix"
+
+  const onFixSelect = () => {
+    if (hasOtherSubscription) {
+      toast.error(
+        "На аккаунте уже есть подписка. Для тарифа Fix нужен другой email или обратитесь в поддержку."
+      )
+      return
+    }
+    if (isOnFix) {
+      setFixDialogOpen(true)
+      return
+    }
+    window.location.href = "/pay/fix?tracks=5"
+  }
+
   return (
     <div className="w-full max-w-none space-y-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -182,16 +206,11 @@ export function CabinetSubscriptionHub() {
                   </p>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                {renewPlanId ? (
-                  <Button type="button" onClick={() => startCheckout(renewPlanId)}>
-                    Продлить
-                  </Button>
-                ) : null}
-                <Button asChild variant="outline">
-                  <Link href="/cabinet/upload">Загрузить релиз</Link>
+              {renewPlanId ? (
+                <Button type="button" onClick={() => startCheckout(renewPlanId)}>
+                  Продлить
                 </Button>
-              </div>
+              ) : null}
             </div>
           )}
         </CardContent>
@@ -296,11 +315,11 @@ export function CabinetSubscriptionHub() {
       <div>
         <h2 className="text-lg font-semibold">Тарифы</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Цены за месяц при оплате помесячно. Годовая оплата - со скидкой в окне оформления.
+          Подписка - помесячно или за год со скидкой. Fix - пакет треков без календарной подписки.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
         {plans.map((plan) => {
           const isCurrent =
             !!user?.subscriptionName &&
@@ -351,7 +370,58 @@ export function CabinetSubscriptionHub() {
             </Card>
           )
         })}
+
+        <Card
+          className={cn(
+            "relative flex flex-col",
+            isOnFix && "ring-1 ring-primary/40"
+          )}
+        >
+          <CardHeader className="pb-2 pt-5">
+            <CardTitle className="text-lg">Fix</CardTitle>
+            <p className="text-sm text-muted-foreground">Без ежемесячной подписки</p>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-4">
+            <div>
+              <p className="text-3xl font-semibold tabular-nums">
+                от {FIX_PACK_PRICE_TIER_3_RUB.toLocaleString("ru-RU")} ₽
+                <span className="ml-1 text-sm font-normal text-muted-foreground">/трек</span>
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {FIX_PACK_PRICE_TIER_1_RUB} ₽ за трек при заказе 1-5 шт., дальше дешевле
+              </p>
+            </div>
+            <p className="flex gap-2 text-sm text-muted-foreground">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+              <span>Платите только за треки, без срока подписки</span>
+            </p>
+            <div className="mt-auto pt-2">
+              <Button
+                type="button"
+                className="w-full"
+                variant={isOnFix ? "default" : "outline"}
+                disabled={hasOtherSubscription}
+                title={
+                  hasOtherSubscription
+                    ? "Недоступно при активной подписке Start/Medium/Pro/Label"
+                    : undefined
+                }
+                onClick={onFixSelect}
+              >
+                {isOnFix ? "Докупить треки" : hasOtherSubscription ? "Недоступно" : "Выбрать"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <PurchaseTracksDialog
+        open={fixDialogOpen}
+        onOpenChange={setFixDialogOpen}
+        useFixPackPricing
+        title="Пакет Fix"
+        description="Оплата пакета треков: 1-5 шт. - 500 ₽/трек, 6-10 - 400 ₽, 11+ - 350 ₽."
+      />
     </div>
   )
 }

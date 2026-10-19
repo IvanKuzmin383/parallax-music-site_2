@@ -5,7 +5,7 @@ import { notifyStaffInBackground } from "@/lib/form-notifications"
 import { escapeHtml } from "@/lib/telegram"
 
 /**
- * Заявка на «TikTok / Блогеры»: деньги не списываются.
+ * Заявка на "TikTok / Блогеры": деньги не списываются.
  * Клиент указывает бюджет - подбор размещения обсуждается отдельно.
  */
 export async function POST(request: NextRequest) {

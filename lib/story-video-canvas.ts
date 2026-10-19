@@ -71,7 +71,7 @@ export function computeMotionScale(motion: StoryVideoMotion, timeSec: number, du
     case "breathe":
       return 1 + Math.sin(t * Math.PI * 0.85) * 0.028
     case "snapZoom": {
-      // Резкие «удары» зума на 0 / 5 / 10 сек (удобно под хук): быстрый набор + отскок
+      // Резкие "удары" зума на 0 / 5 / 10 сек (удобно под хук): быстрый набор + отскок
       const snaps = [0, 5, 10]
       let punch = 0
       for (const s of snaps) {

@@ -503,7 +503,7 @@ export async function parsePublickaExcelBuffer(
       }
     }
     if (!dateIso) {
-      warnings.push(`Строка ${i + 1}: неверный формат даты «${dateRaw}»`)
+      warnings.push(`Строка ${i + 1}: неверный формат даты "${dateRaw}"`)
       continue
     }
     if (plays <= 0) continue

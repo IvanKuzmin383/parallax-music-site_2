@@ -17,7 +17,7 @@ export type AdminTracksListQuery = {
   upcomingOnly?: boolean
   /** Треки с датой публикации = сегодня (МСК) */
   releasesTodayOnly?: boolean
-  /** Точное имя артиста (после trim; пустое → «Без имени артиста») */
+  /** Точное имя артиста (после trim; пустое → "Без имени артиста") */
   artistName?: string
   sortField?: AdminTracksSortField
   sortDirection?: AdminTracksSortDirection

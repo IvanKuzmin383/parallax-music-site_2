@@ -162,7 +162,7 @@ export async function listReleasesByUserId(userId: string, limit = 100): Promise
   return rows.map(rowToRelease)
 }
 
-/** Есть ли у пользователя другой релиз на эту дату в статусе «модерация и выше». */
+/** Есть ли у пользователя другой релиз на эту дату в статусе "модерация и выше". */
 export async function findUserReleaseOccupyingDate(
   userId: string,
   releaseDateYmd: string,

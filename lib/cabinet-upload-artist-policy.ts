@@ -49,7 +49,7 @@ export function getUploadArtistPolicyViolation(
 
   if (looksLikeMultiplePerformersInArtistField(incomingArtistName)) {
     return (
-      "На вашем тарифе в поле «Исполнитель» указывается один артист, без совместных релизов " +
+      "На вашем тарифе в поле "Исполнитель" указывается один артист, без совместных релизов " +
       "(без feat., ft., &, приглашённых исполнителей и т. п.). На тарифе Label это разрешено."
     )
   }
@@ -72,7 +72,7 @@ export function getUploadArtistPolicyViolation(
       const display =
         existingTracks.find((t) => normFromTrack(t) === canonicalNorm)?.artistName ?? incomingArtistName.trim()
       return (
-        `На вашем тарифе все релизы должны быть на одного исполнителя, как в уже загруженных треках: «${display}». ` +
+        `На вашем тарифе все релизы должны быть на одного исполнителя, как в уже загруженных треках: "${display}". ` +
         "Несколько разных исполнителей доступны на тарифе Label."
       )
     }
@@ -82,7 +82,7 @@ export function getUploadArtistPolicyViolation(
   const profile = user.artistName?.trim()
   if (profile && incomingNorm !== normalizeArtistForPolicy(profile)) {
     return (
-      `На вашем тарифе исполнитель релиза должен совпадать с артистом в профиле: «${profile}». ` +
+      `На вашем тарифе исполнитель релиза должен совпадать с артистом в профиле: "${profile}". ` +
       "Работа под разными именами исполнителя доступна на тарифе Label."
     )
   }
@@ -112,7 +112,7 @@ export async function getUploadArtistPolicyViolationWithSlots(
 
   if (looksLikeMultiplePerformersInArtistField(incomingArtistName)) {
     return (
-      "На вашем тарифе в поле «Исполнитель» указывается один артист, без совместных релизов " +
+      "На вашем тарифе в поле "Исполнитель" указывается один артист, без совместных релизов " +
       "(без feat., ft., &, приглашённых исполнителей и т. п.). На тарифе Label это разрешено."
     )
   }
@@ -126,7 +126,7 @@ export async function getUploadArtistPolicyViolationWithSlots(
   const claimed = await claimArtistForActiveSlot(user.id, incomingArtistName)
   if (claimed) return null
 
-  const artistList = assigned.map((s) => `«${s.artistName}»`).join(", ")
+  const artistList = assigned.map((s) => `"${s.artistName}"`).join(", ")
   return artistList
     ? `Доступные слоты артистов по вашим подпискам уже заняты: ${artistList}. Оплатите дополнительный тариф или используйте тариф Label.`
     : "Доступных слотов артистов по вашим подпискам нет. Оплатите дополнительный тариф или используйте тариф Label."

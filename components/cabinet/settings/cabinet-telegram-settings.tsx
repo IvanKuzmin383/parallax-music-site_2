@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Check, Copy, ExternalLink, Link2, Loader2, Unlink } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
+import { Switch } from "@/components/ui/switch"
 
 type Prefs = {
   enabled: boolean
@@ -304,55 +305,50 @@ export function CabinetTelegramSettings() {
         </div>
       ) : (
         <div className="space-y-3">
-          <label
-            htmlFor="tg-master"
-            className="flex cursor-pointer items-start gap-2.5"
-          >
-            <Checkbox
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Label htmlFor="tg-master" className="text-sm font-medium">
+                Уведомления в Telegram
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Мастер-выключатель. Колокольчик в кабинете не затрагивается.
+              </p>
+            </div>
+            <Switch
               id="tg-master"
-              className="mt-0.5"
               checked={status.prefs.enabled}
               disabled={prefsBusy}
-              onCheckedChange={(v) => void patchPrefs({ enabled: v === true })}
+              onCheckedChange={(v) => void patchPrefs({ enabled: v })}
               aria-label={
                 status.prefs.enabled
                   ? "Уведомления в Telegram включены"
                   : "Уведомления в Telegram выключены"
               }
             />
-            <span className="min-w-0">
-              <span className="block text-sm font-medium">Уведомления в Telegram</span>
-              <span className="block text-xs text-muted-foreground">
-                Мастер-выключатель. Колокольчик в кабинете не затрагивается.
-              </span>
-            </span>
-          </label>
+          </div>
 
           <div
-            className={`space-y-2 ${
+            className={`space-y-2.5 ${
               status.prefs.enabled ? "" : "pointer-events-none opacity-45"
             }`}
           >
             <p className="text-xs font-medium text-muted-foreground">Что присылать</p>
             {PREF_ROWS.map((row) => (
-              <label
-                key={row.key}
-                htmlFor={`tg-${row.key}`}
-                className="flex cursor-pointer items-start gap-2.5"
-              >
-                <Checkbox
+              <div key={row.key} className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor={`tg-${row.key}`} className="text-sm font-medium">
+                    {row.title}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{row.description}</p>
+                </div>
+                <Switch
                   id={`tg-${row.key}`}
-                  className="mt-0.5"
                   checked={status.prefs[row.key]}
                   disabled={prefsBusy || !status.prefs.enabled}
-                  onCheckedChange={(v) => void patchPrefs({ [row.key]: v === true })}
+                  onCheckedChange={(v) => void patchPrefs({ [row.key]: v })}
                   aria-label={`${row.title}: ${status.prefs[row.key] ? "включено" : "выключено"}`}
                 />
-                <span className="min-w-0">
-                  <span className="block text-sm">{row.title}</span>
-                  <span className="block text-xs text-muted-foreground">{row.description}</span>
-                </span>
-              </label>
+              </div>
             ))}
           </div>
 
@@ -412,7 +408,7 @@ export function CabinetTelegramSettings() {
 
             <ol className="list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
               <li>Откройте бота{linkBot ? ` @${linkBot}` : ""}</li>
-              <li>Отправьте код выше (или нажмите «Открыть бота»)</li>
+              <li>Отправьте код выше (или нажмите "Открыть бота")</li>
               <li>Готово</li>
             </ol>
 

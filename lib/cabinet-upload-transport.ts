@@ -1,6 +1,6 @@
 /**
  * Загрузка FormData в кабинет: XHR вместо fetch.
- * Safari на мобильном часто рвёт fetch больших WAV («Load failed» / Failed to fetch),
+ * Safari на мобильном часто рвёт fetch больших WAV ("Load failed" / Failed to fetch),
  * а жёсткий abort через 180 с убивает файл ещё на 4G.
  */
 

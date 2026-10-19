@@ -38,7 +38,7 @@ export async function POST(
     return NextResponse.json({ ok: true, skippedPayment: true })
   }
 
-  // Идемпотентность: повторный клик «Оплатить» не должен создавать второй заказ.
+  // Идемпотентность: повторный клик "Оплатить" не должен создавать второй заказ.
   const alreadyPaid = await assertUploadDraftBundlePayment(payload, release.bundleOrderId)
   if (alreadyPaid.ok && release.bundleOrderId) {
     const existing = await getOrderById(release.bundleOrderId)

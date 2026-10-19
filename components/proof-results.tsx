@@ -24,7 +24,7 @@ const PROOFS = [
   },
   {
     src: "/proofs/pyaty-rassvet-playlist.png",
-    altRu: "Пятый рассвет в плейлисте «Русский шансон: лучшее» Яндекс Музыки",
+    altRu: "Пятый рассвет в плейлисте "Русский шансон: лучшее" Яндекс Музыки",
     altEn: "Pyaty Rassvet in the Yandex Music playlist “Russian chanson: best”",
   },
   {

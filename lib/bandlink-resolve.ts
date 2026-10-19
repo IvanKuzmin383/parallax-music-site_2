@@ -147,7 +147,7 @@ export function mapBandlinkUrlsToPlatformLinks(
 ): PlatformLinks {
   const links: PlatformLinks = {}
 
-  // Сначала предпочитаем «хорошие» zvuk.com/release/, потом короткие open.zvuk.com
+  // Сначала предпочитаем "хорошие" zvuk.com/release/, потом короткие open.zvuk.com
   const sorted = [...rawUrls].sort((a, b) => {
     const score = (u: string) =>
       /zvuk\.com\/release\//i.test(u) || /af_web_dp=.*zvuk\.com%2Frelease/i.test(u) || /[?&]id=\d+/.test(u)

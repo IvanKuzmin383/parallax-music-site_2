@@ -485,7 +485,7 @@ export default function AdminReportsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить отчет?</AlertDialogTitle>
             <AlertDialogDescription>
-              Отчёт для артиста «{selectedReport ? reportArtistLine(selectedReport.artistName) : "-"}» (
+              Отчёт для артиста "{selectedReport ? reportArtistLine(selectedReport.artistName) : "-"}" (
               {selectedReport?.userEmail}) будет удалён. Баланс пользователя будет уменьшен на сумму отчёта. Это действие
               нельзя отменить.
             </AlertDialogDescription>

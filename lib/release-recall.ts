@@ -24,7 +24,7 @@ export type RecallReleaseResult =
 
 /**
  * Пользователь забирает релиз с модерации обратно в черновик,
- * пока админ не проставил артикул (ещё не «взял в работу»).
+ * пока админ не проставил артикул (ещё не "взял в работу").
  */
 export async function recallReleaseToDraft(
   releaseId: string,

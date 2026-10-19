@@ -15,7 +15,7 @@ function isHttpUrl(value: string): boolean {
 }
 
 /**
- * Оплата «Синхронизации текста» с баланса кабинета.
+ * Оплата "Синхронизации текста" с баланса кабинета.
  * Цена берётся только с сервера (LYRICS_SYNC_PRICE_RUB).
  */
 export async function POST(request: NextRequest) {

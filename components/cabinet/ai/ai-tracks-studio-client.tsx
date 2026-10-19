@@ -993,7 +993,7 @@ export function AiTracksStudioClient() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Параметр «следовать стилю» недоступен для текущей модели.
+                      Параметр "следовать стилю" недоступен для текущей модели.
                     </p>
                   )}
                 </div>
@@ -1186,7 +1186,7 @@ export function AiTracksStudioClient() {
           <AccordionItem value="instrumental">
             <AccordionTrigger>Можно создать музыку без вокала?</AccordionTrigger>
             <AccordionContent>
-              Да. Включите «Инструментальная музыка» и опишите желаемое звучание. Текст песни не
+              Да. Включите "Инструментальная музыка" и опишите желаемое звучание. Текст песни не
               нужен.
             </AccordionContent>
           </AccordionItem>
@@ -1199,7 +1199,7 @@ export function AiTracksStudioClient() {
           <AccordionItem value="release">
             <AccordionTrigger>Можно выпустить полученную песню?</AccordionTrigger>
             <AccordionContent>
-              Да - на карточке результата нажмите «В дистрибуцию»: откроется черновик релиза с
+              Да - на карточке результата нажмите "В дистрибуцию": откроется черновик релиза с
               аудио и текстом. Дозаполните обложку и метаданные, затем отправьте как обычный релиз.
               {status?.commercialRightsNote
                 ? ` ${status.commercialRightsNote}`

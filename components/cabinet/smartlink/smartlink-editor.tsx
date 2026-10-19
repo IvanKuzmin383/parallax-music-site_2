@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Copy,
   ExternalLink,
   GripVertical,
+  Loader2,
   Plus,
   Save,
   Trash2,
@@ -19,6 +20,7 @@ import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 import { Spinner } from "@/components/ui/spinner"
 import {
   DEFAULT_SMARTLINK_THEME,
@@ -108,6 +110,7 @@ type SmartlinkApiPayload = {
   needsPayment?: boolean
   priceRub?: number
   hasPreviewAudio?: boolean
+  previewAudioUrl?: string | null
 }
 
 export type SmartlinkEditorProps = { releaseKey: string } | { smartlinkId: string }
@@ -119,6 +122,7 @@ type ToolsSmartlinkApiRaw = {
   artistName: string
   coverUrl: string | null
   hasPreviewAudio: boolean
+  previewAudioUrl?: string | null
   theme: SmartlinkTheme
   platformLinks: PlatformLinks
   status: string
@@ -146,6 +150,7 @@ function mapToolsPayload(json: ToolsSmartlinkApiRaw): SmartlinkApiPayload {
     needsPayment: json.needsPayment,
     priceRub: json.priceRub,
     hasPreviewAudio: json.hasPreviewAudio,
+    previewAudioUrl: json.previewAudioUrl ?? null,
   }
 }
 
@@ -516,7 +521,7 @@ function Segmented<T extends string>({
             "rounded-lg border px-2.5 py-2 text-sm font-medium leading-snug whitespace-nowrap transition-colors",
             cols && cols >= 5 ? "px-2 text-[13px]" : null,
             value === option
-              ? "border-primary bg-primary/10 text-foreground"
+              ? "border-primary bg-primary/20 text-primary shadow-[0_0_0_1px_var(--primary)]"
               : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
           )}
         >
@@ -625,16 +630,23 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   const [addSocialOpen, setAddSocialOpen] = useState(false)
   const [promoPublic, setPromoPublic] = useState(false)
   const [coverTick, setCoverTick] = useState(0)
+  const [audioTick, setAudioTick] = useState(0)
+  const [audioUploading, setAudioUploading] = useState(false)
+  const [audioUploadPercent, setAudioUploadPercent] = useState(0)
+  const [audioUploadName, setAudioUploadName] = useState<string | null>(null)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const coverInputRef = useRef<HTMLInputElement | null>(null)
+  const audioInputRef = useRef<HTMLInputElement | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true)
     try {
       if (isTools) {
         const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}`, {
           credentials: "include",
         })
         if (!res.ok) {
-          setData(null)
+          if (!opts?.silent) setData(null)
           return
         }
         const json = mapToolsPayload((await res.json()) as ToolsSmartlinkApiRaw)
@@ -739,7 +751,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   const enterCustomMode = () => {
     setTheme((prev) => {
       if (isSmartlinkCustomMode(prev.preset)) return prev
-      // Сохраняем текущий визуал, каркас - базовый «Тёмный» (или уже выбранный bg из базы).
+      // Сохраняем текущий визуал, каркас - базовый "Тёмный" (или уже выбранный bg из базы).
       const surface = (SMARTLINK_PRESET_BASE as readonly string[]).includes(prev.bgStyle)
         ? (prev.bgStyle as (typeof SMARTLINK_PRESET_BASE)[number])
         : SMARTLINK_CUSTOM_DEFAULT_PRESET
@@ -956,7 +968,8 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   }
 
   const uploadToolsCover = async (file: File | null) => {
-    if (!file || !isTools) return
+    if (!file || !isTools || coverUploading) return
+    setCoverUploading(true)
     try {
       const { compressImageForToolCover, compressedCoverToFile } = await import(
         "@/lib/client-compress-image"
@@ -976,28 +989,62 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
       }
       toast.success("Обложка загружена")
       setCoverTick((n) => n + 1)
-      void load()
+      await load({ silent: true })
     } catch {
       toast.error("Не удалось обработать обложку")
+    } finally {
+      setCoverUploading(false)
     }
   }
 
   const uploadToolsAudio = async (file: File | null) => {
-    if (!file || !isTools) return
-    const fd = new FormData()
-    fd.set("file", file)
-    const res = await fetch(`/api/cabinet/tools/smartlinks/${smartlinkId}/audio`, {
-      method: "POST",
-      credentials: "include",
-      body: fd,
-    })
-    const json = (await res.json().catch(() => ({}))) as { error?: string }
-    if (!res.ok) {
-      toast.error(json.error || "Не удалось загрузить аудио")
-      return
+    if (!file || !isTools || audioUploading) return
+    setAudioUploading(true)
+    setAudioUploadPercent(0)
+    setAudioUploadName(file.name)
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        const fd = new FormData()
+        fd.set("file", file)
+
+        xhr.upload.addEventListener("progress", (event) => {
+          if (!event.lengthComputable) return
+          setAudioUploadPercent(Math.min(99, Math.round((event.loaded / event.total) * 100)))
+        })
+
+        xhr.addEventListener("load", () => {
+          let json: { error?: string } = {}
+          try {
+            json = JSON.parse(xhr.responseText) as { error?: string }
+          } catch {
+            /* ignore */
+          }
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setAudioUploadPercent(100)
+            resolve()
+            return
+          }
+          reject(new Error(json.error || "Не удалось загрузить аудио"))
+        })
+        xhr.addEventListener("error", () => reject(new Error("Ошибка сети при загрузке")))
+        xhr.addEventListener("abort", () => reject(new Error("Загрузка отменена")))
+
+        xhr.open("POST", `/api/cabinet/tools/smartlinks/${encodeURIComponent(smartlinkId)}/audio`)
+        xhr.withCredentials = true
+        xhr.send(fd)
+      })
+      toast.success("Отрывок загружен")
+      setAudioTick((n) => n + 1)
+      await load({ silent: true })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось загрузить аудио")
+    } finally {
+      setAudioUploading(false)
+      setAudioUploadPercent(0)
+      setAudioUploadName(null)
     }
-    toast.success("Отрывок загружен")
-    void load()
   }
 
   const payToolsSmartlink = async () => {
@@ -1063,6 +1110,10 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   const previewCoverUrl = data.coverUrl
     ? `${data.coverUrl}${data.coverUrl.includes("?") ? "&" : "?"}t=${coverTick}`
     : null
+  const previewAudioSrc =
+    isTools && data.hasPreviewAudio && data.previewAudioUrl && theme.previewAudioEnabled
+      ? `${data.previewAudioUrl}${data.previewAudioUrl.includes("?") ? "&" : "?"}t=${audioTick}`
+      : null
   const publicActiveLabel = isTools
     ? !data.needsPayment
       ? "Активна"
@@ -1212,7 +1263,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
       {!isTools && !data.isPublic ? (
         <p className="shrink-0 text-xs text-muted-foreground">
           {data.canEnablePromo
-            ? "Включите «Промо-смартлинк» и сохраните - страница станет доступна по ссылке (нужна обложка)."
+            ? "Включите "Промо-смартлинк" и сохраните - страница станет доступна по ссылке (нужна обложка)."
             : "Публичная страница откроется после релиза и обложки. Оформление можно настроить заранее."}
         </p>
       ) : null}
@@ -1224,31 +1275,99 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm">Обложка (JPG/PNG/WebP)</Label>
-                  <Input
+                  <input
+                    ref={coverInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    onChange={(e) => void uploadToolsCover(e.target.files?.[0] ?? null)}
+                    className="hidden"
+                    disabled={coverUploading}
+                    onChange={(e) => {
+                      void uploadToolsCover(e.target.files?.[0] ?? null)
+                      e.target.value = ""
+                    }}
                   />
-                  {data.coverUrl ? (
-                    <p className="text-xs text-muted-foreground">
-                      Обложка загружена (сжимаем до ~1400 px WebP)
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Нужна для превью и публикации. Большие файлы сжимаются автоматически.
-                    </p>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                    disabled={coverUploading}
+                    onClick={() => coverInputRef.current?.click()}
+                  >
+                    {coverUploading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {coverUploading
+                      ? "Сжимаем и загружаем…"
+                      : data.coverUrl
+                        ? "Заменить обложку"
+                        : "Выбрать обложку"}
+                  </Button>
+                  <p
+                    className={cn(
+                      "text-xs",
+                      data.coverUrl ? "text-emerald-400" : "text-muted-foreground"
+                    )}
+                  >
+                    {data.coverUrl
+                      ? "Обложка загружена - видна в превью справа"
+                      : "Нужна для превью и публикации"}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm">Отрывок (WAV/MP3)</Label>
-                  <Input
+                  <input
+                    ref={audioInputRef}
                     type="file"
                     accept=".wav,.mp3,audio/wav,audio/mpeg"
-                    onChange={(e) => void uploadToolsAudio(e.target.files?.[0] ?? null)}
+                    className="hidden"
+                    disabled={audioUploading}
+                    onChange={(e) => {
+                      void uploadToolsAudio(e.target.files?.[0] ?? null)
+                      e.target.value = ""
+                    }}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {data.hasPreviewAudio ? "Файл загружен" : "Опционально - хук на странице"}
-                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                    disabled={audioUploading}
+                    onClick={() => audioInputRef.current?.click()}
+                  >
+                    {audioUploading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {audioUploading
+                      ? "Загрузка…"
+                      : data.hasPreviewAudio
+                        ? "Заменить отрывок"
+                        : "Выбрать отрывок"}
+                  </Button>
+                  {audioUploading ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span className="min-w-0 truncate">
+                          {audioUploadName ? audioUploadName : "Отправка файла…"}
+                        </span>
+                        <span className="shrink-0 tabular-nums font-medium text-foreground">
+                          {audioUploadPercent}%
+                        </span>
+                      </div>
+                      <Progress value={audioUploadPercent} className="h-1.5" />
+                    </div>
+                  ) : (
+                    <p
+                      className={cn(
+                        "text-xs",
+                        data.hasPreviewAudio ? "text-emerald-400" : "text-muted-foreground"
+                      )}
+                    >
+                      {data.hasPreviewAudio
+                        ? "Отрывок загружен - включите хук ниже, чтобы слышать в превью"
+                        : "Опционально - хук на странице"}
+                    </p>
+                  )}
                 </div>
               </div>
             </EditorSection>
@@ -1421,7 +1540,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                 <p className="text-sm text-muted-foreground">
                   На странице крутится короткий фрагмент ~{SMARTLINK_PREVIEW_AUDIO_DURATION_SEC} сек с
                   этой секунды (не весь трек). Звук включается сразу; если браузер запретит - кнопка
-                  «Вкл. звук».
+                  "Вкл. звук".
                   {typeof data?.defaultPreviewStartSec === "number" && data.defaultPreviewStartSec > 0
                     ? ` В релизе для TikTok указано: ${data.defaultPreviewStartSec} сек.`
                     : null}
@@ -1666,11 +1785,16 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
           >
             <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3">
               <p className="text-xs text-muted-foreground">
-                Фон, формат кнопок и обложки - те же, что в шаблонах. Шаблоны выше только
-                подставляют готовый набор; дальше можно менять всё по отдельности.
+                Каждый параметр независим: фон не меняет кнопки и обложку. Шаблоны выше только
+                подставляют готовый набор - дальше собирайте по элементам.
               </p>
               <div className="space-y-2">
-                <Label className="text-sm">Фон</Label>
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label className="text-sm">Фон</Label>
+                  <span className="text-xs font-medium text-primary">
+                    {SMARTLINK_BG_STYLE_META[theme.bgStyle].label}
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                   {SMARTLINK_BG_STYLES.map((bg) => {
                     const meta = SMARTLINK_BG_STYLE_META[bg]
@@ -1683,12 +1807,17 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                         aria-pressed={active}
                         onClick={() => patchVisual("bgStyle", bg)}
                         className={cn(
-                          "rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
+                          "relative rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
                           active
-                            ? "border-primary bg-primary/15 text-primary"
+                            ? "border-primary bg-primary/20 text-primary shadow-[0_0_0_2px_var(--primary)]"
                             : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
                         )}
                       >
+                        {active ? (
+                          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                            ✓
+                          </span>
+                        ) : null}
                         {meta.label}
                       </button>
                     )
@@ -1696,7 +1825,12 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm">Формат кнопок стримов</Label>
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label className="text-sm">Формат кнопок стримов</Label>
+                  <span className="text-xs font-medium text-primary">
+                    {SMARTLINK_BUTTON_FORMAT_META[theme.buttonFormat].label}
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                   {SMARTLINK_BUTTON_FORMATS.map((fmt) => {
                     const meta = SMARTLINK_BUTTON_FORMAT_META[fmt]
@@ -1709,12 +1843,17 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                         aria-pressed={active}
                         onClick={() => patchVisual("buttonFormat", fmt)}
                         className={cn(
-                          "rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
+                          "relative rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
                           active
-                            ? "border-primary bg-primary/15 text-primary"
+                            ? "border-primary bg-primary/20 text-primary shadow-[0_0_0_2px_var(--primary)]"
                             : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
                         )}
                       >
+                        {active ? (
+                          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                            ✓
+                          </span>
+                        ) : null}
                         {meta.label}
                       </button>
                     )
@@ -1722,12 +1861,17 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                 </div>
                 {theme.buttonFormat === "default" ? (
                   <p className="text-xs text-muted-foreground">
-                    «Обычные» - ниже можно выбрать плотные / контур / стекло.
+                    "Обычные" - ниже можно выбрать плотные / контур / стекло.
                   </p>
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label className="text-sm">Формат обложки</Label>
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label className="text-sm">Формат обложки</Label>
+                  <span className="text-xs font-medium text-primary">
+                    {SMARTLINK_COVER_FORMAT_META[theme.coverFormat].label}
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-3">
                   {SMARTLINK_COVER_FORMATS.map((fmt) => {
                     const meta = SMARTLINK_COVER_FORMAT_META[fmt]
@@ -1740,12 +1884,17 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                         aria-pressed={active}
                         onClick={() => patchVisual("coverFormat", fmt)}
                         className={cn(
-                          "rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
+                          "relative rounded-lg border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-all",
                           active
-                            ? "border-primary bg-primary/15 text-primary"
+                            ? "border-primary bg-primary/20 text-primary shadow-[0_0_0_2px_var(--primary)]"
                             : "border-border/80 bg-card/20 text-muted-foreground hover:border-primary/40 hover:text-foreground",
                         )}
                       >
+                        {active ? (
+                          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                            ✓
+                          </span>
+                        ) : null}
                         {meta.label}
                       </button>
                     )
@@ -1780,7 +1929,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
               />
               {theme.buttonFormat !== "default" ? (
                 <p className="text-xs text-muted-foreground">
-                  Стиль плотные/контур доступен при формате «Обычные». Сейчас:{" "}
+                  Стиль плотные/контур доступен при формате "Обычные". Сейчас:{" "}
                   {SMARTLINK_BUTTON_FORMAT_META[theme.buttonFormat].label}.
                 </p>
               ) : null}
@@ -1797,7 +1946,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
               />
               {theme.coverFormat !== "default" ? (
                 <p className="text-xs text-muted-foreground">
-                  Скругление задаёт формат обложки «{SMARTLINK_COVER_FORMAT_META[theme.coverFormat].label}».
+                  Скругление задаёт формат обложки "{SMARTLINK_COVER_FORMAT_META[theme.coverFormat].label}".
                 </p>
               ) : null}
             </div>
@@ -1908,13 +2057,14 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
             <div className="max-h-[min(680px,calc(100dvh-12rem))] overflow-y-auto lg:max-h-none">
               {previewCoverUrl ? (
                 <SmartlinkLanding
-                  key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}-${previewTheme.platformLayout}-${coverTick}`}
+                  key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}-${previewTheme.platformLayout}-${coverTick}-${audioTick}-${theme.previewAudioEnabled}`}
                   title={title || "Название"}
                   artist={artist || "Артист"}
                   coverUrl={previewCoverUrl}
                   links={previewLinks}
                   theme={previewTheme}
                   preview
+                  previewAudioSrc={previewAudioSrc}
                 />
               ) : (
                 <div className="flex min-h-[520px] items-center justify-center bg-[#111] px-6 text-center text-base text-white/60">

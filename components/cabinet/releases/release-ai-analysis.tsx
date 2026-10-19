@@ -67,7 +67,7 @@ export function AiAnalysisDialog({
           </DialogTitle>
           {title ? (
             <DialogDescription className="text-left">
-              Рекомендации по релизу «{title}»
+              Рекомендации по релизу "{title}"
             </DialogDescription>
           ) : (
             <DialogDescription className="text-left">

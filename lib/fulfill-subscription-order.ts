@@ -78,7 +78,7 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
 
     let slotExpiresAt: string
     if (forceNewSlot) {
-      // Доп. слот: срок от «сейчас», не наслаивать месяцы на конец основной подписки
+      // Доп. слот: срок от "сейчас", не наслаивать месяцы на конец основной подписки
       slotExpiresAt = addMonths(now, monthsToAdd).toISOString()
       const existingUserEnd = user.subscriptionExpiresAt
         ? new Date(user.subscriptionExpiresAt)

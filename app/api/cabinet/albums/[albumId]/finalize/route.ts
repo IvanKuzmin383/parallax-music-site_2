@@ -131,14 +131,14 @@ export async function POST(
         if (wavError) {
           return NextResponse.json(
             {
-              error: `Трек «${t.trackName}»: ${wavError} Загрузите корректный WAV.`,
+              error: `Трек "${t.trackName}": ${wavError} Загрузите корректный WAV.`,
             },
             { status: 400 }
           )
         }
       } catch {
         return NextResponse.json(
-          { error: `Не удалось прочитать файл трека «${t.trackName}». Загрузите аудио ещё раз.` },
+          { error: `Не удалось прочитать файл трека "${t.trackName}". Загрузите аудио ещё раз.` },
           { status: 400 }
         )
       }

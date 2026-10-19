@@ -92,7 +92,7 @@ function WaveformCanvas({
     const t = Math.max(0, Math.min(1, progress))
 
     for (let i = 0; i < n; i++) {
-      // sqrt - визуально плотнее, без «тонкой нитки» в центре
+      // sqrt - визуально плотнее, без "тонкой нитки" в центре
       const amp = Math.sqrt(Math.max(0, peaks[i] ?? 0))
       const h = Math.max(3, amp * (cssH * 0.92))
       const x = i * (barW + gap)
@@ -124,7 +124,7 @@ function ParamCard({
   children: ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-card/40 p-4">
+    <div className="rounded-xl bg-card/25 p-3">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {title}
@@ -422,7 +422,7 @@ function ToolsSlowedReverbInner() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0 space-y-4">
-          <section className="space-y-3 rounded-lg border border-border bg-card/30 p-4">
+          <section className="space-y-3 p-0">
             <input
               ref={fileInputRef}
               type="file"
@@ -465,27 +465,24 @@ function ToolsSlowedReverbInner() {
                   <p className="text-xs text-muted-foreground">Локальный файл</p>
                 </div>
 
-                <div className="rounded-lg border border-border/60 bg-background/40 p-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <Button
+                <div className="space-y-1.5 p-0">
+                  <WaveformCanvas peaks={peaks} progress={progress} />
+                  <div className="flex items-center gap-2">
+                    <button
                       type="button"
-                      variant="secondary"
-                      size="icon"
-                      className="h-9 w-9 shrink-0 rounded-full"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center text-foreground disabled:opacity-40"
                       aria-label={playing ? "Пауза" : "Воспроизвести"}
                       onClick={() => void togglePlay()}
                     >
-                      {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    </Button>
-                    <div className="min-w-0 flex-1">
-                      <WaveformCanvas peaks={peaks} progress={progress} />
-                    </div>
-                  </div>
-                  <div className="mt-2 space-y-1 px-0.5">
-                    <div className="flex justify-between text-[11px] tabular-nums text-muted-foreground">
-                      <span>{formatTime(playhead)}</span>
-                      <span>{formatTime(duration)}</span>
-                    </div>
+                      {playing ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4 translate-x-px" />
+                      )}
+                    </button>
+                    <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                      {formatTime(playhead)}
+                    </span>
                     <Slider
                       value={[Math.min(playhead, duration || 0)]}
                       min={0}
@@ -493,6 +490,7 @@ function ToolsSlowedReverbInner() {
                       step={0.01}
                       disabled={duration <= 0}
                       aria-label="Позиция воспроизведения"
+                      className="min-w-0 flex-1"
                       onValueChange={(value) => {
                         scrubbingRef.current = true
                         setPlayhead(value[0] ?? 0)
@@ -502,6 +500,9 @@ function ToolsSlowedReverbInner() {
                         void seekTo(value[0] ?? 0)
                       }}
                     />
+                    <span className="w-9 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      {formatTime(duration)}
+                    </span>
                   </div>
                 </div>
 

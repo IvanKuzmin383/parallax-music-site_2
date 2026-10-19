@@ -304,6 +304,11 @@ export function coverUrlForSmartlink(link: CabinetSmartlink): string | null {
   return `/api/cabinet/tools/smartlinks/${encodeURIComponent(link.id)}/cover`
 }
 
+export function previewAudioUrlForSmartlink(link: CabinetSmartlink): string | null {
+  if (!link.previewAudioPath?.trim()) return null
+  return `/api/cabinet/tools/smartlinks/${encodeURIComponent(link.id)}/audio`
+}
+
 export function publicCoverUrlForSmartlinkSlug(slug: string): string {
   return `/s/${encodeURIComponent(slug)}/opengraph-image`
 }

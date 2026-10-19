@@ -167,7 +167,7 @@ export default function TbankRecurrentTestPage() {
                   <li>Нажмите кнопку ниже (Init с Recurrent=Y).</li>
                   <li>Оплатите картой 4000 0000 0000 0333, срок 12/30, CVC 111.</li>
                   <li>Дождитесь RebillId в статусе (обновляется каждые 4 сек).</li>
-                  <li>В ЛК Т-Бизнес → Автоплатежи → «Проверить» для теста №5.</li>
+                  <li>В ЛК Т-Бизнес → Автоплатежи → "Проверить" для теста №5.</li>
                 </ol>
                 <Button type="button" disabled={busy !== null} onClick={() => void startParent()}>
                   {busy === "parent" ? "Создание…" : "Создать родительский платёж"}
@@ -184,7 +184,7 @@ export default function TbankRecurrentTestPage() {
                   <li>Сначала завершите тест №5 (RebillId должен появиться).</li>
                   <li>Нажмите кнопку - сервер выполнит Init child + Charge.</li>
                   <li>Дождитесь child_status = CONFIRMED.</li>
-                  <li>В ЛК Т-Бизнес → «Проверить» для теста №6.</li>
+                  <li>В ЛК Т-Бизнес → "Проверить" для теста №6.</li>
                 </ol>
                 <Button
                   type="button"

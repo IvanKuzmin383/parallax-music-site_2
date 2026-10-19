@@ -271,7 +271,7 @@ export async function tryNotifyReleaseModeration(params: {
     if (params.nextStatus === "approved_by_platforms") title = "Релиз отправлен на площадки"
     if (params.nextStatus === "on_moderation") title = "Релиз на модерации"
 
-    const bodyParts = [`«${titleName}» - статус: ${label}.`]
+    const bodyParts = [`"${titleName}" - статус: ${label}.`]
     if (
       params.nextNote &&
       (params.nextStatus === "upload_pending" ||
@@ -298,7 +298,7 @@ export async function tryNotifyReleaseModeration(params: {
       userId,
       type: "release_moderation_note",
       title: "Новый комментарий модерации",
-      body: `«${titleName}»: ${truncate(params.nextNote)}`,
+      body: `"${titleName}": ${truncate(params.nextNote)}`,
       href,
       entityType: "release",
       entityId: params.releaseId,
@@ -320,7 +320,7 @@ export async function tryNotifyReleaseAiAnalysis(params: {
     userId,
     type: "release_ai_analysis",
     title: "Готов AI-анализ релиза",
-    body: `Для «${titleName}» доступен AI-анализ с рекомендациями.`,
+    body: `Для "${titleName}" доступен AI-анализ с рекомендациями.`,
     href: `/cabinet/distribution/music/${params.releaseId}?ai=1`,
     entityType: "release",
     entityId: params.releaseId,
@@ -381,8 +381,8 @@ export async function tryNotifyPaymentSuccess(params: {
         ? `На баланс зачислено ${amount}.`
         : "Средства зачислены на баланс кабинета."
       : amount
-        ? `Сумма ${amount}. Заказ доступен в разделе «Заказы».`
-        : "Заказ доступен в разделе «Заказы».",
+        ? `Сумма ${amount}. Заказ доступен в разделе "Заказы".`
+        : "Заказ доступен в разделе "Заказы".",
     href: isWalletTopup ? "/cabinet/finance/balance" : `/cabinet/orders/${params.orderId}`,
     entityType: isWalletTopup ? "balance" : "order",
     entityId: isWalletTopup ? userId : params.orderId,

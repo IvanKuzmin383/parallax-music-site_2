@@ -7,6 +7,7 @@ import {
   deleteSmartlink,
   getSmartlinkById,
   isSmartlinkPubliclyActive,
+  previewAudioUrlForSmartlink,
   updateSmartlink,
 } from "@/lib/cabinet-smartlinks"
 import { SMARTLINK_SLUG_REGEX } from "@/lib/smartlink"
@@ -52,6 +53,7 @@ async function toResponse(link: NonNullable<Awaited<ReturnType<typeof getSmartli
     artistName: link.artistName,
     coverUrl: coverUrlForSmartlink(link),
     hasPreviewAudio: Boolean(link.previewAudioPath),
+    previewAudioUrl: previewAudioUrlForSmartlink(link),
     theme: link.theme,
     platformLinks: link.platformLinks,
     status: link.status,

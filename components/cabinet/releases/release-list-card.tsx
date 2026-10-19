@@ -263,7 +263,7 @@ export function ReleaseListCard({
               <AlertDialogHeader>
                 <AlertDialogTitle>Удалить черновик?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Релиз «{release.title || "Без названия"}» будет удалён полностью вместе с обложкой и
+                  Релиз "{release.title || "Без названия"}" будет удалён полностью вместе с обложкой и
                   аудиофайлами. Это действие нельзя отменить.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -294,7 +294,7 @@ export function ReleaseListCard({
               <AlertDialogHeader>
                 <AlertDialogTitle>Вернуть на редактирование?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Релиз «{release.title || "Без названия"}» снимется с модерации. Вы сможете внести
+                  Релиз "{release.title || "Без названия"}" снимется с модерации. Вы сможете внести
                   правки и отправить снова. Если модератор уже взял релиз в работу, вернуть его будет
                   нельзя.
                 </AlertDialogDescription>

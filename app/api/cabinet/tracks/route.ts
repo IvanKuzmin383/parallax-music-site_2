@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
 
       if (!requestAiCover && (!coverFile || coverFile.size === 0)) {
         return NextResponse.json(
-          { error: "Загрузите обложку или отметьте «Сделать ИИ обложку»" },
+          { error: "Загрузите обложку или отметьте "Сделать ИИ обложку"" },
           { status: 400 }
         )
       }
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
 
       if (!STREAMING_SCOPES.includes(streamingScope)) {
         return NextResponse.json(
-          { error: "Неверное значение поля «Стриминг-сервисы»" },
+          { error: "Неверное значение поля "Стриминг-сервисы"" },
           { status: 400 }
         )
       }

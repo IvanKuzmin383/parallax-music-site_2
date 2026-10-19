@@ -284,7 +284,7 @@ export function MusicReleasesPageContent() {
           title="У выбранных проектов пока нет релизов"
           description={
             artistFilters.length > 0
-              ? `Загрузите релиз для «${artistFilters.join(", ")}»`
+              ? `Загрузите релиз для "${artistFilters.join(", ")}"`
               : "Загрузите первый релиз"
           }
           icon={Music}

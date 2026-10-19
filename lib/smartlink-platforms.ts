@@ -39,7 +39,7 @@ export const PLATFORM_ICON_SRC: Record<PlatformLinkKey, string> = {
   other: "/platforms/other.svg?v=3",
 }
 
-/** Фирменные цвета кнопок (режим «Чернила» и т.п.). */
+/** Фирменные цвета кнопок (режим "Чернила" и т.п.). */
 export const PLATFORM_BRAND_COLOR: Record<PlatformLinkKey, string> = {
   spotify: "#1DB954",
   appleMusic: "#FA243C",

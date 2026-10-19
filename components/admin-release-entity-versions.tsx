@@ -265,7 +265,7 @@ function compareSnapshots(
     const t1 = map1.get(id)
     if (!t1) continue
     const label = t1.trackName || t0.trackName || id.slice(0, 8)
-    const p = (field: string) => `Трек «${label}» / ${field}`
+    const p = (field: string) => `Трек "${label}" / ${field}`
     pushIfChanged(changes, p("Название"), t0.trackName, t1.trackName)
     pushIfChanged(changes, p("Версия"), t0.trackVersion, t1.trackVersion)
     pushIfChanged(changes, p("Артист"), t0.artistName, t1.artistName)
