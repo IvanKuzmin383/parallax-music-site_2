@@ -404,6 +404,7 @@ export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
     // button layer (короткие имена - для стилей кнопок)
     isTicket,
     isTicketBtn,
+    isTicketCover,
     isPolaroid,
     isPolaroidBtn,
     isPolaroidCover,
