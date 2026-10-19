@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Check, Copy, ExternalLink, Link2, Loader2, Unlink } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
-import { Switch } from "@/components/ui/switch"
 
 type Prefs = {
   enabled: boolean
@@ -265,119 +263,112 @@ export function CabinetTelegramSettings() {
     linkExpiresAt && linkOpen ? new Date(linkExpiresAt).getTime() <= nowMs : false
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#229ED9] text-white">
-              <TelegramGlyph className="size-6" />
-            </div>
-            <div className="space-y-1">
-              <CardTitle className="text-lg">Telegram</CardTitle>
-              <CardDescription>
-                {status.linked
-                  ? status.username
-                    ? `Подключено: @${status.username}`
-                    : "Подключено"
-                  : "Уведомления не настроены"}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {!status.configured ? (
-            <p className="text-sm text-muted-foreground">
-              Бот уведомлений ещё не настроен на сервере. Когда он будет доступен, здесь появится
-              кнопка подключения.
-            </p>
-          ) : !status.linked ? (
-            <>
-              <p className="text-sm text-foreground/90">
-                Подключите Telegram для получения мгновенных уведомлений о статусе релизов, оплатах
-                и других важных событиях. В колокольчике кабинета по-прежнему приходят все
-                уведомления.
-              </p>
-              <Button
-                type="button"
-                className="bg-[#229ED9] text-white hover:bg-[#1b8bc0]"
-                disabled={busy}
-                onClick={() => void startLink()}
+    <div className="max-w-xl space-y-4">
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#229ED9] text-white">
+          <TelegramGlyph className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">Telegram</p>
+          <p className="text-xs text-muted-foreground">
+            {status.linked
+              ? status.username
+                ? `Подключено: @${status.username}`
+                : "Подключено"
+              : "Уведомления не настроены"}
+          </p>
+        </div>
+      </div>
+
+      {!status.configured ? (
+        <p className="text-sm text-muted-foreground">
+          Бот уведомлений ещё не настроен на сервере. Когда он будет доступен, здесь появится кнопка
+          подключения.
+        </p>
+      ) : !status.linked ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Мгновенные уведомления о релизах, оплатах и других событиях. В колокольчике кабинета
+            по-прежнему всё.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="bg-[#229ED9] text-white hover:bg-[#1b8bc0]"
+            disabled={busy}
+            onClick={() => void startLink()}
+          >
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
+            Подключить
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <label
+            htmlFor="tg-master"
+            className="flex cursor-pointer items-start gap-2.5"
+          >
+            <Checkbox
+              id="tg-master"
+              className="mt-0.5"
+              checked={status.prefs.enabled}
+              disabled={prefsBusy}
+              onCheckedChange={(v) => void patchPrefs({ enabled: v === true })}
+              aria-label={
+                status.prefs.enabled
+                  ? "Уведомления в Telegram включены"
+                  : "Уведомления в Telegram выключены"
+              }
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">Уведомления в Telegram</span>
+              <span className="block text-xs text-muted-foreground">
+                Мастер-выключатель. Колокольчик в кабинете не затрагивается.
+              </span>
+            </span>
+          </label>
+
+          <div
+            className={`space-y-2 ${
+              status.prefs.enabled ? "" : "pointer-events-none opacity-45"
+            }`}
+          >
+            <p className="text-xs font-medium text-muted-foreground">Что присылать</p>
+            {PREF_ROWS.map((row) => (
+              <label
+                key={row.key}
+                htmlFor={`tg-${row.key}`}
+                className="flex cursor-pointer items-start gap-2.5"
               >
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Link2 className="size-4" />
-                )}
-                Подключить
-              </Button>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
-                <div className="min-w-0">
-                  <Label htmlFor="tg-master" className="text-sm font-medium">
-                    Уведомления в Telegram
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Мастер-выключатель. Колокольчик в кабинете не затрагивается.
-                  </p>
-                </div>
-                <Switch
-                  id="tg-master"
-                  checked={status.prefs.enabled}
-                  disabled={prefsBusy}
-                  onCheckedChange={(v) => void patchPrefs({ enabled: v })}
-                  aria-label={
-                    status.prefs.enabled
-                      ? "Уведомления в Telegram включены"
-                      : "Уведомления в Telegram выключены"
-                  }
+                <Checkbox
+                  id={`tg-${row.key}`}
+                  className="mt-0.5"
+                  checked={status.prefs[row.key]}
+                  disabled={prefsBusy || !status.prefs.enabled}
+                  onCheckedChange={(v) => void patchPrefs({ [row.key]: v === true })}
+                  aria-label={`${row.title}: ${status.prefs[row.key] ? "включено" : "выключено"}`}
                 />
-              </div>
+                <span className="min-w-0">
+                  <span className="block text-sm">{row.title}</span>
+                  <span className="block text-xs text-muted-foreground">{row.description}</span>
+                </span>
+              </label>
+            ))}
+          </div>
 
-              <div
-                className={`space-y-3 ${status.prefs.enabled ? "" : "pointer-events-none opacity-50"}`}
-              >
-                <p className="text-sm font-medium">Что присылать в Telegram</p>
-                {PREF_ROWS.map((row) => (
-                  <div
-                    key={row.key}
-                    className="flex items-center justify-between gap-4 rounded-lg border border-border/70 px-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <Label htmlFor={`tg-${row.key}`} className="text-sm font-medium">
-                        {row.title}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">{row.description}</p>
-                    </div>
-                    <Switch
-                      id={`tg-${row.key}`}
-                      checked={status.prefs[row.key]}
-                      disabled={prefsBusy || !status.prefs.enabled}
-                      onCheckedChange={(v) => void patchPrefs({ [row.key]: v })}
-                      aria-label={`${row.title}: ${status.prefs[row.key] ? "включено" : "выключено"}`}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                disabled={busy}
-                onClick={() => void unlink()}
-              >
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Unlink className="size-4" />
-                )}
-                Отключить Telegram
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-muted-foreground"
+            disabled={busy}
+            onClick={() => void unlink()}
+          >
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Unlink className="size-3.5" />}
+            Отключить Telegram
+          </Button>
+        </div>
+      )}
 
       <Dialog
         open={linkOpen}
