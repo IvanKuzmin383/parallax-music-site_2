@@ -4,7 +4,7 @@ import {
   listActiveCabinetArtistSubscriptionsByUserId,
 } from "@/lib/cabinet-artist-subscriptions"
 import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
-import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-gate"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
 
 export { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 

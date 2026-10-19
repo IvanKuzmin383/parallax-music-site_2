@@ -3,7 +3,7 @@
 import {
   getClientUploadSubscriptionBlockReason,
   UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED,
-} from "@/lib/cabinet-upload-subscription-gate"
+} from "@/lib/cabinet-upload-subscription-client"
 
 type UserUploadGate = {
   profileCompleteForUpload?: boolean

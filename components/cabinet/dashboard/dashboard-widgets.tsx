@@ -72,7 +72,7 @@ import { isReleaseDateWeekend } from "@/lib/release-date-validation"
 import { isReleaseDateSelectable } from "@/lib/release-date-tiers"
 import { cn } from "@/lib/utils"
 import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
-import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-gate"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
 import { dashboardGlassPanelClass } from "./dashboard-glass"
 
 async function goUploadOrToast(router: ReturnType<typeof useRouter>, href: string) {

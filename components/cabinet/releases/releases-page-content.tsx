@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils"
 import { DistributionSectionTabs } from "@/components/cabinet/distribution/distribution-section-tabs"
 import { useCabinetKyc } from "@/components/cabinet/kyc/cabinet-kyc-provider"
 import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
-import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-gate"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
 
 const STAT_LABELS: Record<ReleaseFilterKey, string> = {
   all: "Все релизы",
