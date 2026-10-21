@@ -7,6 +7,11 @@ import { cn } from "@/lib/utils"
 type SmartlinkAudioGateProps = {
   /** Если есть src - ждём клик по оверлею, затем запускаем entrance-анимации. */
   previewAudioSrc?: string | null
+  /**
+   * Превью в редакторе кабинета: без полноэкранного "Послушать отрывок?",
+   * только компактная кнопка звука (звук выключен по умолчанию).
+   */
+  preview?: boolean
   light?: boolean
   className?: string
   style?: CSSProperties
@@ -19,12 +24,15 @@ type SmartlinkAudioGateProps = {
  */
 export function SmartlinkAudioGate({
   previewAudioSrc,
+  preview = false,
   light,
   className,
   style,
   children,
 }: SmartlinkAudioGateProps) {
-  const needsGate = Boolean(previewAudioSrc?.trim())
+  const hasAudio = Boolean(previewAudioSrc?.trim())
+  /** Оверлей только на публичной странице, не в кабинете. */
+  const needsGate = hasAudio && !preview
   const [unlocked, setUnlocked] = useState(!needsGate)
   const [animKey, setAnimKey] = useState(0)
 
@@ -38,8 +46,13 @@ export function SmartlinkAudioGate({
       className={cn(className, needsGate && !unlocked && "sl-await-intro")}
       style={style}
     >
-      {needsGate && previewAudioSrc ? (
-        <SmartlinkPreviewAudio src={previewAudioSrc} light={light} onUnlocked={onUnlocked} />
+      {hasAudio && previewAudioSrc ? (
+        <SmartlinkPreviewAudio
+          src={previewAudioSrc}
+          light={light}
+          startUnlocked={preview || !needsGate}
+          onUnlocked={onUnlocked}
+        />
       ) : null}
       <div key={animKey} className="contents">
         {children}

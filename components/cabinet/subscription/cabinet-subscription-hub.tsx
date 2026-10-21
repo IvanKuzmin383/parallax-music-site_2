@@ -168,9 +168,6 @@ export function CabinetSubscriptionHub() {
 
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Подписка и тарифы</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Продлевайте или меняйте тариф в любой момент. Согласия - в кабинете, оплата на странице банка.
-        </p>
       </div>
 
       <CabinetSubscriptionExpiredBanner />

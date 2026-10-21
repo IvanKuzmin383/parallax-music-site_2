@@ -3,6 +3,7 @@ import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { checkProfileCompleteForUpload } from "@/lib/cabinet-upload-profile-gate"
 import { checkKycVerifiedForDistribution } from "@/lib/cabinet-kyc-gate"
+import { getServerUploadSubscriptionBlockReason } from "@/lib/cabinet-upload-subscription-gate"
 import { createReleaseFromAiTracksResult } from "@/lib/ai-tracks-to-release"
 
 export async function POST(
@@ -27,6 +28,10 @@ export async function POST(
   const kycGate = checkKycVerifiedForDistribution(user)
   if (kycGate) {
     return NextResponse.json(kycGate.body, { status: kycGate.status })
+  }
+  const uploadSubGate = await getServerUploadSubscriptionBlockReason(user)
+  if (uploadSubGate) {
+    return NextResponse.json({ error: uploadSubGate }, { status: 403 })
   }
 
   const { id: resultId } = await context.params

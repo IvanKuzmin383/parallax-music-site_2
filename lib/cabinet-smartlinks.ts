@@ -285,10 +285,34 @@ export async function activateSmartlinkPaid(id: string): Promise<CabinetSmartlin
   })
 }
 
+/** Каталог загрузок именно этого смартлинка (не файлы релиза/трека). */
+function smartlinkOwnedUploadsDir(uploadsBase: string, smartlinkId: string): string | null {
+  const id = smartlinkId.trim()
+  if (!id || id.includes("..") || id.includes("/") || id.includes("\\")) return null
+  const root = path.resolve(uploadsBase, "smartlinks")
+  const dir = path.resolve(root, id)
+  const rel = path.relative(root, dir)
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return null
+  return dir
+}
+
+/**
+ * Удаляет смартлинк из БД и свои файлы с диска (`uploads/smartlinks/{id}`).
+ * Обложку/аудио релиза (пути вне этой папки) не трогает.
+ */
 export async function deleteSmartlink(id: string, userId: string): Promise<boolean> {
   const current = await getSmartlinkById(id)
   if (!current || current.userId !== userId) return false
+
+  const uploadsBase = await getUploadsBasePath()
+  const ownedDir = smartlinkOwnedUploadsDir(uploadsBase, id)
+
   await execute(`DELETE FROM smartlinks WHERE id = ? AND user_id = ?`, [id, userId])
+
+  if (ownedDir) {
+    await fs.rm(ownedDir, { recursive: true, force: true }).catch(() => undefined)
+  }
+
   return true
 }
 

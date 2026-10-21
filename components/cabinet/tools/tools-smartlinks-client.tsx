@@ -135,7 +135,7 @@ export function ToolsSmartlinksClient() {
           <PageHeader
             title="Смартлинки"
             className="mb-0 sm:mb-0 [&_p]:max-w-none"
-            description="Отдельные страницы со ссылками на площадки: для промо до релиза или без дистрибуции. Обложка и отрывок - ваши."
+            description="Отдельные страницы со ссылками на площадки для промо до релиза и анонса после выхода"
           />
           <Button type="button" onClick={() => void createNew()} disabled={creating}>
             {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}

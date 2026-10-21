@@ -991,6 +991,7 @@ export function SmartlinkLanding({
   return (
     <SmartlinkAudioGate
       previewAudioSrc={previewAudioSrc}
+      preview={preview}
       light={contentLight && isSheet}
       className={shellClass}
       style={

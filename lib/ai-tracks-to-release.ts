@@ -112,7 +112,6 @@ export async function createReleaseFromAiTracksResult(params: {
       trackCover: {
         enabled: true,
         trackTitle: title,
-        comment: `Обложка для трека из генерации музыки (${bundle.result.variantLabel})`,
       },
     },
   })

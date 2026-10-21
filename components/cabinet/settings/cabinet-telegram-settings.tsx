@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
 
 type Prefs = {
   enabled: boolean
@@ -307,10 +308,21 @@ export function CabinetTelegramSettings() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <Label htmlFor="tg-master" className="text-sm font-medium">
+              <Label
+                htmlFor="tg-master"
+                className={cn(
+                  "text-sm font-medium transition-colors",
+                  status.prefs.enabled ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
                 Уведомления в Telegram
               </Label>
-              <p className="text-xs text-muted-foreground">
+              <p
+                className={cn(
+                  "text-xs transition-colors",
+                  status.prefs.enabled ? "text-muted-foreground" : "text-muted-foreground/55",
+                )}
+              >
                 Мастер-выключатель. Колокольчик в кабинете не затрагивается.
               </p>
             </div>
@@ -328,28 +340,45 @@ export function CabinetTelegramSettings() {
           </div>
 
           <div
-            className={`space-y-2.5 ${
-              status.prefs.enabled ? "" : "pointer-events-none opacity-45"
-            }`}
+            className={cn(
+              "space-y-2.5 transition-opacity",
+              status.prefs.enabled ? "" : "pointer-events-none opacity-45",
+            )}
           >
             <p className="text-xs font-medium text-muted-foreground">Что присылать</p>
-            {PREF_ROWS.map((row) => (
-              <div key={row.key} className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <Label htmlFor={`tg-${row.key}`} className="text-sm font-medium">
-                    {row.title}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">{row.description}</p>
+            {PREF_ROWS.map((row) => {
+              const on = status.prefs[row.key]
+              return (
+                <div key={row.key} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label
+                      htmlFor={`tg-${row.key}`}
+                      className={cn(
+                        "text-sm font-medium transition-colors",
+                        on ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {row.title}
+                    </Label>
+                    <p
+                      className={cn(
+                        "text-xs transition-colors",
+                        on ? "text-muted-foreground" : "text-muted-foreground/55",
+                      )}
+                    >
+                      {row.description}
+                    </p>
+                  </div>
+                  <Switch
+                    id={`tg-${row.key}`}
+                    checked={on}
+                    disabled={prefsBusy || !status.prefs.enabled}
+                    onCheckedChange={(v) => void patchPrefs({ [row.key]: v })}
+                    aria-label={`${row.title}: ${on ? "включено" : "выключено"}`}
+                  />
                 </div>
-                <Switch
-                  id={`tg-${row.key}`}
-                  checked={status.prefs[row.key]}
-                  disabled={prefsBusy || !status.prefs.enabled}
-                  onCheckedChange={(v) => void patchPrefs({ [row.key]: v })}
-                  aria-label={`${row.title}: ${status.prefs[row.key] ? "включено" : "выключено"}`}
-                />
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <Button

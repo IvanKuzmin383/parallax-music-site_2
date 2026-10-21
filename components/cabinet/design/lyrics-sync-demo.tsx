@@ -304,17 +304,31 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                   <div
                     className={cn(
                       "lyrics-demo-vinyl relative flex h-[78%] w-[78%] items-center justify-center rounded-full",
-                      "border border-[#F21D43]/30 bg-[radial-gradient(circle_at_50%_45%,#2a1a22_0%,#141018_55%,#0a090c_100%)]",
+                      "border border-[#F21D43]/30",
+                      "bg-[radial-gradient(circle_at_50%_45%,#2a1a22_0%,#141018_55%,#0a090c_100%)]",
                       "shadow-[0_0_0_1px_rgba(242,29,67,0.12),inset_0_0_24px_rgba(0,0,0,0.55)]",
                       playing && "lyrics-demo-vinyl--playing",
                     )}
                   >
+                    {/* Асимметрия обязательна - иначе вращение не видно */}
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 rounded-full opacity-90"
+                      style={{
+                        background:
+                          "conic-gradient(from 210deg, transparent 0deg, rgba(242,29,67,0.22) 38deg, transparent 72deg, transparent 180deg, rgba(255,255,255,0.08) 210deg, transparent 250deg)",
+                      }}
+                    />
                     <div className="absolute inset-[8%] rounded-full border border-[#F21D43]/18" />
                     <div className="absolute inset-[18%] rounded-full border border-[#F21D43]/22" />
                     <div className="absolute inset-[28%] rounded-full border border-[#F21D43]/28" />
                     <div className="absolute inset-[38%] rounded-full border border-[#F21D43]/20" />
-                    <div className="absolute inset-[48%] rounded-full border border-[#F21D43]/35 bg-[#0C0A0E]/90" />
-                    <div className="relative z-[1] h-3 w-3 rounded-full bg-[#F21D43] shadow-[0_0_10px_rgba(242,29,67,0.55)]" />
+                    <div className="absolute inset-[46%] flex items-center justify-center overflow-hidden rounded-full border border-[#F21D43]/40 bg-gradient-to-br from-[#3a1824] via-[#1a1016] to-[#0C0A0E]">
+                      <span className="select-none text-[9px] font-black uppercase tracking-[0.18em] text-[#FFB4C3]/90">
+                        PRX
+                      </span>
+                    </div>
+                    <div className="relative z-[1] h-2.5 w-2.5 rounded-full bg-[#F21D43] shadow-[0_0_10px_rgba(242,29,67,0.55)]" />
                   </div>
                 </div>
                 <div className="mt-3 space-y-0.5">

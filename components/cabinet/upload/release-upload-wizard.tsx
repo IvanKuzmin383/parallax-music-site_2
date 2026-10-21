@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { format, startOfMonth, startOfWeek } from "date-fns"
+import { format, startOfMonth } from "date-fns"
 import { ru } from "date-fns/locale"
 import {
   ArrowLeft,
@@ -307,8 +307,8 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
         }
         setProfileCompleteForUpload(data.user?.profileCompleteForUpload === true)
 
-        // Новый релиз: без активной подписки - paywall / профиль, не после выбора обложки
-        if (!initialReleaseId && data.user?.canUploadRelease === false) {
+        // Новый и существующий черновик: без активной подписки - paywall / профиль
+        if (data.user?.canUploadRelease === false) {
           const reason =
             data.user.uploadBlockReason?.trim() || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED
           handleUploadBlock(reason)
@@ -1850,20 +1850,6 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                           today: "bg-transparent",
                           selected:
                             "[&_button]:!bg-primary [&_button]:!text-primary-foreground [&_button]:!border-primary",
-                        }}
-                        components={{
-                          // Не рисуем недели до недели с сегодня (пн) - первая строка = текущая неделя
-                          Week: ({ week, ...weekProps }) => {
-                            const boundary = startOfWeek(new Date(), { weekStartsOn: 1 })
-                            const entirelyPast = week.days.every(
-                              (d) => d.date.getTime() < boundary.getTime()
-                            )
-                            // Тип DayPicker Week не допускает null - прячем прошлые недели
-                            if (entirelyPast) {
-                              return <tr {...weekProps} className="hidden" aria-hidden />
-                            }
-                            return <tr {...weekProps} />
-                          },
                         }}
                       />
                       <div className="space-y-1.5 border-t border-border px-3 py-2.5 text-xs">

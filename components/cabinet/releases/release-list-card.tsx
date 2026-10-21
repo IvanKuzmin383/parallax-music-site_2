@@ -32,6 +32,9 @@ import {
   AiAnalysisDialog,
   hasAiAnalysisText,
 } from "@/components/cabinet/releases/release-ai-analysis"
+import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
+import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
+import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
 import { cn } from "@/lib/utils"
 
 function usesWizardAction(release: ReleaseView): boolean {
@@ -101,6 +104,7 @@ export function ReleaseListCard({
   const canDelete = isDraftRelease(release)
   const canRecall = isOnModerationRelease(release)
   const router = useRouter()
+  const { handleUploadBlock } = useCabinetSubscription()
   const canPromote = isReleasedRelease(release)
   const canShowSmartlink =
     isReleasedRelease(release) || isPromoSmartlinkEligible(release)
@@ -112,8 +116,24 @@ export function ReleaseListCard({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [recallConfirmOpen, setRecallConfirmOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
+  const [continueBusy, setContinueBusy] = useState(false)
 
   const kindParts = kindMeta?.split(" · ") ?? []
+
+  const goWizardOrBlock = async () => {
+    if (continueBusy) return
+    setContinueBusy(true)
+    try {
+      const block = await getReleaseUploadStartBlockReason()
+      if (block) {
+        handleUploadBlock(block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
+        return
+      }
+      router.push(href)
+    } finally {
+      setContinueBusy(false)
+    }
+  }
 
   const handleDelete = async () => {
     if (deleting) return
@@ -142,6 +162,12 @@ export function ReleaseListCard({
     if (recalling) return
     setRecalling(true)
     try {
+      const block = await getReleaseUploadStartBlockReason()
+      if (block) {
+        handleUploadBlock(block || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED)
+        setRecallConfirmOpen(false)
+        return
+      }
       const res = await fetch(`/api/cabinet/releases/${encodeURIComponent(release.id)}/recall`, {
         method: "POST",
         credentials: "include",
@@ -173,25 +199,49 @@ export function ReleaseListCard({
         </div>
       ) : null}
 
-      <Link
-        href={href}
-        className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-lg bg-muted"
-      >
-        {release.coverUrl ? (
-          <Image
-            src={release.coverUrl}
-            alt=""
-            fill
-            className="object-cover"
-            unoptimized
-            sizes="96px"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Music className="h-8 w-8 text-muted-foreground" />
-          </div>
-        )}
-      </Link>
+      {wizard ? (
+        <button
+          type="button"
+          disabled={continueBusy}
+          onClick={() => void goWizardOrBlock()}
+          className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-lg bg-muted text-left"
+        >
+          {release.coverUrl ? (
+            <Image
+              src={release.coverUrl}
+              alt=""
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="96px"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Music className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
+        </button>
+      ) : (
+        <Link
+          href={href}
+          className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-lg bg-muted"
+        >
+          {release.coverUrl ? (
+            <Image
+              src={release.coverUrl}
+              alt=""
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="96px"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Music className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
+        </Link>
+      )}
 
       <div
         className={cn(
@@ -205,12 +255,23 @@ export function ReleaseListCard({
       >
         <div className="space-y-1">
           <div>
-            <Link
-              href={href}
-              className="font-semibold text-base sm:text-lg leading-tight hover:underline line-clamp-1"
-            >
-              {release.title || "Без названия"}
-            </Link>
+            {wizard ? (
+              <button
+                type="button"
+                disabled={continueBusy}
+                onClick={() => void goWizardOrBlock()}
+                className="font-semibold text-base sm:text-lg leading-tight hover:underline line-clamp-1 text-left"
+              >
+                {release.title || "Без названия"}
+              </button>
+            ) : (
+              <Link
+                href={href}
+                className="font-semibold text-base sm:text-lg leading-tight hover:underline line-clamp-1"
+              >
+                {release.title || "Без названия"}
+              </Link>
+            )}
             <p className="text-sm text-muted-foreground truncate">{release.artist || "-"}</p>
           </div>
           {kindMeta ? (
@@ -329,9 +390,22 @@ export function ReleaseListCard({
             </Link>
           </Button>
         ) : null}
-        <Button size="sm" variant={primary ? "default" : "outline"} asChild>
-          <Link href={href}>{actionLabel}</Link>
-        </Button>
+        {wizard ? (
+          <Button
+            type="button"
+            size="sm"
+            variant={primary ? "default" : "outline"}
+            disabled={continueBusy}
+            onClick={() => void goWizardOrBlock()}
+          >
+            {continueBusy ? <Spinner className="h-4 w-4 mr-1.5" /> : null}
+            {actionLabel}
+          </Button>
+        ) : (
+          <Button size="sm" variant={primary ? "default" : "outline"} asChild>
+            <Link href={href}>{actionLabel}</Link>
+          </Button>
+        )}
       </div>
     </article>
   )

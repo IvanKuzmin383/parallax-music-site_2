@@ -450,9 +450,19 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
                 : `Релиз выйдет через ${days} ${pluralDays(days)}`}
           </p>
         </div>
-        <Button asChild className="mt-auto w-fit">
-          <Link href={href}>Открыть</Link>
-        </Button>
+        {usesWizardAction(release) ? (
+          <Button
+            type="button"
+            className="mt-auto w-fit"
+            onClick={() => void goUploadOrToast(router, href, handleUploadBlock)}
+          >
+            Открыть
+          </Button>
+        ) : (
+          <Button asChild className="mt-auto w-fit">
+            <Link href={href}>Открыть</Link>
+          </Button>
+        )}
       </div>
     </section>
   )
@@ -473,15 +483,20 @@ function DashboardTaskRow({
   release: ReleaseView
   onDeleted?: () => void
 }) {
+  const router = useRouter()
+  const { handleUploadBlock } = useCabinetSubscription()
   const href = taskHref(release)
   const action = taskActionLabel(release)
   const primary = action === "Оплатить" || action === "Доработать" || action === "Продолжить"
+  const wizard = usesWizardAction(release)
   const detailHref = releaseDetailHref(release)
   const showOpenDetail = detailHref !== href
   const canDelete = isDraftRelease(release)
   const showMenu = showOpenDetail || canDelete
   const [deleting, setDeleting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const goTask = () => void goUploadOrToast(router, href, handleUploadBlock)
 
   const handleDelete = async () => {
     if (deleting) return
@@ -509,27 +524,60 @@ function DashboardTaskRow({
   return (
     <li className="flex flex-col gap-3 rounded-xl bg-muted/20 p-3 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Link href={href} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-          {release.coverUrl ? (
-            <Image
-              src={release.coverUrl}
-              alt=""
-              fill
-              className="object-cover"
-              unoptimized
-              sizes="48px"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <Music className="h-5 w-5 text-muted-foreground" />
-            </div>
-          )}
-        </Link>
+        {wizard ? (
+          <button
+            type="button"
+            onClick={goTask}
+            className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted text-left"
+          >
+            {release.coverUrl ? (
+              <Image
+                src={release.coverUrl}
+                alt=""
+                fill
+                className="object-cover"
+                unoptimized
+                sizes="48px"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Music className="h-5 w-5 text-muted-foreground" />
+              </div>
+            )}
+          </button>
+        ) : (
+          <Link href={href} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+            {release.coverUrl ? (
+              <Image
+                src={release.coverUrl}
+                alt=""
+                fill
+                className="object-cover"
+                unoptimized
+                sizes="48px"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Music className="h-5 w-5 text-muted-foreground" />
+              </div>
+            )}
+          </Link>
+        )}
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <Link href={href} className="font-medium truncate hover:underline">
-              {release.title || "Без названия"}
-            </Link>
+            {wizard ? (
+              <button
+                type="button"
+                onClick={goTask}
+                className="font-medium truncate hover:underline text-left"
+              >
+                {release.title || "Без названия"}
+              </button>
+            ) : (
+              <Link href={href} className="font-medium truncate hover:underline">
+                {release.title || "Без названия"}
+              </Link>
+            )}
             <span className="text-xs text-muted-foreground">{kindShort(release)}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -539,9 +587,15 @@ function DashboardTaskRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 self-end sm:self-center">
-        <Button asChild size="sm" variant={primary ? "default" : "secondary"}>
-          <Link href={href}>{action}</Link>
-        </Button>
+        {wizard ? (
+          <Button type="button" size="sm" variant={primary ? "default" : "secondary"} onClick={goTask}>
+            {action}
+          </Button>
+        ) : (
+          <Button asChild size="sm" variant={primary ? "default" : "secondary"}>
+            <Link href={href}>{action}</Link>
+          </Button>
+        )}
         {showMenu ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

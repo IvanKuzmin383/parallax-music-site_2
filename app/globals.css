@@ -1070,12 +1070,13 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
 }
 
 .lyrics-demo-vinyl {
-  animation: lyrics-demo-vinyl-spin 2.8s linear infinite;
+  animation: lyrics-demo-vinyl-spin 3.6s linear infinite;
   animation-play-state: paused;
   will-change: transform;
+  transform: translateZ(0);
 }
 
-.lyrics-demo-vinyl--playing {
+.lyrics-demo-vinyl.lyrics-demo-vinyl--playing {
   animation-play-state: running;
 }
 

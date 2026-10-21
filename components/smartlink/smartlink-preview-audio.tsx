@@ -9,6 +9,8 @@ type SmartlinkPreviewAudioProps = {
   className?: string
   /** Светлая карточка - более тёмная кнопка. */
   light?: boolean
+  /** Без оверлея (превью в редакторе кабинета). */
+  startUnlocked?: boolean
   /** После жеста (оверлей закрыт) - чтобы запустить entrance-анимации страницы. */
   onUnlocked?: () => void
 }
@@ -17,15 +19,17 @@ type SmartlinkPreviewAudioProps = {
  * Браузеры блокируют автоплей со звуком без жеста.
  * Поэтому сначала полноэкранный вопрос "Послушать отрывок?" -
  * клик/тач = жест пользователя, сразу play() со звуком.
+ * В кабинете (startUnlocked) оверлей не показываем.
  */
 export function SmartlinkPreviewAudio({
   src,
   className,
   light,
+  startUnlocked = false,
   onUnlocked,
 }: SmartlinkPreviewAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [unlocked, setUnlocked] = useState(false)
+  const [unlocked, setUnlocked] = useState(startUnlocked)
   const [soundOn, setSoundOn] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(false)

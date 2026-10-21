@@ -16,7 +16,8 @@ export function aiTracksDownloadWavPath(sourcePath: string): string {
 
 /**
  * Готовит PCM WAV 44.1 kHz stereo для скачивания / дистрибуции.
- * Если исходник уже wav - копирует; иначе ffmpeg + кэш `.download.wav`.
+ * Если исходник уже wav - копирует; иначе ffmpeg + кэш `.download.wav` рядом с исходником,
+ * затем при необходимости копирует в `destPath`.
  */
 export async function ensureAiTracksWavFile(params: {
   sourcePath: string
@@ -31,20 +32,30 @@ export async function ensureAiTracksWavFile(params: {
     return { ok: true }
   }
 
+  const cachePath = aiTracksDownloadWavPath(params.sourcePath)
+  const workPath =
+    path.resolve(params.destPath) === path.resolve(cachePath) ? params.destPath : cachePath
+
   try {
-    const cached = await fs.stat(params.destPath)
+    const cached = await fs.stat(workPath)
     if (cached.size > 1024) {
-      const wavError = await validateWavFormatFromFilePath(params.destPath)
-      if (!wavError) return { ok: true }
-      await fs.unlink(params.destPath).catch(() => undefined)
+      const wavError = await validateWavFormatFromFilePath(workPath)
+      if (!wavError) {
+        if (path.resolve(workPath) !== path.resolve(params.destPath)) {
+          await copyFileToPathAtomic(workPath, params.destPath)
+        }
+        return { ok: true }
+      }
+      await fs.unlink(workPath).catch(() => undefined)
     }
   } catch {
     // no cache
   }
 
-  const tmpPath = `${params.destPath}.${process.pid}.${Date.now()}.tmp.wav`
+  const tmpPath = `${workPath}.${process.pid}.${Date.now()}.tmp.wav`
   try {
-    await execFileAsync(
+    await fs.mkdir(path.dirname(workPath), { recursive: true })
+    const { stderr } = await execFileAsync(
       "ffmpeg",
       [
         "-y",
@@ -62,22 +73,34 @@ export async function ensureAiTracksWavFile(params: {
     )
     const info = await fs.stat(tmpPath)
     if (info.size < 1024) throw new Error("wav too small")
-    await fs.rename(tmpPath, params.destPath).catch(async () => {
-      await fs.copyFile(tmpPath, params.destPath)
+    await fs.rename(tmpPath, workPath).catch(async () => {
+      await fs.copyFile(tmpPath, workPath)
       await fs.unlink(tmpPath).catch(() => undefined)
     })
-  } catch {
+    if (stderr?.trim()) {
+      console.warn("[ai-tracks-wav] ffmpeg stderr:", stderr.slice(0, 500))
+    }
+  } catch (err) {
     await fs.unlink(tmpPath).catch(() => undefined)
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error("[ai-tracks-wav] ffmpeg failed:", detail, {
+      sourcePath: params.sourcePath,
+      workPath,
+    })
     return {
       ok: false,
       error: "Не удалось подготовить WAV (44.1 kHz). Попробуйте позже или обратитесь в поддержку.",
     }
   }
 
-  const wavError = await validateWavFormatFromFilePath(params.destPath)
+  const wavError = await validateWavFormatFromFilePath(workPath)
   if (wavError) {
-    await fs.unlink(params.destPath).catch(() => undefined)
+    await fs.unlink(workPath).catch(() => undefined)
     return { ok: false, error: wavError }
+  }
+
+  if (path.resolve(workPath) !== path.resolve(params.destPath)) {
+    await copyFileToPathAtomic(workPath, params.destPath)
   }
   return { ok: true }
 }

@@ -65,6 +65,12 @@ import {
   type AiTracksResultDto,
   type AiTracksSettingsSnapshot,
 } from "@/lib/ai-tracks-types"
+import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
+import {
+  isUploadSubscriptionPaywallReason,
+  UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED,
+} from "@/lib/cabinet-upload-subscription-client"
+import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
 import { cn } from "@/lib/utils"
 
 type StudioStatus = AiTracksPublicConfig & {
@@ -349,6 +355,7 @@ function ResultCard({
 export function AiTracksStudioClient() {
   const router = useRouter()
   const pathname = usePathname()
+  const { handleUploadBlock } = useCabinetSubscription()
   const backHref = getCabinetServiceHubHref(pathname)
   const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const formRef = useRef<HTMLDivElement | null>(null)
@@ -556,15 +563,29 @@ export function AiTracksStudioClient() {
     [filter, loadHistory]
   )
 
-  const openToRelease = useCallback((result: AiTracksResultDto) => {
-    setToReleaseTarget(result)
-    setToReleaseTitle(result.title || "")
-  }, [])
+  const openToRelease = useCallback(
+    async (result: AiTracksResultDto) => {
+      const block = await getReleaseUploadStartBlockReason()
+      if (block) {
+        handleUploadBlock(block)
+        return
+      }
+      setToReleaseTarget(result)
+      setToReleaseTitle(result.title || "")
+    },
+    [handleUploadBlock]
+  )
 
   const confirmToRelease = async () => {
     if (!toReleaseTarget) return
     setToReleaseBusy(true)
     try {
+      const gate = await getReleaseUploadStartBlockReason()
+      if (gate) {
+        handleUploadBlock(gate)
+        setToReleaseTarget(null)
+        return
+      }
       const res = await fetch(
         `/api/cabinet/ai-tracks/results/${encodeURIComponent(toReleaseTarget.id)}/to-release`,
         {
@@ -584,7 +605,14 @@ export function AiTracksStudioClient() {
       if (!res.ok) {
         if (data.errorCode === "profile_incomplete") {
           toast.error(data.error || "Заполните профиль, чтобы создать релиз")
+          setToReleaseTarget(null)
           router.push("/cabinet/settings?tab=profile")
+          return
+        }
+        const err = data.error?.trim() || UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED
+        if (res.status === 403 && isUploadSubscriptionPaywallReason(err)) {
+          handleUploadBlock(err)
+          setToReleaseTarget(null)
           return
         }
         toast.error(data.error || "Не удалось создать релиз")

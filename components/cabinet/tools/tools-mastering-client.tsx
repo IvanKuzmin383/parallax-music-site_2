@@ -746,9 +746,9 @@ function ToolsMasteringInner() {
         onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
       />
 
-      <div className="sticky top-0 z-20 -mx-3 border-b border-border/70 bg-background/92 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 lg:flex-nowrap">
+      <div className="sticky top-0 z-20 w-full min-w-0 rounded-lg border border-border/70 bg-background/92 px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 sm:px-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
             <Button
               type="button"
               variant="outline"
@@ -761,7 +761,7 @@ function ToolsMasteringInner() {
             </Button>
             <span
               className={cn(
-                "min-w-0 max-w-[10rem] truncate text-xs sm:max-w-[14rem]",
+                "min-w-0 max-w-[10rem] truncate text-xs sm:max-w-[16rem]",
                 loadState === "ready" ? "text-emerald-400" : "text-muted-foreground"
               )}
               title={file?.name}
@@ -844,41 +844,38 @@ function ToolsMasteringInner() {
                 {formatTime(duration)}
               </span>
             </div>
-
-            <div className="hidden min-w-0 flex-1 lg:block xl:max-w-[14rem]">
-              <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
-            </div>
-
-            <Button
-              type="button"
-              size="sm"
-              className="ml-auto h-8 shrink-0"
-              onClick={() => {
-                if (needsPurchase) {
-                  setPayDialogOpen(true)
-                  return
-                }
-                void handleDownload()
-              }}
-              disabled={needsPurchase ? paying : busy || loadState !== "ready"}
-            >
-              {busy || paying ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : needsPurchase ? null : (
-                <Download className="mr-1.5 h-3.5 w-3.5" />
-              )}
-              {downloadLabel}
-            </Button>
           </div>
 
-          <div className="flex min-w-0 items-center gap-3 lg:hidden">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
             <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
-            <Link
-              href="/cabinet/design/mastering"
-              className="ml-auto shrink-0 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              AI на заказ
-            </Link>
+            <div className="ml-auto flex min-w-0 flex-col items-end gap-0.5">
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 shrink-0"
+                onClick={() => {
+                  if (needsPurchase) {
+                    setPayDialogOpen(true)
+                    return
+                  }
+                  void handleDownload()
+                }}
+                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
+              >
+                {busy || paying ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : needsPurchase ? null : (
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {downloadLabel}
+              </Button>
+              <Link
+                href="/cabinet/design/mastering"
+                className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                AI-мастеринг на заказ
+              </Link>
+            </div>
           </div>
 
           {loadState === "loading" ? (
@@ -893,17 +890,9 @@ function ToolsMasteringInner() {
 
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
-          <div className="hidden items-center justify-between gap-2 lg:flex">
-            <p className="text-[11px] text-muted-foreground">
-              Настройки меняют звук сразу в режиме B
-            </p>
-            <Link
-              href="/cabinet/design/mastering"
-              className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              AI-мастеринг на заказ
-            </Link>
-          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Настройки меняют звук сразу в режиме B
+          </p>
         </div>
       </div>
 

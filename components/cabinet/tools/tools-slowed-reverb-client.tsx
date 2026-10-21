@@ -63,21 +63,34 @@ function isAllowedAudioFile(file: File): boolean {
   return file.type.startsWith("audio/")
 }
 
+const WAVE_PLAYED = "#F01F43"
+const WAVE_REST = "rgba(255,255,255,0.16)"
+const WAVE_PLAYHEAD = "rgba(255,255,255,0.92)"
+
 function WaveformCanvas({
   peaks,
   progress,
+  duration,
+  disabled,
+  onSeekRatio,
+  onSeekEnd,
 }: {
   peaks: number[]
   progress: number
+  duration: number
+  disabled?: boolean
+  onSeekRatio: (ratio: number) => void
+  onSeekEnd?: () => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const draggingRef = useRef(false)
 
-  useEffect(() => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     const cssW = canvas.clientWidth || 640
-    const cssH = canvas.clientHeight || 44
+    const cssH = canvas.clientHeight || 56
     canvas.width = Math.floor(cssW * dpr)
     canvas.height = Math.floor(cssH * dpr)
     const ctx = canvas.getContext("2d")
@@ -86,30 +99,104 @@ function WaveformCanvas({
     ctx.clearRect(0, 0, cssW, cssH)
 
     const mid = cssH / 2
-    const n = peaks.length || 1
-    const gap = 1
-    const barW = Math.max(1.2, (cssW - gap * (n - 1)) / n)
+    const n = Math.max(1, peaks.length)
+    const gap = 1.5
+    const barW = Math.max(1.5, (cssW - gap * (n - 1)) / n)
     const t = Math.max(0, Math.min(1, progress))
 
     for (let i = 0; i < n; i++) {
-      // sqrt - визуально плотнее, без "тонкой нитки" в центре
       const amp = Math.sqrt(Math.max(0, peaks[i] ?? 0))
-      const h = Math.max(3, amp * (cssH * 0.92))
+      const h = Math.max(4, amp * (cssH * 0.88))
       const x = i * (barW + gap)
       const y = mid - h / 2
-      const filled = i / n <= t
-      ctx.fillStyle = filled
-        ? "color-mix(in oklab, var(--primary) 85%, #67e8f9)"
-        : "color-mix(in oklab, var(--primary) 35%, transparent)"
+      ctx.fillStyle = i / n <= t ? WAVE_PLAYED : WAVE_REST
       ctx.fillRect(x, y, barW, h)
     }
+
+    const playX = t * cssW
+    ctx.fillStyle = WAVE_PLAYHEAD
+    ctx.fillRect(Math.max(0, playX - 1), 4, 2, cssH - 8)
   }, [peaks, progress])
+
+  useEffect(() => {
+    draw()
+  }, [draw])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(() => draw())
+    ro.observe(canvas)
+    return () => ro.disconnect()
+  }, [draw])
+
+  const ratioFromEvent = (clientX: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) return 0
+    const rect = canvas.getBoundingClientRect()
+    if (rect.width <= 0) return 0
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+  }
+
+  const seekFromPointer = (clientX: number) => {
+    if (disabled || duration <= 0) return
+    onSeekRatio(ratioFromEvent(clientX))
+  }
 
   return (
     <canvas
       ref={canvasRef}
-      className="h-11 w-full rounded-md bg-background/40"
-      aria-hidden
+      role="slider"
+      tabIndex={disabled ? -1 : 0}
+      aria-label="Перемотка по волне"
+      aria-valuemin={0}
+      aria-valuemax={Math.max(0, Math.round(duration))}
+      aria-valuenow={Math.round(Math.max(0, Math.min(1, progress)) * duration)}
+      aria-disabled={disabled || undefined}
+      className={cn(
+        "h-14 w-full cursor-pointer rounded-lg bg-black/35 ring-1 ring-white/10 outline-none",
+        "focus-visible:ring-2 focus-visible:ring-primary/60",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+      onPointerDown={(e) => {
+        if (disabled) return
+        draggingRef.current = true
+        e.currentTarget.setPointerCapture(e.pointerId)
+        seekFromPointer(e.clientX)
+      }}
+      onPointerMove={(e) => {
+        if (!draggingRef.current) return
+        seekFromPointer(e.clientX)
+      }}
+      onPointerUp={(e) => {
+        draggingRef.current = false
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId)
+        } catch {
+          /* ignore */
+        }
+        onSeekEnd?.()
+      }}
+      onPointerCancel={() => {
+        draggingRef.current = false
+        onSeekEnd?.()
+      }}
+      onKeyDown={(e) => {
+        if (disabled || duration <= 0) return
+        const step = e.shiftKey ? 5 : 1
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault()
+          const delta = e.key === "ArrowLeft" ? -step : step
+          const next = Math.max(0, Math.min(1, progress + delta / duration))
+          onSeekRatio(next)
+        } else if (e.key === "Home") {
+          e.preventDefault()
+          onSeekRatio(0)
+        } else if (e.key === "End") {
+          e.preventDefault()
+          onSeekRatio(1)
+        }
+      }}
     />
   )
 }
@@ -465,8 +552,22 @@ function ToolsSlowedReverbInner() {
                   <p className="text-xs text-muted-foreground">Локальный файл</p>
                 </div>
 
-                <div className="space-y-1.5 p-0">
-                  <WaveformCanvas peaks={peaks} progress={progress} />
+                <div className="space-y-2">
+                  <WaveformCanvas
+                    peaks={peaks}
+                    progress={progress}
+                    duration={duration}
+                    disabled={duration <= 0}
+                    onSeekRatio={(ratio) => {
+                      const next = ratio * duration
+                      scrubbingRef.current = true
+                      setPlayhead(next)
+                      void seekTo(next)
+                    }}
+                    onSeekEnd={() => {
+                      scrubbingRef.current = false
+                    }}
+                  />
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -480,27 +581,9 @@ function ToolsSlowedReverbInner() {
                         <Play className="h-4 w-4 translate-x-px" />
                       )}
                     </button>
-                    <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-                      {formatTime(playhead)}
-                    </span>
-                    <Slider
-                      value={[Math.min(playhead, duration || 0)]}
-                      min={0}
-                      max={duration > 0 ? duration : 1}
-                      step={0.01}
-                      disabled={duration <= 0}
-                      aria-label="Позиция воспроизведения"
-                      className="min-w-0 flex-1"
-                      onValueChange={(value) => {
-                        scrubbingRef.current = true
-                        setPlayhead(value[0] ?? 0)
-                      }}
-                      onValueCommit={(value) => {
-                        scrubbingRef.current = false
-                        void seekTo(value[0] ?? 0)
-                      }}
-                    />
-                    <span className="w-9 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    <span className="min-w-0 flex-1 text-[11px] tabular-nums text-muted-foreground">
+                      <span className="text-foreground/90">{formatTime(playhead)}</span>
+                      <span className="mx-1.5 text-muted-foreground/50">/</span>
                       {formatTime(duration)}
                     </span>
                   </div>
