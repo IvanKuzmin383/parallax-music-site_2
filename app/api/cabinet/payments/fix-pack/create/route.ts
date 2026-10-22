@@ -22,14 +22,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   }
 
-  if (user.subscriptionName !== "Fix") {
+  // Первый пакет Fix - без подписки; докупка - на Fix.
+  // Другие тарифы (Start/Medium/Pro/Label) блокируем.
+  if (user.subscriptionName && user.subscriptionName !== "Fix") {
     return NextResponse.json(
-      { error: "Покупка пакета треков доступна только для тарифа Fix" },
+      {
+        error:
+          "На аккаунте уже есть подписка. Пакет Fix доступен без календарной подписки - используйте другой email или обратитесь в поддержку.",
+      },
       { status: 403 }
     )
   }
 
-  if (isLegacyFixPricing(user)) {
+  if (user.subscriptionName === "Fix" && isLegacyFixPricing(user)) {
     return NextResponse.json(
       {
         error:
