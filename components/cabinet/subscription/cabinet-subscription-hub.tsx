@@ -148,11 +148,7 @@ export function CabinetSubscriptionHub() {
       )
       return
     }
-    if (isOnFix) {
-      setFixDialogOpen(true)
-      return
-    }
-    window.location.href = "/pay/fix?tracks=5"
+    setFixDialogOpen(true)
   }
 
   return (
@@ -325,7 +321,9 @@ export function CabinetSubscriptionHub() {
             <Card
               key={plan.id}
               className={cn(
-                "relative flex flex-col",
+                "relative flex flex-col transition-all duration-300",
+                "motion-safe:hover:-translate-y-1 hover:border-primary/45",
+                "hover:shadow-[0_16px_40px_rgba(0,0,0,0.35)]",
                 plan.popular && "border-primary/50",
                 isCurrent && "ring-1 ring-primary/40"
               )}
@@ -370,7 +368,9 @@ export function CabinetSubscriptionHub() {
 
         <Card
           className={cn(
-            "relative flex flex-col",
+            "relative flex flex-col transition-all duration-300",
+            "motion-safe:hover:-translate-y-1 hover:border-primary/45",
+            "hover:shadow-[0_16px_40px_rgba(0,0,0,0.35)]",
             isOnFix && "ring-1 ring-primary/40"
           )}
         >

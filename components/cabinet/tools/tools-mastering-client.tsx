@@ -368,7 +368,7 @@ function CompactMeter({
 }) {
   const pct = Math.round(Math.min(1, Math.max(0, fill)) * 100)
   return (
-    <div className="flex min-w-[5.5rem] max-w-[7.5rem] flex-1 flex-col gap-0.5">
+    <div className="flex w-[6.5rem] shrink-0 flex-col gap-0.5">
       <div className="flex items-center justify-between gap-1">
         <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
@@ -748,7 +748,7 @@ function ToolsMasteringInner() {
 
       <div className="sticky top-0 z-20 w-full min-w-0 rounded-lg border border-border/70 bg-background/92 px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 sm:px-4">
         <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2">
             <Button
               type="button"
               variant="outline"
@@ -761,7 +761,7 @@ function ToolsMasteringInner() {
             </Button>
             <span
               className={cn(
-                "min-w-0 max-w-[10rem] truncate text-xs sm:max-w-[16rem]",
+                "min-w-0 max-w-[9rem] truncate text-xs sm:max-w-[14rem]",
                 loadState === "ready" ? "text-emerald-400" : "text-muted-foreground"
               )}
               title={file?.name}
@@ -819,7 +819,7 @@ function ToolsMasteringInner() {
             >
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
             </button>
-            <div className="flex min-w-[8rem] flex-1 items-center gap-2 sm:min-w-[12rem]">
+            <div className="flex w-full min-w-[10rem] max-w-md flex-1 basis-[12rem] items-center gap-2">
               <span className="w-8 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground">
                 {formatTime(playhead)}
               </span>
@@ -844,11 +844,12 @@ function ToolsMasteringInner() {
                 {formatTime(duration)}
               </span>
             </div>
-          </div>
 
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="hidden h-5 w-px shrink-0 bg-border lg:block" aria-hidden />
+
             <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
-            <div className="ml-auto flex min-w-0 flex-col items-end gap-0.5">
+
+            <div className="flex shrink-0 flex-col items-start gap-0.5 sm:items-end">
               <Button
                 type="button"
                 size="sm"
@@ -1025,23 +1026,48 @@ function ToolsMasteringInner() {
 
                     <KnobGroup
                       title="Уровни"
-                      hint="Громкость, плотность динамики и сглаживание резкости - три главных рычага без тонкой настройки."
+                      hint="Громкость (цель + подстройка), плотность динамики и сглаживание резкости."
                     >
                       <div className="flex w-full flex-col gap-3.5">
-                        <LevelToggle<LoudnessLevel>
-                          label="Громкость"
-                          tip='Насколько громко звучит готовый мастер. High - ближе к стриминговому "громкому" звуку, Low - спокойнее и с большим запасом.'
-                          value={params.loudness}
-                          options={[
-                            { id: "low", label: "Тише" },
-                            { id: "med", label: "Норма" },
-                            { id: "high", label: "Громче" },
-                          ]}
-                          onChange={(loudness) => patchParams({ loudness })}
-                        />
+                        <div className="space-y-3 rounded-lg border border-border/50 bg-muted/15 p-3">
+                          <LevelToggle<LoudnessLevel>
+                            label="Громкость"
+                            tip='Цель громкости мастера. При включённой автогромкости под эту цель подбирается уровень. Тише - спокойнее, Громче - ближе к стриминговому "громкому" звуку.'
+                            value={params.loudness}
+                            options={[
+                              { id: "low", label: "Тише" },
+                              { id: "med", label: "Норма" },
+                              { id: "high", label: "Громче" },
+                            ]}
+                            onChange={(loudness) => patchParams({ loudness })}
+                          />
+                          <div className="flex flex-wrap items-center gap-4 border-t border-border/40 pt-3">
+                            <RotaryKnob
+                              label="Подстройка"
+                              tip="Ручная добавка к громкости (дБ). Работает вместе с целью Тише/Норма/Громче и автогромкостью."
+                              value={params.outputGainDb}
+                              min={-12}
+                              max={12}
+                              step={0.5}
+                              unit=" dB"
+                              onChange={(outputGainDb) => patchParams({ outputGainDb })}
+                            />
+                            <div className="flex min-w-[10rem] flex-col justify-center gap-2">
+                              <HintCheckbox
+                                label="Автогромкость"
+                                tip="Подгоняет уровень под выбранную цель (Тише / Норма / Громче), чтобы разные треки звучали похоже по силе. Крутилка Подстройка добавляется сверху."
+                                checked={params.magicMakeup}
+                                onCheckedChange={(magicMakeup) => patchParams({ magicMakeup })}
+                              />
+                              <p className="max-w-[14rem] text-[11px] leading-snug text-muted-foreground">
+                                Тише / Норма / Громче - цель. Подстройка и автогромкость - к ней.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                         <LevelToggle<DensityLevel>
                           label="Плотность"
-                          tip='Насколько сильно сжимается динамика. Выше - трек ровнее и "плотнее", ниже - больше живых пиков и тихих мест.'
+                          tip='Насколько сильно сжимается динамика. Выше - трек ровнее и "плотнее", ниже - больше живых пиков и тихих мест. Не путать с громкостью.'
                           value={params.density}
                           options={[
                             { id: "low", label: "Легче" },
@@ -1061,30 +1087,6 @@ function ToolsMasteringInner() {
                             { id: "high", label: "Сильное" },
                           ]}
                           onChange={(smooth) => patchParams({ smooth })}
-                        />
-                      </div>
-                    </KnobGroup>
-
-                    <KnobGroup
-                      title="Громкость"
-                      hint="Финальная громкость мастера и автоподбор уровня под выбранную громкость."
-                    >
-                      <RotaryKnob
-                        label="Громкость"
-                        tip="Ручная подстройка громкости после автоподбора. Крутите, если мастер слишком тихий или громкий."
-                        value={params.outputGainDb}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        unit=" dB"
-                        onChange={(outputGainDb) => patchParams({ outputGainDb })}
-                      />
-                      <div className="flex min-w-[10rem] flex-col justify-center gap-3 self-center pl-1">
-                        <HintCheckbox
-                          label="Автогромкость"
-                          tip="Сам подбирает уровень под выбранную громкость, чтобы разные треки звучали похоже по силе."
-                          checked={params.magicMakeup}
-                          onCheckedChange={(magicMakeup) => patchParams({ magicMakeup })}
                         />
                       </div>
                     </KnobGroup>

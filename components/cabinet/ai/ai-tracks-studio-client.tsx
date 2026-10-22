@@ -34,6 +34,13 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -45,6 +52,7 @@ import {
   AI_TRACKS_MOODS,
   AI_TRACKS_PRICE_RUB,
   AI_TRACKS_VOCALS,
+  isAiTracksModelId,
   rewriteAiTracksChipHint,
   type AiTracksDirectionId,
   type AiTracksMoodId,
@@ -713,6 +721,8 @@ export function AiTracksStudioClient() {
   const ctaLabel = draft.instrumental
     ? `Создать музыку · ${formatRub(priceRub)}`
     : `Создать песню · ${formatRub(priceRub)}`
+  const modelOptions = status?.models?.length ? status.models : AI_TRACKS_MODELS
+  const selectedModelHint = modelOptions.find((m) => m.id === draft.modelId)?.hint ?? null
 
   const flatResults: Array<{ result: AiTracksResultDto; settings: AiTracksSettingsSnapshot }> = []
   for (const job of jobs) {
@@ -748,29 +758,58 @@ export function AiTracksStudioClient() {
             </div>
           </div>
 
-          <div
-            className="mb-5 inline-flex rounded-full border border-border p-0.5"
-            role="tablist"
-            aria-label="Режим создания"
-          >
-            {(["simple", "advanced"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                role="tab"
-                aria-selected={draft.mode === mode}
-                className={cn(
-                  "min-h-7 rounded-full px-3 text-xs",
-                  draft.mode === mode
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                onClick={() => patchDraft({ mode })}
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <div
+              className="inline-flex rounded-full border border-border p-0.5"
+              role="tablist"
+              aria-label="Режим создания"
+            >
+              {(["simple", "advanced"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={draft.mode === mode}
+                  className={cn(
+                    "min-h-7 rounded-full px-3 text-xs",
+                    draft.mode === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => patchDraft({ mode })}
+                >
+                  {mode === "simple" ? "Простой" : "Расширенный"}
+                </button>
+              ))}
+            </div>
+
+            <div className="min-w-[9.5rem] flex-1 sm:max-w-[12rem] sm:flex-none">
+              <Label htmlFor="ai-tracks-model" className="sr-only">
+                Модель
+              </Label>
+              <Select
+                value={draft.modelId}
+                onValueChange={(value) => {
+                  if (isAiTracksModelId(value)) patchDraft({ modelId: value })
+                }}
               >
-                {mode === "simple" ? "Простой" : "Расширенный"}
-              </button>
-            ))}
+                <SelectTrigger id="ai-tracks-model" size="sm" className="w-full">
+                  <SelectValue placeholder="Модель" />
+                </SelectTrigger>
+                <SelectContent>
+                  {modelOptions.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {selectedModelHint ? (
+            <p className="-mt-3 mb-5 text-xs text-muted-foreground">{selectedModelHint}</p>
+          ) : null}
 
           <div className="space-y-5">
             {draft.mode === "simple" ? (
@@ -941,33 +980,6 @@ export function AiTracksStudioClient() {
                 </div>
               </>
             )}
-
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-medium">Модель</p>
-                <span className="text-xs font-medium text-primary">
-                  {(status?.models?.length ? status.models : AI_TRACKS_MODELS).find(
-                    (m) => m.id === draft.modelId
-                  )?.label ?? "-"}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(status?.models?.length ? status.models : AI_TRACKS_MODELS).map((m) => (
-                  <Chip
-                    key={m.id}
-                    active={draft.modelId === m.id}
-                    onClick={() => patchDraft({ modelId: m.id })}
-                  >
-                    {m.label}
-                  </Chip>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {(status?.models?.length ? status.models : AI_TRACKS_MODELS).find(
-                  (m) => m.id === draft.modelId
-                )?.hint ?? null}
-              </p>
-            </div>
 
             {draft.mode === "simple" ? (
               <div className="space-y-2">

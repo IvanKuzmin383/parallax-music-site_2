@@ -140,7 +140,7 @@ export function SmartlinkLanding({
     isBlurBg,
     isGlassCard,
     isSignal,
-    isTicket,
+    isTicketBtn,
     isTicketCover,
     isPolaroid,
     isPolaroidBtn,
@@ -208,9 +208,8 @@ export function SmartlinkLanding({
 
   const shellClass = cn(
     // overflow-y-auto: длинный список площадок должен скроллиться, не обрезаться
-    // justify-start + py: контент сверху при длинной странице; короткий всё ещё читается нормально
-    "relative flex min-h-full w-full flex-col items-center justify-start overflow-x-hidden overflow-y-auto",
-    preview ? "min-h-[520px] px-3 py-6" : "min-h-screen px-4 py-6 sm:px-6 sm:py-8",
+    "relative flex min-h-full w-full flex-col items-center overflow-x-hidden overflow-y-auto",
+    preview ? "min-h-[520px] px-3 pt-6 pb-3" : "min-h-screen px-4 pt-6 pb-3 sm:px-6 sm:pt-8 sm:pb-4",
     shellLight ? "bg-[#F3EFE6] text-[#161616]" : "bg-[#0B0B0C] text-[#F5F5F5]",
     bgCarbon && "sl-carbon-bg",
     bgGraffiti && "sl-graffiti-bg",
@@ -228,14 +227,14 @@ export function SmartlinkLanding({
   )
 
   const cardClass = cn(
-    // flex-1 + justify-center: контент по центру; Powered by - отдельным футером внизу шелла
+    // Контент по центру доступной высоты; Powered by вынесен ниже через mt-auto
     "relative z-[1] flex w-full flex-1 flex-col items-center justify-center gap-4",
     preview ? "max-w-[280px]" : "max-w-md",
+    // Карточка/хром страницы - только от фона (bg*), не от формата кнопок/обложки
     isSheetCard && "rounded-2xl bg-white/90 px-4 py-6 shadow-[0_18px_50px_rgba(20,16,10,0.12)]",
     isSignal && "rounded-2xl border border-white/10 bg-black/35 px-4 py-6 backdrop-blur-md",
     isGlassCard &&
       "rounded-2xl border border-white/20 bg-white/10 px-4 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl",
-    isTicket && "sl-ticket-card px-4 py-6",
     bgCinema && "gap-3 px-0",
     bgCarbon && "rounded-2xl border border-white/10 bg-black/40 px-4 py-6 backdrop-blur-sm",
     bgStage && "rounded-2xl border border-white/15 bg-black/50 px-4 py-6 shadow-[0_0_40px_rgba(0,0,0,0.5)]",
@@ -590,7 +589,7 @@ export function SmartlinkLanding({
       }
     }
 
-    if (theme.buttons === "outline" || isTicket) {
+    if (theme.buttons === "outline" || isTicketBtn) {
       return {
         backgroundColor: "transparent",
         color: fgOnPage,
@@ -1071,7 +1070,7 @@ export function SmartlinkLanding({
             <SocialRow
               items={socialItems}
               iconStyle={socials!.iconStyle}
-              light={contentLight || isPolaroid}
+              light={contentLight}
             />
           </div>
         ) : null}
@@ -1080,7 +1079,7 @@ export function SmartlinkLanding({
       <a
         href={brandHref}
         className={cn(
-          "relative z-[1] mt-auto shrink-0 pt-4 text-center text-xs opacity-55 transition-opacity hover:opacity-100",
+          "relative z-[1] mt-auto w-full shrink-0 pt-10 pb-2 text-center text-xs opacity-55 transition-opacity hover:opacity-100 sm:pt-12 sm:pb-3",
           contentLight ? "text-[#161616]" : "text-white",
           animClass(theme),
         )}

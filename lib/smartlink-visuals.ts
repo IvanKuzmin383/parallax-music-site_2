@@ -350,6 +350,7 @@ export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
   const isDiaryCover = coverFormat === "diary"
   const isTicketCover = coverFormat === "ticket"
 
+  /** Совместимость: кнопка или обложка в формате билета (не фон!). */
   const isTicket = isTicketBtn || isTicketCover
   /** Постер/полароид для скрытия titleBlock - только обложка. */
   const isPoster = isPosterCover
@@ -366,7 +367,11 @@ export function resolveSmartlinkVisualFlags(theme: SmartlinkThemeVisualInput) {
   const shellLight = bgStyle === "sheet" || bgStyle === "diary" || bgStyle === "zine"
   /** Белая карточка только у "Лист". */
   const isSheetCard = bgStyle === "sheet"
-  const contentLight = shellLight || isTicket
+  /**
+   * Цвет текста/кнопок на странице - только от фона.
+   * Нельзя OR-ить с buttonFormat/coverFormat (Билет/Полароид и т.п.) - иначе "формат кнопок" красит фон.
+   */
+  const contentLight = shellLight
 
   const isBlurBg =
     bgStyle === "blur" ||

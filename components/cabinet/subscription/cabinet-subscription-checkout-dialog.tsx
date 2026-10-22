@@ -144,11 +144,12 @@ export function CabinetSubscriptionCheckoutDialog({
           <DialogTitle>
             {isExtraSlot ? "Дополнительный слот артиста" : `Оплата - ${planTitle}`}
           </DialogTitle>
-          <DialogDescription className="text-pretty">
-            {isExtraSlot
-              ? `Новый свободный слот тарифа ${planTitle}. Текущие артисты и сроки их слотов не затрагиваются.`
-              : "Согласия и срок - здесь, оплата на защищённой странице банка."}
-          </DialogDescription>
+          {isExtraSlot ? (
+            <DialogDescription className="text-pretty">
+              Новый свободный слот тарифа {planTitle}. Текущие артисты и сроки их слотов не
+              затрагиваются.
+            </DialogDescription>
+          ) : null}
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">

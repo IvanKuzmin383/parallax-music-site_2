@@ -38,7 +38,10 @@ export default function PromotionPage() {
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {services.map((service) => (
-          <Card key={service.slug} className="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-lg">
+          <Card
+            key={service.slug}
+            className="flex h-full flex-col overflow-hidden transition-all duration-300 motion-safe:hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+          >
             <CardHeader className="flex flex-1 flex-col gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Megaphone className="h-5 w-5" />

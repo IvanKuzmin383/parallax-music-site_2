@@ -54,7 +54,7 @@ export function SmartlinkAudioGate({
           onUnlocked={onUnlocked}
         />
       ) : null}
-      <div key={animKey} className="contents">
+      <div key={animKey} className="relative z-[1] flex min-h-0 w-full flex-1 flex-col items-center">
         {children}
       </div>
     </div>
