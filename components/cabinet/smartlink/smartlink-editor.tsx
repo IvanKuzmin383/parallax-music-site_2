@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react"
 import { toast } from "sonner"
+import { SmartlinkAnalyticsPanel } from "@/components/cabinet/smartlink/smartlink-analytics-panel"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -2046,6 +2047,16 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                 disabled={theme.animation === "none"}
               />
             </div>
+          </EditorSection>
+
+          <EditorSection title="Аналитика" defaultOpen={false}>
+            <SmartlinkAnalyticsPanel
+              apiPath={
+                isTools
+                  ? `/api/cabinet/tools/smartlinks/${encodeURIComponent(smartlinkId)}/analytics`
+                  : `/api/cabinet/smartlink/${encodeURIComponent(releaseKey)}/analytics`
+              }
+            />
           </EditorSection>
         </div>
 

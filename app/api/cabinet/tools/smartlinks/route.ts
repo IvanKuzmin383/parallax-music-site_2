@@ -10,6 +10,10 @@ import {
   updateSmartlink,
 } from "@/lib/cabinet-smartlinks"
 import { resolveCabinetSmartlinkContext } from "@/lib/cabinet-smartlink"
+import {
+  getSmartlinkListStatsByKeys,
+  smartlinkKeyForStandalone,
+} from "@/lib/smartlink-analytics"
 import { getServicePriceRub } from "@/lib/service-prices"
 import { smartlinkPublicPath, smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 
@@ -32,22 +36,30 @@ export async function GET(request: NextRequest) {
     listSmartlinksByUserId(user.id),
     getServicePriceRub("tools_smartlink"),
   ])
+  const statsMap = await getSmartlinkListStatsByKeys(
+    items.map((link) => smartlinkKeyForStandalone(link.id)),
+  )
   return NextResponse.json({
     priceRub,
-    items: items.map((link) => ({
-      id: link.id,
-      slug: link.slug,
-      title: link.title,
-      artistName: link.artistName,
-      status: link.status,
-      mode: link.mode,
-      paidUntil: link.paidUntil,
-      publicPath: smartlinkPublicPath(link.slug),
-      publicUrl: smartlinkPublicUrl(link.slug),
-      isPublic: isSmartlinkPubliclyActive(link),
-      coverUrl: coverUrlForSmartlink(link),
-      updatedAt: link.updatedAt,
-    })),
+    items: items.map((link) => {
+      const stats = statsMap.get(smartlinkKeyForStandalone(link.id))
+      return {
+        id: link.id,
+        slug: link.slug,
+        title: link.title,
+        artistName: link.artistName,
+        status: link.status,
+        mode: link.mode,
+        paidUntil: link.paidUntil,
+        publicPath: smartlinkPublicPath(link.slug),
+        publicUrl: smartlinkPublicUrl(link.slug),
+        isPublic: isSmartlinkPubliclyActive(link),
+        coverUrl: coverUrlForSmartlink(link),
+        updatedAt: link.updatedAt,
+        views7d: stats?.views7d ?? 0,
+        clicks7d: stats?.clicks7d ?? 0,
+      }
+    }),
   })
 }
 

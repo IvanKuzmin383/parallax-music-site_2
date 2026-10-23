@@ -100,6 +100,7 @@ function SocialRow({
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
+            data-sl-track={`social:${item.network}`}
             title={meta?.label ?? item.network}
             aria-label={meta?.label ?? item.network}
             className={cn(
@@ -709,6 +710,7 @@ export function SmartlinkLanding({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
+              data-sl-track={link.key}
               title={link.label}
               aria-label={link.label}
               className={cn(
@@ -844,6 +846,7 @@ export function SmartlinkLanding({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-sl-track={link.key}
                   title={link.label}
                   aria-label={link.label}
                   className="sl-orbit-planet flex h-full w-full items-center justify-center rounded-full border border-white/20 bg-black/55 shadow-[0_4px_14px_rgba(0,0,0,0.35)] backdrop-blur-sm"

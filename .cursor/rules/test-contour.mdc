@@ -16,7 +16,7 @@ ssh -i C:\Users\Admin\.ssh\id_ed25519 root@83.217.192.143
 - Host: `83.217.192.143` (`8659557-ya635027.twc1.net`)
 - User: `root`
 - Key: тот же `id_ed25519`, что и для прода
-- URL: `http://fonozvuk.ru` (`www.fonozvuk.ru`)
+- URL: `https://fonozvuk.ru` (`www.fonozvuk.ru`)
 - Не путать со `digitalreachmusic.ru` / `soundbridge.ru` - это не актуальные URL стейджа
 - App path: `/var/www/parallaxmusic`
 - Process manager: `pm2`, имя процесса: `parallaxmusic`

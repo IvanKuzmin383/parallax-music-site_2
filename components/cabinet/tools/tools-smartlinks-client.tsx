@@ -23,6 +23,8 @@ type ListItem = {
   isPublic: boolean
   coverUrl: string | null
   updatedAt: string
+  views7d?: number
+  clicks7d?: number
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -221,6 +223,13 @@ export function ToolsSmartlinksClient() {
                   </span>
                   {" · "}
                   {item.publicUrl ?? smartlinkPublicUrl(item.slug)}
+                  {(item.views7d ?? 0) > 0 || (item.clicks7d ?? 0) > 0 ? (
+                    <>
+                      {" · "}
+                      {(item.views7d ?? 0).toLocaleString("ru-RU")} просм. /{" "}
+                      {(item.clicks7d ?? 0).toLocaleString("ru-RU")} кл. за 7 дн.
+                    </>
+                  ) : null}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">

@@ -40,6 +40,11 @@ function handleSmartlinkHost(request: NextRequest): NextResponse {
     return NextResponse.next()
   }
 
+  // Публичные API смартлинка (события аналитики, audio, og)
+  if (pathname.startsWith("/api/smartlink/")) {
+    return NextResponse.next()
+  }
+
   // /s/{slug}/... оставляем (OG image и т.п.); голый /s/{slug} → /{slug}
   const sExact = pathname.match(/^\/s\/([a-zA-Z0-9_-]{6,20})\/?$/)
   if (sExact) {

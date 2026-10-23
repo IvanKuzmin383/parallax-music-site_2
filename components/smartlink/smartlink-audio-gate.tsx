@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { SmartlinkPreviewAudio } from "@/components/smartlink/smartlink-preview-audio"
+import { notifySmartlinkAudioUnlocked } from "@/components/smartlink/smartlink-track-root"
 import { cn } from "@/lib/utils"
 
 type SmartlinkAudioGateProps = {
@@ -39,6 +40,7 @@ export function SmartlinkAudioGate({
   const onUnlocked = () => {
     setUnlocked(true)
     setAnimKey((k) => k + 1)
+    if (needsGate) notifySmartlinkAudioUnlocked()
   }
 
   return (
