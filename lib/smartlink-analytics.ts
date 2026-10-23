@@ -227,6 +227,11 @@ function emptyReport(from: Date, to: Date): SmartlinkAnalyticsReport {
 
 const BOT_FILTER = `AND COALESCE(device, '') <> 'bot'`
 
+const RANGE_WHERE = `smartlink_key = ?::text
+       AND created_at >= ?::timestamptz
+       AND created_at < ?::timestamptz
+       ${BOT_FILTER}`
+
 async function countByDim(
   smartlinkKey: string,
   fromIso: string,
@@ -236,19 +241,17 @@ async function countByDim(
   limit: number,
 ): Promise<{ key: string; n: string }[]> {
   const typeClause = eventType ? `AND event_type = '${eventType}'` : ""
-  return query<{ key: string; n: string }>(
-    `SELECT ${dimSql} AS key, COUNT(*)::text AS n
+  const rows = await query<{ dim_key: string; n: string }>(
+    `SELECT ${dimSql} AS dim_key, COUNT(*)::text AS n
      FROM smartlink_events
-     WHERE smartlink_key = ?
-       AND created_at >= ?
-       AND created_at < ?
-       ${BOT_FILTER}
+     WHERE ${RANGE_WHERE}
        ${typeClause}
      GROUP BY 1
      ORDER BY COUNT(*) DESC
-     LIMIT ?`,
+     LIMIT ?::int`,
     [smartlinkKey, fromIso, toIso, limit],
   )
+  return rows.map((r) => ({ key: r.dim_key, n: r.n }))
 }
 
 /** Отчёт по одному смартлинку за период. Боты исключены из KPI. */
@@ -260,6 +263,10 @@ export async function getSmartlinkAnalyticsReport(
   if (!smartlinkKey.trim()) return emptyReport(from, to)
 
   try {
+    const fromIso = from.toISOString()
+    const toIso = to.toISOString()
+    const rangeParams = [smartlinkKey, fromIso, toIso] as const
+
     const totalsRow = await queryOne<{
       views: string
       unique_visitors: string
@@ -272,11 +279,8 @@ export async function getSmartlinkAnalyticsReport(
          COUNT(*) FILTER (WHERE event_type = 'click')::text AS clicks,
          COUNT(*) FILTER (WHERE event_type = 'audio_unlock')::text AS audio_unlocks
        FROM smartlink_events
-       WHERE smartlink_key = ?
-         AND created_at >= ?
-         AND created_at < ?
-         AND COALESCE(device, '') <> 'bot'`,
-      [smartlinkKey, from.toISOString(), to.toISOString()],
+       WHERE ${RANGE_WHERE}`,
+      [...rangeParams],
     )
 
     const views = Number(totalsRow?.views ?? 0)
@@ -291,28 +295,22 @@ export async function getSmartlinkAnalyticsReport(
          COUNT(*) FILTER (WHERE event_type = 'view')::text AS views,
          COUNT(*) FILTER (WHERE event_type = 'click')::text AS clicks
        FROM smartlink_events
-       WHERE smartlink_key = ?
-         AND created_at >= ?
-         AND created_at < ?
-         AND COALESCE(device, '') <> 'bot'
+       WHERE ${RANGE_WHERE}
        GROUP BY 1
        ORDER BY 1 ASC`,
-      [smartlinkKey, from.toISOString(), to.toISOString()],
+      [...rangeParams],
     )
 
-    const platformRows = await query<{ key: string; clicks: string }>(
-      `SELECT COALESCE(NULLIF(trim(target_key), ''), 'other') AS key,
+    const platformRows = await query<{ platform_key: string; clicks: string }>(
+      `SELECT COALESCE(NULLIF(trim(target_key), ''), 'other') AS platform_key,
               COUNT(*)::text AS clicks
        FROM smartlink_events
-       WHERE smartlink_key = ?
+       WHERE ${RANGE_WHERE}
          AND event_type = 'click'
-         AND created_at >= ?
-         AND created_at < ?
-         AND COALESCE(device, '') <> 'bot'
        GROUP BY 1
        ORDER BY COUNT(*) DESC
        LIMIT 20`,
-      [smartlinkKey, from.toISOString(), to.toISOString()],
+      [...rangeParams],
     )
 
     const sourceRows = await query<{ source: string; views: string }>(
@@ -325,32 +323,23 @@ export async function getSmartlinkAnalyticsReport(
          END AS source,
          COUNT(*)::text AS views
        FROM smartlink_events
-       WHERE smartlink_key = ?
+       WHERE ${RANGE_WHERE}
          AND event_type = 'view'
-         AND created_at >= ?
-         AND created_at < ?
-         AND COALESCE(device, '') <> 'bot'
        GROUP BY 1
        ORDER BY COUNT(*) DESC
        LIMIT 15`,
-      [smartlinkKey, from.toISOString(), to.toISOString()],
+      [...rangeParams],
     )
-
-    const fromIso = from.toISOString()
-    const toIso = to.toISOString()
 
     const deviceRows = await query<{ device: string; views: string }>(
       `SELECT COALESCE(NULLIF(trim(device), ''), 'unknown') AS device,
               COUNT(*)::text AS views
        FROM smartlink_events
-       WHERE smartlink_key = ?
+       WHERE ${RANGE_WHERE}
          AND event_type = 'view'
-         AND created_at >= ?
-         AND created_at < ?
-         AND COALESCE(device, '') <> 'bot'
        GROUP BY 1
        ORDER BY COUNT(*) DESC`,
-      [smartlinkKey, fromIso, toIso],
+      [...rangeParams],
     )
 
     const [countryRows, cityRows, osRows, browserRows, campaignRows, hourRows] =
@@ -368,16 +357,13 @@ export async function getSmartlinkAnalyticsReport(
                   NULLIF(upper(trim(country)), '') AS country,
                   COUNT(*)::text AS n
            FROM smartlink_events
-           WHERE smartlink_key = ?
+           WHERE ${RANGE_WHERE}
              AND event_type = 'view'
-             AND created_at >= ?
-             AND created_at < ?
-             AND COALESCE(device, '') <> 'bot'
              AND city IS NOT NULL AND trim(city) <> ''
            GROUP BY 1, 2
            ORDER BY COUNT(*) DESC
            LIMIT 20`,
-          [smartlinkKey, fromIso, toIso],
+          [...rangeParams],
         ),
         countByDim(
           smartlinkKey,
@@ -400,28 +386,22 @@ export async function getSmartlinkAnalyticsReport(
                   COUNT(*) FILTER (WHERE event_type = 'view')::text AS views,
                   COUNT(*) FILTER (WHERE event_type = 'click')::text AS clicks
            FROM smartlink_events
-           WHERE smartlink_key = ?
-             AND created_at >= ?
-             AND created_at < ?
-             AND COALESCE(device, '') <> 'bot'
+           WHERE ${RANGE_WHERE}
              AND utm_campaign IS NOT NULL AND trim(utm_campaign) <> ''
            GROUP BY 1
            ORDER BY COUNT(*) FILTER (WHERE event_type = 'view') DESC
            LIMIT 20`,
-          [smartlinkKey, fromIso, toIso],
+          [...rangeParams],
         ),
         query<{ hour: string; views: string; clicks: string }>(
           `SELECT EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC')::int::text AS hour,
                   COUNT(*) FILTER (WHERE event_type = 'view')::text AS views,
                   COUNT(*) FILTER (WHERE event_type = 'click')::text AS clicks
            FROM smartlink_events
-           WHERE smartlink_key = ?
-             AND created_at >= ?
-             AND created_at < ?
-             AND COALESCE(device, '') <> 'bot'
+           WHERE ${RANGE_WHERE}
            GROUP BY 1
            ORDER BY 1 ASC`,
-          [smartlinkKey, fromIso, toIso],
+          [...rangeParams],
         ),
       ])
 
@@ -456,7 +436,7 @@ export async function getSmartlinkAnalyticsReport(
       to: toIso,
       totals: { views, uniqueVisitors, clicks, audioUnlocks, ctr },
       daily,
-      platforms: platformRows.map((r) => ({ key: r.key, clicks: Number(r.clicks) })),
+      platforms: platformRows.map((r) => ({ key: r.platform_key, clicks: Number(r.clicks) })),
       sources: sourceRows.map((r) => ({ source: r.source, views: Number(r.views) })),
       devices: deviceRows.map((r) => ({ device: r.device, views: Number(r.views) })),
       countries: countryRows.map((r) => ({ country: r.key, views: Number(r.n) })),
@@ -612,12 +592,12 @@ export async function listSmartlinkEventsForExport(
             country,
             city
      FROM smartlink_events
-     WHERE smartlink_key = ?
-       AND created_at >= ?
-       AND created_at < ?
+     WHERE smartlink_key = ?::text
+       AND created_at >= ?::timestamptz
+       AND created_at < ?::timestamptz
        AND COALESCE(device, '') <> 'bot'
      ORDER BY created_at DESC
-     LIMIT ?`,
+     LIMIT ?::int`,
     [smartlinkKey, from.toISOString(), to.toISOString(), Math.min(10_000, Math.max(1, limit))],
   )
 }

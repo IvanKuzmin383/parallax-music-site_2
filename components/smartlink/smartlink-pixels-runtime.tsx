@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import {
   hasSmartlinkPixels,
+  isVkRetargetingCode,
   type SmartlinkPixels,
 } from "@/lib/smartlink-pixels"
 
@@ -19,6 +20,14 @@ declare global {
     // TikTok stub / SDK - форма меняется при загрузке скрипта
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ttq?: any
+    // Яндекс.Метрика
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ym?: any
+    // VK Retargeting / Top.Mail.Ru
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    VK?: any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _tmr?: any[]
   }
 }
 
@@ -137,6 +146,69 @@ function initTikTok(pixelId: string): void {
   ttq.page()
 }
 
+function initYandexMetrika(counterId: string): void {
+  if (typeof window === "undefined") return
+  const idNum = Number(counterId)
+  if (!Number.isFinite(idNum)) return
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any
+  w.ym =
+    w.ym ||
+    function (...args: unknown[]) {
+      ;(w.ym.a = w.ym.a || []).push(args)
+    }
+  w.ym.l = Date.now()
+  loadScript("https://mc.yandex.ru/metrika/tag.js", "prllx-yandex-metrika")
+  w.ym(idNum, "init", {
+    clickmap: true,
+    trackLinks: true,
+    accurateTrackBounce: true,
+    webvisor: false,
+  })
+}
+
+function initVkPixel(pixelId: string): void {
+  if (typeof window === "undefined" || typeof document === "undefined") return
+
+  if (isVkRetargetingCode(pixelId)) {
+    const boot = () => {
+      try {
+        window.VK = window.VK || {}
+        if (!window.VK.Retargeting) return
+        window.VK.Retargeting.Init(pixelId)
+        window.VK.Retargeting.Hit()
+      } catch {
+        // ignore
+      }
+    }
+    if (window.VK?.Retargeting) {
+      boot()
+      return
+    }
+    const s = document.createElement("script")
+    s.id = "prllx-vk-openapi"
+    s.async = true
+    s.src = "https://vk.com/js/api/openapi.js?169"
+    s.onload = boot
+    if (!document.getElementById("prllx-vk-openapi")) {
+      document.head.appendChild(s)
+    } else {
+      boot()
+    }
+    return
+  }
+
+  // Числовой ID - Top.Mail.Ru / myTarget (VK Ads)
+  window._tmr = window._tmr || []
+  window._tmr.push({
+    id: pixelId,
+    type: "pageView",
+    start: Date.now(),
+  })
+  loadScript("https://top-fwz1.mail.ru/js/code.js", "prllx-vk-tmr")
+}
+
 function fireClickPixels(pixels: SmartlinkPixels, targetKey: string): void {
   try {
     if (pixels.metaPixelId && window.fbq) {
@@ -150,6 +222,24 @@ function fireClickPixels(pixels: SmartlinkPixels, targetKey: string): void {
     }
     if (pixels.tiktokPixelId && window.ttq?.track) {
       window.ttq.track("ClickButton", { contents: [{ content_id: targetKey }] })
+    }
+    if (pixels.yandexMetrikaId && window.ym) {
+      window.ym(Number(pixels.yandexMetrikaId), "reachGoal", "smartlink_click", {
+        platform: targetKey,
+      })
+    }
+    if (pixels.vkPixelId) {
+      if (isVkRetargetingCode(pixels.vkPixelId) && window.VK?.Retargeting?.Event) {
+        window.VK.Retargeting.Event("smartlink_click")
+      } else if (!isVkRetargetingCode(pixels.vkPixelId)) {
+        window._tmr = window._tmr || []
+        window._tmr.push({
+          id: pixels.vkPixelId,
+          type: "reachGoal",
+          goal: "smartlink_click",
+          value: targetKey,
+        })
+      }
     }
   } catch {
     // ignore pixel errors
@@ -171,6 +261,8 @@ export function SmartlinkPixelsRuntime({ pixels }: SmartlinkPixelsRuntimeProps) 
         initGtag({ ga: pixels.gaMeasurementId, ads: pixels.googleAdsId })
       }
       if (pixels.tiktokPixelId) initTikTok(pixels.tiktokPixelId)
+      if (pixels.yandexMetrikaId) initYandexMetrika(pixels.yandexMetrikaId)
+      if (pixels.vkPixelId) initVkPixel(pixels.vkPixelId)
     } catch {
       // ignore
     }

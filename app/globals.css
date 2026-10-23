@@ -1420,13 +1420,7 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     auto;
 }
 
-.sl-rave-card {
-  box-shadow: 0 0 24px color-mix(in srgb, var(--sl-accent) 20%, transparent);
-}
-
-.sl-rave-cover {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sl-accent) 50%, transparent);
-}
+/* Рейв: без рамки-карточки и без обводки обложки - только фон/кляксы */
 
 /* Рейв: плавающие кляксы + параллакс от мыши (--sl-rave-mx/my, -1..1) */
 .sl-rave-blobs {

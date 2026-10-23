@@ -161,6 +161,7 @@ export function SmartlinkLanding({
     isVinyl,
     isCassette,
     isCinemaBtn,
+    isCinemaCover,
     isCapsule,
     isGrid,
     isNeon,
@@ -231,21 +232,20 @@ export function SmartlinkLanding({
     // Контент по центру доступной высоты; Powered by вынесен ниже через mt-auto
     "relative z-[1] flex w-full flex-1 flex-col items-center justify-center gap-4",
     preview ? "max-w-[280px]" : "max-w-md",
-    // Карточка/хром страницы - только от фона (bg*), без рамок
+    // Карточка/хром страницы - только от фона (bg*), без рамок и без «коробки» вокруг контента
     isSheetCard && "rounded-2xl bg-white/90 px-4 py-6 shadow-[0_18px_50px_rgba(20,16,10,0.12)]",
-    isSignal && "rounded-2xl bg-black/35 px-4 py-6 backdrop-blur-md",
-    isGlassCard &&
-      "rounded-2xl bg-white/10 px-4 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl",
-    bgCinema && "gap-3 px-0",
-    bgCarbon && "rounded-2xl bg-black/40 px-4 py-6 backdrop-blur-sm",
-    bgStage && "rounded-2xl bg-black/50 px-4 py-6 shadow-[0_0_40px_rgba(0,0,0,0.5)]",
+    isSignal && "px-1",
+    isGlassCard && "px-1",
+    bgCinema && "gap-3 px-0 w-full max-w-none",
+    bgCarbon && "px-1",
+    bgStage && "px-1",
     bgGraffiti && "gap-3 px-2",
-    bgRave && "sl-rave-card rounded-2xl bg-black/40 px-4 py-6",
+    bgRave && "px-1",
     bgArcade && "sl-arcade-card gap-3 px-3 py-5",
     bgVhs && "gap-3 px-2",
     bgNoir && "gap-3 pl-4",
-    bgChrome && "rounded-2xl bg-black/30 px-4 py-6 backdrop-blur-sm",
-    bgHolo && "rounded-2xl bg-black/25 px-4 py-6 backdrop-blur-md",
+    bgChrome && "px-1",
+    bgHolo && "px-1",
     bgDiary && "sl-diary-card gap-3 px-4 py-5",
     bgZine && "gap-3 px-2",
     isOrbit && "gap-5",
@@ -399,14 +399,12 @@ export function SmartlinkLanding({
     }
 
     if (isRave) {
-      return withDetails({
-        backgroundColor: "transparent",
+      return {
+        backgroundColor: "rgba(255,255,255,0.06)",
         color: theme.accent,
-        border: theme.buttonBorder
-          ? `1px solid color-mix(in srgb, ${theme.accent} 70%, transparent)`
-          : "1px solid transparent",
-        boxShadow: `0 0 14px color-mix(in srgb, ${theme.accent} 40%, transparent)`,
-      }, { keepBorder: true })
+        border: "none",
+        boxShadow: "none",
+      }
     }
 
     if (isArcade) {
@@ -568,14 +566,11 @@ export function SmartlinkLanding({
       return {
         backgroundColor: contentLight ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.12)",
         color: fgOnPage,
-        border: theme.buttonBorder
-          ? contentLight
-            ? "1px solid rgba(22,22,22,0.14)"
-            : "1px solid rgba(255,255,255,0.28)"
-          : "none",
+        // Стекло - только заливка/blur, без обводки (в т.ч. у уже сохранённых тем с buttonBorder)
+        border: "none",
         boxShadow: drop
-          ? `${drop}, inset 0 1px 0 rgba(255,255,255,0.25)`
-          : "inset 0 1px 0 rgba(255,255,255,0.25)",
+          ? `${drop}, inset 0 1px 0 rgba(255,255,255,0.18)`
+          : "inset 0 1px 0 rgba(255,255,255,0.18)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
       }
@@ -605,9 +600,8 @@ export function SmartlinkLanding({
           ? `color-mix(in srgb, ${theme.accent} 14%, #ffffff)`
           : `color-mix(in srgb, ${theme.accent} 22%, rgba(255,255,255,0.08))`,
         color: fgOnPage,
-        border: theme.buttonBorder
-          ? `1px solid color-mix(in srgb, ${theme.accent} 45%, transparent)`
-          : "none",
+        // Soft - без рамки; обводка только у outline/характерных форматов
+        border: "none",
         boxShadow: drop,
       }
     }
@@ -615,9 +609,8 @@ export function SmartlinkLanding({
     return {
       backgroundColor: theme.accent,
       color: accentText,
-      border: theme.buttonBorder
-        ? `1px solid color-mix(in srgb, ${accentText} 18%, transparent)`
-        : "none",
+      // Solid - без тонкой «белой» обводки вокруг заливки
+      border: "none",
       borderLeftWidth: !useIcons && isSignal && theme.buttonBorder ? 4 : undefined,
       borderLeftColor: !useIcons && isSignal && theme.buttonBorder ? theme.accent : undefined,
       boxShadow: drop,
@@ -627,6 +620,12 @@ export function SmartlinkLanding({
   let animIndex = 0
   const coverMax = preview ? "max-w-[190px]" : "max-w-[280px]"
   const posterCoverMax = preview ? "max-w-[240px]" : "max-w-[320px]"
+  /** Кино: широкий кадр и кнопки на всю колонку, без узкого квадрата 280. */
+  const contentMax = isCinemaCover
+    ? preview
+      ? "max-w-[280px]"
+      : "max-w-md"
+    : coverMax
 
   const renderLinks = () => {
     if (isOrbit) return null
@@ -642,11 +641,11 @@ export function SmartlinkLanding({
             ? cn(
                 "flex flex-wrap justify-center",
                 isVinyl ? "gap-2.5" : "gap-2",
-                isGrid ? (preview ? "max-w-[200px]" : "max-w-[280px]") : coverMax,
+                isGrid ? (preview ? "max-w-[200px]" : "max-w-[280px]") : isRave ? contentMax : coverMax,
               )
             : cn(
                 "mx-auto flex w-full flex-col",
-                coverMax,
+                contentMax,
                 isPosterBtn ? "gap-1" : isTerminal ? "gap-0" : "gap-1.5",
               ),
         )}
@@ -899,6 +898,24 @@ export function SmartlinkLanding({
         </div>
       </div>
     </div>
+  ) : isCinemaCover ? (
+    <div
+      className={cn(
+        "relative w-full overflow-hidden bg-black",
+        // Широкий кадр на всю ширину колонки - не квадрат 280px с чёрными полями
+        preview ? "max-w-[280px] aspect-[16/9]" : "max-w-md aspect-[16/9] sm:aspect-[2.35/1]",
+        animClass(theme),
+      )}
+      style={animStyle(theme, animIndex++)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={coverUrl}
+        alt={title}
+        className="h-full w-full object-cover object-center"
+        sizes={preview ? "280px" : "(max-width: 448px) 100vw, 448px"}
+      />
+    </div>
   ) : isCassette ? (
     <div
       className={cn(
@@ -1030,8 +1047,8 @@ export function SmartlinkLanding({
 
       {bgCinema ? (
         <>
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-[8%] bg-black" />
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[8%] bg-black" />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-3 bg-black sm:h-4" />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-3 bg-black sm:h-4" />
         </>
       ) : null}
 

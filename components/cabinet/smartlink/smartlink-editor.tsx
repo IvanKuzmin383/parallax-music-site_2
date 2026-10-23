@@ -2102,6 +2102,18 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                     placeholder: "CXXXXXXXXXXXXXXX",
                     hint: "ID из Events Manager",
                   },
+                  {
+                    key: "yandexMetrikaId" as const,
+                    label: "Яндекс.Метрика",
+                    placeholder: "12345678",
+                    hint: "номер счётчика",
+                  },
+                  {
+                    key: "vkPixelId" as const,
+                    label: "Пиксель ВКонтакте",
+                    placeholder: "VK-RTRG-XXXXXX-XXXXX",
+                    hint: "VK-RTRG-... или числовой ID",
+                  },
                 ] as const
               ).map((field) => {
                 const value = theme.pixels?.[field.key] ?? ""

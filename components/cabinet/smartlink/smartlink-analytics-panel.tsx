@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { BarChart3, Download, Loader2 } from "lucide-react"
+import { BarChart3, Download, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { SmartlinkAnalyticsReport } from "@/lib/smartlink-analytics"
 import { SMARTLINK_PLATFORMS } from "@/lib/smartlink-platforms"
@@ -144,19 +144,22 @@ export function SmartlinkAnalyticsPanel({
 }: SmartlinkAnalyticsPanelProps) {
   const [period, setPeriod] = useState<PeriodKey>("30")
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<SmartlinkAnalyticsReport | null>(null)
 
   const load = useCallback(
-    async (days: number) => {
-      setLoading(true)
+    async (days: number, opts?: { soft?: boolean }) => {
+      const soft = Boolean(opts?.soft)
+      if (soft) setRefreshing(true)
+      else setLoading(true)
       setError(null)
       try {
         const { from, to } = rangeFor(days)
         const res = await fetch(
           `${apiPath}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-          { credentials: "include" },
+          { credentials: "include", cache: "no-store" },
         )
         if (!res.ok) {
           const body = (await res.json().catch(() => null)) as { error?: string } | null
@@ -165,10 +168,11 @@ export function SmartlinkAnalyticsPanel({
         const data = (await res.json()) as SmartlinkAnalyticsReport
         setReport(data)
       } catch (e) {
-        setReport(null)
+        if (!soft) setReport(null)
         setError(e instanceof Error ? e.message : "Ошибка загрузки")
       } finally {
         setLoading(false)
+        setRefreshing(false)
       }
     },
     [apiPath],
@@ -230,13 +234,27 @@ export function SmartlinkAnalyticsPanel({
               {p.label}
             </Button>
           ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2.5 text-xs"
+            disabled={loading || refreshing}
+            onClick={() => {
+              const days = PERIODS.find((p) => p.key === period)?.days ?? 30
+              void load(days, { soft: true })
+            }}
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Обновить
+          </Button>
           {exportPath ? (
             <Button
               type="button"
               size="sm"
               variant="outline"
               className="h-7 px-2.5 text-xs"
-              disabled={exporting || loading}
+              disabled={exporting || loading || refreshing}
               onClick={() => void onExport()}
             >
               {exporting ? (
@@ -259,7 +277,8 @@ export function SmartlinkAnalyticsPanel({
         <p className="text-sm text-destructive">{error}</p>
       ) : !totals || (totals.views === 0 && totals.clicks === 0) ? (
         <p className="text-sm text-muted-foreground">
-          Пока нет данных. Статистика появится после переходов по публичной ссылке.
+          Пока нет данных. Откройте публичную ссылку в новой вкладке (не превью справа) и
+          кликните по площадкам - счётчики обновляются сразу, без задержки.
         </p>
       ) : (
         <>

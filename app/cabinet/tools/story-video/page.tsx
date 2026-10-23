@@ -1,7 +1,7 @@
 "use client"
 
-import { StoryVideoClient } from "@/components/cabinet/tools/story-video/story-video-client"
+import { ToolsStoryVideoListClient } from "@/components/cabinet/tools/story-video/tools-story-video-list-client"
 
 export default function CabinetToolsStoryVideoPage() {
-  return <StoryVideoClient />
+  return <ToolsStoryVideoListClient />
 }

@@ -195,7 +195,7 @@ export const DEFAULT_SMARTLINK_THEME: SmartlinkTheme = {
   preset: "ink",
   accent: "#E2532F",
   buttons: "solid",
-  buttonBorder: true,
+  buttonBorder: false,
   buttonShadow: false,
   cover: "rounded",
   coverShadow: true,
@@ -294,7 +294,7 @@ const SMARTLINK_PRESET_LOOK_CORE: Record<
 > = {
   ink: {
     buttons: "solid",
-    buttonBorder: true,
+    buttonBorder: false,
     buttonShadow: false,
     cover: "rounded",
     coverShadow: true,
@@ -330,7 +330,7 @@ const SMARTLINK_PRESET_LOOK_CORE: Record<
   },
   glass: {
     buttons: "glass",
-    buttonBorder: true,
+    buttonBorder: false,
     buttonShadow: false,
     cover: "soft",
     coverShadow: true,
@@ -402,7 +402,7 @@ const SMARTLINK_PRESET_LOOK_CORE: Record<
   },
   carbon: {
     buttons: "soft",
-    buttonBorder: true,
+    buttonBorder: false,
     buttonShadow: false,
     cover: "rounded",
     coverShadow: true,
@@ -473,9 +473,9 @@ const SMARTLINK_PRESET_LOOK_CORE: Record<
     platformLayout: "list",
   },
   rave: {
-    buttons: "outline",
-    buttonBorder: true,
-    buttonShadow: true,
+    buttons: "bare",
+    buttonBorder: false,
+    buttonShadow: false,
     cover: "rounded",
     coverShadow: true,
     font: "mono",
@@ -555,7 +555,7 @@ const SMARTLINK_PRESET_LOOK_CORE: Record<
   },
   holo: {
     buttons: "glass",
-    buttonBorder: true,
+    buttonBorder: false,
     buttonShadow: true,
     cover: "rounded",
     coverShadow: true,
