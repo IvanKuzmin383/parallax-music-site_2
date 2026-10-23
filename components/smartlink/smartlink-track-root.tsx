@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, type ReactNode } from "react"
+import { notifySmartlinkPixelClick } from "@/components/smartlink/smartlink-pixels-runtime"
 import { fireSmartlinkEvent } from "@/lib/smartlink-analytics-client"
 
 type SmartlinkTrackRootProps = {
@@ -33,6 +34,7 @@ export function SmartlinkTrackRoot({ slug, children }: SmartlinkTrackRootProps) 
         targetKey: key,
         targetUrl: anchor.href || undefined,
       })
+      notifySmartlinkPixelClick(key)
     }
 
     const onAudioUnlock = () => {

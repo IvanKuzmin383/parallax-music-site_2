@@ -19,6 +19,12 @@ export type SmartlinkAnalyticsReport = {
   platforms: { key: string; clicks: number }[]
   sources: { source: string; views: number }[]
   devices: { device: string; views: number }[]
+  countries: { country: string; views: number }[]
+  cities: { city: string; country: string | null; views: number }[]
+  os: { os: string; views: number }[]
+  browsers: { browser: string; views: number }[]
+  campaigns: { campaign: string; views: number; clicks: number }[]
+  hours: { hour: number; views: number; clicks: number }[]
 }
 
 export type SmartlinkListStats = {
@@ -46,6 +52,7 @@ type IngestInput = {
   ip?: string | null
   userAgent?: string | null
   country?: string | null
+  city?: string | null
 }
 
 const VIEW_DEDUPE_MINUTES = 30
@@ -168,8 +175,8 @@ export async function ingestSmartlinkEvent(input: IngestInput): Promise<{ stored
          smartlink_key, slug, event_type, target_key, target_url,
          session_id, visitor_hash, referrer,
          utm_source, utm_medium, utm_campaign,
-         device, os, browser, country
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         device, os, browser, country, city
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.smartlinkKey,
         clampText(input.slug, 120) ?? input.slug,
@@ -186,6 +193,7 @@ export async function ingestSmartlinkEvent(input: IngestInput): Promise<{ stored
         hints.os,
         hints.browser,
         clampText(input.country, 8),
+        clampText(input.city, 80),
       ],
     )
     return { stored: true }
@@ -208,7 +216,39 @@ function emptyReport(from: Date, to: Date): SmartlinkAnalyticsReport {
     platforms: [],
     sources: [],
     devices: [],
+    countries: [],
+    cities: [],
+    os: [],
+    browsers: [],
+    campaigns: [],
+    hours: [],
   }
+}
+
+const BOT_FILTER = `AND COALESCE(device, '') <> 'bot'`
+
+async function countByDim(
+  smartlinkKey: string,
+  fromIso: string,
+  toIso: string,
+  dimSql: string,
+  eventType: "view" | "click" | null,
+  limit: number,
+): Promise<{ key: string; n: string }[]> {
+  const typeClause = eventType ? `AND event_type = '${eventType}'` : ""
+  return query<{ key: string; n: string }>(
+    `SELECT ${dimSql} AS key, COUNT(*)::text AS n
+     FROM smartlink_events
+     WHERE smartlink_key = ?
+       AND created_at >= ?
+       AND created_at < ?
+       ${BOT_FILTER}
+       ${typeClause}
+     GROUP BY 1
+     ORDER BY COUNT(*) DESC
+     LIMIT ?`,
+    [smartlinkKey, fromIso, toIso, limit],
+  )
 }
 
 /** Отчёт по одному смартлинку за период. Боты исключены из KPI. */
@@ -296,6 +336,9 @@ export async function getSmartlinkAnalyticsReport(
       [smartlinkKey, from.toISOString(), to.toISOString()],
     )
 
+    const fromIso = from.toISOString()
+    const toIso = to.toISOString()
+
     const deviceRows = await query<{ device: string; views: string }>(
       `SELECT COALESCE(NULLIF(trim(device), ''), 'unknown') AS device,
               COUNT(*)::text AS views
@@ -307,8 +350,80 @@ export async function getSmartlinkAnalyticsReport(
          AND COALESCE(device, '') <> 'bot'
        GROUP BY 1
        ORDER BY COUNT(*) DESC`,
-      [smartlinkKey, from.toISOString(), to.toISOString()],
+      [smartlinkKey, fromIso, toIso],
     )
+
+    const [countryRows, cityRows, osRows, browserRows, campaignRows, hourRows] =
+      await Promise.all([
+        countByDim(
+          smartlinkKey,
+          fromIso,
+          toIso,
+          `COALESCE(NULLIF(upper(trim(country)), ''), '??')`,
+          "view",
+          30,
+        ),
+        query<{ city: string; country: string | null; n: string }>(
+          `SELECT COALESCE(NULLIF(trim(city), ''), 'unknown') AS city,
+                  NULLIF(upper(trim(country)), '') AS country,
+                  COUNT(*)::text AS n
+           FROM smartlink_events
+           WHERE smartlink_key = ?
+             AND event_type = 'view'
+             AND created_at >= ?
+             AND created_at < ?
+             AND COALESCE(device, '') <> 'bot'
+             AND city IS NOT NULL AND trim(city) <> ''
+           GROUP BY 1, 2
+           ORDER BY COUNT(*) DESC
+           LIMIT 20`,
+          [smartlinkKey, fromIso, toIso],
+        ),
+        countByDim(
+          smartlinkKey,
+          fromIso,
+          toIso,
+          `COALESCE(NULLIF(trim(os), ''), 'unknown')`,
+          "view",
+          12,
+        ),
+        countByDim(
+          smartlinkKey,
+          fromIso,
+          toIso,
+          `COALESCE(NULLIF(trim(browser), ''), 'unknown')`,
+          "view",
+          12,
+        ),
+        query<{ campaign: string; views: string; clicks: string }>(
+          `SELECT COALESCE(NULLIF(lower(trim(utm_campaign)), ''), '(без utm_campaign)') AS campaign,
+                  COUNT(*) FILTER (WHERE event_type = 'view')::text AS views,
+                  COUNT(*) FILTER (WHERE event_type = 'click')::text AS clicks
+           FROM smartlink_events
+           WHERE smartlink_key = ?
+             AND created_at >= ?
+             AND created_at < ?
+             AND COALESCE(device, '') <> 'bot'
+             AND utm_campaign IS NOT NULL AND trim(utm_campaign) <> ''
+           GROUP BY 1
+           ORDER BY COUNT(*) FILTER (WHERE event_type = 'view') DESC
+           LIMIT 20`,
+          [smartlinkKey, fromIso, toIso],
+        ),
+        query<{ hour: string; views: string; clicks: string }>(
+          `SELECT EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC')::int::text AS hour,
+                  COUNT(*) FILTER (WHERE event_type = 'view')::text AS views,
+                  COUNT(*) FILTER (WHERE event_type = 'click')::text AS clicks
+           FROM smartlink_events
+           WHERE smartlink_key = ?
+             AND created_at >= ?
+             AND created_at < ?
+             AND COALESCE(device, '') <> 'bot'
+           GROUP BY 1
+           ORDER BY 1 ASC`,
+          [smartlinkKey, fromIso, toIso],
+        ),
+      ])
 
     const dayMap = new Map(dailyRows.map((r) => [r.day, r]))
     const daily: SmartlinkAnalyticsReport["daily"] = []
@@ -325,14 +440,39 @@ export async function getSmartlinkAnalyticsReport(
       cursor.setUTCDate(cursor.getUTCDate() + 1)
     }
 
+    const hourMap = new Map(hourRows.map((r) => [Number(r.hour), r]))
+    const hours: SmartlinkAnalyticsReport["hours"] = []
+    for (let h = 0; h < 24; h++) {
+      const row = hourMap.get(h)
+      hours.push({
+        hour: h,
+        views: Number(row?.views ?? 0),
+        clicks: Number(row?.clicks ?? 0),
+      })
+    }
+
     return {
-      from: from.toISOString(),
-      to: to.toISOString(),
+      from: fromIso,
+      to: toIso,
       totals: { views, uniqueVisitors, clicks, audioUnlocks, ctr },
       daily,
       platforms: platformRows.map((r) => ({ key: r.key, clicks: Number(r.clicks) })),
       sources: sourceRows.map((r) => ({ source: r.source, views: Number(r.views) })),
       devices: deviceRows.map((r) => ({ device: r.device, views: Number(r.views) })),
+      countries: countryRows.map((r) => ({ country: r.key, views: Number(r.n) })),
+      cities: cityRows.map((r) => ({
+        city: r.city,
+        country: r.country,
+        views: Number(r.n),
+      })),
+      os: osRows.map((r) => ({ os: r.key, views: Number(r.n) })),
+      browsers: browserRows.map((r) => ({ browser: r.key, views: Number(r.n) })),
+      campaigns: campaignRows.map((r) => ({
+        campaign: r.campaign,
+        views: Number(r.views),
+        clicks: Number(r.clicks),
+      })),
+      hours,
     }
   } catch (error) {
     console.error("[smartlink-analytics] report failed:", error)
@@ -401,4 +541,119 @@ export function parseAnalyticsRange(
   const spanDays = (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)
   if (spanDays > maxDays) return null
   return { from, to }
+}
+
+/** Страна/город из CDN-заголовков (Cloudflare / Vercel / CloudFront). Без внешнего GeoIP. */
+export function readGeoFromHeaders(headers: Headers): { country: string | null; city: string | null } {
+  const countryRaw =
+    headers.get("cf-ipcountry")?.trim() ||
+    headers.get("x-vercel-ip-country")?.trim() ||
+    headers.get("cloudfront-viewer-country")?.trim() ||
+    null
+  let country = countryRaw ? countryRaw.toUpperCase().slice(0, 8) : null
+  if (country === "XX" || country === "T1" || country === "ZZ") country = null
+
+  const cityRaw =
+    headers.get("cf-ipcity")?.trim() ||
+    headers.get("x-vercel-ip-city")?.trim() ||
+    headers.get("cloudfront-viewer-city")?.trim() ||
+    null
+  let city: string | null = null
+  if (cityRaw) {
+    try {
+      city = decodeURIComponent(cityRaw).slice(0, 80)
+    } catch {
+      city = cityRaw.slice(0, 80)
+    }
+  }
+  return { country, city }
+}
+
+function csvEscape(value: string | null | undefined): string {
+  const s = value ?? ""
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+export type SmartlinkEventExportRow = {
+  created_at: string
+  event_type: string
+  target_key: string | null
+  target_url: string | null
+  referrer: string | null
+  utm_source: string | null
+  utm_medium: string | null
+  utm_campaign: string | null
+  device: string | null
+  os: string | null
+  browser: string | null
+  country: string | null
+  city: string | null
+}
+
+export async function listSmartlinkEventsForExport(
+  smartlinkKey: string,
+  from: Date,
+  to: Date,
+  limit = 5000,
+): Promise<SmartlinkEventExportRow[]> {
+  return query<SmartlinkEventExportRow>(
+    `SELECT created_at::text AS created_at,
+            event_type,
+            target_key,
+            target_url,
+            referrer,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            device,
+            os,
+            browser,
+            country,
+            city
+     FROM smartlink_events
+     WHERE smartlink_key = ?
+       AND created_at >= ?
+       AND created_at < ?
+       AND COALESCE(device, '') <> 'bot'
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [smartlinkKey, from.toISOString(), to.toISOString(), Math.min(10_000, Math.max(1, limit))],
+  )
+}
+
+export function smartlinkEventsToCsv(rows: SmartlinkEventExportRow[]): string {
+  const header = [
+    "created_at",
+    "event_type",
+    "target_key",
+    "target_url",
+    "referrer",
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "device",
+    "os",
+    "browser",
+    "country",
+    "city",
+  ].join(",")
+  const lines = rows.map((r) =>
+    [
+      csvEscape(r.created_at),
+      csvEscape(r.event_type),
+      csvEscape(r.target_key),
+      csvEscape(r.target_url),
+      csvEscape(r.referrer),
+      csvEscape(r.utm_source),
+      csvEscape(r.utm_medium),
+      csvEscape(r.utm_campaign),
+      csvEscape(r.device),
+      csvEscape(r.os),
+      csvEscape(r.browser),
+      csvEscape(r.country),
+      csvEscape(r.city),
+    ].join(","),
+  )
+  return `\uFEFF${header}\n${lines.join("\n")}\n`
 }

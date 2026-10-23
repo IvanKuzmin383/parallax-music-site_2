@@ -2056,7 +2056,84 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                   ? `/api/cabinet/tools/smartlinks/${encodeURIComponent(smartlinkId)}/analytics`
                   : `/api/cabinet/smartlink/${encodeURIComponent(releaseKey)}/analytics`
               }
+              exportPath={
+                isTools
+                  ? `/api/cabinet/tools/smartlinks/${encodeURIComponent(smartlinkId)}/analytics/export`
+                  : `/api/cabinet/smartlink/${encodeURIComponent(releaseKey)}/analytics/export`
+              }
             />
+          </EditorSection>
+
+          <EditorSection title="Пиксели рекламы" defaultOpen={false}>
+            <p className="text-xs text-muted-foreground">
+              Срабатывают только на публичной странице (не в превью). Указывайте ID из кабинета
+              рекламной системы - произвольный код не принимается.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  {
+                    key: "metaPixelId" as const,
+                    label: "Meta Pixel",
+                    placeholder: "123456789012345",
+                    hint: "только цифры",
+                  },
+                  {
+                    key: "gaMeasurementId" as const,
+                    label: "Google Analytics 4",
+                    placeholder: "G-XXXXXXXX",
+                    hint: "G-...",
+                  },
+                  {
+                    key: "googleAdsId" as const,
+                    label: "Google Ads",
+                    placeholder: "AW-123456789",
+                    hint: "AW-...",
+                  },
+                  {
+                    key: "gtmId" as const,
+                    label: "Google Tag Manager",
+                    placeholder: "GTM-XXXXXXX",
+                    hint: "GTM-...",
+                  },
+                  {
+                    key: "tiktokPixelId" as const,
+                    label: "TikTok Pixel",
+                    placeholder: "CXXXXXXXXXXXXXXX",
+                    hint: "ID из Events Manager",
+                  },
+                ] as const
+              ).map((field) => {
+                const value = theme.pixels?.[field.key] ?? ""
+                return (
+                  <div key={field.key} className="space-y-1.5">
+                    <Label className="text-sm">{field.label}</Label>
+                    <Input
+                      value={value}
+                      placeholder={field.placeholder}
+                      className="h-9 font-mono text-sm"
+                      onChange={(e) => {
+                        const raw = e.target.value.trim()
+                        setTheme((prev) => {
+                          const nextPixels = { ...(prev.pixels ?? {}) }
+                          if (!raw) {
+                            delete nextPixels[field.key]
+                          } else {
+                            nextPixels[field.key] = raw
+                          }
+                          const hasAny = Object.values(nextPixels).some((v) => Boolean(v?.trim()))
+                          return {
+                            ...prev,
+                            pixels: hasAny ? nextPixels : undefined,
+                          }
+                        })
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">{field.hint}</p>
+                  </div>
+                )
+              })}
+            </div>
           </EditorSection>
         </div>
 

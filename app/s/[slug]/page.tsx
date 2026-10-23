@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
+import { SmartlinkPixelsRuntime } from "@/components/smartlink/smartlink-pixels-runtime"
 import { SmartlinkTrackRoot } from "@/components/smartlink/smartlink-track-root"
 import { getPublicSmartlink, smartlinkOgImagePath } from "@/lib/smartlink"
 import { getSiteOrigin } from "@/lib/smartlink-public-origin"
@@ -31,6 +32,7 @@ export default async function SmartlinkPage({ params }: SmartlinkPageProps) {
 
   return (
     <SmartlinkTrackRoot slug={pub.slug}>
+      <SmartlinkPixelsRuntime pixels={pub.theme.pixels} />
       <SmartlinkLanding
         title={pub.title}
         artist={pub.artistName}

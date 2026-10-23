@@ -10,7 +10,6 @@ import {
   isAiTracksWavPreparing,
   isAiTracksWavReady,
   startAiTracksWavPrepare,
-  takeAiTracksWavPrepareError,
 } from "@/lib/ai-tracks-wav"
 import { getUploadsBasePath } from "@/lib/tracks"
 import { createFileRangeResponse } from "@/lib/node-file-range-response"

@@ -7,6 +7,10 @@ import {
   type PlatformLinks,
 } from "@/lib/smartlink-platforms"
 import {
+  parseSmartlinkPixels,
+  type SmartlinkPixels,
+} from "@/lib/smartlink-pixels"
+import {
   DEFAULT_SMARTLINK_SOCIALS,
   parseSmartlinkSocials,
   type SmartlinkSocials,
@@ -183,6 +187,8 @@ export type SmartlinkTheme = {
   otherLabel?: string
   extraLinks?: SmartlinkExtraLink[]
   socials?: SmartlinkSocials
+  /** Meta / GA / GTM / TikTok - только на публичной странице. */
+  pixels?: SmartlinkPixels
 }
 
 export const DEFAULT_SMARTLINK_THEME: SmartlinkTheme = {
@@ -766,6 +772,7 @@ export function parseSmartlinkTheme(raw: unknown): SmartlinkTheme {
     otherLabel,
     extraLinks: sanitizeExtraLinks(obj.extraLinks),
     socials,
+    pixels: parseSmartlinkPixels(obj.pixels),
   }
 }
 
@@ -811,6 +818,7 @@ export function serializeSmartlinkTheme(theme: SmartlinkTheme): string {
   if (normalized.platformOrder?.length) payload.platformOrder = normalized.platformOrder
   if (normalized.otherLabel) payload.otherLabel = normalized.otherLabel
   if (normalized.extraLinks?.length) payload.extraLinks = normalized.extraLinks
+  if (normalized.pixels) payload.pixels = normalized.pixels
   return JSON.stringify(payload)
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod"
 import {
   checkSmartlinkEventRateLimit,
   ingestSmartlinkEvent,
+  readGeoFromHeaders,
   smartlinkKeyForStandalone,
   smartlinkKeyForTrack,
   type SmartlinkEventType,
@@ -75,10 +76,7 @@ export async function POST(request: NextRequest, context: RouteCtx) {
       ? smartlinkKeyForStandalone(pub.id)
       : smartlinkKeyForTrack(pub.id)
 
-  const country =
-    request.headers.get("cf-ipcountry")?.trim() ||
-    request.headers.get("x-vercel-ip-country")?.trim() ||
-    null
+  const geo = readGeoFromHeaders(request.headers)
 
   const result = await ingestSmartlinkEvent({
     smartlinkKey,
@@ -93,7 +91,8 @@ export async function POST(request: NextRequest, context: RouteCtx) {
     utmCampaign: parsed.data.utmCampaign,
     ip,
     userAgent: request.headers.get("user-agent"),
-    country,
+    country: geo.country,
+    city: geo.city,
   })
 
   return NextResponse.json({ ok: true, stored: result.stored })
