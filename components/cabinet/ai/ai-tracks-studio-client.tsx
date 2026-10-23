@@ -262,6 +262,15 @@ function ResultPlayer({
   )
 }
 
+function safeWavDownloadName(title: string): string {
+  const cleaned = title
+    .replace(/[^\p{L}\p{N}\s._-]+/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80)
+  return `${cleaned || "track"}.wav`
+}
+
 function ResultCard({
   result,
   settings,
@@ -283,6 +292,76 @@ function ResultCard({
   busyFavorite: boolean
   busyToRelease: boolean
 }) {
+  const [downloading, setDownloading] = useState(false)
+
+  const downloadWav = async () => {
+    if (!result.audioUrl || downloading) return
+    setDownloading(true)
+    const toastId = toast.loading("Готовим WAV (44.1 kHz)…")
+    try {
+      const url = `${result.audioUrl}?download=1`
+      let blob: Blob | null = null
+
+      // Сначала короткий запрос: либо файл, либо 202 preparing (без зависания на ffmpeg).
+      for (let attempt = 0; attempt < 90; attempt++) {
+        const res = await fetch(url, {
+          credentials: "include",
+          cache: "no-store",
+        })
+        const contentType = res.headers.get("content-type") || ""
+
+        if (res.status === 202 || contentType.includes("application/json")) {
+          const data = (await res.json().catch(() => ({}))) as {
+            status?: string
+            error?: string
+            message?: string
+          }
+          if (res.status === 202 || data.status === "preparing") {
+            toast.loading(data.message || "Готовим WAV (44.1 kHz)…", { id: toastId })
+            await new Promise((r) => setTimeout(r, 2000))
+            continue
+          }
+          toast.error(data.error || "Не удалось скачать WAV", { id: toastId })
+          return
+        }
+
+        if (!res.ok) {
+          let message = "Не удалось скачать WAV"
+          if (contentType.includes("application/json")) {
+            const data = (await res.json().catch(() => ({}))) as { error?: string }
+            if (data.error) message = data.error
+          }
+          toast.error(message, { id: toastId })
+          return
+        }
+
+        blob = await res.blob()
+        break
+      }
+
+      if (!blob || !blob.size) {
+        toast.error("WAV ещё не готов. Попробуйте через минуту.", { id: toastId })
+        return
+      }
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = objectUrl
+      a.download = safeWavDownloadName(result.title || "track")
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000)
+      toast.success("WAV скачан", { id: toastId })
+    } catch {
+      toast.error(
+        "Не удалось скачать WAV (сеть или таймаут). Подождите и попробуйте ещё раз.",
+        { id: toastId }
+      )
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <article className="rounded-lg border border-border bg-[color:var(--background)] px-2.5 py-2">
       <div className="flex items-center gap-2">
@@ -337,11 +416,20 @@ function ResultCard({
           В дистрибуцию
         </Button>
         {result.audioUrl ? (
-          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" asChild>
-            <a href={`${result.audioUrl}?download=1`} download={`${result.title || "track"}.wav`}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={downloading}
+            onClick={() => void downloadWav()}
+          >
+            {downloading ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
               <Download className="mr-1 h-3 w-3" />
-              Скачать WAV
-            </a>
+            )}
+            {downloading ? "Готовим…" : "Скачать WAV"}
           </Button>
         ) : null}
         <Button
@@ -734,7 +822,7 @@ export function AiTracksStudioClient() {
   const liveMsg = statusLiveMessage(activeJob?.status ?? null)
 
   return (
-    <div className="w-full max-w-none space-y-10 pb-16 pt-2">
+    <div className="w-full max-w-none space-y-4 pb-16 pt-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
           <Link href={backHref}>
@@ -812,6 +900,18 @@ export function AiTracksStudioClient() {
           ) : null}
 
           <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor={titleId}>Название песни</Label>
+              <Input
+                id={titleId}
+                value={draft.title}
+                maxLength={status?.limits.titleMax ?? AI_TRACKS_LIMITS.titleMax}
+                placeholder="Необязательно"
+                className="h-11 bg-[color:var(--background)] text-base"
+                onChange={(e) => patchDraft({ title: e.target.value })}
+              />
+            </div>
+
             {draft.mode === "simple" ? (
               <div className="space-y-2">
                 <Label htmlFor={ideaId}>О чём ваша песня?</Label>
@@ -832,18 +932,6 @@ export function AiTracksStudioClient() {
               </div>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor={titleId}>Название песни</Label>
-                  <Input
-                    id={titleId}
-                    value={draft.title}
-                    maxLength={status?.limits.titleMax ?? AI_TRACKS_LIMITS.titleMax}
-                    placeholder="Необязательно"
-                    className="h-11 bg-[color:var(--background)] text-base"
-                    onChange={(e) => patchDraft({ title: e.target.value })}
-                  />
-                </div>
-
                 {!draft.instrumental ? (
                   <div className="rounded-2xl border border-border">
                     <div className="flex min-h-10 items-stretch gap-0.5 px-2 py-1">

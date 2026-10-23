@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
-import { listServiceFulfillmentsForUser, parseServiceFulfillmentFilter } from "@/lib/service-fulfillments"
+import {
+  listServiceFulfillmentsForUser,
+  parseServiceFulfillmentFilter,
+  userHasServiceFulfillmentOrder,
+} from "@/lib/service-fulfillments"
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -13,6 +17,12 @@ export async function GET(request: NextRequest) {
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
+  }
+
+  const orderId = request.nextUrl.searchParams.get("orderId")?.trim()
+  if (orderId) {
+    const exists = await userHasServiceFulfillmentOrder(user.id, orderId)
+    return NextResponse.json({ exists })
   }
 
   const filter = parseServiceFulfillmentFilter(request.nextUrl.searchParams.get("filter"))

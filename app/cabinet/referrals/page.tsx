@@ -59,7 +59,7 @@ export default function ReferralsPage() {
     <div className="w-full max-w-none space-y-4">
       <PageHeader
         title="Партнёрка"
-        description={`Приглашайте артистов: ${GAMIFICATION_ECONOMY.referralFirstPaymentPercent}% от первой оплаты (до ${GAMIFICATION_ECONOMY.referralFirstPaymentCapRub} ₽) на баланс`}
+        description={`Приглашайте артистов: ${GAMIFICATION_ECONOMY.referralPaymentPercent}% с подписок, тарифов и инструментов (до ${GAMIFICATION_ECONOMY.referralPerInviteeCapRub.toLocaleString("ru-RU")} ₽ на человека). Продвижение не учитывается.`}
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">

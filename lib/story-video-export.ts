@@ -51,21 +51,33 @@ function waitAnimationFrame(): Promise<number> {
  */
 function mountExportCanvas(canvas: HTMLCanvasElement): void {
   canvas.setAttribute("aria-hidden", "true")
+  // Canvas должен реально участвовать в paint. Слишком низкая opacity / offscreen
+  // в Chrome даёт captureStream из одного статичного кадра.
   canvas.style.cssText = [
     "position:fixed",
-    "right:0",
+    "left:0",
     "bottom:0",
-    `width:${STORY_VIDEO_WIDTH}px`,
-    `height:${STORY_VIDEO_HEIGHT}px`,
-    "max-width:24vw",
-    "max-height:42vh",
-    "opacity:0.02",
+    `width:${Math.round(STORY_VIDEO_WIDTH / 4)}px`,
+    `height:${Math.round(STORY_VIDEO_HEIGHT / 4)}px`,
+    "opacity:0.04",
     "pointer-events:none",
-    "z-index:-1",
+    "z-index:0",
     "transform:translateZ(0)",
     "image-rendering:auto",
   ].join(";")
   document.body.appendChild(canvas)
+}
+
+type CanvasCaptureTrack = MediaStreamTrack & { requestFrame?: () => void }
+
+function requestCanvasFrame(track: MediaStreamTrack | null | undefined): void {
+  const t = track as CanvasCaptureTrack | null | undefined
+  if (!t || typeof t.requestFrame !== "function") return
+  try {
+    t.requestFrame()
+  } catch {
+    // ignore
+  }
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -209,12 +221,15 @@ export async function exportStoryVideo(params: {
       frameIndex: 0,
       badgeIcons,
     })
-    // Даем браузеру один paint до старта записи
+    // Даем браузеру paint до старта записи
     await waitAnimationFrame()
     await waitAnimationFrame()
 
-    // 0 = захватывать при каждом изменении canvas (не дублировать первый кадр)
-    videoStream = canvas.captureStream(0)
+    // Явный fps + requestFrame после каждой отрисовки - иначе Chrome часто пишет одну картинку
+    videoStream = canvas.captureStream(fps)
+    const videoTrack = videoStream.getVideoTracks()[0] ?? null
+    requestCanvasFrame(videoTrack)
+
     dest = context.createMediaStreamDestination()
     const source = context.createBufferSource()
     source.buffer = buffer
@@ -244,7 +259,7 @@ export async function exportStoryVideo(params: {
 
     report({ phase: "recording", progress: 0.1, message: "Рендерим видео…" })
     if (context.state === "suspended") await context.resume()
-    recorder.start(250)
+    recorder.start(100)
     source.start(0)
 
     const startedAt = performance.now()
@@ -284,6 +299,7 @@ export async function exportStoryVideo(params: {
         frameIndex: drawFrame,
         badgeIcons,
       })
+      requestCanvasFrame(videoTrack)
 
       frame = drawFrame + 1
 
@@ -302,7 +318,8 @@ export async function exportStoryVideo(params: {
     }
 
     await waitAnimationFrame()
-    await wait(frameDurationMs * 2)
+    requestCanvasFrame(videoTrack)
+    await wait(frameDurationMs * 3)
     recorder.stop()
     try {
       source.stop()

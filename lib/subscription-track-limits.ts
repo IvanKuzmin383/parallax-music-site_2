@@ -5,7 +5,8 @@ import { getEffectiveTrackLimit, getTrackLimit } from "@/lib/subscription-plans"
 type TrackLike = { artistName: string; status?: string }
 
 function isCountedTrack(track: TrackLike): boolean {
-  return track.status !== "rejected"
+  // Как при выборе тарифа: отклонённые и отложенные не занимают слот
+  return track.status !== "rejected" && track.status !== "postponed"
 }
 
 /** Минимальные поля слота артиста (без импорта server-only модулей). */

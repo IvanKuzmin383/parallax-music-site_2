@@ -279,7 +279,9 @@ async function loadAchievementCounters(userId: string): Promise<AchievementCount
   }
   try {
     const refCount = await queryOne<{ c: number | string }>(
-      `SELECT COUNT(*)::int AS c FROM cabinet_referral_rewards WHERE referrer_user_id = ?`,
+      `SELECT COUNT(DISTINCT referred_user_id)::int AS c
+       FROM cabinet_referral_rewards
+       WHERE referrer_user_id = ?`,
       [userId]
     )
     empty.referralPaidCount = Number(refCount?.c) || 0
@@ -472,7 +474,8 @@ export async function evaluateUserAchievements(userId: string): Promise<string[]
   try {
     const refCount = await queryOne<{ c: number | string }>(
       `
-      SELECT COUNT(*)::int AS c FROM cabinet_referral_rewards
+      SELECT COUNT(DISTINCT referred_user_id)::int AS c
+      FROM cabinet_referral_rewards
       WHERE referrer_user_id = ?
       `,
       [userId]

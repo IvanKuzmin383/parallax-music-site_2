@@ -54,7 +54,11 @@ function notifyStaff(
   })
 }
 
-async function notifyUserPaid(order: Order, amountRub: string | number) {
+async function notifyUserPaid(
+  order: Order,
+  amountRub: string | number,
+  provider: "tbank" | "yookassa" | "wallet" = "tbank"
+) {
   const { tryNotifyPaymentSuccess } = await import("@/lib/cabinet-notifications")
   const userKey =
     ("userId" in order && order.userId ? order.userId : null) ||
@@ -70,8 +74,8 @@ async function notifyUserPaid(order: Order, amountRub: string | number) {
     const { resolveCabinetUserId } = await import("@/lib/cabinet-notifications")
     const userId = await resolveCabinetUserId(userKey)
     if (userId) {
-      const { tryGrantReferralFirstPaymentBonus } = await import("@/lib/cabinet-referrals")
-      await tryGrantReferralFirstPaymentBonus({ referredUserId: userId, order })
+      const { tryGrantReferralPaymentBonus } = await import("@/lib/cabinet-referrals")
+      await tryGrantReferralPaymentBonus({ referredUserId: userId, order, provider })
       const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
       await tryEvaluateAchievements(userId)
 
@@ -153,7 +157,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "tracks_topup",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -192,7 +196,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "wallet_topup",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -225,7 +229,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "tools_mastering_download",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -258,7 +262,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "tools_story_video_download",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -291,7 +295,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "tools_slowed_reverb_download",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -325,7 +329,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "tools_smartlink",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -366,7 +370,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "ai_mastering",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -409,7 +413,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "vertical_video",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -445,7 +449,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       "track_cover",
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -574,7 +578,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       order.orderType,
       provider
     )
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 
@@ -588,7 +592,7 @@ export async function fulfillPaidOrder(params: FulfillPaidOrderParams): Promise<
       const { markReleasePaid } = await import("@/lib/releases")
       await markReleasePaid(order.releaseId, orderId)
     }
-    await notifyUserPaid(order, amount)
+    await notifyUserPaid(order, amount, provider)
     return
   }
 

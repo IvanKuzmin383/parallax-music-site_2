@@ -161,16 +161,8 @@ export function CabinetAchievementsTab() {
 
   return (
     <div className="w-full max-w-none space-y-5 md:space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Достижения и бонусы
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Важные этапы вашего проекта. Награды за каждый шаг.
-          </p>
-        </div>
-        {availableBonuses > 0 ? (
+      {availableBonuses > 0 ? (
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => {
@@ -187,8 +179,8 @@ export function CabinetAchievementsTab() {
                 ? "бонуса доступно"
                 : "бонусов доступно"}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section
@@ -483,7 +475,7 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
       <p className="relative text-sm font-semibold leading-snug transition-colors group-hover:text-foreground">
         {a.title}
       </p>
-      <p className="relative mt-1 line-clamp-2 text-xs text-muted-foreground transition-colors group-hover:text-muted-foreground/90">
+      <p className="relative mt-1 line-clamp-2 text-xs text-foreground/75 transition-colors group-hover:text-foreground/90">
         {a.description}
       </p>
 

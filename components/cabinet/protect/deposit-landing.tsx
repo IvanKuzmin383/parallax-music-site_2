@@ -11,7 +11,10 @@ import {
   ChevronDown,
   FileStack,
   FileText,
+  Fingerprint,
   FolderOpen,
+  Lock,
+  ShieldCheck,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
@@ -119,65 +122,136 @@ function scrollToId(id: string) {
 
 function DepositCertificateSample() {
   return (
-    <div className="mx-auto w-full max-w-[22rem]">
+    <div className="mx-auto w-full max-w-[23rem]">
       <div className="relative">
+        {/* Soft glow behind the sealed card */}
+        <div
+          className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(ellipse_at_center,rgba(255,41,72,0.22),transparent_68%)] blur-md"
+          aria-hidden
+        />
+
         <div
           className={cn(
-            "relative origin-center rounded-[12px] bg-[#F3F1F4] p-5 text-[#1A191C]",
-            "shadow-[0_18px_40px_-18px_rgba(0,0,0,0.65)]",
-            "rotate-[2deg] sm:rotate-[2.5deg]",
+            "relative origin-center overflow-hidden rounded-[14px] border border-[#3A3540]",
+            "bg-[linear-gradient(165deg,#1B191F_0%,#121116_55%,#0E0D11_100%)]",
+            "p-5 text-[#F4F2F6]",
+            "shadow-[0_22px_50px_-20px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)]",
+            "rotate-[1.5deg] sm:rotate-[2deg]",
           )}
           aria-hidden="true"
         >
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-[11px] font-bold tracking-tight">
-              <span className="text-[#1A191C]">PARALLAX</span>{" "}
-              <span className="text-[#FF2948]">MUSIC</span>
-            </p>
-            <span className="rounded-md border border-[#FF2948]/35 bg-[#FF2948]/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C41E38]">
-              Образец
-            </span>
+          {/* Circuit / grid texture */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.14]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,41,72,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,41,72,0.35) 1px, transparent 1px)",
+              backgroundSize: "18px 18px",
+              maskImage: "radial-gradient(ellipse at 70% 20%, black 20%, transparent 75%)",
+            }}
+          />
+
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold tracking-tight">
+                <span className="text-[#F4F2F6]">PARALLAX</span>{" "}
+                <span className="text-[#FF2948]">MUSIC</span>
+              </p>
+              <p className="mt-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] text-[#9A96A3]">
+                <Lock className="h-3 w-3 text-primary" aria-hidden />
+                Secure deposit vault
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                <ShieldCheck className="h-3 w-3" aria-hidden />
+                Защищено
+              </span>
+              <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#AAA8B3]">
+                Образец
+              </span>
+            </div>
           </div>
-          <h3 className="mt-5 text-lg font-semibold leading-snug tracking-tight">
-            Справка о депонировании
-          </h3>
-          <dl className="mt-4 space-y-2.5 text-[12px] leading-snug text-[#4A4852]">
-            <div>
+
+          <div className="relative mt-5 flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/35 bg-primary/10 text-primary shadow-[0_0_24px_-6px_rgba(255,41,72,0.55)]">
+              <ShieldCheck className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold leading-snug tracking-tight">
+                Справка о депонировании
+              </h3>
+              <p className="mt-0.5 text-[11px] text-[#9A96A3]">
+                Экземпляр зафиксирован · дата и отпечаток файла
+              </p>
+            </div>
+          </div>
+
+          <dl className="relative mt-4 space-y-2.5 text-[12px] leading-snug">
+            <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
               <dt className="text-[10px] uppercase tracking-wide text-[#8A8794]">Произведение</dt>
-              <dd className="mt-0.5 text-[#1A191C]">Название вашего трека</dd>
+              <dd className="mt-0.5 font-medium text-[#F4F2F6]">Название вашего трека</dd>
             </div>
-            <div>
-              <dt className="text-[10px] uppercase tracking-wide text-[#8A8794]">Заявитель</dt>
-              <dd className="mt-0.5 text-[#1A191C]">Имя и фамилия</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] uppercase tracking-wide text-[#8A8794]">Дата подачи</dt>
-              <dd className="mt-0.5 text-[#1A191C]">Дата депонирования</dd>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+                <dt className="text-[10px] uppercase tracking-wide text-[#8A8794]">Заявитель</dt>
+                <dd className="mt-0.5 font-medium text-[#F4F2F6]">Имя и фамилия</dd>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+                <dt className="text-[10px] uppercase tracking-wide text-[#8A8794]">Дата подачи</dt>
+                <dd className="mt-0.5 font-medium text-[#F4F2F6]">Дата депонирования</dd>
+              </div>
             </div>
           </dl>
-          <div className="mt-6 h-px bg-[#D9D6DF]" />
-          <p className="mt-3 text-[10px] leading-relaxed text-[#8A8794]">
-            Декоративный образец оформления. Не является настоящей справкой.
+
+          <div className="relative mt-4 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">
+              <Fingerprint className="h-3.5 w-3.5" aria-hidden />
+              SHA-256 · цифровой отпечаток
+            </div>
+            <p className="mt-1.5 break-all font-mono text-[10px] leading-relaxed text-[#C8C4D0]">
+              a7f3…9c2e · 8b41…e01d · sealed
+            </p>
+          </div>
+
+          <div className="relative mt-4 flex flex-wrap gap-1.5">
+            {["Шифрование", "Щит хранения", "Неизменяемая метка"].map((label) => (
+              <span
+                key={label}
+                className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[#B8B4C0]"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <p className="relative mt-4 text-[10px] leading-relaxed text-[#7A7784]">
+            Декоративный образец. Не является настоящей справкой и не заменяет юридические
+            доказательства авторства.
           </p>
         </div>
 
         <div
           className={cn(
             "absolute -bottom-3 left-3 right-8 z-10 flex items-center gap-3 rounded-[12px]",
-            "border border-[#2B2930] bg-[#141418] px-3 py-2.5 shadow-lg",
+            "border border-primary/30 bg-[#141418] px-3 py-2.5",
+            "shadow-[0_12px_28px_-10px_rgba(255,41,72,0.35)]",
             "sm:left-4 sm:right-10",
           )}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <AudioLines className="h-4 w-4" aria-hidden />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-[#F5F4F6]">Ваш трек.wav</p>
-            <p className="text-[11px] text-[#AAA8B3]">Экземпляр произведения</p>
+            <p className="text-[11px] text-[#AAA8B3]">Запечатанный экземпляр</p>
           </div>
+          <Lock className="h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden />
         </div>
       </div>
-      <p className="mt-8 text-center text-xs text-muted-foreground">Пример оформления документа</p>
+      <p className="mt-8 text-center text-xs text-muted-foreground">
+        Пример защищённого оформления документа
+      </p>
     </div>
   )
 }

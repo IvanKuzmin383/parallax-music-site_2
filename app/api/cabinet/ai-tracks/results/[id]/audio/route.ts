@@ -7,11 +7,16 @@ import { getAiTracksResultAudioForUser } from "@/lib/ai-tracks-jobs"
 import {
   aiTracksDownloadWavPath,
   ensureAiTracksWavFile,
+  isAiTracksWavPreparing,
+  isAiTracksWavReady,
+  startAiTracksWavPrepare,
+  takeAiTracksWavPrepareError,
 } from "@/lib/ai-tracks-wav"
 import { getUploadsBasePath } from "@/lib/tracks"
 import { createFileRangeResponse } from "@/lib/node-file-range-response"
 
 export const runtime = "nodejs"
+export const maxDuration = 300
 
 function safeJoinUploads(base: string, storageKey: string): string | null {
   const normalized = storageKey.replace(/\\/g, "/").replace(/^\/+/, "")
@@ -30,6 +35,19 @@ function safeDownloadBasename(title: string): string {
     .trim()
     .slice(0, 80)
   return cleaned || "track"
+}
+
+function attachmentDisposition(basename: string, ext: string): string {
+  const ascii =
+    basename
+      .normalize("NFKD")
+      .replace(/[^\x20-\x7E]+/g, "_")
+      .replace(/["\\]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 80) || "track"
+  const utf8Name = encodeURIComponent(`${basename}.${ext}`)
+  return `attachment; filename="${ascii}.${ext}"; filename*=UTF-8''${utf8Name}`
 }
 
 export async function GET(
@@ -62,10 +80,39 @@ export async function GET(
   const wantsDownload =
     request.nextUrl.searchParams.get("download") === "1" ||
     request.nextUrl.searchParams.get("format") === "wav"
+  /** Старый режим: ждать ffmpeg в этом же запросе (внутренние/ретраи). */
+  const waitForWav = request.nextUrl.searchParams.get("wait") === "1"
+
+  try {
+    await fs.access(filePath)
+  } catch {
+    return NextResponse.json({ error: "Файл недоступен" }, { status: 404 })
+  }
 
   try {
     if (wantsDownload) {
       const wavPath = aiTracksDownloadWavPath(filePath)
+      const ready = await isAiTracksWavReady(filePath)
+
+      if (!ready && !waitForWav) {
+        const prep = startAiTracksWavPrepare({
+          sourcePath: filePath,
+          format: meta.format,
+        })
+        if (prep.recentError) {
+          return NextResponse.json({ error: prep.recentError }, { status: 503 })
+        }
+        return NextResponse.json(
+          {
+            status: "preparing",
+            preparing: true,
+            inFlight: isAiTracksWavPreparing(filePath),
+            message: "Готовим WAV (44.1 kHz). Повторите запрос через пару секунд.",
+          },
+          { status: 202 }
+        )
+      }
+
       const prepared = await ensureAiTracksWavFile({
         sourcePath: filePath,
         format: meta.format,
@@ -75,13 +122,13 @@ export async function GET(
         return NextResponse.json({ error: prepared.error }, { status: 503 })
       }
       const info = await fs.stat(wavPath)
-      const safeName = encodeURIComponent(`${safeDownloadBasename(meta.title)}.wav`)
+      const basename = safeDownloadBasename(meta.title)
       return createFileRangeResponse({
         contentType: "audio/wav",
         fileSize: info.size,
         absPath: wavPath,
         rangeHeader: request.headers.get("range"),
-        contentDisposition: `attachment; filename="${safeName}"; filename*=UTF-8''${safeName}`,
+        contentDisposition: attachmentDisposition(basename, "wav"),
       })
     }
 
@@ -93,16 +140,17 @@ export async function GET(
           ? "audio/flac"
           : "audio/mpeg"
     const ext = meta.format === "wav" ? "wav" : meta.format === "flac" ? "flac" : "mp3"
-    const safeName = encodeURIComponent(`${safeDownloadBasename(meta.title)}.${ext}`)
+    const basename = safeDownloadBasename(meta.title)
 
     return createFileRangeResponse({
       contentType,
       fileSize: info.size,
       absPath: filePath,
       rangeHeader: request.headers.get("range"),
-      contentDisposition: `inline; filename="${safeName}"`,
+      contentDisposition: `inline; filename="${basename.replace(/[^\x20-\x7E]/g, "_") || "track"}.${ext}"`,
     })
-  } catch {
+  } catch (err) {
+    console.error("[ai-tracks/audio]", err)
     return NextResponse.json({ error: "Файл недоступен" }, { status: 404 })
   }
 }

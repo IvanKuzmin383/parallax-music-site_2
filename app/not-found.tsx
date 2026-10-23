@@ -6,7 +6,7 @@ import { SiteAtmosphere } from "@/components/site-atmosphere"
 
 export const metadata: Metadata = {
   title: "Страница не найдена",
-  description: "Такой страницы нет. Вернитесь на главную Parallax Music или в кабинет.",
+  description: "Такой страницы нет. Ссылка устарела, опечатка в адресе или страница переехала.",
   robots: {
     index: false,
     follow: false,
@@ -42,8 +42,7 @@ export default function NotFoundPage() {
             </span>
           </h1>
           <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Ссылка устарела, опечатка в адресе или страница переехала. Выберите, куда вернуться -
-            на главную или в кабинет.
+            Ссылка устарела, опечатка в адресе или страница переехала.
           </p>
         </div>
 

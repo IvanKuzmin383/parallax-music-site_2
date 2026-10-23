@@ -2,15 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Bell } from "lucide-react"
+import { toast } from "sonner"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  cabinetServiceOrderExists,
+  parseCabinetOrderDetailHref,
+} from "@/lib/cabinet/notification-href"
 import { cn } from "@/lib/utils"
 
 type NotificationItem = {
@@ -41,6 +47,7 @@ function relativeTime(iso: string): string {
 }
 
 export default function CabinetNotificationsPage() {
+  const router = useRouter()
   const [items, setItems] = useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -188,9 +195,24 @@ export default function CabinetNotificationsPage() {
               </div>
             )
 
+            const orderDetail = parseCabinetOrderDetailHref(item.href)
+
             const onActivate = () => {
               if (unread) void markRead([item.id])
               if (opensSupport) openCabinetSupportChat()
+            }
+
+            const onOrderDetailClick = async () => {
+              onActivate()
+              if (!orderDetail) return
+              const exists = await cabinetServiceOrderExists(orderDetail.orderId)
+              if (!exists) {
+                toast.message("Этот платёж не отображается в разделе «Заказы»", {
+                  description: "Уведомление отмечено прочитанным.",
+                })
+                return
+              }
+              router.push(`/cabinet/orders/${orderDetail.orderId}`)
             }
 
             return (
@@ -200,6 +222,14 @@ export default function CabinetNotificationsPage() {
                     type="button"
                     className={cn(rowClass, "w-full text-left")}
                     onClick={onActivate}
+                  >
+                    {body}
+                  </button>
+                ) : orderDetail ? (
+                  <button
+                    type="button"
+                    className={cn(rowClass, "w-full text-left")}
+                    onClick={() => void onOrderDetailClick()}
                   >
                     {body}
                   </button>

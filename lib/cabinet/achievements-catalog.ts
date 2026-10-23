@@ -202,8 +202,14 @@ export function formatAchievementReward(reward: AchievementReward): string | nul
 
 /** Экономика рефералки и годовой потолок наград. */
 export const GAMIFICATION_ECONOMY = {
-  referralFirstPaymentPercent: 10,
-  referralFirstPaymentCapRub: 300,
+  /** % с подходящих оплат приглашённого (подписки, тарифы, инструменты). */
+  referralPaymentPercent: 5,
+  /** Суммарный потолок начислений на одного приглашённого, ₽. */
+  referralPerInviteeCapRub: 3000,
+  /** @deprecated используйте referralPaymentPercent */
+  referralFirstPaymentPercent: 5,
+  /** @deprecated используйте referralPerInviteeCapRub */
+  referralFirstPaymentCapRub: 3000,
   /** Макс. сумма wallet/coupon-наград с ачивок на пользователя за календарный год. */
   annualAchievementRewardCapRub: 500,
 } as const

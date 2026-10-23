@@ -360,6 +360,29 @@ function mapDbRowsBase(
   )
 }
 
+/** Есть ли у пользователя оплаченный заказ услуг с этим id (для ссылок из уведомлений). */
+export async function userHasServiceFulfillmentOrder(
+  userId: string,
+  orderId: string
+): Promise<boolean> {
+  const id = orderId.trim()
+  if (!id) return false
+  await ensureMissingFulfillmentRowsForPaidOrders({ userId })
+  const types = [...SERVICE_ORDER_TYPES]
+  const row = await queryOne<{ ok: number }>(
+    `SELECT 1 AS ok
+     FROM orders o
+     INNER JOIN service_fulfillments sf ON sf.order_id = o.id
+     WHERE o.id = ?
+       AND o.user_id = ?
+       AND o.status = 'paid'
+       AND o.order_type IN (${placeholders})
+     LIMIT 1`,
+    [id, userId, ...types]
+  )
+  return Boolean(row)
+}
+
 export async function listServiceFulfillmentsForUser(
   userId: string,
   filter: ServiceFulfillmentFilter

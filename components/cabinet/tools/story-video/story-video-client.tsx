@@ -18,6 +18,9 @@ import {
   Loader2,
   Pause,
   Play,
+  Plus,
+  Save,
+  Trash2,
   Upload,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -87,6 +90,19 @@ type CabinetTrackOption = {
   coverPath?: string | null
   tiktokSoundStartSec?: number | null
 }
+
+type StoryVideoDraftListItem = {
+  id: string
+  name: string
+  trackId: string | null
+  template: StoryVideoTemplate
+  templateLabel: string
+  title: string
+  artist: string
+  updatedAt: string
+}
+
+type DraftSaveStatus = "idle" | "saving" | "saved" | "error"
 
 function CollapsibleSection({
   title,
@@ -270,9 +286,57 @@ export function StoryVideoClient() {
     look: false,
   })
 
+  const [drafts, setDrafts] = useState<StoryVideoDraftListItem[]>([])
+  const [draftsLoading, setDraftsLoading] = useState(true)
+  const [draftsMax, setDraftsMax] = useState(30)
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null)
+  const [draftName, setDraftName] = useState("")
+  const [draftDirty, setDraftDirty] = useState(false)
+  const [draftSaveStatus, setDraftSaveStatus] = useState<DraftSaveStatus>("idle")
+  const [draftBusy, setDraftBusy] = useState(false)
+  const skipDraftDirtyRef = useRef(false)
+  const draftHydratedFromUrlRef = useRef(false)
+
   const setPanel = useCallback((key: PanelKey, open: boolean) => {
     setOpenPanels((prev) => ({ ...prev, [key]: open }))
   }, [])
+
+  const markDraftDirty = useCallback(() => {
+    if (skipDraftDirtyRef.current) return
+    setDraftDirty(true)
+    setDraftSaveStatus("idle")
+  }, [])
+
+  const patch = useCallback(
+    (partial: Partial<StoryVideoProject>) => {
+      setProject((prev) => ({ ...prev, ...partial }))
+      markDraftDirty()
+    },
+    [markDraftDirty]
+  )
+
+  const refreshDrafts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cabinet/tools/story-video/drafts", {
+        credentials: "include",
+      })
+      if (!res.ok) return
+      const data = (await res.json()) as {
+        items?: StoryVideoDraftListItem[]
+        max?: number
+      }
+      setDrafts(data.items ?? [])
+      if (typeof data.max === "number") setDraftsMax(data.max)
+    } catch {
+      // ignore
+    } finally {
+      setDraftsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshDrafts()
+  }, [refreshDrafts])
 
   const refreshEntitlement = useCallback(async () => {
     try {
@@ -298,10 +362,6 @@ export function StoryVideoClient() {
   const localAudioFileRef = useRef<File | null>(null)
   const audioArrayBufferRef = useRef<ArrayBuffer | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-
-  const patch = useCallback((partial: Partial<StoryVideoProject>) => {
-    setProject((prev) => ({ ...prev, ...partial }))
-  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -486,10 +546,7 @@ export function StoryVideoClient() {
     audioRef.current?.pause()
   }, [project.startSec, project.durationSec, audioUrl])
 
-  const selectTrack = (trackId: string) => {
-    setSelectedTrackId(trackId)
-    const track = tracks.find((t) => t.id === trackId)
-    if (!track) return
+  const clearLocalMediaRefs = useCallback(() => {
     if (localCoverObjectUrl.current) {
       URL.revokeObjectURL(localCoverObjectUrl.current)
       localCoverObjectUrl.current = null
@@ -500,6 +557,39 @@ export function StoryVideoClient() {
     }
     localAudioFileRef.current = null
     audioArrayBufferRef.current = null
+  }, [])
+
+  // Cover/audio трека без перезаписи title/artist/хука (для черновиков).
+  const hydrateTrackMedia = useCallback(
+    (trackId: string, opts?: { quiet?: boolean }) => {
+      const track = tracks.find((t) => t.id === trackId)
+      if (!track) {
+        setSelectedTrackId("")
+        setCoverUrl(null)
+        setAudioUrl(null)
+        if (!opts?.quiet) {
+          toast.message("Трек из черновика недоступен - выберите источник заново")
+        }
+        return false
+      }
+      clearLocalMediaRefs()
+      setSelectedTrackId(trackId)
+      const hasCover = Boolean(track.coverPath && String(track.coverPath).trim())
+      setCoverUrl(hasCover ? `/api/cabinet/uploads/cover/${track.id}` : null)
+      setAudioUrl(`/api/cabinet/tracks/${track.id}/audio`)
+      if (!hasCover && !opts?.quiet) {
+        toast.message("У трека нет обложки - загрузите свою")
+      }
+      return true
+    },
+    [tracks, clearLocalMediaRefs]
+  )
+
+  const selectTrack = (trackId: string) => {
+    setSelectedTrackId(trackId)
+    const track = tracks.find((t) => t.id === trackId)
+    if (!track) return
+    clearLocalMediaRefs()
     const hasCover = Boolean(track.coverPath && String(track.coverPath).trim())
     setCoverUrl(hasCover ? `/api/cabinet/uploads/cover/${track.id}` : null)
     setAudioUrl(`/api/cabinet/tracks/${track.id}/audio`)
@@ -535,6 +625,7 @@ export function StoryVideoClient() {
         const compressed = await compressImageForToolCover(file)
         setCoverUrl(compressed.dataUrl)
         setSelectedTrackId("")
+        markDraftDirty()
       } catch {
         toast.error("Не удалось обработать обложку")
       }
@@ -561,7 +652,233 @@ export function StoryVideoClient() {
 
   const onTemplate = (template: StoryVideoTemplate) => {
     setProject((prev) => applyStoryVideoTemplate(prev, template))
+    markDraftDirty()
   }
+
+  const applyLoadedDraft = useCallback(
+    (payload: {
+      id: string
+      name: string
+      trackId: string | null
+      project: StoryVideoProject
+    }) => {
+      skipDraftDirtyRef.current = true
+      setActiveDraftId(payload.id)
+      setDraftName(payload.name)
+      setProject(payload.project)
+      setDraftDirty(false)
+      setDraftSaveStatus("saved")
+      setPlaying(false)
+      setTimeSec(0)
+      audioRef.current?.pause()
+      if (payload.trackId) {
+        hydrateTrackMedia(payload.trackId, { quiet: true })
+      } else {
+        clearLocalMediaRefs()
+        setSelectedTrackId("")
+        setCoverUrl(null)
+        setAudioUrl(null)
+      }
+      window.setTimeout(() => {
+        skipDraftDirtyRef.current = false
+      }, 0)
+    },
+    [hydrateTrackMedia, clearLocalMediaRefs]
+  )
+
+  const openDraft = useCallback(
+    async (id: string) => {
+      if (draftBusy) return
+      if (activeDraftId === id && !draftDirty) return
+      if (draftDirty && activeDraftId && activeDraftId !== id) {
+        const ok = window.confirm(
+          "Есть несохранённые изменения в текущей карточке. Открыть другую без сохранения?"
+        )
+        if (!ok) return
+      }
+      setDraftBusy(true)
+      try {
+        const res = await fetch(`/api/cabinet/tools/story-video/drafts/${id}`, {
+          credentials: "include",
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          id?: string
+          name?: string
+          trackId?: string | null
+          project?: StoryVideoProject
+          error?: string
+        }
+        if (!res.ok || !data.id || !data.project) {
+          toast.error(data.error || "Не удалось открыть карточку")
+          return
+        }
+        applyLoadedDraft({
+          id: data.id,
+          name: data.name || "Сниппет",
+          trackId: data.trackId ?? null,
+          project: data.project,
+        })
+        const url = new URL(window.location.href)
+        url.searchParams.set("draft", data.id)
+        window.history.replaceState({}, "", url.pathname + url.search)
+        toast.success("Карточка открыта")
+      } catch {
+        toast.error("Не удалось открыть карточку")
+      } finally {
+        setDraftBusy(false)
+      }
+    },
+    [draftBusy, activeDraftId, draftDirty, applyLoadedDraft]
+  )
+
+  const saveDraft = useCallback(
+    async (mode: "update" | "create" = "update", opts?: { silent?: boolean }) => {
+      if (draftBusy) return
+      setDraftBusy(true)
+      setDraftSaveStatus("saving")
+      try {
+        const name =
+          draftName.trim() ||
+          `${project.artist?.trim() || "Артист"} - ${project.title?.trim() || "Трек"}`
+        const body = {
+          name,
+          trackId: selectedTrackId || null,
+          project,
+        }
+        const updating = mode === "update" && activeDraftId
+        const res = await fetch(
+          updating
+            ? `/api/cabinet/tools/story-video/drafts/${activeDraftId}`
+            : "/api/cabinet/tools/story-video/drafts",
+          {
+            method: updating ? "PATCH" : "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        )
+        const data = (await res.json().catch(() => ({}))) as {
+          id?: string
+          name?: string
+          error?: string
+        }
+        if (!res.ok || !data.id) {
+          setDraftSaveStatus("error")
+          if (!opts?.silent) toast.error(data.error || "Не удалось сохранить")
+          return
+        }
+        setActiveDraftId(data.id)
+        setDraftName(data.name || name)
+        setDraftDirty(false)
+        setDraftSaveStatus("saved")
+        const url = new URL(window.location.href)
+        url.searchParams.set("draft", data.id)
+        window.history.replaceState({}, "", url.pathname + url.search)
+        await refreshDrafts()
+        if (!opts?.silent) {
+          toast.success(updating ? "Карточка обновлена" : "Карточка сохранена")
+        }
+      } catch {
+        setDraftSaveStatus("error")
+        if (!opts?.silent) toast.error("Не удалось сохранить")
+      } finally {
+        setDraftBusy(false)
+      }
+    },
+    [
+      draftBusy,
+      draftName,
+      project,
+      selectedTrackId,
+      activeDraftId,
+      refreshDrafts,
+    ]
+  )
+
+  const deleteDraft = useCallback(
+    async (id: string) => {
+      if (draftBusy) return
+      if (!window.confirm("Удалить сохранённую карточку?")) return
+      setDraftBusy(true)
+      try {
+        const res = await fetch(`/api/cabinet/tools/story-video/drafts/${id}`, {
+          method: "DELETE",
+          credentials: "include",
+        })
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string }
+          toast.error(data.error || "Не удалось удалить")
+          return
+        }
+        if (activeDraftId === id) {
+          setActiveDraftId(null)
+          setDraftDirty(false)
+          setDraftSaveStatus("idle")
+          const url = new URL(window.location.href)
+          url.searchParams.delete("draft")
+          window.history.replaceState({}, "", url.pathname + url.search)
+        }
+        await refreshDrafts()
+        toast.success("Карточка удалена")
+      } catch {
+        toast.error("Не удалось удалить")
+      } finally {
+        setDraftBusy(false)
+      }
+    },
+    [draftBusy, activeDraftId, refreshDrafts]
+  )
+
+  const startNewCard = useCallback(() => {
+    if (draftDirty && activeDraftId) {
+      const ok = window.confirm("Есть несохранённые изменения. Начать новую карточку?")
+      if (!ok) return
+    }
+    skipDraftDirtyRef.current = true
+    setActiveDraftId(null)
+    setDraftName("")
+    setProject(DEFAULT_STORY_VIDEO_PROJECT)
+    setDraftDirty(false)
+    setDraftSaveStatus("idle")
+    clearLocalMediaRefs()
+    setSelectedTrackId("")
+    setCoverUrl(null)
+    setAudioUrl(null)
+    setPlaying(false)
+    setTimeSec(0)
+    audioRef.current?.pause()
+    const url = new URL(window.location.href)
+    url.searchParams.delete("draft")
+    window.history.replaceState({}, "", url.pathname + url.search)
+    window.setTimeout(() => {
+      skipDraftDirtyRef.current = false
+    }, 0)
+  }, [draftDirty, activeDraftId, clearLocalMediaRefs])
+
+  // Автосохранение открытой карточки (без тостов)
+  useEffect(() => {
+    if (!activeDraftId || !draftDirty || draftBusy) return
+    const t = window.setTimeout(() => {
+      void saveDraft("update", { silent: true })
+    }, 1600)
+    return () => window.clearTimeout(t)
+  }, [activeDraftId, draftDirty, draftBusy, project, selectedTrackId, draftName, saveDraft])
+
+  // Открыть черновик из ?draft=
+  useEffect(() => {
+    if (draftHydratedFromUrlRef.current || draftsLoading || tracksLoading) return
+    try {
+      const id = new URLSearchParams(window.location.search).get("draft")?.trim()
+      if (!id) {
+        draftHydratedFromUrlRef.current = true
+        return
+      }
+      draftHydratedFromUrlRef.current = true
+      void openDraft(id)
+    } catch {
+      draftHydratedFromUrlRef.current = true
+    }
+  }, [draftsLoading, tracksLoading, openDraft])
 
   const rangeSliderMax = useMemo(() => {
     if (!audioDuration) return Math.max(STORY_VIDEO_DURATION_MAX_SEC, 600)
@@ -762,8 +1079,157 @@ export function StoryVideoClient() {
       <PageHeader title="Сниппет" />
       <p className="-mt-4 w-full text-sm text-muted-foreground md:text-[15px]">
         Отрывок 5-30 сек из обложки и хука для Reels / Shorts / TikTok. Превью с водяным знаком. 1
-        скачивание бесплатно навсегда, далее {downloadPriceRub} ₽.
+        скачивание бесплатно навсегда, далее {downloadPriceRub} ₽. Настройки карточки можно
+        сохранять и продолжать позже.
       </p>
+
+      <section className="rounded-lg border border-border bg-card/30 p-4 space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-sm font-medium text-foreground">Мои карточки</h2>
+            <p className="text-xs text-muted-foreground">
+              Сохраняйте настройки и возвращайтесь в любой момент. Кредиты списываются только при
+              скачивании видео.
+              {drafts.length > 0 ? ` ${drafts.length}/${draftsMax}` : null}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={draftBusy}
+              onClick={() => startNewCard()}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Новая
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={draftBusy || (!coverUrl && !audioUrl && !selectedTrackId)}
+              onClick={() => void saveDraft("create")}
+            >
+              <Save className="mr-1.5 h-3.5 w-3.5" />
+              Сохранить как новую
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={draftBusy}
+              onClick={() => void saveDraft(activeDraftId ? "update" : "create")}
+            >
+              {draftBusy && draftSaveStatus === "saving" ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {activeDraftId ? "Сохранить" : "Сохранить карточку"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            className="h-9 max-w-sm"
+            placeholder="Название карточки"
+            value={draftName}
+            onChange={(e) => {
+              setDraftName(e.target.value)
+              markDraftDirty()
+            }}
+            disabled={draftBusy}
+          />
+          <span className="text-xs text-muted-foreground">
+            {activeDraftId
+              ? draftSaveStatus === "saving"
+                ? "Сохраняем…"
+                : draftDirty
+                  ? "Есть изменения"
+                  : draftSaveStatus === "saved"
+                    ? "Сохранено"
+                    : draftSaveStatus === "error"
+                      ? "Ошибка сохранения"
+                      : "Открыта карточка"
+              : "Новая карточка (ещё не сохранена)"}
+          </span>
+        </div>
+
+        {draftsLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Загрузка карточек…
+          </div>
+        ) : drafts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Пока нет сохранённых карточек. Настройте сниппет и нажмите «Сохранить карточку».
+          </p>
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {drafts.map((d) => {
+              const active = d.id === activeDraftId
+              const updated = (() => {
+                try {
+                  return new Date(d.updatedAt).toLocaleString("ru-RU", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                } catch {
+                  return ""
+                }
+              })()
+              return (
+                <li key={d.id}>
+                  <div
+                    className={cn(
+                      "flex h-full flex-col rounded-md border px-3 py-2.5 transition",
+                      active
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-background/40 hover:border-primary/40"
+                    )}
+                  >
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      disabled={draftBusy}
+                      onClick={() => void openDraft(d.id)}
+                    >
+                      <div className="truncate text-sm font-medium text-foreground">
+                        {d.name || `${d.artist} - ${d.title}`}
+                      </div>
+                      <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                        {d.templateLabel}
+                        {d.artist || d.title
+                          ? ` · ${[d.artist, d.title].filter(Boolean).join(" - ")}`
+                          : null}
+                      </div>
+                      {updated ? (
+                        <div className="mt-1 text-[10px] text-muted-foreground/80">{updated}</div>
+                      ) : null}
+                    </button>
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                        disabled={draftBusy}
+                        onClick={() => void deleteDraft(d.id)}
+                        aria-label="Удалить карточку"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-3">

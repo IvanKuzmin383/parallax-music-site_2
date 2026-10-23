@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import { execute, query, queryOne } from "@/lib/database"
 import { getCabinetUserByEmail, getCabinetUserById } from "@/lib/cabinet-users"
+import { isServiceOrderType } from "@/lib/service-fulfillments"
 
 export type CabinetNotificationType =
   | "release_status"
@@ -355,6 +356,21 @@ export async function tryNotifyWithdrawalStatus(params: {
   })
 }
 
+/** Куда вести из уведомления об оплате (деталка /cabinet/orders/:id - только услуги). */
+export function paymentSuccessNotificationHref(orderType: string, orderId: string): string {
+  if (orderType === "wallet_topup") return "/cabinet/finance/balance"
+  if (orderType === "subscription") return "/cabinet/subscription"
+  if (orderType === "fix_pack" || orderType === "tracks_topup") {
+    return "/cabinet/settings?tab=profile"
+  }
+  if (orderType === "tools_mastering_download") return "/cabinet/tools/mastering"
+  if (orderType === "tools_story_video_download") return "/cabinet/tools/story-video"
+  if (orderType === "tools_slowed_reverb_download") return "/cabinet/tools/slowed-reverb"
+  if (orderType === "tools_smartlink") return "/cabinet/tools/smartlinks"
+  if (isServiceOrderType(orderType)) return `/cabinet/orders/${orderId}`
+  return "/cabinet/orders"
+}
+
 export async function tryNotifyPaymentSuccess(params: {
   userKey?: string | null
   orderId: string
@@ -371,20 +387,31 @@ export async function tryNotifyPaymentSuccess(params: {
       : null
 
   const isWalletTopup = params.orderType === "wallet_topup"
+  const isServiceOrder = isServiceOrderType(params.orderType)
+  const href = paymentSuccessNotificationHref(params.orderType, params.orderId)
+
+  let body: string
+  if (isWalletTopup) {
+    body = amount
+      ? `На баланс зачислено ${amount}.`
+      : "Средства зачислены на баланс кабинета."
+  } else if (isServiceOrder) {
+    body = amount
+      ? `Сумма ${amount}. Заказ доступен в разделе "Заказы".`
+      : "Заказ доступен в разделе 'Заказы'."
+  } else if (params.orderType === "subscription") {
+    body = amount ? `Сумма ${amount}. Подписка обновлена.` : "Подписка обновлена."
+  } else {
+    body = amount ? `Сумма ${amount}. Оплата прошла успешно.` : "Оплата прошла успешно."
+  }
 
   await tryCreateCabinetNotification({
     userId,
     type: "payment_success",
     title: isWalletTopup ? "Баланс пополнен" : `Оплата прошла: ${typeLabel}`,
-    body: isWalletTopup
-      ? amount
-        ? `На баланс зачислено ${amount}.`
-        : "Средства зачислены на баланс кабинета."
-      : amount
-        ? `Сумма ${amount}. Заказ доступен в разделе "Заказы".`
-        : "Заказ доступен в разделе 'Заказы'.",
-    href: isWalletTopup ? "/cabinet/finance/balance" : `/cabinet/orders/${params.orderId}`,
-    entityType: isWalletTopup ? "balance" : "order",
+    body,
+    href,
+    entityType: isWalletTopup ? "balance" : isServiceOrder ? "order" : params.orderType,
     entityId: isWalletTopup ? userId : params.orderId,
   })
 }

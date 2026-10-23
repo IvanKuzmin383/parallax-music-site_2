@@ -12,6 +12,7 @@ import {
   queryOne,
   withTransaction,
 } from "@/lib/database"
+import { aiTracksDownloadWavPath, ensureAiTracksWavFile } from "@/lib/ai-tracks-wav"
 import { getUploadsBasePath } from "@/lib/tracks"
 
 type JobRow = {
@@ -138,6 +139,26 @@ export async function settleAiTracksJobSuccess(params: {
         })
         return { ok: false }
       }
+
+      // Прогрев WAV в фоне: иначе первый «Скачать WAV» долго крутит ffmpeg
+      // и прокси рвёт соединение («Сайт недоступен» в браузере).
+      void (async () => {
+        try {
+          const base = await getUploadsBasePath()
+          const sourcePath = path.join(base, audioKey)
+          const destPath = aiTracksDownloadWavPath(sourcePath)
+          const prepared = await ensureAiTracksWavFile({
+            sourcePath,
+            format: variant.format || "mp3",
+            destPath,
+          })
+          if (!prepared.ok) {
+            console.warn("[ai-tracks-settle] wav prewarm failed", prepared.error)
+          }
+        } catch (err) {
+          console.warn("[ai-tracks-settle] wav prewarm error", err)
+        }
+      })()
 
       let coverKey: string | null = null
       if (variant.coverUrl) {

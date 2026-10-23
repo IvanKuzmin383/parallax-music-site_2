@@ -127,23 +127,22 @@ export async function POST(request: NextRequest) {
     })
 
     try {
-      const { attachReferrerOnRegister, tryGrantReferralFirstPaymentBonus } = await import(
+      const { attachReferrerOnRegister, tryGrantReferralPaymentBonus } = await import(
         "@/lib/cabinet-referrals"
       )
       await attachReferrerOnRegister({
         userId: user.id,
         referralCode: parsed.data.referralCode,
       })
-      const firstPaid =
-        (hasPaidFixPack
-          ? eligiblePaidFixPacks[0]
-          : eligiblePaidSubscriptions
-              .filter(isPaidSubscriptionOrder)
-              .sort((a, b) => (a.paidAt ?? "").localeCompare(b.paidAt ?? ""))[0]) ?? null
-      if (firstPaid) {
-        await tryGrantReferralFirstPaymentBonus({
+      const paidEligible = [
+        ...eligiblePaidFixPacks,
+        ...eligiblePaidSubscriptions.filter(isPaidSubscriptionOrder),
+      ].sort((a, b) => (a.paidAt ?? "").localeCompare(b.paidAt ?? ""))
+      for (const paidOrder of paidEligible) {
+        await tryGrantReferralPaymentBonus({
           referredUserId: user.id,
-          order: firstPaid,
+          order: paidOrder,
+          provider: "tbank",
         })
       }
       const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")

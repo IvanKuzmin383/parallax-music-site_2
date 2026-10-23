@@ -137,53 +137,64 @@ export function CabinetProfileTab() {
   return (
     <div className="w-full max-w-none space-y-4">
         <Card id="cabinet-tariff" className="scroll-mt-20 py-4 gap-3">
-          <CardContent className="grid gap-4 sm:grid-cols-2 sm:gap-6">
-            <div className="space-y-2 min-w-0">
-              <div>
-                <p className="text-base font-semibold leading-none">Верификация</p>
-                <p className="mt-1 text-sm text-muted-foreground">
+          <CardContent className="grid gap-4 sm:grid-cols-2 sm:items-stretch sm:gap-6">
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="min-h-[2.75rem]">
+                <p className="flex h-4 items-center text-base font-semibold leading-none">
+                  Верификация
+                </p>
+                <p className="mt-1 text-sm leading-snug text-muted-foreground">
                   Нужна для загрузки релизов, клипов и вывода роялти
                 </p>
               </div>
-              <CabinetKycStatusBadge className="max-w-sm" />
+              <div className="mt-auto">
+                <CabinetKycStatusBadge className="max-w-sm" />
+              </div>
             </div>
-            <div className="space-y-2 min-w-0 sm:border-l sm:border-border sm:pl-6">
-              <p className="flex items-center gap-2 text-base font-semibold leading-none">
-                <Crown className="h-4 w-4 text-primary" />
-                Тариф
-              </p>
-              {subscription?.subscriptionName ? (
-                <>
-                  <div className="font-semibold text-lg">{subscription.subscriptionName}</div>
-                  {subscription.subscriptionName === "Fix" && effectiveLimit != null && (
-                    <div className="text-sm text-muted-foreground">
-                      {fixUsesWalletModel ? (
-                        <>
-                          Оплачено слотов: {effectiveLimit} (доступно для загрузки:{" "}
-                          {fixTracksAvailable})
-                        </>
-                      ) : (
-                        <>
-                          Лимит треков: {effectiveLimit} (доступно: {fixTracksAvailable})
-                        </>
-                      )}
+            <div className="flex min-w-0 flex-col gap-2 sm:border-l sm:border-border sm:pl-6">
+              <div className="min-h-[2.75rem]">
+                <p className="flex h-4 items-center gap-2 text-base font-semibold leading-none">
+                  <Crown className="h-4 w-4 shrink-0 text-primary" />
+                  Тариф
+                </p>
+                {subscription?.subscriptionName ? (
+                  <div className="mt-1 space-y-0.5">
+                    <div className="text-sm font-semibold leading-snug text-foreground">
+                      {subscription.subscriptionName}
                     </div>
-                  )}
-                  {subscription.subscriptionName !== "Fix" && subscription.subscriptionExpiresAt && (
-                    <div className="text-sm text-muted-foreground">
-                      Действует до:{" "}
-                      {format(
-                        new Date(subscription.subscriptionExpiresAt),
-                        "d MMMM yyyy",
-                        { locale: ru },
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-sm text-muted-foreground">Тариф не выбран</div>
-              )}
-              <div className="flex flex-wrap gap-2 pt-1">
+                    {subscription.subscriptionName === "Fix" && effectiveLimit != null ? (
+                      <div className="text-sm leading-snug text-muted-foreground">
+                        {fixUsesWalletModel ? (
+                          <>
+                            Оплачено слотов: {effectiveLimit} (доступно для загрузки:{" "}
+                            {fixTracksAvailable})
+                          </>
+                        ) : (
+                          <>
+                            Лимит треков: {effectiveLimit} (доступно: {fixTracksAvailable})
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+                    {subscription.subscriptionName !== "Fix" &&
+                    subscription.subscriptionExpiresAt ? (
+                      <div className="text-sm leading-snug text-muted-foreground">
+                        Действует до:{" "}
+                        {format(
+                          new Date(subscription.subscriptionExpiresAt),
+                          "d MMMM yyyy",
+                          { locale: ru },
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm leading-snug text-muted-foreground">
+                    Тариф не выбран
+                  </p>
+                )}
+              </div>
+              <div className="mt-auto flex flex-wrap gap-2">
                 {renewPlanId ? (
                   <Button
                     type="button"

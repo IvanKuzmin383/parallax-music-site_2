@@ -1,9 +1,12 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
@@ -26,26 +29,20 @@ function timelineActiveIndex(status: string): number {
 }
 
 export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps) {
+  const router = useRouter()
   const { order, loading } = useCabinetOrderById(orderId)
   const activeStep = order ? timelineActiveIndex(order.status) : 0
 
-  if (loading) {
+  useEffect(() => {
+    if (loading || order) return
+    toast.message("Этот платёж не отображается в разделе «Заказы»")
+    router.replace("/cabinet/orders")
+  }, [loading, order, router])
+
+  if (loading || !order) {
     return (
       <div className="flex justify-center py-20">
         <Spinner className="h-8 w-8" />
-      </div>
-    )
-  }
-
-  if (!order) {
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/cabinet/orders">
-            <ArrowLeft className="mr-2 h-4 w-4" />К заказам
-          </Link>
-        </Button>
-        <p className="text-muted-foreground">Заказ не найден</p>
       </div>
     )
   }

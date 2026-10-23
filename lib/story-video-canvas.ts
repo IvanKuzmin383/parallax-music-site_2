@@ -555,7 +555,8 @@ function drawTemplate(
     case "vinyl": {
       drawBlurredBackground(ctx, cover, width, height, 1.05)
       const r = width * 0.32
-      const rot = timeSec * 0.55
+      // ~18 об/мин визуально - заметное вращение за 15 с ролика
+      const rot = timeSec * ((Math.PI * 2) / 3.3)
       // outer disc
       ctx.save()
       ctx.beginPath()

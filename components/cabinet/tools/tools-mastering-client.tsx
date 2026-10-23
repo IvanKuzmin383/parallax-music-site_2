@@ -10,7 +10,17 @@ import {
   type ReactNode,
 } from "react"
 import Link from "next/link"
-import { ArrowLeft, ChevronDown, CircleHelp, Download, Loader2, Pause, Play, Upload } from "lucide-react"
+import {
+  ArrowLeft,
+  ChevronDown,
+  CircleHelp,
+  Download,
+  Loader2,
+  Pause,
+  Play,
+  Sparkles,
+  Upload,
+} from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -849,7 +859,7 @@ function ToolsMasteringInner() {
 
             <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
 
-            <div className="flex shrink-0 flex-col items-start gap-0.5 sm:items-end">
+            <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
               <Button
                 type="button"
                 size="sm"
@@ -870,12 +880,18 @@ function ToolsMasteringInner() {
                 )}
                 {downloadLabel}
               </Button>
-              <Link
-                href="/cabinet/design/mastering"
-                className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 border-primary/45 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                asChild
               >
-                AI-мастеринг на заказ
-              </Link>
+                <Link href="/cabinet/design/mastering">
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  AI-мастеринг на заказ
+                </Link>
+              </Button>
             </div>
           </div>
 

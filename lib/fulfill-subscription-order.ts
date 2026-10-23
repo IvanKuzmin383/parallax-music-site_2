@@ -138,6 +138,21 @@ export async function fulfillSubscriptionOrder(params: FulfillSubscriptionOrderP
       orderType: "subscription",
       amountRub: amount,
     })
+    try {
+      const { tryGrantReferralPaymentBonus } = await import("@/lib/cabinet-referrals")
+      await tryGrantReferralPaymentBonus({
+        referredUserId: user.id,
+        order,
+        provider,
+      })
+      const { tryEvaluateAchievements } = await import("@/lib/cabinet-achievements")
+      await tryEvaluateAchievements(user.id)
+    } catch (e) {
+      console.error("[fulfill-subscription-order] referral/achievements hook failed", {
+        orderId,
+        e,
+      })
+    }
 
     if (hasAutopayBinding && newExpiresAt) {
       await setCabinetUserAutopay(user.id, {

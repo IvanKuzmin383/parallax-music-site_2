@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Bell, CreditCard, LogOut, User, Wallet } from "lucide-react"
+import { toast } from "sonner"
 import { formatRub } from "@/lib/withdrawal-payout-calc"
+import {
+  cabinetServiceOrderExists,
+  parseCabinetOrderDetailHref,
+} from "@/lib/cabinet/notification-href"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -63,6 +69,7 @@ function relativeTime(iso: string): string {
 }
 
 export function CabinetTopbar() {
+  const router = useRouter()
   const { user, logout } = useCabinetSession()
   const [items, setItems] = useState<CabinetNotificationItem[]>([])
   const [unreadEvents, setUnreadEvents] = useState(0)
@@ -319,6 +326,8 @@ export function CabinetTopbar() {
                       </div>
                     )
 
+                    const orderDetail = parseCabinetOrderDetailHref(item.href)
+
                     const onActivate = () => {
                       if (item.kind === "event" && item.unread) {
                         void markEventsRead([item.id])
@@ -329,6 +338,19 @@ export function CabinetTopbar() {
                       if (opensSupport) openCabinetSupportChat()
                     }
 
+                    const onOrderDetailClick = async () => {
+                      onActivate()
+                      if (!orderDetail) return
+                      const exists = await cabinetServiceOrderExists(orderDetail.orderId)
+                      if (!exists) {
+                        toast.message("Этот платёж не отображается в разделе «Заказы»", {
+                          description: "Уведомление отмечено прочитанным.",
+                        })
+                        return
+                      }
+                      router.push(`/cabinet/orders/${orderDetail.orderId}`)
+                    }
+
                     return (
                       <li key={`${item.kind}-${item.id}`} className="min-w-0">
                         {opensSupport ? (
@@ -336,6 +358,14 @@ export function CabinetTopbar() {
                             type="button"
                             className={cn(rowClass, "w-full text-left")}
                             onClick={onActivate}
+                          >
+                            {body}
+                          </button>
+                        ) : orderDetail ? (
+                          <button
+                            type="button"
+                            className={cn(rowClass, "w-full text-left")}
+                            onClick={() => void onOrderDetailClick()}
                           >
                             {body}
                           </button>

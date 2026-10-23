@@ -381,3 +381,74 @@ export function applyStoryVideoTemplate(
     ...(template === "neon" || template === "noir" ? { showFrame: true } : {}),
   }
 }
+
+function asFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback
+}
+
+function asTrimmedString(value: unknown, fallback: string, maxLen: number): string {
+  if (typeof value !== "string") return fallback
+  return value.trim().slice(0, maxLen) || fallback
+}
+
+function asBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback
+}
+
+/** Безопасный разбор сохранённых настроек карточки (черновик / API). */
+export function parseStoryVideoProject(raw: unknown): StoryVideoProject {
+  const d = DEFAULT_STORY_VIDEO_PROJECT
+  const src =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {}
+
+  const template = isStoryVideoTemplate(src.template) ? src.template : d.template
+  const motion = isStoryVideoMotion(src.motion) ? src.motion : d.motion
+  const filter = isStoryVideoFilter(src.filter) ? src.filter : d.filter
+  const textLayout = isStoryVideoTextLayout(src.textLayout) ? src.textLayout : d.textLayout
+  const textAlign = isStoryVideoTextAlign(src.textAlign) ? src.textAlign : d.textAlign
+  const range = normalizeStoryVideoRange(
+    asFiniteNumber(src.startSec, d.startSec),
+    asFiniteNumber(src.startSec, d.startSec) + asFiniteNumber(src.durationSec, d.durationSec)
+  )
+
+  return {
+    template,
+    motion,
+    filter,
+    textLayout,
+    textX: clampStoryVideoTextAxis(asFiniteNumber(src.textX, d.textX)),
+    textY: clampStoryVideoTextAxis(asFiniteNumber(src.textY, d.textY)),
+    textAlign,
+    title: asTrimmedString(src.title, d.title, 120),
+    artist: asTrimmedString(src.artist, d.artist, 120),
+    hookText: asTrimmedString(src.hookText, d.hookText, 200),
+    accent: normalizeAccentHex(
+      typeof src.accent === "string" ? src.accent : d.accent,
+      d.accent
+    ),
+    frameColor: normalizeAccentHex(
+      typeof src.frameColor === "string" ? src.frameColor : d.frameColor,
+      d.frameColor
+    ),
+    showFrame: asBoolean(src.showFrame, d.showFrame),
+    waveformColor: normalizeAccentHex(
+      typeof src.waveformColor === "string" ? src.waveformColor : d.waveformColor,
+      d.waveformColor
+    ),
+    startSec: range.startSec,
+    durationSec: range.durationSec,
+    motionSpeed: clampStoryVideoMotionSpeed(asFiniteNumber(src.motionSpeed, d.motionSpeed)),
+    showWaveform: asBoolean(src.showWaveform, d.showWaveform),
+    showText: asBoolean(src.showText, d.showText),
+    showTextLine: asBoolean(src.showTextLine, d.showTextLine),
+    badges: normalizeStoryVideoBadges(src.badges),
+    badgeX: clampStoryVideoTextAxis(asFiniteNumber(src.badgeX, d.badgeX)),
+    badgeY: clampStoryVideoTextAxis(asFiniteNumber(src.badgeY, d.badgeY)),
+  }
+}
+
+export function serializeStoryVideoProject(project: StoryVideoProject): string {
+  return JSON.stringify(parseStoryVideoProject(project))
+}

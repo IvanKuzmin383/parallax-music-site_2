@@ -38,11 +38,9 @@ export default function CabinetSettingsPage() {
         }}
       >
         <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:gap-4">
-          {tab !== "achievements" ? (
-            <h1 className="shrink-0 text-2xl font-bold tracking-tight md:text-[1.75rem] md:leading-tight">
-              Настройки
-            </h1>
-          ) : null}
+          <h1 className="shrink-0 text-2xl font-bold tracking-tight md:text-[1.75rem] md:leading-tight">
+            {tab === "achievements" ? "Достижения и бонусы" : "Настройки"}
+          </h1>
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 sm:w-auto sm:min-w-[28rem]">
             <TabsTrigger value="profile">Профиль</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>

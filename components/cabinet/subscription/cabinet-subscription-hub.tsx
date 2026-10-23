@@ -20,6 +20,7 @@ import { useCabinetSubscription } from "@/components/cabinet/subscription/cabine
 import { CabinetSubscriptionAutopayPanel } from "@/components/cabinet/subscription/cabinet-subscription-autopay-panel"
 import { CabinetSubscriptionExpiredBanner } from "@/components/cabinet/subscription/cabinet-subscription-expired-banner"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
+import { getSubscriptionPlanPurchaseBlockReason } from "@/lib/subscription-plan-eligibility"
 import { isArtistSlotActive } from "@/lib/subscription-track-limits"
 
 type ArtistSlotView = {
@@ -60,15 +61,27 @@ export function CabinetSubscriptionHub() {
   const { openCheckout } = useCabinetSubscription()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserSub | null>(null)
+  const [planTracks, setPlanTracks] = useState<
+    Array<{ status?: string | null; artistName?: string | null }>
+  >([])
   const [fixDialogOpen, setFixDialogOpen] = useState(false)
   const paymentHandledRef = useRef(false)
 
   const loadUser = useCallback(async () => {
     try {
-      const userRes = await fetch("/api/cabinet/user", { credentials: "include" })
+      const [userRes, tracksRes] = await Promise.all([
+        fetch("/api/cabinet/user", { credentials: "include" }),
+        fetch("/api/cabinet/tracks", { credentials: "include" }),
+      ])
       if (userRes.ok) {
         const data = (await userRes.json()) as { user?: UserSub }
         setUser(data.user ?? null)
+      }
+      if (tracksRes.ok) {
+        const data = (await tracksRes.json()) as {
+          tracks?: Array<{ status?: string | null; artistName?: string | null }>
+        }
+        setPlanTracks(data.tracks ?? [])
       }
     } catch {
       toast.error("Не удалось загрузить подписку")
@@ -134,6 +147,13 @@ export function CabinetSubscriptionHub() {
     !!renewPlanId && renewPlanId !== "label" && activeSlots.length > 0 && !hasLabelSlot
 
   const startCheckout = (planId: PlanId, purchaseIntent?: "extra_slot") => {
+    if (purchaseIntent !== "extra_slot") {
+      const block = getSubscriptionPlanPurchaseBlockReason(planId, planTracks)
+      if (block) {
+        toast.error(block)
+        return
+      }
+    }
     openCheckout({ planId, purchaseIntent })
   }
 
@@ -317,6 +337,7 @@ export function CabinetSubscriptionHub() {
           const isCurrent =
             !!user?.subscriptionName &&
             user.subscriptionName.toLowerCase() === plan.title.toLowerCase()
+          const planBlock = getSubscriptionPlanPurchaseBlockReason(plan.id, planTracks)
           return (
             <Card
               key={plan.id}
@@ -325,7 +346,8 @@ export function CabinetSubscriptionHub() {
                 "motion-safe:hover:-translate-y-1 hover:border-primary/45",
                 "hover:shadow-[0_16px_40px_rgba(0,0,0,0.35)]",
                 plan.popular && "border-primary/50",
-                isCurrent && "ring-1 ring-primary/40"
+                isCurrent && "ring-1 ring-primary/40",
+                planBlock && "opacity-80"
               )}
             >
               {plan.popular ? (
@@ -351,14 +373,19 @@ export function CabinetSubscriptionHub() {
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                   <span>{plan.limitLabel}</span>
                 </p>
+                {planBlock ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">{planBlock}</p>
+                ) : null}
                 <div className="mt-auto pt-2">
                   <Button
                     type="button"
                     className="w-full"
                     variant={isCurrent ? "default" : "outline"}
+                    disabled={Boolean(planBlock)}
+                    title={planBlock ?? undefined}
                     onClick={() => startCheckout(plan.id)}
                   >
-                    {isCurrent ? "Продлить" : "Выбрать"}
+                    {planBlock ? "Недоступно" : isCurrent ? "Продлить" : "Выбрать"}
                   </Button>
                 </div>
               </CardContent>

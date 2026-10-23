@@ -13,6 +13,8 @@ import { createTbankSubscriptionPayment } from "@/lib/tbank-subscription"
 import { getCabinetSession, getCabinetToken } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { listActiveCabinetArtistSubscriptionsByUserId } from "@/lib/cabinet-artist-subscriptions"
+import { getSubscriptionPlanPurchaseBlockReason } from "@/lib/subscription-plan-eligibility"
+import { getTracksByUserId } from "@/lib/tracks"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const CABINET_RETURN = "/cabinet/subscription"
@@ -171,6 +173,19 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+    }
+  } else {
+    // Start/Medium/Pro: нельзя купить, если в кабинете уже больше лимита треков / артистов
+    const existingUser = await getCabinetUserByEmail(email)
+    if (existingUser) {
+      const tracks = await getTracksByUserId(existingUser.email)
+      const block = getSubscriptionPlanPurchaseBlockReason(planId, tracks)
+      if (block) {
+        return NextResponse.json(
+          { error: block, code: "plan_eligibility" },
+          { status: 403 }
+        )
+      }
     }
   }
 
