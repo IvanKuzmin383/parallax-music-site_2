@@ -16,11 +16,9 @@ declare global {
     _fbq?: unknown
     dataLayer?: unknown[]
     gtag?: (...args: unknown[]) => void
-    ttq?: {
-      load: (id: string) => void
-      page: () => void
-      track: (name: string, props?: Record<string, unknown>) => void
-    }
+    // TikTok stub / SDK - форма меняется при загрузке скрипта
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ttq?: any
   }
 }
 
@@ -99,16 +97,34 @@ function initTikTok(pixelId: string): void {
     return
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ttq: any = (window.ttq = window.ttq || [])
-  ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie"]
-  ttq.setAndDefer = function (t: { [k: string]: unknown }, e: string) {
+  const ttq: any = window.ttq || []
+  window.ttq = ttq
+  ttq.methods = [
+    "page",
+    "track",
+    "identify",
+    "instances",
+    "debug",
+    "on",
+    "off",
+    "once",
+    "ready",
+    "alias",
+    "group",
+    "enableCookie",
+    "disableCookie",
+  ]
+  ttq.setAndDefer = function (t: { [k: string]: unknown; push: (...a: unknown[]) => void }, e: string) {
     t[e] = function (...args: unknown[]) {
       t.push([e, ...args])
     }
   }
-  for (const m of ttq.methods) ttq.setAndDefer(ttq, m)
+  for (const m of ttq.methods as string[]) ttq.setAndDefer(ttq, m)
   ttq.load = function (id: string) {
-    loadScript(`https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=${encodeURIComponent(id)}&lib=ttq`, "prllx-tiktok-pixel")
+    loadScript(
+      `https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=${encodeURIComponent(id)}&lib=ttq`,
+      "prllx-tiktok-pixel",
+    )
     ttq._i = ttq._i || {}
     ttq._i[id] = []
     ttq._i[id]._u = `https://analytics.tiktok.com/i18n/pixel/events.js`
