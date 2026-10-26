@@ -465,7 +465,7 @@ export function ReleaseTrackListPlayer({
       </ol>
 
       <Dialog open={Boolean(infoTrack)} onOpenChange={(open) => !open && setInfoTrack(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="cabinet-scroll max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {infoTrack?.trackName.trim() || "Информация о треке"}

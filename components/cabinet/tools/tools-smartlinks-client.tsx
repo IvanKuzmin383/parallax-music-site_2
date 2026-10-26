@@ -6,7 +6,6 @@ import { ArrowLeft, ExternalLink, Link2, Loader2, Plus, Trash2 } from "lucide-re
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
-import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
 import { smartlinkPublicUrl } from "@/lib/smartlink-public-origin"
 import { cn } from "@/lib/utils"
 
@@ -37,13 +36,7 @@ const STATUS_LABEL: Record<string, string> = {
 export function ToolsSmartlinksClient() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [importReleaseId, setImportReleaseId] = useState("")
   const [items, setItems] = useState<ListItem[]>([])
-  const { releases, loading: releasesLoading } = useCabinetReleases()
-  const importCandidates = releases.filter(
-    (r) => r.kind !== "draft" && r.releaseStatus !== "draft" && r.status !== "Черновик"
-  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -98,31 +91,6 @@ export function ToolsSmartlinksClient() {
     void load()
   }
 
-  const importFromRelease = async () => {
-    if (!importReleaseId.trim()) {
-      toast.error("Выберите релиз")
-      return
-    }
-    setImporting(true)
-    try {
-      const res = await fetch("/api/cabinet/tools/smartlinks", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fromReleaseId: importReleaseId.trim() }),
-      })
-      const data = (await res.json()) as { id?: string; error?: string }
-      if (!res.ok || !data.id) {
-        toast.error(data.error || "Не удалось импортировать")
-        return
-      }
-      toast.success("Смартлинк создан из релиза")
-      window.location.href = `/cabinet/tools/smartlinks/${data.id}`
-    } finally {
-      setImporting(false)
-    }
-  }
-
   return (
     <div className="w-full max-w-none space-y-6">
       <div className="space-y-3">
@@ -145,36 +113,6 @@ export function ToolsSmartlinksClient() {
           </Button>
         </div>
       </div>
-
-      {importCandidates.length > 0 ? (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border/70 bg-card/30 px-4 py-3">
-          <label className="min-w-[12rem] flex-1 space-y-1 text-sm">
-            <span className="text-muted-foreground">Импорт из релиза</span>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              value={importReleaseId}
-              disabled={releasesLoading || importing}
-              onChange={(e) => setImportReleaseId(e.target.value)}
-            >
-              <option value="">Выберите релиз…</option>
-              {importCandidates.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title} - {r.artist}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!importReleaseId || importing}
-            onClick={() => void importFromRelease()}
-          >
-            {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Импортировать
-          </Button>
-        </div>
-      ) : null}
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

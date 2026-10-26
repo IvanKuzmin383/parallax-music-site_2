@@ -2049,7 +2049,7 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
             </div>
           </EditorSection>
 
-          <EditorSection title="Аналитика" defaultOpen={false}>
+          <EditorSection title="Аналитика" defaultOpen>
             <SmartlinkAnalyticsPanel
               apiPath={
                 isTools

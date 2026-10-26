@@ -1272,11 +1272,6 @@ export function AiTracksStudioClient() {
               </div>
             ) : null}
 
-            <p className="text-xs text-muted-foreground">
-              Списание {formatRub(priceRub)} с баланса при запуске. Технический сбой - средства
-              возвращаются.
-            </p>
-
             <Button
               type="button"
               className="min-h-12 w-full text-base"

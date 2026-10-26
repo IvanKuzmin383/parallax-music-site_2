@@ -66,17 +66,22 @@ export function fireSmartlinkEvent(
   const body = JSON.stringify(payload)
 
   try {
-    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-      const blob = new Blob([body], { type: "application/json" })
-      if (navigator.sendBeacon(url, blob)) return
-    }
+    // fetch+keepalive надёжнее sendBeacon+Blob: Next иногда не парсит beacon body
     void fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
       keepalive: true,
       credentials: "omit",
-    }).catch(() => {})
+    }).catch(() => {
+      try {
+        if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+          navigator.sendBeacon(url, new Blob([body], { type: "application/json" }))
+        }
+      } catch {
+        // ignore
+      }
+    })
   } catch {
     // ignore
   }
