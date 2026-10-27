@@ -136,7 +136,6 @@ export function SmartlinkLanding({
   const visuals = resolveSmartlinkVisualFlags(theme)
   const {
     shellLight,
-    isSheetCard,
     contentLight,
     isBlurBg,
     isGlassCard,
@@ -207,6 +206,8 @@ export function SmartlinkLanding({
 
   const forceIcons = smartlinkForcesIcons(theme.preset, theme)
   const iconsOnly = forceIcons || theme.platformLayout === "icons"
+  /** На blur-фоне тень обложки рисует «коробку» поверх фона - не нужно. */
+  const showCoverShadow = Boolean(theme.coverShadow) && !isBlurBg
 
   const shellClass = cn(
     // overflow-y-auto: длинный список площадок должен скроллиться, не обрезаться
@@ -229,25 +230,16 @@ export function SmartlinkLanding({
   )
 
   const cardClass = cn(
-    // Контент по центру доступной высоты; Powered by вынесен ниже через mt-auto
+    // Только раскладка: без фона, без border, без «карточки» поверх фона пресета
     "relative z-[1] flex w-full flex-1 flex-col items-center justify-center gap-4",
     preview ? "max-w-[280px]" : "max-w-md",
-    // Карточка/хром страницы - только от фона (bg*), без рамок и без «коробки» вокруг контента
-    isSheetCard && "rounded-2xl bg-white/90 px-4 py-6 shadow-[0_18px_50px_rgba(20,16,10,0.12)]",
-    isSignal && "px-1",
-    isGlassCard && "px-1",
-    bgCinema && "gap-3 px-0 w-full max-w-none",
-    bgCarbon && "px-1",
-    bgStage && "px-1",
-    bgGraffiti && "gap-3 px-2",
-    bgRave && "px-1",
-    bgArcade && "sl-arcade-card gap-3 px-3 py-5",
-    bgVhs && "gap-3 px-2",
-    bgNoir && "gap-3 pl-4",
-    bgChrome && "px-1",
-    bgHolo && "px-1",
-    bgDiary && "sl-diary-card gap-3 px-4 py-5",
-    bgZine && "gap-3 px-2",
+    bgCinema && "w-full max-w-none gap-3",
+    bgGraffiti && "gap-3",
+    bgVhs && "gap-3",
+    bgNoir && "gap-3",
+    bgZine && "gap-3",
+    bgArcade && "gap-3",
+    bgDiary && "gap-3",
     isOrbit && "gap-5",
   )
 
@@ -784,7 +776,7 @@ export function SmartlinkLanding({
       className={cn(
         "relative aspect-square w-full",
         coverMax,
-        theme.coverShadow && "drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)]",
+        showCoverShadow && "drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)]",
         animClass(theme),
       )}
       style={animStyle(theme, animIndex++)}
@@ -818,7 +810,7 @@ export function SmartlinkLanding({
       <div
         className={cn(
           "absolute left-1/2 top-1/2 z-[2] aspect-square w-[48%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-black/30",
-          theme.coverShadow && "shadow-[0_12px_32px_rgba(0,0,0,0.45)]",
+          showCoverShadow && "shadow-[0_12px_32px_rgba(0,0,0,0.45)]",
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -875,7 +867,7 @@ export function SmartlinkLanding({
       className={cn(
         "sl-polaroid relative w-full rotate-[-2deg]",
         preview ? "max-w-[200px]" : "max-w-[260px]",
-        theme.coverShadow && "drop-shadow-[0_16px_28px_rgba(0,0,0,0.4)]",
+        showCoverShadow && "drop-shadow-[0_16px_28px_rgba(0,0,0,0.4)]",
         animClass(theme),
       )}
       style={animStyle(theme, animIndex++)}
@@ -921,7 +913,7 @@ export function SmartlinkLanding({
       className={cn(
         "relative w-full",
         preview ? "max-w-[220px]" : "max-w-[300px]",
-        theme.coverShadow && "drop-shadow-[0_16px_36px_rgba(0,0,0,0.5)]",
+        showCoverShadow && "drop-shadow-[0_16px_36px_rgba(0,0,0,0.5)]",
         animClass(theme),
       )}
       style={animStyle(theme, animIndex++)}
@@ -964,8 +956,8 @@ export function SmartlinkLanding({
         "relative aspect-square w-full overflow-hidden bg-black/20",
         isPoster ? posterCoverMax : coverMax,
         coverRadiusClass(theme.cover, coverFormat),
-        theme.coverShadow && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
-        isDiaryCover && "border border-black/15 shadow-[2px_2px_0_rgba(0,0,0,0.08)]",
+        showCoverShadow && "shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
+        isDiaryCover && "shadow-[2px_2px_0_rgba(0,0,0,0.08)]",
         animClass(theme),
       )}
       style={animStyle(theme, animIndex++)}

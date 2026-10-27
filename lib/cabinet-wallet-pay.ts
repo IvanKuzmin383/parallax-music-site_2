@@ -43,6 +43,45 @@ export async function payOrderFromWallet(order: Order): Promise<PayOrderFromWall
   }
 
   const amount = Number(order.totalAmount)
+  if (!Number.isFinite(amount) || amount < 0) {
+    return { ok: false, error: "Некорректная сумма заказа", status: 400 }
+  }
+
+  const paidAt = new Date().toISOString()
+
+  // 100% купон: заказ 0 ₽ - fulfillment без списания с баланса
+  if (amount === 0) {
+    const paymentId = `wallet:coupon:${order.id}`
+    try {
+      await fulfillPaidOrder({
+        order,
+        paymentId,
+        paidAt,
+        amountRub: "0.00",
+        provider: "wallet",
+      })
+    } catch (error) {
+      console.error("[cabinet-wallet-pay] free coupon fulfill failed", {
+        orderId: order.id,
+        error,
+      })
+      return {
+        ok: false,
+        error: "Не удалось подтвердить бесплатный заказ. Напишите в поддержку.",
+        status: 500,
+      }
+    }
+    let walletBalance = 0
+    try {
+      const { getCabinetUserById } = await import("@/lib/cabinet-users")
+      const user = await getCabinetUserById(order.userId)
+      walletBalance = Number(user?.walletBalance) || 0
+    } catch {
+      /* ignore */
+    }
+    return { ok: true, orderId: order.id, paymentId, walletBalance }
+  }
+
   const debit = await debitWalletForServicePayment({
     userId: order.userId,
     amount,
@@ -58,7 +97,6 @@ export async function payOrderFromWallet(order: Order): Promise<PayOrderFromWall
   }
 
   const paymentId = `wallet:${debit.transaction.id}`
-  const paidAt = new Date().toISOString()
 
   try {
     await fulfillPaidOrder({

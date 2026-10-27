@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +25,11 @@ import {
 } from "@/lib/cabinet/service-back"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
 import { toast } from "sonner"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 function SpotifyVideoshotPageInner() {
   const router = useRouter()
@@ -45,6 +50,15 @@ function SpotifyVideoshotPageInner() {
   const [contactValue, setContactValue] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [paymentSuccessOpen, setPaymentSuccessOpen] = useState(false)
   const paymentSuccessHandledRef = useRef(false)
   const initialTrackPickedRef = useRef(false)
@@ -128,6 +142,7 @@ function SpotifyVideoshotPageInner() {
           comment: comment.trim(),
           contactType,
           contactValue: contactValue.trim(),
+          ...couponPaymentPayload(applyCoupon),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { paid?: boolean; error?: string }
@@ -303,8 +318,20 @@ function SpotifyVideoshotPageInner() {
               />
             </div>
 
+            <CabinetApplyCouponControl
+              orderType="spotify_videoshot"
+              amountRub={SPOTIFY_VIDEOSHOT_PRICE_RUB}
+              applied={applyCoupon}
+              onAppliedChange={onCouponAppliedChange}
+              compact
+            />
+
             <p className="text-sm font-medium">
-              {formText.totalLabel}: {SPOTIFY_VIDEOSHOT_PRICE_RUB} {formText.currencySuffix}
+              {formText.totalLabel}:{" "}
+              {applyCoupon && couponPreview
+                ? couponPreview.finalAmountRub
+                : SPOTIFY_VIDEOSHOT_PRICE_RUB}{" "}
+              {formText.currencySuffix}
             </p>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

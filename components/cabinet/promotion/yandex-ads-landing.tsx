@@ -33,6 +33,7 @@ import {
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
 import {
   YANDEX_ADS_DEFAULT_OBJECT,
   YANDEX_ADS_OBJECTS,
@@ -186,7 +187,11 @@ export function YandexAdsLanding({ service }: { service: ServiceCatalogEntry }) 
   const contactRef = useRef<HTMLInputElement>(null)
 
   const object = getYandexAdsObject(objectId)
-  const priceLabel = service.priceLabel || YANDEX_ADS_PRICE_LABEL
+  const { byKey } = useServicePrices()
+  const priceLabel =
+    (service.priceKey ? byKey(service.priceKey)?.cardLabel : null) ||
+    service.priceLabel ||
+    YANDEX_ADS_PRICE_LABEL
   const contactFromProfile = Boolean(accountEmail)
   const budgetDisplay = formatBudgetDisplay(budget)
 

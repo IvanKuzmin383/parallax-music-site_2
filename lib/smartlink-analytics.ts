@@ -348,7 +348,7 @@ export async function getSmartlinkAnalyticsReport(
           smartlinkKey,
           fromIso,
           toIso,
-          `COALESCE(NULLIF(upper(trim(country)), ''), '??')`,
+          `COALESCE(NULLIF(upper(trim(country)), ''), 'XX')`,
           "view",
           30,
         ),

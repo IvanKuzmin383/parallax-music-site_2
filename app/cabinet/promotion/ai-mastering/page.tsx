@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +26,10 @@ import { AI_MASTERING_PRICE_RUB, MAX_AI_MASTERING_TRACKS } from "@/lib/ai-master
 import { MAX_CABINET_WAV_BYTES } from "@/lib/cabinet-wav-upload-limits"
 import { checkWavFileIsStereo } from "@/lib/wav-parse-stereo"
 import { toast } from "sonner"
+import {
+  CabinetApplyCouponControl,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 const TRACKS_MIN = 1
 const MAX_WAV_BYTES = MAX_CABINET_WAV_BYTES
@@ -47,6 +51,15 @@ function AiMasteringPageInner() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [consentOfferLicense, setConsentOfferLicense] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [paymentSuccessOpen, setPaymentSuccessOpen] = useState(false)
   const paymentSuccessHandledRef = useRef(false)
   const masteringAudioRefs = useRef<Record<string, HTMLAudioElement | null>>({})
@@ -93,6 +106,7 @@ function AiMasteringPageInner() {
     !audioSlotErrors.slice(0, tracksCount).some(Boolean)
   const hasContact = Boolean(contactEmail.trim() || contactTelegram.trim())
   const total = tracksCount * AI_MASTERING_PRICE_RUB
+  const dueTotal = applyCoupon && couponPreview ? couponPreview.finalAmountRub : total
   const masteringExampleAudios = [
     { src: "/aimastering/before.wav", title: "AI мастеринг: До", label: "До" },
     { src: "/aimastering/after.wav", title: "AI мастеринг: После", label: "После" },
@@ -190,6 +204,7 @@ function AiMasteringPageInner() {
       fd.append("contactEmail", contactEmail.trim())
       fd.append("contactTelegram", contactTelegram.trim())
       fd.append("consentOfferLicense", "true")
+      if (applyCoupon) fd.append("applyCoupon", "true")
       for (let i = 0; i < tracksCount; i++) {
         const f = audioFiles[i]
         if (f) fd.append(`audio_${i}`, f, f.name)
@@ -344,9 +359,23 @@ function AiMasteringPageInner() {
               <p className="text-xs text-muted-foreground">{am.contactHint}</p>
             </div>
 
+            {validCount && total > 0 ? (
+              <CabinetApplyCouponControl
+                orderType="ai_mastering"
+                amountRub={total}
+                applied={applyCoupon}
+                onAppliedChange={onCouponAppliedChange}
+              />
+            ) : null}
+
             <p className="text-sm font-semibold">
-              {am.totalLabel}: {AI_MASTERING_PRICE_RUB} {am.currencySuffix} × {tracksCount} = {total}{" "}
+              {am.totalLabel}: {AI_MASTERING_PRICE_RUB} {am.currencySuffix} × {tracksCount} = {dueTotal}{" "}
               {am.currencySuffix}
+              {applyCoupon && couponPreview ? (
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  (было {total} {am.currencySuffix})
+                </span>
+              ) : null}
             </p>
 
             <div className="flex flex-row items-start gap-3 rounded-md border border-border p-3">

@@ -4,6 +4,10 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { getServicePriceRub } from "@/lib/service-prices"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
 import { getReleaseById } from "@/lib/releases"
 import { getTrackById } from "@/lib/tracks"
 import { getAlbumById } from "@/lib/albums"
@@ -94,7 +98,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  const totalAmount = (await getServicePriceRub("business_music")).toFixed(2)
+  const priceRub = await getServicePriceRub("business_music")
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "business_music",
+    amountRub: priceRub,
+    body: raw,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+
   const isTelegramContact = contactType === "telegram"
   const displayTitle = owned.artistName
     ? `${owned.artistName} - ${owned.trackTitle}`
@@ -104,7 +118,7 @@ export async function POST(request: NextRequest) {
     orderType: "business_music",
     userId: user.id,
     tracksCount: 1,
-    totalAmount,
+    totalAmount: priced.amountRub.toFixed(2),
     contactEmail: isTelegramContact ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegramContact ? contactValue : undefined,
     serviceDetails: {
@@ -114,6 +128,7 @@ export async function POST(request: NextRequest) {
       comment,
       contactType,
       contactValue,
+      ...couponServiceDetailsFromPricing(priced),
     },
   })
 

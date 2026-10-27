@@ -96,46 +96,46 @@ export function PromotionFreeConsultButton({
               Выберите удобный канал - ответим и подскажем по продвижению.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2.5 pt-1">
-            <Button asChild size="lg" variant="outline" className="h-auto w-full justify-start gap-3 py-3.5">
+          <div className="flex flex-col gap-1.5 pt-1">
+            <Button asChild size="sm" variant="outline" className="h-9 w-full justify-start gap-2.5 px-3">
               <a href={PARALLAX_VK_URL} target="_blank" rel="noopener noreferrer">
-                <VkIcon size={22} />
+                <VkIcon size={18} />
                 ВКонтакте
               </a>
             </Button>
             {maxUrl ? (
-              <Button asChild size="lg" variant="outline" className="h-auto w-full justify-start gap-3 py-3.5">
+              <Button asChild size="sm" variant="outline" className="h-9 w-full justify-start gap-2.5 px-3">
                 <a href={maxUrl} target="_blank" rel="noopener noreferrer">
-                  <MaxIcon size={22} />
+                  <MaxIcon size={18} />
                   Макс
                 </a>
               </Button>
             ) : (
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="h-auto w-full justify-start gap-3 py-3.5"
+                className="h-9 w-full justify-start gap-2.5 px-3"
                 onClick={openSupport}
               >
-                <MaxIcon size={22} />
+                <MaxIcon size={18} />
                 Макс
               </Button>
             )}
-            <Button asChild size="lg" variant="outline" className="h-auto w-full justify-start gap-3 py-3.5">
+            <Button asChild size="sm" variant="outline" className="h-9 w-full justify-start gap-2.5 px-3">
               <a href={telegramHref} target="_blank" rel="noopener noreferrer">
-                <TelegramIcon size={22} />
+                <TelegramIcon size={18} />
                 Telegram
               </a>
             </Button>
             <Button
               type="button"
-              size="lg"
+              size="sm"
               variant="outline"
-              className="h-auto w-full justify-start gap-3 py-3.5"
+              className="h-9 w-full justify-start gap-2.5 px-3"
               onClick={openSupport}
             >
-              <MessageCircle className="size-[22px] shrink-0" aria-hidden />
+              <MessageCircle className="size-[18px] shrink-0" aria-hidden />
               Чат с поддержкой
             </Button>
           </div>

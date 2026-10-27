@@ -10,6 +10,7 @@ export type CabinetNotificationType =
   | "withdrawal_status"
   | "payment_success"
   | "royalty_to_wallet"
+  | "admin_message"
 
 export type CabinetNotification = {
   id: string
@@ -430,4 +431,102 @@ export async function tryNotifyRoyaltyToWallet(params: {
     entityType: "balance",
     entityId: params.userId,
   })
+}
+
+const BROADCAST_INSERT_BATCH = 80
+
+/** Рассылка сообщения из админки в колокольчик (всем или выбранным). */
+export async function broadcastAdminCabinetNotification(params: {
+  title: string
+  body: string
+  audience: "all" | "selected"
+  userIds?: string[]
+}): Promise<{ sent: number; recipientCount: number }> {
+  const title = params.title.trim()
+  const body = params.body.trim()
+  if (!title || !body) {
+    throw new Error("title_and_body_required")
+  }
+
+  let userIds: string[]
+  if (params.audience === "all") {
+    const rows = await query<{ id: string }>(`SELECT id FROM cabinet_users`)
+    userIds = rows.map((r) => r.id)
+  } else {
+    const requested = [
+      ...new Set((params.userIds ?? []).map((id) => id.trim()).filter(Boolean)),
+    ]
+    if (requested.length === 0) {
+      throw new Error("user_ids_required")
+    }
+    const placeholders = requested.map(() => "?").join(", ")
+    const rows = await query<{ id: string }>(
+      `SELECT id FROM cabinet_users WHERE id IN (${placeholders})`,
+      requested
+    )
+    userIds = rows.map((r) => r.id)
+  }
+
+  if (userIds.length === 0) {
+    return { sent: 0, recipientCount: 0 }
+  }
+
+  const createdAt = new Date().toISOString()
+  let sent = 0
+
+  for (let i = 0; i < userIds.length; i += BROADCAST_INSERT_BATCH) {
+    const chunk = userIds.slice(i, i + BROADCAST_INSERT_BATCH)
+    const valueSql = chunk.map(() => "(?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?)").join(", ")
+    const insertParams: unknown[] = []
+    for (const userId of chunk) {
+      insertParams.push(
+        crypto.randomUUID(),
+        userId,
+        "admin_message",
+        title,
+        body,
+        createdAt
+      )
+    }
+    await execute(
+      `
+      INSERT INTO cabinet_notifications (
+        id, user_id, type, title, body, href, entity_type, entity_id, read_at, created_at
+      ) VALUES ${valueSql}
+      `,
+      insertParams
+    )
+    sent += chunk.length
+  }
+
+  void fanOutAdminTelegram(userIds, title, body)
+
+  return { sent, recipientCount: userIds.length }
+}
+
+async function fanOutAdminTelegram(
+  userIds: string[],
+  title: string,
+  body: string
+): Promise<void> {
+  try {
+    const { trySendCabinetTelegramNotification } = await import("@/lib/cabinet-telegram")
+    const concurrency = 5
+    for (let i = 0; i < userIds.length; i += concurrency) {
+      const chunk = userIds.slice(i, i + concurrency)
+      await Promise.all(
+        chunk.map((userId) =>
+          trySendCabinetTelegramNotification({
+            userId,
+            type: "admin_message",
+            title,
+            body,
+            href: "/cabinet/notifications",
+          })
+        )
+      )
+    }
+  } catch (error) {
+    console.error("[cabinet-notifications] admin telegram fan-out failed:", error)
+  }
 }

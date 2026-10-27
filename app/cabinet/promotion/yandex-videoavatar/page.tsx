@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,6 +24,11 @@ import {
 } from "@/lib/cabinet/service-back"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
 import { toast } from "sonner"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 function YandexVideoavatarPageInner() {
   const router = useRouter()
@@ -40,6 +45,15 @@ function YandexVideoavatarPageInner() {
   const [contactValue, setContactValue] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [paymentSuccessOpen, setPaymentSuccessOpen] = useState(false)
   const paymentSuccessHandledRef = useRef(false)
 
@@ -99,6 +113,7 @@ function YandexVideoavatarPageInner() {
           comment: comment.trim(),
           contactType,
           contactValue: contactValue.trim(),
+          ...couponPaymentPayload(applyCoupon),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as { paid?: boolean; error?: string }
@@ -212,8 +227,20 @@ function YandexVideoavatarPageInner() {
               />
             </div>
 
+            <CabinetApplyCouponControl
+              orderType="yandex_videoavatar"
+              amountRub={YANDEX_VIDEOAVATAR_PRICE_RUB}
+              applied={applyCoupon}
+              onAppliedChange={onCouponAppliedChange}
+              compact
+            />
+
             <p className="text-sm font-medium">
-              {formText.totalLabel}: {YANDEX_VIDEOAVATAR_PRICE_RUB} {formText.currencySuffix}
+              {formText.totalLabel}:{" "}
+              {applyCoupon && couponPreview
+                ? couponPreview.finalAmountRub
+                : YANDEX_VIDEOAVATAR_PRICE_RUB}{" "}
+              {formText.currencySuffix}
             </p>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

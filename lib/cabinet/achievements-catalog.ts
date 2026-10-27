@@ -6,6 +6,9 @@ export type AchievementCategory =
   | "finance"
   | "services"
   | "referrals"
+  | "growth"
+
+export type AchievementRarity = "common" | "rare" | "legendary"
 
 export type AchievementReward =
   | { type: "none" }
@@ -25,127 +28,192 @@ export type AchievementDef = {
   title: string
   description: string
   category: AchievementCategory
+  rarity: AchievementRarity
   xp: number
   reward: AchievementReward
 }
 
 export const ACHIEVEMENTS_CATALOG: AchievementDef[] = [
   {
-    id: "welcome",
-    title: "Добро пожаловать",
-    description: "Зарегистрировались в кабинете",
+    id: "first_light",
+    title: "Первый свет",
+    description: "Доведите релиз до площадок: черновик → модерация → релиз",
     category: "onboarding",
-    xp: 10,
-    reward: { type: "none" },
-  },
-  {
-    id: "first_draft",
-    title: "Первый черновик",
-    description: "Создали черновик релиза",
-    category: "onboarding",
-    xp: 20,
-    reward: { type: "none" },
-  },
-  {
-    id: "first_moderation",
-    title: "На проверке",
-    description: "Отправили релиз на модерацию",
-    category: "onboarding",
-    xp: 30,
-    reward: { type: "none" },
-  },
-  {
-    id: "first_released",
-    title: "Релизер",
-    description: "Первый релиз на площадках",
-    category: "catalog",
-    xp: 50,
+    rarity: "common",
+    xp: 80,
     reward: {
       type: "coupon",
       title: "−10% на AI-обложку",
       percentOff: 10,
       maxDiscountRub: 100,
       serviceScope: "ai_cover,track_cover",
-      daysValid: 30,
-    },
-  },
-  {
-    id: "releases_3",
-    title: "Каталог",
-    description: "3 релиза со статусом 'Выпущен'",
-    category: "catalog",
-    xp: 40,
-    reward: { type: "none" },
-  },
-  {
-    id: "releases_10",
-    title: "Дискография",
-    description: "10 выпущенных релизов",
-    category: "catalog",
-    xp: 80,
-    reward: {
-      type: "coupon",
-      title: "−10% на AI-мастеринг",
-      percentOff: 10,
-      maxDiscountRub: 200,
-      serviceScope: "ai_mastering",
       daysValid: 45,
     },
   },
   {
-    id: "first_wallet_topup",
-    title: "Кошелёк",
-    description: "Первое пополнение баланса",
-    category: "finance",
-    xp: 20,
-    reward: { type: "none" },
-  },
-  {
-    id: "first_service",
-    title: "Первая услуга",
-    description: "Оплатили любую услугу кабинета",
-    category: "services",
-    xp: 30,
+    id: "catalog_5",
+    title: "Каталог",
+    description: "5 релизов со статусом «Выпущен»",
+    category: "catalog",
+    rarity: "rare",
+    xp: 100,
     reward: {
-      type: "wallet",
-      amountRub: 50,
-      note: "Награда за первую услугу",
+      type: "coupon",
+      title: "−15% на AI-мастеринг",
+      percentOff: 15,
+      maxDiscountRub: 250,
+      serviceScope: "ai_mastering,tools_mastering_download",
+      daysValid: 45,
     },
   },
   {
-    id: "first_music_video",
+    id: "catalog_25",
+    title: "Дискография",
+    description: "25 выпущенных релизов",
+    category: "catalog",
+    rarity: "legendary",
+    xp: 200,
+    reward: {
+      type: "coupon",
+      title: "−10% на инструменты",
+      percentOff: 10,
+      maxDiscountRub: 250,
+      serviceScope:
+        "tools_smartlink,tools_story_video_download,tools_mastering_download,tools_slowed_reverb_download,ai_mastering",
+      daysValid: 60,
+    },
+  },
+  {
+    id: "year_round",
+    title: "Круглый год",
+    description: "Релизы в 3 разных календарных кварталах",
+    category: "catalog",
+    rarity: "legendary",
+    xp: 120,
+    reward: {
+      type: "wallet",
+      amountRub: 50,
+      note: "Награда за релизы в трёх кварталах",
+    },
+  },
+  {
+    id: "first_royalty",
+    title: "Первые роялти",
+    description: "Получили первое начисление роялти",
+    category: "finance",
+    rarity: "rare",
+    xp: 80,
+    reward: {
+      type: "coupon",
+      title: "−5% на музыку для бизнеса",
+      percentOff: 5,
+      maxDiscountRub: 250,
+      serviceScope: "business_music",
+      daysValid: 45,
+    },
+  },
+  {
+    id: "streams_10k",
+    title: "10K прослушиваний",
+    description: "Суммарно 10 000 прослушиваний по статистике кабинета",
+    category: "growth",
+    rarity: "rare",
+    xp: 150,
+    reward: {
+      type: "coupon",
+      title: "−10% на клип / vertical video",
+      percentOff: 10,
+      maxDiscountRub: 250,
+      serviceScope: "music_video,vertical_video,yandex_videoshot,yandex_videoshot_creation,spotify_videoshot",
+      daysValid: 45,
+    },
+  },
+  {
+    id: "paid_artist",
+    title: "Инвестор в себя",
+    description: "Суммарное пополнение баланса от 5 000 ₽",
+    category: "finance",
+    rarity: "common",
+    xp: 60,
+    reward: {
+      type: "wallet",
+      amountRub: 150,
+      note: "Награда за пополнение баланса от 5 000 ₽",
+    },
+  },
+  {
+    id: "link_in_bio",
+    title: "Ссылка в био",
+    description: "Опубликовали смартлинк",
+    category: "services",
+    rarity: "common",
+    xp: 50,
+    reward: {
+      type: "coupon",
+      title: "Бесплатный сниппет (story video)",
+      percentOff: 100,
+      maxDiscountRub: 100,
+      serviceScope: "tools_story_video_download",
+      daysValid: 30,
+    },
+  },
+  {
+    id: "visual",
     title: "Клипмейкер",
     description: "Загрузили видеоклип на площадки",
     category: "services",
-    xp: 40,
-    reward: { type: "none" },
+    rarity: "rare",
+    xp: 70,
+    reward: {
+      type: "coupon",
+      title: "−10% на video-продукт",
+      percentOff: 10,
+      maxDiscountRub: 200,
+      serviceScope:
+        "music_video,vertical_video,yandex_videoshot,yandex_videoshot_creation,yandex_videoavatar,spotify_videoshot",
+      daysValid: 45,
+    },
   },
   {
-    id: "first_publicka",
-    title: "Бизнес-звук",
-    description: "Разместили трек в музыке для бизнеса",
+    id: "studio",
+    title: "Студия",
+    description: "Скачали онлайн-мастеринг или Slowed / Reverb",
     category: "services",
-    xp: 40,
-    reward: { type: "none" },
+    rarity: "common",
+    xp: 50,
+    reward: {
+      type: "coupon",
+      title: "−100% на следующий mastering-download",
+      percentOff: 100,
+      maxDiscountRub: 100,
+      serviceScope: "tools_mastering_download",
+      daysValid: 30,
+    },
   },
   {
-    id: "referral_1",
-    title: "Амбассадор",
+    id: "crew_1",
+    title: "Свой круг",
     description: "Пригласили артиста, который оплатил",
     category: "referrals",
-    xp: 50,
-    reward: { type: "none" },
-  },
-  {
-    id: "referral_3",
-    title: "Партнёр",
-    description: "3 оплативших реферала",
-    category: "referrals",
-    xp: 100,
+    rarity: "rare",
+    xp: 80,
     reward: {
       type: "wallet",
-      amountRub: 100,
-      note: "Награда за 3 реферала",
+      amountRub: 50,
+      note: "Награда за первого оплатившего реферала",
+    },
+  },
+  {
+    id: "crew_5",
+    title: "Лейбл внутри лейбла",
+    description: "5 оплативших рефералов",
+    category: "referrals",
+    rarity: "legendary",
+    xp: 200,
+    reward: {
+      type: "wallet",
+      amountRub: 300,
+      note: "Награда за 5 оплативших рефералов",
     },
   },
 ]
@@ -157,24 +225,26 @@ export const ACHIEVEMENT_BY_ID: Record<string, AchievementDef> = Object.fromEntr
 export type ArtistLevelId =
   | "novice"
   | "releaser"
+  | "rising"
   | "catalog"
-  | "regular"
   | "pro"
-  | "ambassador"
+  | "legend"
 
 export type ArtistLevel = {
   id: ArtistLevelId
   title: string
   minXp: number
+  /** Короткий бонус уровня для UI (статус / привилегия). */
+  perk: string
 }
 
 export const ARTIST_LEVELS: ArtistLevel[] = [
-  { id: "novice", title: "Новичок", minXp: 0 },
-  { id: "releaser", title: "Релизер", minXp: 50 },
-  { id: "catalog", title: "Каталог", minXp: 120 },
-  { id: "regular", title: "Регуляр", minXp: 220 },
-  { id: "pro", title: "Про", minXp: 350 },
-  { id: "ambassador", title: "Амбассадор", minXp: 500 },
+  { id: "novice", title: "Новичок", minXp: 0, perk: "Старт пути в Parallax" },
+  { id: "releaser", title: "Релизер", minXp: 80, perk: "Бейдж релизера в профиле достижений" },
+  { id: "rising", title: "На подъёме", minXp: 200, perk: "Статус активного артиста" },
+  { id: "catalog", title: "Каталог", minXp: 400, perk: "Расширенная коллекция ачивок" },
+  { id: "pro", title: "Про", minXp: 650, perk: "Приоритетная очередь в поддержке" },
+  { id: "legend", title: "Легенда", minXp: 1000, perk: "Легендарный статус в кабинете" },
 ]
 
 export function resolveArtistLevel(xp: number): ArtistLevel {
@@ -211,5 +281,5 @@ export const GAMIFICATION_ECONOMY = {
   /** @deprecated используйте referralPerInviteeCapRub */
   referralFirstPaymentCapRub: 3000,
   /** Макс. сумма wallet/coupon-наград с ачивок на пользователя за календарный год. */
-  annualAchievementRewardCapRub: 500,
+  annualAchievementRewardCapRub: 1200,
 } as const

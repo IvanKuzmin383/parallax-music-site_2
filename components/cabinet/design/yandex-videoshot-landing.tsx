@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useId, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -33,6 +33,11 @@ import {
 } from "@/lib/yandex-videoshot-mode"
 import { cn } from "@/lib/utils"
 import { VideoShotPhone } from "@/components/cabinet/design/video-shot-phone"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 type ContactType = "telegram" | "vk" | "max"
 
@@ -269,6 +274,15 @@ function YandexVideoshotLandingInner() {
   const [contactValue, setContactValue] = useState("")
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [paymentSuccessOpen, setPaymentSuccessOpen] = useState(false)
   const paymentSuccessHandledRef = useRef(false)
 
@@ -286,6 +300,8 @@ function YandexVideoshotLandingInner() {
 
   useEffect(() => {
     setMode(resolveYandexVideoshotMode(pathname, searchParams.get("mode")))
+    setApplyCoupon(false)
+    setCouponPreview(null)
   }, [pathname, searchParams])
 
   useEffect(() => {
@@ -444,6 +460,7 @@ function YandexVideoshotLandingInner() {
         isrc: normalizeCode(isrc),
         upc: normalizeCode(upc),
       }
+      const couponFields = couponPaymentPayload(applyCoupon)
       const body =
         mode === "create"
           ? {
@@ -454,6 +471,7 @@ function YandexVideoshotLandingInner() {
               ...codes,
               contactType,
               contactValue: contactValue.trim(),
+              ...couponFields,
             }
           : {
               trackTitle: trackUrl.trim(),
@@ -462,6 +480,7 @@ function YandexVideoshotLandingInner() {
               ...codes,
               contactType,
               contactValue: contactValue.trim(),
+              ...couponFields,
             }
 
       const res = await fetch(endpoint, {
@@ -491,7 +510,7 @@ function YandexVideoshotLandingInner() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1180px] space-y-14 pb-10 text-foreground md:space-y-16">
+    <div className="w-full min-w-0 max-w-none space-y-14 pb-10 text-foreground md:space-y-16">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -1182,8 +1201,16 @@ function YandexVideoshotLandingInner() {
             </div>
           </div>
 
+          <CabinetApplyCouponControl
+            orderType={mode === "create" ? "yandex_videoshot_creation" : "yandex_videoshot"}
+            amountRub={price}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+          />
+
           <p className="text-sm font-medium" aria-live="polite">
-            Итого: {price} {"\u20BD"}
+            Итого:{" "}
+            {applyCoupon && couponPreview ? couponPreview.finalAmountRub : price} {"\u20BD"}
           </p>
 
           {fieldErrors.form ? (
@@ -1197,7 +1224,11 @@ function YandexVideoshotLandingInner() {
             disabled={loading}
             className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90 sm:w-auto"
           >
-            {loading ? "Создаём заказ..." : `Оплатить ${price} ₽`}
+            {loading
+              ? "Создаём заказ..."
+              : `Оплатить ${
+                  applyCoupon && couponPreview ? couponPreview.finalAmountRub : price
+                } ₽`}
           </Button>
         </form>
       </section>

@@ -5,6 +5,10 @@ import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { getServicePriceRub } from "@/lib/service-prices"
 import { TOOLS_SLOWED_REVERB_CREDITS_PER_PURCHASE } from "@/lib/tools-slowed-reverb-pricing"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
 
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -18,12 +22,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 })
   }
 
-  const totalAmount = (await getServicePriceRub("tools_slowed_reverb")).toFixed(2)
+  let raw: Record<string, unknown> = {}
+  try {
+    const body = await request.json()
+    if (body && typeof body === "object") raw = body as Record<string, unknown>
+  } catch {
+    /* optional body */
+  }
+
+  const priceRub = await getServicePriceRub("tools_slowed_reverb")
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "tools_slowed_reverb_download",
+    amountRub: priceRub,
+    body: raw,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+
   const order = await createOrder({
     orderType: "tools_slowed_reverb_download",
     userId: user.id,
     tracksCount: TOOLS_SLOWED_REVERB_CREDITS_PER_PURCHASE,
-    totalAmount,
+    totalAmount: priced.amountRub.toFixed(2),
+    serviceDetails: couponServiceDetailsFromPricing(priced),
   })
 
   return respondWithWalletPayment(order)

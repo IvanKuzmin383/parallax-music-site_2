@@ -37,6 +37,9 @@ export type OrderServiceDetails = {
   /** Применённый купон геймификации */
   couponCode?: string
   couponId?: string
+  couponTitle?: string
+  /** Фактическая скидка в ₽ */
+  couponDiscountRub?: number
   /** ID релиза / трека / альбома из каталога кабинета (business music и т.п.). */
   releaseId?: string
   /** Источник каталога: release | track | album */
@@ -97,8 +100,17 @@ export function stringifyServiceDetails(
   if (upc) out.upc = upc
   const couponCode = details.couponCode?.trim()
   const couponId = details.couponId?.trim()
+  const couponTitle = details.couponTitle?.trim()
   if (couponCode) out.couponCode = couponCode
   if (couponId) out.couponId = couponId
+  if (couponTitle) out.couponTitle = couponTitle
+  if (
+    typeof details.couponDiscountRub === "number" &&
+    Number.isFinite(details.couponDiscountRub) &&
+    details.couponDiscountRub > 0
+  ) {
+    out.couponDiscountRub = details.couponDiscountRub
+  }
   const releaseId = details.releaseId?.trim()
   const catalogSource = details.catalogSource?.trim()
   if (releaseId) out.releaseId = releaseId

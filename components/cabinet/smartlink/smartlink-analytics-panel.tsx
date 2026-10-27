@@ -352,7 +352,7 @@ export function SmartlinkAnalyticsPanel({
               <p className="text-sm font-medium">Страны</p>
               <BarList
                 items={(report?.countries ?? [])
-                  .filter((c) => c.country !== "??")
+                  .filter((c) => c.country !== "XX" && c.country !== "??")
                   .map((c) => ({ label: c.country, value: c.views }))}
                 empty="Страны появятся, если CDN отдаёт geo-заголовок"
               />

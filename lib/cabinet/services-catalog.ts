@@ -8,6 +8,7 @@ import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
 import { MUSIC_VIDEO_PRICE_RUB } from "@/lib/music-video-pricing"
 import { RADIO_PRICE_LABEL } from "@/lib/radio-pricing"
 import { LYRICS_SYNC_PRICE_LABEL } from "@/lib/lyrics-sync-pricing"
+import { TIKTOK_PRICE_LABEL } from "@/lib/tiktok-pricing"
 import { VK_ADS_PRICE_LABEL } from "@/lib/vk-ads-campaign"
 import { YANDEX_ADS_PRICE_LABEL } from "@/lib/yandex-ads-campaign"
 import { PLAYLISTHUB_BASE_PRICE_LABEL } from "@/lib/playlisthub-landing"
@@ -95,6 +96,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "Продвижение в VK Музыка",
     shortDescription: "Знакомьте новых слушателей со своей музыкой через VK Рекламу.",
     priceLabel: VK_ADS_PRICE_LABEL,
+    priceKey: "vk_ads",
     category: "promotion",
     href: "/cabinet/promotion/vk",
     features: [
@@ -146,6 +148,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "Продвижение в Яндекс Директ",
     shortDescription: "Из рекламы - к вашей музыке. Релиз, концерт, мерч или проект.",
     priceLabel: YANDEX_ADS_PRICE_LABEL,
+    priceKey: "yandex_ads",
     category: "promotion",
     href: "/cabinet/promotion/yandex",
     features: [
@@ -201,6 +204,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     title: "Размещение в плейлистах Яндекс Музыки",
     shortDescription: "Выберите плейлисты на PlaylistHub - нашем маркетплейсе плейлистов",
     priceLabel: PLAYLISTHUB_BASE_PRICE_LABEL,
+    priceKey: "playlisthub",
     category: "promotion",
     href: "/cabinet/promotion/playlists",
     features: [
@@ -244,11 +248,12 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
       "tiktok",
       "TikTok / Блогеры",
       "Продвижение трека через короткие видео и блогеров",
-      "от 1 500 ₽",
+      TIKTOK_PRICE_LABEL,
       "promotion",
       "/cabinet/promotion/tiktok",
       ["Подбор форматов", "Координация с блогерами", "Отчёт по охватам"]
     ),
+    priceKey: "tiktok",
     steps: [
       "Оставьте заявку с треком, пожеланиями и бюджетом",
       "Согласуем формат, условия размещения и сроки",
@@ -649,24 +654,32 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
     ],
     hasBackend: true,
   },
-  mockService(
-    "pitch",
-    "Питч для редакторов",
-    "Текст для отправки кураторам плейлистов.",
-    "от 300 ₽",
-    "ai",
-    "/cabinet/ai/pitch",
-    ["Текст питча", "Адаптация под площадку", "Рекомендации"]
-  ),
-  mockService(
-    "press-release",
-    "Пресс-релиз",
-    "Готовый текст о релизе для СМИ, соцсетей и промо.",
-    "от 500 ₽",
-    "ai",
-    "/cabinet/ai/press-release",
-    ["Текст релиза", "Факты об артисте", "Готовность к публикации"]
-  ),
+  {
+    ...mockService(
+      "pitch",
+      "Питч для редакторов",
+      "Текст для отправки кураторам плейлистов.",
+      "от 300 ₽",
+      "ai",
+      "/cabinet/ai/pitch",
+      ["Текст питча", "Адаптация под площадку", "Рекомендации"]
+    ),
+    /** Пока услугу не оказываем - скрыто из каталога и поиска. */
+    hiddenFromCatalog: true,
+  },
+  {
+    ...mockService(
+      "press-release",
+      "Пресс-релиз",
+      "Готовый текст о релизе для СМИ, соцсетей и промо.",
+      "от 500 ₽",
+      "ai",
+      "/cabinet/ai/press-release",
+      ["Текст релиза", "Факты об артисте", "Готовность к публикации"]
+    ),
+    /** Пока услугу не оказываем - скрыто из каталога и поиска. */
+    hiddenFromCatalog: true,
+  },
   {
     ...mockService(
       "deposit",
@@ -703,7 +716,7 @@ export const SERVICES_CATALOG: ServiceCatalogEntry[] = [
       },
       {
         q: "Трек уже опубликован. Есть смысл депонировать?",
-        a: "Можно зафиксировать текущий экземпляр. Дата подачи будет новой и не подтвердит дату создания или первой публикации",
+        a: "Да. Фиксируем текущую версию с датой и отпечатком - доказательство, что именно этот файл был у вас на день подачи. Чем раньше, тем сильнее позиция",
       },
     ],
     comingSoon: true,
@@ -737,6 +750,13 @@ export function getServiceByHref(href: string): ServiceCatalogEntry | undefined 
 /** Каталог для UI пользователя - без скрытых служебных записей. */
 export function getVisibleServicesCatalog(): ServiceCatalogEntry[] {
   return SERVICES_CATALOG.filter((s) => !s.hiddenFromCatalog)
+}
+
+/** Услуга для публичной/кабинетной страницы: скрытые из каталога = как будто нет. */
+export function getVisibleServiceBySlug(slug: string): ServiceCatalogEntry | undefined {
+  const service = getServiceBySlug(slug)
+  if (!service || service.hiddenFromCatalog) return undefined
+  return service
 }
 
 export const RECOMMENDED_SERVICE_SLUGS = ["vk-ads", "ai-covers", "playlists", "deposit"] as const

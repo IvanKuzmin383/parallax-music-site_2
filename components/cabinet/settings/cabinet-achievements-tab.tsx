@@ -3,19 +3,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Award,
-  Briefcase,
+  BarChart3,
+  CalendarRange,
   Check,
   Copy,
   Disc3,
   Gift,
+  Headphones,
+  Link2,
   Lock,
-  Music2,
   Share2,
   Sparkles,
   Trophy,
-  Upload,
   Video,
   Wallet,
+  Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
@@ -25,24 +27,24 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import type { GamificationProgress, UserAchievementView } from "@/lib/cabinet-achievements"
-import type { CabinetCoupon } from "@/lib/cabinet-coupons"
+import type { CabinetCoupon, UsedCouponView } from "@/lib/cabinet-coupons"
 import { ARTIST_LEVELS } from "@/lib/cabinet/achievements-catalog"
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"] as const
 
 const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
-  welcome: Sparkles,
-  first_draft: Upload,
-  first_moderation: Music2,
-  first_released: Disc3,
-  releases_3: Trophy,
-  releases_10: Award,
-  first_wallet_topup: Wallet,
-  first_service: Gift,
-  first_music_video: Video,
-  first_publicka: Briefcase,
-  referral_1: Share2,
-  referral_3: Share2,
+  first_light: Sparkles,
+  catalog_5: Disc3,
+  catalog_25: Award,
+  year_round: CalendarRange,
+  first_royalty: Wallet,
+  streams_10k: BarChart3,
+  paid_artist: Gift,
+  link_in_bio: Link2,
+  visual: Video,
+  studio: Wrench,
+  crew_1: Share2,
+  crew_5: Headphones,
 }
 
 function levelIndex(levelId: string): number {
@@ -71,18 +73,34 @@ function pluralRu(n: number, one: string, few: string, many: string): string {
 
 function remainingLabel(a: UserAchievementView): string {
   const left = Math.max(0, a.progressTarget - a.progressCurrent)
-  if (a.id.startsWith("releases_") || a.id === "first_released") {
+  if (a.id === "catalog_5" || a.id === "catalog_25") {
     return pluralRu(left, "релиз", "релиза", "релизов")
   }
-  if (a.id.startsWith("referral_")) {
+  if (a.id === "year_round") {
+    return pluralRu(left, "квартал", "квартала", "кварталов")
+  }
+  if (a.id === "streams_10k") {
+    return `${left.toLocaleString("ru-RU")} прослушиваний`
+  }
+  if (a.id.startsWith("crew_")) {
     return pluralRu(left, "реферал", "реферала", "рефералов")
   }
   return pluralRu(left, "шаг", "шага", "шагов")
 }
 
+function progressUnitSuffix(id: string): string {
+  if (id === "catalog_5" || id === "catalog_25") return " релизов"
+  if (id === "first_light") return " шагов"
+  if (id === "year_round") return " кварталов"
+  if (id === "streams_10k") return " прослушиваний"
+  if (id.startsWith("crew_")) return " рефералов"
+  return ""
+}
+
 export function CabinetAchievementsTab() {
   const [progress, setProgress] = useState<GamificationProgress | null>(null)
   const [coupons, setCoupons] = useState<CabinetCoupon[]>([])
+  const [usedCoupons, setUsedCoupons] = useState<UsedCouponView[]>([])
   const [loading, setLoading] = useState(true)
   const [showLevels, setShowLevels] = useState(false)
 
@@ -92,17 +110,21 @@ export function CabinetAchievementsTab() {
       if (!res.ok) {
         setProgress(null)
         setCoupons([])
+        setUsedCoupons([])
         return
       }
       const data = (await res.json()) as {
         progress?: GamificationProgress
         coupons?: CabinetCoupon[]
+        usedCoupons?: UsedCouponView[]
       }
       setProgress(data.progress ?? null)
       setCoupons(data.coupons ?? [])
+      setUsedCoupons(data.usedCoupons ?? [])
     } catch {
       setProgress(null)
       setCoupons([])
+      setUsedCoupons([])
     }
   }, [])
 
@@ -208,6 +230,9 @@ export function CabinetAchievementsTab() {
                   Уровень {levelNum}
                 </p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{progress.level.title}</p>
+                {progress.level.perk ? (
+                  <p className="mt-1 text-xs text-muted-foreground/90">{progress.level.perk}</p>
+                ) : null}
               </div>
             </div>
             <button
@@ -266,6 +291,11 @@ export function CabinetAchievementsTab() {
                       )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">от {level.minXp} XP</p>
+                    {level.perk ? (
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground/90">
+                        {level.perk}
+                      </p>
+                    ) : null}
                   </li>
                 )
               })}
@@ -334,12 +364,9 @@ export function CabinetAchievementsTab() {
               До достижения "{nearComplete.title}" осталось {remainingLabel(nearComplete)}
             </p>
             <p className="text-xs text-muted-foreground">
-              Уже {nearComplete.progressCurrent} из {nearComplete.progressTarget}
-              {nearComplete.id.startsWith("releases_") || nearComplete.id === "first_released"
-                ? " релизов"
-                : nearComplete.id.startsWith("referral_")
-                  ? " рефералов"
-                  : ""}
+              Уже {nearComplete.progressCurrent.toLocaleString("ru-RU")} из{" "}
+              {nearComplete.progressTarget.toLocaleString("ru-RU")}
+              {progressUnitSuffix(nearComplete.id)}
             </p>
           </div>
           <span className="shrink-0 text-sm font-semibold text-primary tabular-nums">
@@ -350,7 +377,12 @@ export function CabinetAchievementsTab() {
 
       {coupons.length > 0 ? (
         <section id="achievements-coupons" className="space-y-2">
-          <p className="text-sm font-medium">Активные купоны</p>
+          <div>
+            <p className="text-sm font-medium">Активные купоны</p>
+            <p className="text-xs text-muted-foreground">
+              В форме оплаты нажмите «Применить купон» - система подставит подходящий сама.
+            </p>
+          </div>
           <ul className="grid gap-2 sm:grid-cols-2">
             {coupons.map((c) => (
               <li
@@ -363,10 +395,9 @@ export function CabinetAchievementsTab() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{c.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    Код {c.code}
                     {c.expiresAt
-                      ? ` · до ${new Date(c.expiresAt).toLocaleDateString("ru-RU")}`
-                      : ""}
+                      ? `До ${new Date(c.expiresAt).toLocaleDateString("ru-RU")}`
+                      : "Без срока"}
                   </p>
                 </div>
                 <Button
@@ -383,8 +414,32 @@ export function CabinetAchievementsTab() {
                   }}
                 >
                   <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  Копировать
+                  Код
                 </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {usedCoupons.length > 0 ? (
+        <section className="space-y-2">
+          <p className="text-sm font-medium">Использованные купоны</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {usedCoupons.map((c) => (
+              <li
+                key={c.id}
+                className={cn(dashboardGlassPanelClass, "px-3 py-2.5 opacity-90")}
+              >
+                <p className="text-sm font-medium">{c.title}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {c.orderTypeLabel ?? "Услуга"}
+                  {c.discountRub
+                    ? ` · −${c.discountRub.toLocaleString("ru-RU")} ₽`
+                    : ""}
+                  {" · "}
+                  {new Date(c.usedAt).toLocaleDateString("ru-RU")}
+                </p>
               </li>
             ))}
           </ul>
@@ -413,6 +468,8 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
   const Icon = ACHIEVEMENT_ICONS[a.id] ?? Trophy
   const ratio = progressRatio(a)
   const inProgress = !a.unlocked && a.progressCurrent > 0 && a.progressTarget > 1
+  const legendary = a.rarity === "legendary"
+  const rare = a.rarity === "rare"
 
   return (
     <article
@@ -423,9 +480,13 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
         "motion-safe:hover:-translate-y-1.5",
         a.unlocked
           ? "border-emerald-500/25 hover:border-emerald-400/55 hover:bg-emerald-500/[0.07] hover:shadow-[0_14px_40px_rgba(16,185,129,0.18)]"
-          : inProgress
-            ? "hover:border-primary/50 hover:bg-primary/[0.08] hover:shadow-[0_14px_40px_rgba(240,31,67,0.16)]"
-            : "hover:border-primary/35 hover:bg-card/60 hover:shadow-[0_12px_32px_rgba(0,0,0,0.28)]",
+          : legendary
+            ? "border-amber-500/20 hover:border-amber-400/45 hover:bg-amber-500/[0.06] hover:shadow-[0_14px_40px_rgba(245,158,11,0.16)]"
+            : rare
+              ? "border-primary/20 hover:border-primary/50 hover:bg-primary/[0.08] hover:shadow-[0_14px_40px_rgba(240,31,67,0.16)]"
+              : inProgress
+                ? "hover:border-primary/50 hover:bg-primary/[0.08] hover:shadow-[0_14px_40px_rgba(240,31,67,0.16)]"
+                : "hover:border-primary/35 hover:bg-card/60 hover:shadow-[0_12px_32px_rgba(0,0,0,0.28)]",
       )}
     >
       <div
@@ -472,6 +533,17 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
         ) : null}
       </div>
 
+      {!a.unlocked && (legendary || rare) ? (
+        <p
+          className={cn(
+            "relative mb-1 text-[10px] font-semibold uppercase tracking-wider",
+            legendary ? "text-amber-400/90" : "text-primary/80"
+          )}
+        >
+          {legendary ? "Легендарная" : "Редкая"}
+        </p>
+      ) : null}
+
       <p className="relative text-sm font-semibold leading-snug transition-colors group-hover:text-foreground">
         {a.title}
       </p>
@@ -481,17 +553,23 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
 
       <div className="relative mt-auto w-full pt-3">
         {a.unlocked ? (
-          <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500 transition-all group-hover:text-emerald-400">
-            <Check className="h-3.5 w-3.5" />
-            Получено +{a.xp} XP
-          </p>
+          <div className="space-y-0.5">
+            <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500 transition-all group-hover:text-emerald-400">
+              <Check className="h-3.5 w-3.5" />
+              Получено +{a.xp} XP
+            </p>
+            {a.rewardLabel ? (
+              <p className="text-[11px] text-emerald-400/90">{a.rewardLabel}</p>
+            ) : null}
+          </div>
         ) : inProgress ? (
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] tabular-nums text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 text-[11px] tabular-nums text-muted-foreground">
               <span>
-                {a.progressCurrent} из {a.progressTarget}
+                {a.progressCurrent.toLocaleString("ru-RU")} из{" "}
+                {a.progressTarget.toLocaleString("ru-RU")}
               </span>
-              <span className="text-primary">+{a.xp} XP</span>
+              <span className="shrink-0 text-primary">+{a.xp} XP</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-muted/60">
               <div
@@ -499,11 +577,19 @@ function AchievementCollectionCard({ achievement: a }: { achievement: UserAchiev
                 style={{ width: `${Math.round(ratio * 100)}%` }}
               />
             </div>
+            {a.rewardLabel ? (
+              <p className="text-[11px] text-muted-foreground">{a.rewardLabel}</p>
+            ) : null}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground transition-colors group-hover:text-primary/90">
-            Впереди · +{a.xp} XP
-          </p>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground transition-colors group-hover:text-primary/90">
+              Впереди · +{a.xp} XP
+            </p>
+            {a.rewardLabel ? (
+              <p className="text-[11px] font-medium text-primary/85">{a.rewardLabel}</p>
+            ) : null}
+          </div>
         )}
       </div>
     </article>

@@ -6,8 +6,8 @@ import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { getServicePriceRub } from "@/lib/service-prices"
 import { createOrder } from "@/lib/orders"
 import {
-  applyCouponToOrderAmount,
-  consumeCouponAfterOrder,
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
 } from "@/lib/cabinet-coupon-apply"
 
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
@@ -94,18 +94,17 @@ export async function POST(request: NextRequest) {
   }
 
 
-  const couponCode = typeof raw.couponCode === "string" ? raw.couponCode.trim() : ""
   const basePriceRub = await getServicePriceRub("music_video")
-  const priced = await applyCouponToOrderAmount({
+  const priced = await resolveCouponPricingFromBody({
     userId: user.id,
     orderType: "music_video",
     amountRub: basePriceRub,
-    couponCode: couponCode || null,
+    body: raw,
   })
   if (priced.error) {
     return NextResponse.json({ error: priced.error }, { status: 400 })
   }
-  if (priced.amountRub <= 0) {
+  if (priced.amountRub < 0) {
     return NextResponse.json({ error: "Сумма после скидки некорректна" }, { status: 400 })
   }
 
@@ -126,11 +125,9 @@ export async function POST(request: NextRequest) {
       previewTimecodeSec: Math.trunc(previewTimecodeSec),
       contactType,
       contactValue,
-      couponCode: priced.coupon?.code,
-      couponId: priced.coupon?.id,
+      ...couponServiceDetailsFromPricing(priced),
     },
   })
-
 
   return respondWithWalletPayment(order)
 }

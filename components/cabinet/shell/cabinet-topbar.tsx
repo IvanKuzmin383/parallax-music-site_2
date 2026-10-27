@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
@@ -26,6 +26,7 @@ import { CabinetGlobalSearch } from "@/components/cabinet/shell/cabinet-global-s
 import { CabinetProjectFilter } from "@/components/cabinet/shell/cabinet-project-filter"
 import { CabinetThemeToggle } from "@/components/cabinet/shell/cabinet-theme-toggle"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
+import { isClickOnLink, LinkifiedText } from "@/components/announcement-body"
 import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
 import { CabinetKycStatusBadge } from "@/components/cabinet/kyc/cabinet-kyc-status-badge"
 import { cn } from "@/lib/utils"
@@ -316,7 +317,7 @@ export function CabinetTopbar() {
                           </p>
                           {item.body ? (
                             <p className="line-clamp-2 break-words text-xs text-foreground/70">
-                              {item.body}
+                              <LinkifiedText text={item.body} />
                             </p>
                           ) : null}
                           <p className="text-[11px] text-foreground/55">
@@ -338,50 +339,40 @@ export function CabinetTopbar() {
                       if (opensSupport) openCabinetSupportChat()
                     }
 
-                    const onOrderDetailClick = async () => {
+                    const onRowClick = async (e: MouseEvent) => {
+                      if (isClickOnLink(e)) return
                       onActivate()
-                      if (!orderDetail) return
-                      const exists = await cabinetServiceOrderExists(orderDetail.orderId)
-                      if (!exists) {
-                        toast.message("Этот платёж не отображается в разделе «Заказы»", {
-                          description: "Уведомление отмечено прочитанным.",
-                        })
+                      if (opensSupport) return
+                      if (orderDetail) {
+                        const exists = await cabinetServiceOrderExists(orderDetail.orderId)
+                        if (!exists) {
+                          toast.message("Этот платёж не отображается в разделе «Заказы»", {
+                            description: "Уведомление отмечено прочитанным.",
+                          })
+                          return
+                        }
+                        router.push(`/cabinet/orders/${orderDetail.orderId}`)
                         return
                       }
-                      router.push(`/cabinet/orders/${orderDetail.orderId}`)
+                      if (item.href) router.push(item.href)
                     }
 
                     return (
                       <li key={`${item.kind}-${item.id}`} className="min-w-0">
-                        {opensSupport ? (
-                          <button
-                            type="button"
-                            className={cn(rowClass, "w-full text-left")}
-                            onClick={onActivate}
-                          >
-                            {body}
-                          </button>
-                        ) : orderDetail ? (
-                          <button
-                            type="button"
-                            className={cn(rowClass, "w-full text-left")}
-                            onClick={() => void onOrderDetailClick()}
-                          >
-                            {body}
-                          </button>
-                        ) : item.href ? (
-                          <Link href={item.href} className={rowClass} onClick={onActivate}>
-                            {body}
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            className={cn(rowClass, "w-full text-left")}
-                            onClick={onActivate}
-                          >
-                            {body}
-                          </button>
-                        )}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={cn(rowClass, "w-full cursor-pointer text-left")}
+                          onClick={(e) => void onRowClick(e)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              void onRowClick(e as unknown as MouseEvent)
+                            }
+                          }}
+                        >
+                          {body}
+                        </div>
                       </li>
                     )
                   })}

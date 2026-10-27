@@ -483,7 +483,7 @@ export function CabinetUploadAdditionalServicesSection({
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
                 <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
-                  100 руб. / шт.
+                  {AI_MASTERING_PRICE_RUB} руб. / трек
                 </span>
                 <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("aiMastering")}>
                   Подробнее

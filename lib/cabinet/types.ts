@@ -95,6 +95,8 @@ export interface ReleaseView {
   tracks?: Array<{ id: string; name: string }>
   wizardStep?: number
   releaseStatus?: string
+  /** Комментарий модерации (доработка / отклонение), если есть. */
+  moderationNote?: string | null
   /** AI-анализ релиза (если заполнен в админке). */
   aiAnalysisText?: string | null
   /** Публичный slug смартлинка (с трека релиза). */

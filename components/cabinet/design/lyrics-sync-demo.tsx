@@ -273,21 +273,21 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
     }
 
     return (
-      <div className={cn("mx-auto w-full max-w-[300px]", className)}>
+      <div className={cn("mx-auto w-full max-w-[320px]", className)}>
         <audio ref={audioRef} src={DEMO_AUDIO_SRC} preload="metadata" playsInline />
         <div
           ref={phoneRef}
           id="lyrics-sync-demo"
-          className="relative mx-auto w-full max-w-[280px] scroll-mt-24"
+          className="relative mx-auto w-full max-w-[300px] scroll-mt-24"
         >
           <div
             className={cn(
               "rounded-[28px] border-[3px] border-[#3A323C] bg-[#0C0B10]",
-              "p-2.5 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.85)]",
+              "p-2 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.85)]",
             )}
           >
             <div className="overflow-hidden rounded-[22px] border border-[#302831] bg-[#151419]">
-              <div className="flex items-center justify-between px-3.5 pt-3">
+              <div className="flex items-center justify-between px-3 pt-2.5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B8AFBD]">
                   Текст песни
                 </p>
@@ -296,9 +296,9 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                 </span>
               </div>
 
-              <div className="px-3.5 pt-3">
+              <div className="px-3 pt-2">
                 <div
-                  className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-[#2A1820] via-[#161218] to-[#0A090C]"
+                  className="mx-auto flex aspect-square w-[58%] max-w-[9.5rem] items-center justify-center overflow-hidden rounded-[14px] bg-gradient-to-br from-[#2A1820] via-[#161218] to-[#0A090C]"
                   aria-hidden
                 >
                   <div
@@ -331,7 +331,7 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                     <div className="relative z-[1] h-2.5 w-2.5 rounded-full bg-[#F21D43] shadow-[0_0_10px_rgba(242,29,67,0.55)]" />
                   </div>
                 </div>
-                <div className="mt-3 space-y-0.5">
+                <div className="mt-2 space-y-0.5">
                   <p className="truncate text-sm font-semibold tracking-tight text-[#F7F4F6]">
                     Ах, глазки
                   </p>
@@ -339,14 +339,14 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                 </div>
               </div>
 
-              <div className="mt-3 space-y-2.5 px-3.5 pb-1" aria-live="off">
+              <div className="mt-2 space-y-1.5 px-3 pb-0.5" aria-live="off">
                 {DEMO_LINES.map((line, i) => {
                   const isActive = mode === "sync" && i === activeIdx
                   return (
                     <p
                       key={`${line.start}-${line.text}-${i}`}
                       className={cn(
-                        "text-[13px] leading-snug transition-colors duration-200 motion-reduce:transition-none",
+                        "text-[12px] leading-snug transition-colors duration-200 motion-reduce:transition-none",
                         mode === "plain" && "font-normal text-[#F7F4F6]",
                         mode === "sync" && !isActive && "font-normal text-[#B8AFBD]/75",
                         isActive && "font-semibold text-[#F21D43]",
@@ -358,7 +358,7 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                 })}
               </div>
 
-              <div className="mt-3 space-y-2 px-3.5 pb-3.5">
+              <div className="mt-2 space-y-1.5 px-3 pb-2.5">
                 <div className="flex items-center justify-between text-[10px] tabular-nums text-[#B8AFBD]">
                   <span>{formatClock(currentTime, duration)}</span>
                   <span>{formatClock(duration, duration)}</span>
@@ -374,13 +374,13 @@ export const LyricsSyncDemo = forwardRef<LyricsSyncDemoHandle, LyricsSyncDemoPro
                   step={0.05}
                   value={Math.min(currentTime, duration || DEMO_DURATION_FALLBACK_SEC)}
                   onChange={onSliderChange}
-                  className="h-2 w-full cursor-pointer accent-[#F21D43]"
+                  className="h-1.5 w-full cursor-pointer accent-[#F21D43]"
                 />
                 <div className="flex justify-center pt-0.5">
                   <button
                     type="button"
                     disabled={audioError}
-                    className="inline-flex h-11 min-h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-[#F21D43] px-4 text-sm font-semibold text-white hover:bg-[#F21D43]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]/60 disabled:opacity-50"
+                    className="inline-flex h-10 min-h-10 min-w-10 items-center justify-center gap-2 rounded-full bg-[#F21D43] px-4 text-sm font-semibold text-white hover:bg-[#F21D43]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F21D43]/60 disabled:opacity-50"
                     onClick={toggle}
                     aria-label={primaryLabel}
                   >

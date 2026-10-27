@@ -3,11 +3,8 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
 import { escapeHtml } from "@/lib/telegram"
-import {
-  VK_ADS_PRICE_LABEL,
-  getVkAdsGoal,
-  isVkAdsGoalId,
-} from "@/lib/vk-ads-campaign"
+import { getVkAdsGoal, isVkAdsGoalId } from "@/lib/vk-ads-campaign"
+import { formatServicePriceCardLabel, getResolvedServicePrice } from "@/lib/service-prices"
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -86,6 +83,7 @@ export async function POST(request: NextRequest) {
 
   const goal = getVkAdsGoal(goalRaw)
   const contactLine = contactValue || user.email
+  const workPrice = formatServicePriceCardLabel(await getResolvedServicePrice("vk_ads"))
 
   const message = [
     "<b>Заявка на услугу: Продвижение в VK</b>",
@@ -101,7 +99,7 @@ export async function POST(request: NextRequest) {
     `<b>Контакт:</b> ${escapeHtml(contactLine)}`,
     comment ? `<b>Комментарий:</b> ${escapeHtml(comment)}` : null,
     "",
-    `<b>Работа Parallax:</b> ${escapeHtml(VK_ADS_PRICE_LABEL)} (точная сумма до оплаты)`,
+    `<b>Работа Parallax:</b> ${escapeHtml(workPrice)} (точная сумма до оплаты)`,
     "",
     "#vk #реклама #заявка #спрос",
   ]

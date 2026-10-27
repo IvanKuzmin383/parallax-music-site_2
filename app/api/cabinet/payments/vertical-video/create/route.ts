@@ -8,6 +8,11 @@ import {
   VERTICAL_VIDEO_MAX_COUNT,
   VERTICAL_VIDEO_MIN_COUNT,
 } from "@/lib/vertical-video-pricing"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
+
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 
 export async function POST(request: NextRequest) {
@@ -63,14 +68,23 @@ export async function POST(request: NextRequest) {
   }
 
   const unitPrice = getVerticalVideoUnitPrice(videosCount)
-  const totalAmount = (videosCount * unitPrice).toFixed(2)
+  const baseAmount = videosCount * unitPrice
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "vertical_video",
+    amountRub: baseAmount,
+    body: body as Record<string, unknown>,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
 
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "vertical_video",
     userId: user.id,
     tracksCount: videosCount,
-    totalAmount,
+    totalAmount: priced.amountRub.toFixed(2),
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
     serviceDetails: {
@@ -79,6 +93,7 @@ export async function POST(request: NextRequest) {
       videosCount,
       contactType,
       contactValue,
+      ...couponServiceDetailsFromPricing(priced),
     },
   })
   return respondWithWalletPayment(order)

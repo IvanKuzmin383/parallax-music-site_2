@@ -50,8 +50,12 @@ export type AbMode = "A" | "B"
  */
 export class LiveMasteringEngine {
   private ctx: AudioContext | null = null
-  private buffer: AudioBuffer | null = null
-  private source: AudioBufferSourceNode | null = null
+  /** Исходник (режим A). */
+  private sourceBuffer: AudioBuffer | null = null
+  /** Вход цепочки мастера (режим B) - исходник или спектрально очищенный. */
+  private processBuffer: AudioBuffer | null = null
+  private drySource: AudioBufferSourceNode | null = null
+  private wetSource: AudioBufferSourceNode | null = null
   private dryGain: GainNode | null = null
   private wetGain: GainNode | null = null
   private hpf: BiquadFilterNode | null = null
@@ -81,7 +85,16 @@ export class LiveMasteringEngine {
   }
 
   get duration() {
-    return this.buffer?.duration ?? 0
+    return this.sourceBuffer?.duration ?? 0
+  }
+
+  /** Буфер для offline-рендера скачивания (очищенный, если задан). */
+  getProcessBuffer(): AudioBuffer | null {
+    return this.processBuffer
+  }
+
+  getSourceBuffer(): AudioBuffer | null {
+    return this.sourceBuffer
   }
 
   get currentTime() {
@@ -123,13 +136,36 @@ export class LiveMasteringEngine {
     const ctx = await this.ensureContext()
     this.stopSourceOnly()
     const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0))
-    this.buffer = decoded
-    const rms = measureRms(decoded)
-    this.inputRmsDb = rms > 1e-9 ? 20 * Math.log10(rms) : -60
+    this.sourceBuffer = decoded
+    this.processBuffer = decoded
+    this.refreshInputRms()
     this.offset = 0
     this.playing = false
     this.buildGraph(ctx)
     onProgress?.({ phase: "ready", percent: 100 })
+  }
+
+  /**
+   * Подменяет вход мастера (B). null = снова исходник.
+   * Режим A всегда играет исходный буфер.
+   */
+  setProcessedBuffer(buffer: AudioBuffer | null): void {
+    if (!this.sourceBuffer) return
+    this.processBuffer = buffer ?? this.sourceBuffer
+    this.refreshInputRms()
+    if (this.playing) {
+      void this.play()
+    }
+  }
+
+  private refreshInputRms() {
+    const buf = this.processBuffer ?? this.sourceBuffer
+    if (!buf) {
+      this.inputRmsDb = -20
+      return
+    }
+    const rms = measureRms(buf)
+    this.inputRmsDb = rms > 1e-9 ? 20 * Math.log10(rms) : -60
   }
 
   private buildGraph(ctx: AudioContext) {
@@ -252,24 +288,39 @@ export class LiveMasteringEngine {
   }
 
   async play() {
-    if (!this.buffer) return
+    if (!this.sourceBuffer || !this.processBuffer) return
     const ctx = await this.ensureContext()
     if (!this.dryGain || !this.hpf) this.buildGraph(ctx)
     this.stopSourceOnly()
-    const source = ctx.createBufferSource()
-    source.buffer = this.buffer
-    source.connect(this.dryGain!)
-    source.connect(this.hpf!)
-    source.onended = () => {
-      if (this.source === source) {
+
+    const dry = ctx.createBufferSource()
+    const wet = ctx.createBufferSource()
+    dry.buffer = this.sourceBuffer
+    wet.buffer = this.processBuffer
+    dry.connect(this.dryGain!)
+    wet.connect(this.hpf!)
+
+    const startAt = Math.max(
+      0,
+      Math.min(this.offset, this.sourceBuffer.duration - 0.05),
+    )
+
+    const onEnded = (node: AudioBufferSourceNode) => {
+      if (this.drySource !== dry && this.wetSource !== wet) return
+      if (node === dry) this.drySource = null
+      if (node === wet) this.wetSource = null
+      if (!this.drySource && !this.wetSource) {
         this.playing = false
         this.offset = 0
-        this.source = null
       }
     }
-    const startAt = Math.max(0, Math.min(this.offset, this.buffer.duration - 0.05))
-    source.start(0, startAt)
-    this.source = source
+    dry.onended = () => onEnded(dry)
+    wet.onended = () => onEnded(wet)
+
+    dry.start(0, startAt)
+    wet.start(0, startAt)
+    this.drySource = dry
+    this.wetSource = wet
     this.startedAt = ctx.currentTime
     this.offset = startAt
     this.playing = true
@@ -284,8 +335,11 @@ export class LiveMasteringEngine {
 
   /** Перемотка: при воспроизведении продолжает с новой позиции. */
   async seek(seconds: number) {
-    if (!this.buffer) return
-    const next = Math.max(0, Math.min(seconds, Math.max(0, this.buffer.duration - 0.01)))
+    if (!this.sourceBuffer) return
+    const next = Math.max(
+      0,
+      Math.min(seconds, Math.max(0, this.sourceBuffer.duration - 0.01)),
+    )
     const wasPlaying = this.playing
     this.offset = next
     if (wasPlaying) {
@@ -300,20 +354,22 @@ export class LiveMasteringEngine {
   }
 
   private stopSourceOnly() {
-    if (this.source) {
+    for (const node of [this.drySource, this.wetSource]) {
+      if (!node) continue
       try {
-        this.source.onended = null
-        this.source.stop()
+        node.onended = null
+        node.stop()
       } catch {
         /* already stopped */
       }
       try {
-        this.source.disconnect()
+        node.disconnect()
       } catch {
         /* ignore */
       }
-      this.source = null
     }
+    this.drySource = null
+    this.wetSource = null
   }
 
   async dispose() {
@@ -322,7 +378,8 @@ export class LiveMasteringEngine {
       await this.ctx.close().catch(() => undefined)
     }
     this.ctx = null
-    this.buffer = null
+    this.sourceBuffer = null
+    this.processBuffer = null
     this.dryGain = null
     this.wetGain = null
     this.hpf = null

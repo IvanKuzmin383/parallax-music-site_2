@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
-import { ArrowLeft, Check, Crown, Loader2, Plus, Users } from "lucide-react"
+import { ArrowLeft, Check, Crown, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,20 +21,11 @@ import { CabinetSubscriptionAutopayPanel } from "@/components/cabinet/subscripti
 import { CabinetSubscriptionExpiredBanner } from "@/components/cabinet/subscription/cabinet-subscription-expired-banner"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { getSubscriptionPlanPurchaseBlockReason } from "@/lib/subscription-plan-eligibility"
-import { isArtistSlotActive } from "@/lib/subscription-track-limits"
-
-type ArtistSlotView = {
-  id: string
-  artistName?: string | null
-  subscriptionName: string
-  subscriptionExpiresAt?: string | null
-}
 
 type UserSub = {
   subscriptionName?: string | null
   subscriptionExpiresAt?: string | null
   email?: string | null
-  artistSubscriptions?: ArtistSlotView[]
 }
 
 async function pollOrderPaid(orderId: string, attempts = 8): Promise<"paid" | "failed" | "pending"> {
@@ -140,21 +131,13 @@ export function CabinetSubscriptionHub() {
       ? format(new Date(user.subscriptionExpiresAt), "d MMMM yyyy", { locale: ru })
       : null
 
-  const slots = user?.artistSubscriptions ?? []
-  const activeSlots = slots.filter((s) => isArtistSlotActive(s.subscriptionExpiresAt))
-  const hasLabelSlot = activeSlots.some((s) => s.subscriptionName === "Label")
-  const canBuyExtraSlot =
-    !!renewPlanId && renewPlanId !== "label" && activeSlots.length > 0 && !hasLabelSlot
-
-  const startCheckout = (planId: PlanId, purchaseIntent?: "extra_slot") => {
-    if (purchaseIntent !== "extra_slot") {
-      const block = getSubscriptionPlanPurchaseBlockReason(planId, planTracks)
-      if (block) {
-        toast.error(block)
-        return
-      }
+  const startCheckout = (planId: PlanId) => {
+    const block = getSubscriptionPlanPurchaseBlockReason(planId, planTracks)
+    if (block) {
+      toast.error(block)
+      return
     }
-    openCheckout({ planId, purchaseIntent })
+    openCheckout({ planId })
   }
 
   const isOnFix = user?.subscriptionName === "Fix"
@@ -188,137 +171,47 @@ export function CabinetSubscriptionHub() {
 
       <CabinetSubscriptionExpiredBanner />
 
-      <Card className="border-primary/25 bg-primary/[0.04]">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Crown className="h-4 w-4 text-primary" />
-            Текущий статус
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Card className="gap-0 border-primary/25 bg-primary/[0.04] py-0">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Загрузка…
             </div>
           ) : (
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-2xl font-semibold">
-                  {user?.subscriptionName || "Тариф не выбран"}
+            <>
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-sm font-semibold leading-none">
+                  <Crown className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">
+                    {user?.subscriptionName
+                      ? `Тариф ${user.subscriptionName}`
+                      : "Тариф не выбран"}
+                  </span>
                 </p>
                 {expiresLabel ? (
-                  <p className="mt-1 text-sm text-muted-foreground">Действует до {expiresLabel}</p>
+                  <p className="mt-1.5 pl-6 text-xs text-muted-foreground">
+                    Действует до {expiresLabel}
+                  </p>
                 ) : user?.subscriptionName === "Fix" ? (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Пакет Fix - слоты загрузки без календарной подписки
+                  <p className="mt-1.5 pl-6 text-xs text-muted-foreground">
+                    Пакет Fix - без календарной подписки
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1.5 pl-6 text-xs text-muted-foreground">
                     Выберите тариф ниже, чтобы загружать релизы
                   </p>
                 )}
               </div>
               {renewPlanId ? (
-                <Button type="button" onClick={() => startCheckout(renewPlanId)}>
+                <Button type="button" size="sm" onClick={() => startCheckout(renewPlanId)}>
                   Продлить
                 </Button>
               ) : null}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
-
-      {!loading && user?.subscriptionName && user.subscriptionName !== "Fix" ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              Слоты артистов
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {hasLabelSlot ? (
-              <p className="text-sm text-muted-foreground">
-                Тариф Label - без лимита артистов. Дополнительные слоты не нужны.
-              </p>
-            ) : slots.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                После оплаты подписки здесь появится слот артиста.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {slots.map((slot) => {
-                  const active = isArtistSlotActive(slot.subscriptionExpiresAt)
-                  const until = slot.subscriptionExpiresAt
-                    ? format(new Date(slot.subscriptionExpiresAt), "d MMM yyyy", { locale: ru })
-                    : null
-                  return (
-                    <li
-                      key={slot.id}
-                      className={cn(
-                        "flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm",
-                        active ? "border-border bg-muted/20" : "border-dashed opacity-70"
-                      )}
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {slot.artistName?.trim() || "Свободный слот"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {slot.subscriptionName}
-                          {until ? ` · до ${until}` : null}
-                          {!active ? " · истёк" : null}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                          active
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {active ? "Активен" : "Истёк"}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              {canBuyExtraSlot && renewPlanId ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => startCheckout(renewPlanId, "extra_slot")}
-                >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Доп. слот артиста
-                </Button>
-              ) : null}
-              {!hasLabelSlot ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => startCheckout("label")}
-                >
-                  Или Label - без лимита артистов
-                </Button>
-              ) : null}
-            </div>
-            {canBuyExtraSlot ? (
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Доп. слот - отдельная оплата того же тарифа. Появится новый свободный слот под другого
-                исполнителя; текущие слоты не продлеваются этой оплатой.
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
 
       <CabinetSubscriptionAutopayPanel
         subscriptionName={user?.subscriptionName}

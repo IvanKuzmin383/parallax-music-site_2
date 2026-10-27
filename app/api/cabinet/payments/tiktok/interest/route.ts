@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
+import { formatServicePriceCardLabel, getResolvedServicePrice } from "@/lib/service-prices"
 import { escapeHtml } from "@/lib/telegram"
 
 /**
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите бюджет" }, { status: 400 })
   }
 
+  const fromPrice = formatServicePriceCardLabel(await getResolvedServicePrice("tiktok"))
   const message = [
     "<b>Заявка на услугу: TikTok / Блогеры</b>",
     "",
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
     `<b>Название:</b> ${escapeHtml(trackTitle)}`,
     trackLink ? `<b>Ссылка:</b> ${escapeHtml(trackLink)}` : null,
     `<b>Бюджет:</b> ${escapeHtml(budget)}`,
+    `<b>Ориентир цены:</b> ${escapeHtml(fromPrice)}`,
     comment ? `<b>Комментарий:</b> ${escapeHtml(comment)}` : null,
     "",
     "#tiktok #блогеры #заявка #спрос",

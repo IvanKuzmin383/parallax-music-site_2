@@ -109,23 +109,23 @@ export function PublickaStatsPanel() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-4 pb-0 pt-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
                   Прослушивания
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-bold tabular-nums">
+              <CardContent className="px-4 pt-0 text-xl font-bold tabular-nums leading-none">
                 {stats.totalPlays.toLocaleString("ru-RU")}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-4 pb-0 pt-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
                   Заработано
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-bold tabular-nums">
+              <CardContent className="px-4 pt-0 text-xl font-bold tabular-nums leading-none">
                 {stats.earningsRub.toLocaleString("ru-RU", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -133,13 +133,13 @@ export function PublickaStatsPanel() {
                 ₽
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="gap-1 py-3">
+              <CardHeader className="px-4 pb-0 pt-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
                   Ставка
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-2xl font-bold tabular-nums">
+              <CardContent className="px-4 pt-0 text-base font-bold tabular-nums leading-snug sm:text-lg">
                 {PUBLICKA_RATE_RUB.toLocaleString("ru-RU", {
                   minimumFractionDigits: 2,
                 })}{" "}

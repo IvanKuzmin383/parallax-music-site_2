@@ -50,7 +50,7 @@ const SCENARIOS = [
   {
     id: "published",
     label: "Трек уже вышел",
-    body: "Можно зафиксировать текущий экземпляр произведения. Дата подачи будет новой и не подтвердит, когда вы создали или впервые опубликовали трек.",
+    body: "Фиксируем текущую версию файла: дата подачи, цифровой отпечаток и запечатанный экземпляр. В споре это подтверждает, что именно эта версия была у вас на день депонирования.",
   },
 ] as const
 
@@ -107,7 +107,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Трек уже опубликован. Есть смысл депонировать?",
-    a: "Можно зафиксировать текущий экземпляр произведения. Дата депонирования будет новой: она не подтверждает, когда вы создали трек или впервые его опубликовали.",
+    a: "Да. Фиксируем текущую версию с датой и цифровым отпечатком - доказательство, что именно этот файл был у вас на день подачи. Чем раньше задепонируете, тем сильнее позиция. Черновики и исходники работы над треком сохраняйте отдельно.",
   },
 ] as const
 
@@ -215,7 +215,7 @@ function DepositCertificateSample() {
           </div>
 
           <div className="relative mt-4 flex flex-wrap gap-1.5">
-            {["Шифрование", "Щит хранения", "Неизменяемая метка"].map((label) => (
+            {["Шифрование", "Защищённое хранение", "Неизменяемая метка"].map((label) => (
               <span
                 key={label}
                 className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[#B8B4C0]"
@@ -308,7 +308,7 @@ export function DepositLanding({ service }: { service: ServiceCatalogEntry }) {
   }, [service.paymentEndpoint])
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1200px] space-y-12 pb-10 md:space-y-14">
+    <div className="w-full min-w-0 max-w-none space-y-12 pb-10 md:space-y-14">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
           <Link href={backHref}>

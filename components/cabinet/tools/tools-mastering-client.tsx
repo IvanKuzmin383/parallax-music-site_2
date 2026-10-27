@@ -37,6 +37,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 import { useCabinetSession } from "@/lib/cabinet/hooks/cabinet-session-provider"
 import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import {
@@ -54,8 +59,10 @@ import {
   type SmoothLevel,
 } from "@/lib/tools-mastering-params"
 import { AI_CLEAN_LIMITS } from "@/lib/tools-mastering-spectral-clean"
+import { runSpectralCleanOnBuffer } from "@/lib/tools-mastering-spectral-clean-run"
 import {
   TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
+  TOOLS_MASTERING_FILE_TTL_DAYS,
   type ToolsMasteringEntitlement,
 } from "@/lib/tools-mastering-pricing"
 import { LiveMasteringEngine, type AbMode } from "@/lib/tools-mastering-live"
@@ -72,6 +79,16 @@ import { cn } from "@/lib/utils"
 
 type EntitlementState = ToolsMasteringEntitlement | null
 type LoadState = "idle" | "loading" | "ready" | "error"
+
+type SavedMasterFile = {
+  id: string
+  fileName: string
+  sizeBytes: number
+  used: "free" | "credit"
+  createdAt: string
+  expiresAt: string
+  downloadPath: string
+}
 
 function HintIcon({ label, tip }: { label: string; tip: string }) {
   return (
@@ -443,6 +460,15 @@ function ToolsMasteringInner() {
   const [busy, setBusy] = useState(false)
   const [paying, setPaying] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [error, setError] = useState<string | null>(null)
   const [renderPercent, setRenderPercent] = useState(0)
   const [renderLabel, setRenderLabel] = useState("")
@@ -451,6 +477,9 @@ function ToolsMasteringInner() {
   const [loadState, setLoadState] = useState<LoadState>("idle")
   const [loadPercent, setLoadPercent] = useState(0)
   const [loadPhase, setLoadPhase] = useState("")
+  const [cleanState, setCleanState] = useState<"idle" | "running" | "ready" | "error">("idle")
+  const [cleanPercent, setCleanPercent] = useState(0)
+  const [cleanLabel, setCleanLabel] = useState("")
   const [playing, setPlaying] = useState(false)
   const [abMode, setAbMode] = useState<AbMode>("B")
   const [playhead, setPlayhead] = useState(0)
@@ -458,7 +487,14 @@ function ToolsMasteringInner() {
   const [meter, setMeter] = useState<MeterReading>(() => silentMeterReading())
   const [presetsOpen, setPresetsOpen] = useState(true)
   const [fineTuneOpen, setFineTuneOpen] = useState(true)
+  const [savedFiles, setSavedFiles] = useState<SavedMasterFile[]>([])
+  const [savedLoading, setSavedLoading] = useState(true)
   const meterFrameRef = useRef(0)
+  const fileGenRef = useRef(0)
+  const cleanAbortRef = useRef<AbortController | null>(null)
+  const cleanedCacheRef = useRef<{ gen: number; buffer: AudioBuffer } | null>(null)
+  const paramsRef = useRef(params)
+  paramsRef.current = params
 
   const walletBalance = user?.walletBalance ?? 0
 
@@ -477,15 +513,31 @@ function ToolsMasteringInner() {
     }
   }, [])
 
+  const refreshSavedFiles = useCallback(async () => {
+    setSavedLoading(true)
+    try {
+      const res = await fetch("/api/cabinet/tools/mastering/files", { credentials: "include" })
+      if (!res.ok) return
+      const data = (await res.json()) as { items?: SavedMasterFile[] }
+      setSavedFiles(data.items ?? [])
+    } catch {
+      // ignore
+    } finally {
+      setSavedLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void refreshEntitlement()
-  }, [refreshEntitlement])
+    void refreshSavedFiles()
+  }, [refreshEntitlement, refreshSavedFiles])
 
   useEffect(() => {
     const engine = new LiveMasteringEngine()
     engineRef.current = engine
     return () => {
       renderAbortRef.current?.abort()
+      cleanAbortRef.current?.abort()
       void engine.dispose()
       engineRef.current = null
     }
@@ -532,6 +584,13 @@ function ToolsMasteringInner() {
       return
     }
 
+    cleanAbortRef.current?.abort()
+    fileGenRef.current += 1
+    cleanedCacheRef.current = null
+    setCleanState("idle")
+    setCleanPercent(0)
+    setCleanLabel("")
+
     setFile(picked)
     setError(null)
     setPlaying(false)
@@ -565,6 +624,93 @@ function ToolsMasteringInner() {
     }
   }
 
+  const runAiCleanPreview = useCallback(async () => {
+    const eng = engineRef.current
+    const source = eng?.getSourceBuffer()
+    if (!eng || !source) return
+
+    if (source.duration > AI_CLEAN_LIMITS.maxDurationSec) {
+      const maxMin = Math.round(AI_CLEAN_LIMITS.maxDurationSec / 60)
+      setCleanState("error")
+      setCleanLabel("")
+      setError(`Для очистки AI-трека максимум ${maxMin} мин. Обрежьте файл или выберите другой характер.`)
+      toast.error(`Для очистки AI-трека максимум ${maxMin} мин`)
+      return
+    }
+
+    const gen = fileGenRef.current
+    const cached = cleanedCacheRef.current
+    if (cached && cached.gen === gen) {
+      eng.setProcessedBuffer(cached.buffer)
+      eng.applyParams(paramsRef.current)
+      setCleanState("ready")
+      setCleanPercent(100)
+      setCleanLabel("Очистка готова")
+      return
+    }
+
+    cleanAbortRef.current?.abort()
+    const abort = new AbortController()
+    cleanAbortRef.current = abort
+
+    eng.pause()
+    setPlaying(false)
+    eng.setProcessedBuffer(null)
+    setCleanState("running")
+    setCleanPercent(0)
+    setCleanLabel("Убираем песок…")
+    setError(null)
+
+    try {
+      const cleaned = await runSpectralCleanOnBuffer(source, {
+        signal: abort.signal,
+        onProgress: (sp) => {
+          setCleanPercent(Math.round(sp.ratio * 100))
+          setCleanLabel(
+            sp.phase === "profile"
+              ? "Оценка шума…"
+              : sp.phase === "mask"
+                ? "Убираем песок…"
+                : "Сборка сигнала…",
+          )
+        },
+      })
+      if (abort.signal.aborted || gen !== fileGenRef.current) return
+      cleanedCacheRef.current = { gen, buffer: cleaned }
+      eng.setProcessedBuffer(cleaned)
+      eng.applyParams(paramsRef.current)
+      setCleanState("ready")
+      setCleanPercent(100)
+      setCleanLabel("Очистка готова")
+      toast.success("Очистка готова - в режиме B слышен финальный мастер")
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return
+      if (gen !== fileGenRef.current) return
+      const message = e instanceof Error ? e.message : "Ошибка спектральной очистки"
+      setCleanState("error")
+      setCleanLabel("")
+      setError(message)
+      toast.error(message)
+    } finally {
+      if (cleanAbortRef.current === abort) cleanAbortRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (loadState !== "ready" || !file) return
+
+    if (!isAiCleanPreset(params.presetId)) {
+      cleanAbortRef.current?.abort()
+      engineRef.current?.setProcessedBuffer(null)
+      setCleanState("idle")
+      setCleanPercent(0)
+      setCleanLabel("")
+      return
+    }
+
+    void runAiCleanPreview()
+  }, [params.presetId, file, loadState, runAiCleanPreview])
+
   const patchParams = (patch: Partial<MasteringParams>) => {
     setParams((prev) => {
       const next = { ...prev, ...patch }
@@ -580,6 +726,11 @@ function ToolsMasteringInner() {
   const togglePlay = async () => {
     const eng = engineRef.current
     if (!eng || loadState !== "ready") return
+    if (isAiCleanPreset(params.presetId) && cleanState === "running") return
+    if (isAiCleanPreset(params.presetId) && cleanState !== "ready") {
+      toast.message("Дождитесь очистки - затем слушайте финальный мастер в режиме B")
+      return
+    }
     try {
       if (eng.isPlaying) {
         eng.pause()
@@ -630,6 +781,7 @@ function ToolsMasteringInner() {
   const seekTo = async (seconds: number) => {
     const eng = engineRef.current
     if (!eng || loadState !== "ready" || duration <= 0) return
+    if (isAiCleanPreset(params.presetId) && cleanState !== "ready") return
     try {
       await eng.seek(seconds)
       setPlayhead(eng.currentTime)
@@ -657,7 +809,10 @@ function ToolsMasteringInner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ payFromBalance: true }),
+        body: JSON.stringify({
+          payFromBalance: true,
+          ...couponPaymentPayload(applyCoupon),
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as {
         paid?: boolean
@@ -689,7 +844,16 @@ function ToolsMasteringInner() {
       return
     }
 
-    if (isAiCleanPreset(params.presetId) && duration > AI_CLEAN_LIMITS.maxDurationSec) {
+    const aiClean = isAiCleanPreset(params.presetId)
+    if (aiClean && cleanState === "running") {
+      toast.message("Дождитесь окончания очистки - затем скачайте то, что слышите в B")
+      return
+    }
+    if (aiClean && cleanState !== "ready") {
+      toast.error("Сначала дождитесь спектральной очистки для превью")
+      return
+    }
+    if (aiClean && duration > AI_CLEAN_LIMITS.maxDurationSec) {
       const maxMin = Math.round(AI_CLEAN_LIMITS.maxDurationSec / 60)
       toast.error(`Для очистки AI-трека максимум ${maxMin} мин. Обрежьте файл или выберите другой характер.`)
       return
@@ -699,47 +863,65 @@ function ToolsMasteringInner() {
     const abort = new AbortController()
     renderAbortRef.current = abort
 
+    const eng = engineRef.current
+    const sourceBuf = eng?.getSourceBuffer() ?? null
+    const processBuf = eng?.getProcessBuffer() ?? null
+    const preCleaned =
+      aiClean && processBuf && sourceBuf && processBuf !== sourceBuf ? processBuf : null
+
     setBusy(true)
     setError(null)
     setRenderPercent(0)
-    setRenderLabel(isAiCleanPreset(params.presetId) ? "Подготовка очистки…" : "Рендер…")
+    setRenderLabel(aiClean && preCleaned ? "Рендер мастера…" : aiClean ? "Подготовка очистки…" : "Рендер…")
     try {
       const rendered = await renderMasteredWav(file, params, {
         signal: abort.signal,
+        preCleanedBuffer: preCleaned,
         onProgress: (p) => {
           setRenderPercent(Math.round(p.ratio * 100))
           setRenderLabel(p.label)
         },
       })
 
-      const consumeRes = await fetch("/api/cabinet/tools/mastering/consume", {
+      if (abort.signal.aborted) throw new DOMException("Aborted", "AbortError")
+
+      setRenderLabel("Сохранение на сервер…")
+      const form = new FormData()
+      form.append("file", rendered.blob, rendered.fileName)
+      form.append("fileName", rendered.fileName)
+
+      const saveRes = await fetch("/api/cabinet/tools/mastering/files", {
         method: "POST",
         credentials: "include",
+        body: form,
       })
-      const consumeData = (await consumeRes.json().catch(() => ({}))) as {
+      const saveData = (await saveRes.json().catch(() => ({}))) as {
         error?: string
         code?: string
         entitlement?: ToolsMasteringEntitlement
         used?: string
+        file?: SavedMasterFile
+        ttlDays?: number
       }
 
-      if (consumeRes.status === 402) {
-        if (consumeData.entitlement) setEntitlement(consumeData.entitlement)
+      if (saveRes.status === 402) {
+        if (saveData.entitlement) setEntitlement(saveData.entitlement)
         setPayDialogOpen(true)
         return
       }
-      if (!consumeRes.ok) {
-        throw new Error(consumeData.error || "Не удалось подтвердить скачивание")
+      if (!saveRes.ok || !saveData.file) {
+        throw new Error(saveData.error || "Не удалось сохранить мастер")
       }
-      if (consumeData.entitlement) setEntitlement(consumeData.entitlement)
+      if (saveData.entitlement) setEntitlement(saveData.entitlement)
 
+      setSavedFiles((prev) => [saveData.file!, ...prev.filter((f) => f.id !== saveData.file!.id)])
       triggerBlobDownload(rendered.blob, rendered.fileName)
+
+      const ttl = saveData.ttlDays ?? TOOLS_MASTERING_FILE_TTL_DAYS
       toast.success(
-        consumeData.used === "free"
-          ? "Скачано (бесплатное скачивание использовано)"
-          : isAiCleanPreset(params.presetId)
-            ? "Очищенный мастер скачан"
-            : "Мастер скачан"
+        saveData.used === "free"
+          ? `Скачано. Копия на сервере ${ttl} дн. - можно скачать снова`
+          : `Мастер сохранён на ${ttl} дн. - повторное скачивание без оплаты`,
       )
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
@@ -757,7 +939,24 @@ function ToolsMasteringInner() {
     }
   }
 
+  const formatExpiresAt = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return iso
+    }
+  }
+
   const aiCleanActive = isAiCleanPreset(params.presetId)
+  const aiCleanBusy = aiCleanActive && cleanState === "running"
+  const aiCleanPreviewReady = !aiCleanActive || cleanState === "ready"
+  const playbackReady = loadState === "ready" && aiCleanPreviewReady && !aiCleanBusy
 
   const needsPurchase = Boolean(entitlement && !entitlement.canDownload)
   const downloadPriceRub = entitlement?.priceRub ?? TOOLS_MASTERING_DOWNLOAD_PRICE_RUB
@@ -781,7 +980,29 @@ function ToolsMasteringInner() {
           <ArrowLeft className="h-4 w-4" />
           К инструментам
         </Link>
-        <PageHeader title="Онлайн-мастеринг" className="mb-0 sm:mb-0" />
+        <PageHeader title="Онлайн-мастеринг" className="mb-0 items-center sm:mb-0 sm:items-center">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 shrink-0 border-primary/45 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+            asChild
+          >
+            <Link href="/cabinet/design/mastering">
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              AI-мастеринг на заказ
+            </Link>
+          </Button>
+        </PageHeader>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-100">
+            Хранение {TOOLS_MASTERING_FILE_TTL_DAYS} дней
+          </span>
+          <p className="text-xs text-muted-foreground">
+            После скачивания мастер сохраняется на сервере {TOOLS_MASTERING_FILE_TTL_DAYS} дней -
+            можно скачать снова без повторной оплаты, если вкладка закрылась.
+          </p>
+        </div>
       </div>
 
       <input
@@ -808,15 +1029,21 @@ function ToolsMasteringInner() {
             <span
               className={cn(
                 "min-w-0 max-w-[9rem] truncate text-xs sm:max-w-[14rem]",
-                loadState === "ready" ? "text-emerald-400" : "text-muted-foreground"
+                playbackReady
+                  ? "text-emerald-400"
+                  : aiCleanBusy
+                    ? "text-amber-400"
+                    : "text-muted-foreground"
               )}
               title={file?.name}
             >
-              {loadState === "ready"
-                ? file?.name || "Готово"
-                : file
-                  ? file.name
-                  : "Файл не выбран"}
+              {aiCleanBusy
+                ? "Очистка…"
+                : loadState === "ready"
+                  ? file?.name || "Готово"
+                  : file
+                    ? file.name
+                    : "Файл не выбран"}
             </span>
 
             <div className="hidden h-5 w-px shrink-0 bg-border sm:block" aria-hidden />
@@ -831,7 +1058,7 @@ function ToolsMasteringInner() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => switchAb("A")}
-                disabled={loadState !== "ready"}
+                disabled={!playbackReady}
               >
                 A
               </button>
@@ -844,14 +1071,18 @@ function ToolsMasteringInner() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => switchAb("B")}
-                disabled={loadState !== "ready"}
+                disabled={!playbackReady}
               >
                 B
               </button>
             </div>
             <HintIcon
               label="A/B"
-              tip="A - исходник, B - мастер. Крутилки меняют звук сразу в режиме B."
+              tip={
+                aiCleanActive
+                  ? "A - исходник, B - финальный мастер после спектральной очистки. Крутилки меняют B сразу."
+                  : "A - исходник, B - мастер. Крутилки меняют звук сразу в режиме B."
+              }
             />
 
             <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
@@ -859,10 +1090,10 @@ function ToolsMasteringInner() {
             <button
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
-              disabled={loadState !== "ready"}
-              aria-label={playing ? "Пауза" : "Воспроизвести"}
-              onClick={() => void togglePlay()}
-            >
+                disabled={!playbackReady}
+                aria-label={playing ? "Пауза" : "Воспроизвести"}
+                onClick={() => void togglePlay()}
+              >
               {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
             </button>
             <div className="flex w-full min-w-[10rem] max-w-md flex-1 basis-[12rem] items-center gap-2">
@@ -874,7 +1105,7 @@ function ToolsMasteringInner() {
                 min={0}
                 max={duration > 0 ? duration : 1}
                 step={0.01}
-                disabled={loadState !== "ready" || duration <= 0}
+                disabled={!playbackReady || duration <= 0}
                 aria-label="Позиция воспроизведения"
                 className="flex-1"
                 onValueChange={(value) => {
@@ -893,7 +1124,7 @@ function ToolsMasteringInner() {
 
             <div className="hidden h-5 w-px shrink-0 bg-border lg:block" aria-hidden />
 
-            <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
+            <CompactLoudnessMeters reading={meter} live={playing && playbackReady} />
 
             <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
               {busy && renderLabel ? (
@@ -904,19 +1135,36 @@ function ToolsMasteringInner() {
                   </div>
                   <Progress value={renderPercent} className="h-1.5" />
                 </div>
+              ) : aiCleanBusy ? (
+                <div className="w-full min-w-[10rem] space-y-1 sm:w-44">
+                  <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span className="truncate">{cleanLabel || "Очистка…"}</span>
+                    <span className="tabular-nums">{cleanPercent}%</span>
+                  </div>
+                  <Progress value={cleanPercent} className="h-1.5" />
+                </div>
               ) : null}
               <Button
                 type="button"
                 size="sm"
                 className="h-8 shrink-0"
                 onClick={() => {
+                  if (aiCleanActive && cleanState !== "ready") {
+                    toast.message("Дождитесь очистки - потом оплатите и скачайте то, что слышите")
+                    return
+                  }
                   if (needsPurchase) {
                     setPayDialogOpen(true)
                     return
                   }
                   void handleDownload()
                 }}
-                disabled={needsPurchase ? paying : busy || loadState !== "ready"}
+                disabled={
+                  paying ||
+                  busy ||
+                  !playbackReady ||
+                  (aiCleanActive && cleanState !== "ready")
+                }
               >
                 {busy || paying ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -924,18 +1172,6 @@ function ToolsMasteringInner() {
                   <Download className="mr-1.5 h-3.5 w-3.5" />
                 )}
                 {downloadLabel}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 shrink-0 border-primary/45 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
-                asChild
-              >
-                <Link href="/cabinet/design/mastering">
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                  AI-мастеринг на заказ
-                </Link>
               </Button>
             </div>
           </div>
@@ -950,13 +1186,80 @@ function ToolsMasteringInner() {
             </div>
           ) : null}
 
+          {aiCleanBusy ? (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span>{cleanLabel || "Спектральная очистка…"}</span>
+                <span className="tabular-nums">{cleanPercent}%</span>
+              </div>
+              <Progress value={cleanPercent} className="h-1" />
+            </div>
+          ) : null}
+
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
           <p className="text-[11px] text-muted-foreground">
-            Настройки меняют звук сразу в режиме B
+            {aiCleanActive
+              ? cleanState === "ready"
+                ? "Режим B - финальный мастер (очистка + цепочка). A - исходник. Настройки меняют B сразу."
+                : "После очистки в режиме B будет слышен финальный мастер до оплаты и скачивания."
+              : "Настройки меняют звук сразу в режиме B"}
           </p>
         </div>
       </div>
+
+      <section className="rounded-lg border border-border/70 bg-card/30 px-4 py-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-medium">Сохранённые мастера</h2>
+            <span className="inline-flex items-center rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-100/95">
+              {TOOLS_MASTERING_FILE_TTL_DAYS} дней
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            disabled={savedLoading}
+            onClick={() => void refreshSavedFiles()}
+          >
+            {savedLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Обновить"}
+          </Button>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Файлы после оплаты/бесплатного скачивания хранятся {TOOLS_MASTERING_FILE_TTL_DAYS} дней.
+          Потом удаляются автоматически. Повторное скачивание из списка - без новой оплаты.
+        </p>
+        {savedLoading && savedFiles.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Загрузка…</p>
+        ) : savedFiles.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Пока нет сохранённых файлов.</p>
+        ) : (
+          <ul className="space-y-2">
+            {savedFiles.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{item.fileName}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Доступно до {formatExpiresAt(item.expiresAt)}
+                    {item.used === "free" ? " · бесплатное" : " · кредит"}
+                  </p>
+                </div>
+                <Button type="button" size="sm" variant="outline" className="h-8 shrink-0" asChild>
+                  <a href={item.downloadPath} download={item.fileName}>
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    Скачать
+                  </a>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="min-w-0 space-y-3">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
@@ -1081,7 +1384,7 @@ function ToolsMasteringInner() {
                             {isManualPreset(params.presetId)
                               ? "Характер выключен. Настраивайте EQ, компрессор и окрас вручную ниже."
                               : aiCleanActive
-                                ? "В этом режиме характер фиксирован: спектр + мягкий лимит при скачивании."
+                                ? "Характер фиксирован. Спектральная очистка считается сразу для превью."
                                 : "Подмешивание характера к нейтральной обработке."}
                           </p>
                         </div>
@@ -1089,11 +1392,11 @@ function ToolsMasteringInner() {
                           <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-[12px] leading-snug text-foreground/90">
                             <p className="font-medium">Очистка AI-фонограмм</p>
                             <p className="mt-1 text-muted-foreground">
-                              Спектральный шаг выполняется в фоне при скачивании (до{" "}
-                              {Math.round(AI_CLEAN_LIMITS.maxDurationSec / 60)} мин), чтобы вкладка
-                              не зависала. В плеере сейчас слышна только цепочка мастеринга без
-                              спектральной очистки. Автоматика может чуть задеть тихие детали -
-                              перед релизом послушайте файл.
+                              Спектральный шаг считается в фоне сразу после выбора режима (до{" "}
+                              {Math.round(AI_CLEAN_LIMITS.maxDurationSec / 60)} мин на длинных
+                              треках). В режиме B слышен финальный мастер до оплаты и скачивания; A
+                              - исходник. Автоматика может чуть задеть тихие детали - перед релизом
+                              послушайте файл.
                             </p>
                           </div>
                         ) : null}
@@ -1368,7 +1671,16 @@ function ToolsMasteringInner() {
           </Collapsible>
       </div>
 
-      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+      <Dialog
+        open={payDialogOpen}
+        onOpenChange={(open) => {
+          setPayDialogOpen(open)
+          if (!open) {
+            setApplyCoupon(false)
+            setCouponPreview(null)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Скачивание мастера</DialogTitle>
@@ -1378,31 +1690,52 @@ function ToolsMasteringInner() {
               скачивание.
             </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
-            {walletBalance < downloadPriceRub ? (
+          <CabinetApplyCouponControl
+            orderType="tools_mastering_download"
+            amountRub={downloadPriceRub}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+            compact
+          />
+          {(() => {
+            const due =
+              applyCoupon && couponPreview ? couponPreview.finalAmountRub : downloadPriceRub
+            const needTopup = walletBalance < due
+            return (
               <>
-                {" "}
-                ·{" "}
-                <Link href="/cabinet/finance/balance" className="text-primary underline-offset-2 hover:underline">
-                  Пополнить
-                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
+                  {needTopup ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <Link
+                        href="/cabinet/finance/balance"
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        Пополнить
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={() => setPayDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void startPaymentFromBalance()}
+                    disabled={paying || needTopup}
+                  >
+                    {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {due <= 0
+                      ? "Получить бесплатно"
+                      : `Оплатить ${due.toLocaleString("ru-RU")} ₽ с баланса`}
+                  </Button>
+                </DialogFooter>
               </>
-            ) : null}
-          </p>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setPayDialogOpen(false)}>
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void startPaymentFromBalance()}
-              disabled={paying || walletBalance < downloadPriceRub}
-            >
-              {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Оплатить {downloadPriceRub} ₽ с баланса
-            </Button>
-          </DialogFooter>
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>

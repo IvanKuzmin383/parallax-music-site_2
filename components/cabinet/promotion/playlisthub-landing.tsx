@@ -20,6 +20,7 @@ import {
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
 import {
   PLAYLISTHUB_BASE_PRICE_LABEL,
   PLAYLISTHUB_CATALOG_URL,
@@ -124,7 +125,11 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
   const pathname = usePathname()
   const backHref = getCabinetServiceHubHref(pathname)
   const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
-  const priceLabel = service.priceLabel || PLAYLISTHUB_BASE_PRICE_LABEL
+  const { byKey } = useServicePrices()
+  const priceLabel =
+    (service.priceKey ? byKey(service.priceKey)?.cardLabel : null) ||
+    service.priceLabel ||
+    PLAYLISTHUB_BASE_PRICE_LABEL
 
   const openHowItWorks = useCallback(() => {
     requestAnimationFrame(() => scrollToId("playlisthub-steps"))

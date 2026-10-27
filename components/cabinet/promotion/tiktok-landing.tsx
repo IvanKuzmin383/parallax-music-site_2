@@ -27,6 +27,7 @@ import {
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
 import { cn } from "@/lib/utils"
 
 type PlatformId = "tiktok" | "instagram" | "youtube"
@@ -273,9 +274,6 @@ function PlatformPhone({
         isCenter
           ? "z-10 w-[9.5rem] sm:w-[11rem] md:w-[12.5rem]"
           : "z-0 w-[7.25rem] opacity-95 sm:w-[8.25rem] md:w-[9rem]",
-        tilt === "left" && "origin-bottom rotate-[-8deg] translate-y-4 sm:translate-y-5",
-        tilt === "right" && "origin-bottom rotate-[8deg] translate-y-4 sm:translate-y-5",
-        isCenter && "translate-y-0",
       )}
     >
       <p
@@ -286,28 +284,37 @@ function PlatformPhone({
       >
         {label}
       </p>
+      {/* Поворот только у рамки - иначе overflow предка обрезает верх/низ */}
       <div
         className={cn(
-          "relative overflow-hidden border-[5px] border-[#1A181E] bg-[#0B0A0E]",
-          "shadow-[0_16px_36px_-20px_rgba(0,0,0,0.85)]",
-          isCenter ? "rounded-[28px]" : "rounded-[24px]",
+          "relative will-change-transform",
+          tilt === "left" && "origin-bottom rotate-[-7deg]",
+          tilt === "right" && "origin-bottom rotate-[7deg]",
         )}
       >
         <div
           className={cn(
-            "absolute left-1/2 top-[6px] z-40 h-3.5 -translate-x-1/2 rounded-full bg-[#050506]",
-            isCenter ? "w-14" : "w-11",
+            "relative overflow-hidden border-[5px] border-[#1A181E] bg-[#0B0A0E]",
+            "shadow-[0_16px_36px_-20px_rgba(0,0,0,0.85)]",
+            isCenter ? "rounded-[28px]" : "rounded-[24px]",
           )}
-          aria-hidden
-        />
-        <div className="relative aspect-[9/16] w-full overflow-hidden">
-          <PreviewStillFill label={`Как выглядит в ${label}`} />
-          <PlatformChrome platform={platform} caption={caption} />
+        >
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-1 z-30 flex justify-center"
+            className={cn(
+              "absolute left-1/2 top-[6px] z-40 h-3.5 -translate-x-1/2 rounded-full bg-[#050506]",
+              isCenter ? "w-14" : "w-11",
+            )}
             aria-hidden
-          >
-            <span className="h-1 w-16 rounded-full bg-white/50" />
+          />
+          <div className="relative aspect-[9/16] w-full overflow-hidden">
+            <PreviewStillFill label={`Как выглядит в ${label}`} />
+            <PlatformChrome platform={platform} caption={caption} />
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-1 z-30 flex justify-center"
+              aria-hidden
+            >
+              <span className="h-1 w-16 rounded-full bg-white/50" />
+            </div>
           </div>
         </div>
       </div>
@@ -320,8 +327,8 @@ function PreviewComposition() {
   const center = PLATFORM_PREVIEWS[1]!
   const right = PLATFORM_PREVIEWS[2]!
   return (
-    <div className="mx-auto w-full max-w-md">
-      <div className="flex items-end justify-center gap-2 px-2 sm:gap-3 sm:px-4">
+    <div className="mx-auto w-full max-w-lg overflow-visible">
+      <div className="flex items-end justify-center gap-2 overflow-visible px-3 pb-2 pt-3 sm:gap-3 sm:px-5 sm:pt-4">
         <PlatformPhone
           platform={left.id}
           label={left.label}
@@ -370,7 +377,9 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
   const [submitting, setSubmitting] = useState(false)
 
   const activeFormat = FORMATS.find((f) => f.id === format) ?? FORMATS[0]
-  const priceLabel = service.priceLabel
+  const { byKey } = useServicePrices()
+  const priceLabel =
+    (service.priceKey ? byKey(service.priceKey)?.cardLabel : null) || service.priceLabel
   const features = service.features
 
   const openOrderForm = useCallback((expandForm: boolean) => {
@@ -495,7 +504,7 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
             стоимость услуги
           </p>
         </div>
-        <div className="min-w-0 overflow-x-hidden pt-1 lg:pt-0">
+        <div className="min-w-0 overflow-visible pt-1 lg:pt-0">
           <PreviewComposition />
         </div>
       </section>

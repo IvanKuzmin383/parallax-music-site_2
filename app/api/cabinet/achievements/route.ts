@@ -5,7 +5,7 @@ import {
   evaluateUserAchievements,
   getGamificationProgress,
 } from "@/lib/cabinet-achievements"
-import { listCouponsForUser } from "@/lib/cabinet-coupons"
+import { listCouponsForUser, listUsedCouponsForUser } from "@/lib/cabinet-coupons"
 
 export async function GET(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
 
   await evaluateUserAchievements(user.id)
   const progress = await getGamificationProgress(user.id)
-  const coupons = await listCouponsForUser(user.id, { activeOnly: true })
+  const [coupons, usedCoupons] = await Promise.all([
+    listCouponsForUser(user.id, { activeOnly: true }),
+    listUsedCouponsForUser(user.id),
+  ])
 
-  return NextResponse.json({ progress, coupons })
+  return NextResponse.json({ progress, coupons, usedCoupons })
 }

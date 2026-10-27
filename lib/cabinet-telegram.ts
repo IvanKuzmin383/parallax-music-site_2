@@ -263,7 +263,7 @@ export async function linkCabinetTelegramByCode(params: {
 
 function prefKeyForType(
   type: CabinetNotificationType | string
-): keyof Omit<CabinetTelegramNotifyPrefs, "enabled"> | null {
+): keyof Omit<CabinetTelegramNotifyPrefs, "enabled"> | "master" | null {
   switch (type) {
     case "release_status":
     case "release_moderation_note":
@@ -274,6 +274,9 @@ function prefKeyForType(
       return "withdrawals"
     case "royalty_to_wallet":
       return "royalty"
+    case "admin_message":
+      // Сообщения из админки - только общий тумблер Telegram
+      return "master"
     case "release_ai_analysis":
       return null
     default:
@@ -322,7 +325,7 @@ export async function trySendCabinetTelegramNotification(params: {
 
     const prefs = rowToPrefs(row)
     if (!prefs.enabled) return
-    if (!prefs[prefKey]) return
+    if (prefKey !== "master" && !prefs[prefKey]) return
 
     const lines = [
       `<b>${escapeHtml(params.title.trim())}</b>`,

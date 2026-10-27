@@ -1,12 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react"
 import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
 import { ru } from "date-fns/locale"
 import { Bell } from "lucide-react"
 import { toast } from "sonner"
+import { isClickOnLink, LinkifiedText } from "@/components/announcement-body"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { openCabinetSupportChat } from "@/components/cabinet/support/cabinet-support-chat"
@@ -185,7 +185,7 @@ export default function CabinetNotificationsPage() {
                   </p>
                   {item.body ? (
                     <p className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
-                      {item.body}
+                      <LinkifiedText text={item.body} />
                     </p>
                   ) : null}
                   <p className="text-[11px] text-muted-foreground">
@@ -202,50 +202,40 @@ export default function CabinetNotificationsPage() {
               if (opensSupport) openCabinetSupportChat()
             }
 
-            const onOrderDetailClick = async () => {
+            const onRowClick = async (e: MouseEvent) => {
+              if (isClickOnLink(e)) return
               onActivate()
-              if (!orderDetail) return
-              const exists = await cabinetServiceOrderExists(orderDetail.orderId)
-              if (!exists) {
-                toast.message("Этот платёж не отображается в разделе «Заказы»", {
-                  description: "Уведомление отмечено прочитанным.",
-                })
+              if (opensSupport) return
+              if (orderDetail) {
+                const exists = await cabinetServiceOrderExists(orderDetail.orderId)
+                if (!exists) {
+                  toast.message("Этот платёж не отображается в разделе «Заказы»", {
+                    description: "Уведомление отмечено прочитанным.",
+                  })
+                  return
+                }
+                router.push(`/cabinet/orders/${orderDetail.orderId}`)
                 return
               }
-              router.push(`/cabinet/orders/${orderDetail.orderId}`)
+              if (item.href) router.push(item.href)
             }
 
             return (
               <li key={item.id} className="min-w-0">
-                {opensSupport ? (
-                  <button
-                    type="button"
-                    className={cn(rowClass, "w-full text-left")}
-                    onClick={onActivate}
-                  >
-                    {body}
-                  </button>
-                ) : orderDetail ? (
-                  <button
-                    type="button"
-                    className={cn(rowClass, "w-full text-left")}
-                    onClick={() => void onOrderDetailClick()}
-                  >
-                    {body}
-                  </button>
-                ) : item.href ? (
-                  <Link href={item.href} className={rowClass} onClick={onActivate}>
-                    {body}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className={cn(rowClass, "w-full text-left")}
-                    onClick={onActivate}
-                  >
-                    {body}
-                  </button>
-                )}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={cn(rowClass, "w-full cursor-pointer text-left")}
+                  onClick={(e) => void onRowClick(e)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      void onRowClick(e as unknown as MouseEvent)
+                    }
+                  }}
+                >
+                  {body}
+                </div>
               </li>
             )
           })}

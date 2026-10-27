@@ -23,19 +23,6 @@ type NewsItem = {
 
 const PREVIEW_MAX = 160
 
-function plainPreview(body: string): string {
-  const plain = body
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[#>*_~-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-  if (plain.length <= PREVIEW_MAX) return plain
-  return `${plain.slice(0, PREVIEW_MAX).trimEnd()}…`
-}
-
 export default function CabinetNewsPage() {
   const [items, setItems] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,8 +65,8 @@ export default function CabinetNewsPage() {
 
       <div className="space-y-3">
         {items.map((item) => {
-          const preview = plainPreview(item.body || "")
-          const needsMore = (item.body || "").trim().length > PREVIEW_MAX
+          const bodyText = (item.body || "").trim()
+          const needsMore = bodyText.length > PREVIEW_MAX
 
           return (
             <article
@@ -94,8 +81,13 @@ export default function CabinetNewsPage() {
                   </time>
                 ) : null}
               </header>
-              {preview ? (
-                <p className="text-sm leading-relaxed text-muted-foreground">{preview}</p>
+              {bodyText ? (
+                <div className={needsMore ? "line-clamp-4" : undefined}>
+                  <AnnouncementBody
+                    body={item.body}
+                    className="text-sm leading-relaxed text-muted-foreground"
+                  />
+                </div>
               ) : null}
               {needsMore ? (
                 <button

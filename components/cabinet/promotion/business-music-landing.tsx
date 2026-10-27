@@ -12,6 +12,7 @@ import {
   Dumbbell,
   FileCheck2,
   Library,
+  Play,
   ShoppingBag,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -36,6 +37,11 @@ import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
 import { PUBLICKA_RATE_RUB, playsToEarningsRub } from "@/lib/publicka-shared"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { cn } from "@/lib/utils"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 const INCLUDE_CARDS = [
   {
@@ -175,12 +181,28 @@ function BiznesZvukCatalogSample() {
               <p className="mt-0.5 text-[11px] text-white/75">Каталог фоновой музыки</p>
             </div>
 
-            <div className="rounded-[12px] border border-white/20 bg-black/35 p-3 backdrop-blur-[2px]">
-              <p className="truncate text-sm font-semibold">Ваш трек</p>
-              <p className="truncate text-xs text-white/70">Имя артиста</p>
-              <span className="mt-1.5 inline-flex rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-medium text-white/90">
-                Музыка для пространств
-              </span>
+            <div className="rounded-[12px] bg-black/45 p-3 backdrop-blur-[2px]">
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black"
+                  aria-hidden
+                >
+                  <Play className="h-3.5 w-3.5 translate-x-px fill-current" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold leading-tight">Ваш трек</p>
+                  <p className="truncate text-xs text-white/70">Имя артиста</p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1.5" aria-hidden>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/20">
+                  <div className="h-full w-[38%] rounded-full bg-white" />
+                </div>
+                <div className="flex justify-between text-[10px] tabular-nums text-white/55">
+                  <span>0:42</span>
+                  <span>3:18</span>
+                </div>
+              </div>
             </div>
 
             <p className="text-xs leading-relaxed text-white/80">
@@ -222,6 +244,15 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
     comment?: string
   }>({})
   const [submitting, setSubmitting] = useState<"card" | "balance" | null>(null)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [playsPreset, setPlaysPreset] = useState<(typeof PLAY_PRESETS)[number]>(10_000)
   const { releases, loading: releasesLoading } = useCabinetReleases()
   const selectableReleases = useMemo(
@@ -234,7 +265,10 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
   )
 
   const priceRub = BUSINESS_MUSIC_PRICE_RUB
+  const dueRub =
+    applyCoupon && couponPreview ? couponPreview.finalAmountRub : priceRub
   const priceDisplay = `${formatRub(priceRub)} ₽`
+  const dueDisplay = `${formatRub(dueRub)} ₽`
   const earnings = playsToEarningsRub(playsPreset)
   const rateLabel = PUBLICKA_RATE_RUB.toLocaleString("ru-RU")
 
@@ -310,6 +344,7 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
           contactValue: "@artist",
           returnPath: "/cabinet/promotion/business-music",
           payFromBalance: true,
+          ...couponPaymentPayload(applyCoupon),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -660,8 +695,15 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
               )}
             </div>
 
+            <CabinetApplyCouponControl
+              orderType="business_music"
+              amountRub={priceRub}
+              applied={applyCoupon}
+              onAppliedChange={onCouponAppliedChange}
+            />
+
             <p className="pt-1 text-sm font-medium text-foreground">
-              1 трек · размещение в каталоге - {priceDisplay}
+              1 трек · размещение в каталоге - {dueDisplay}
             </p>
 
             <Button
@@ -670,7 +712,11 @@ function BusinessMusicLandingInner({ service }: { service: ServiceCatalogEntry }
               disabled={Boolean(submitting) || selectableReleases.length === 0}
               onClick={() => void handlePay()}
             >
-              {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
+              {submitting === "balance"
+                ? "Оплата..."
+                : dueRub <= 0
+                  ? "Оформить бесплатно"
+                  : "Оплатить с баланса"}
             </Button>
           </div>
         </div>

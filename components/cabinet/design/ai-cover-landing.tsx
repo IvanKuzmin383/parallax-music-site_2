@@ -1,10 +1,10 @@
 "use client"
 
-import { Suspense, useEffect, useId, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, Check, ImageIcon, Layers, Sparkles } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -31,6 +31,11 @@ import {
   validateAiCoverOrder,
 } from "@/lib/ai-cover-order"
 import { cn } from "@/lib/utils"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 type PortfolioItem = {
   src: string
@@ -53,23 +58,13 @@ const PORTFOLIO: PortfolioItem[] = [
 
 const GALLERY_INITIAL = 8
 
-const RESULT_CARDS = [
-  {
-    icon: Layers,
-    title: "6-9 вариантов",
-    body: "Подготовим варианты по материалам релиза и вашим пожеланиям к оформлению.",
-  },
-  {
-    icon: Check,
-    title: "Выбор и согласование",
-    body: "Вы выбираете один вариант, а мы согласуем его финальное оформление.",
-  },
-  {
-    icon: ImageIcon,
-    title: "Файл 3000 x 3000",
-    body: "Получаете выбранную обложку в готовом размере для передачи на стриминги.",
-  },
-] as const
+/** Пример кейса: идея → мудборд → финал со статусами для стриминга. */
+const PROCESS_BRIEF =
+  "Обложка к треку про разбитую любовь и тишину между людьми"
+const PROCESS_BRIEF_TAGS = ["тишина", "дистанция", "разлом"] as const
+const PROCESS_MOODBOARD = PORTFOLIO.slice(0, 9)
+/** Индекс выбранного кадра в мудборде (0-based). */
+const PROCESS_SELECTED_INDEX = 2
 
 const PROCESS_STEPS = [
   {
@@ -125,6 +120,127 @@ function contactPlaceholder(type: AiCoverContactType): string {
   if (type === "telegram") return "@username или ссылка"
   if (type === "vk") return "Ссылка или id VK"
   return "Номер или ссылка Max"
+}
+
+function CoverProcessExample() {
+  const selected =
+    PROCESS_MOODBOARD[PROCESS_SELECTED_INDEX] ?? PROCESS_MOODBOARD[0]!
+
+  return (
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-2">
+      {/* 01 Идея */}
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold tabular-nums text-[#F21D43]">01</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Идея
+          </span>
+        </div>
+        <div className="flex flex-1 flex-col justify-center rounded-[14px] bg-card/80 px-4 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Бриф
+          </p>
+          <p className="mt-2 text-[15px] font-medium leading-snug text-foreground">
+            {PROCESS_BRIEF}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {PROCESS_BRIEF_TAGS.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-md bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden shrink-0 items-center px-1 lg:flex" aria-hidden>
+        <ArrowRight className="h-4 w-4 text-muted-foreground/45" />
+      </div>
+
+      {/* 02 Мудборд */}
+      <div className="flex min-w-0 flex-[1.25] flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold tabular-nums text-[#F21D43]">02</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Варианты
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">9 образов на выбор</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+          {PROCESS_MOODBOARD.map((item, index) => {
+            const selectedCell = index === PROCESS_SELECTED_INDEX
+            return (
+              <div
+                key={item.src}
+                className={cn(
+                  "relative aspect-square overflow-hidden rounded-[8px] bg-muted",
+                  selectedCell && "ring-2 ring-[#F21D43] ring-offset-2 ring-offset-background",
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.src}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  draggable={false}
+                />
+                <span className="absolute left-1 top-1 flex h-5 min-w-5 items-center justify-center rounded bg-black/55 px-1 text-[10px] font-semibold tabular-nums text-white">
+                  {index + 1}
+                </span>
+                {selectedCell ? (
+                  <span className="absolute bottom-1 right-1 rounded bg-[#F21D43] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                    Выбрано
+                  </span>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="hidden shrink-0 items-center px-1 lg:flex" aria-hidden>
+        <ArrowRight className="h-4 w-4 text-muted-foreground/45" />
+      </div>
+
+      {/* 03 Финал */}
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold tabular-nums text-[#F21D43]">03</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Готово
+          </span>
+        </div>
+        <div className="relative mx-auto w-full max-w-[16rem] overflow-hidden rounded-[12px] bg-muted lg:mx-0 lg:max-w-none">
+          <div className="relative aspect-square w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={selected.src}
+              alt="Выбранная обложка для стримингов"
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+            <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
+              <span className="rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-white backdrop-blur-[2px]">
+                3000 × 3000
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-[2px]">
+                <Check className="h-3 w-3 text-emerald-400" aria-hidden />
+                Streaming ready
+              </span>
+            </div>
+          </div>
+          <p className="px-3 py-2 text-[11px] text-muted-foreground">
+            Финальный файл для Spotify, Apple Music, Яндекс Музыки
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function HeroCovers() {
@@ -208,6 +324,15 @@ function AiCoverLandingInner() {
   const [fieldErrors, setFieldErrors] = useState<AiCoverFieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [paymentSuccessOpen, setPaymentSuccessOpen] = useState(false)
   const [galleryExpanded, setGalleryExpanded] = useState(false)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
@@ -325,6 +450,7 @@ function AiCoverLandingInner() {
           comment: validated.comment,
           contactType: validated.contactType,
           contactValue: validated.contactValue,
+          ...couponPaymentPayload(applyCoupon),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as {
@@ -370,7 +496,7 @@ function AiCoverLandingInner() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1120px] space-y-10 pb-10 md:space-y-12">
+    <div className="w-full min-w-0 max-w-none space-y-10 pb-10 md:space-y-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
           <Link href={backHref}>
@@ -434,23 +560,10 @@ function AiCoverLandingInner() {
             От идеи релиза до готовой обложки
           </h2>
           <p className="text-[15px] text-muted-foreground">
-            Несколько вариантов для выбора. Один финальный образ для вашего трека.
+            Как это выглядит на примере одного заказа.
           </p>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          {RESULT_CARDS.map((card) => (
-            <div
-              key={card.title}
-              className="rounded-[14px] border border-border bg-card px-4 py-4"
-            >
-              <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F21D43]/12 text-[#F21D43]">
-                <card.icon className="h-4 w-4" aria-hidden />
-              </div>
-              <h3 className="text-base font-semibold tracking-tight text-foreground">{card.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
-            </div>
-          ))}
-        </div>
+        <CoverProcessExample />
       </section>
 
       <section id="ai-cover-gallery" className="scroll-mt-20 space-y-5">
@@ -752,8 +865,19 @@ function AiCoverLandingInner() {
             ) : null}
           </div>
 
+          <CabinetApplyCouponControl
+            orderType="ai_cover"
+            amountRub={AI_COVER_PRICE_RUB}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+          />
+
           <p className="text-sm font-semibold text-foreground">
-            Итого: {AI_COVER_PRICE_RUB} {"\u20BD"}
+            Итого:{" "}
+            {applyCoupon && couponPreview
+              ? couponPreview.finalAmountRub
+              : AI_COVER_PRICE_RUB}{" "}
+            {"\u20BD"}
           </p>
 
           {formError && !Object.keys(fieldErrors).length ? (
@@ -767,7 +891,13 @@ function AiCoverLandingInner() {
             className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90"
             disabled={loading}
           >
-            {loading ? "Оплата…" : `Оплатить ${AI_COVER_PRICE_RUB} \u20BD с баланса`}
+            {loading
+              ? "Оплата…"
+              : `Оплатить ${
+                  applyCoupon && couponPreview
+                    ? couponPreview.finalAmountRub
+                    : AI_COVER_PRICE_RUB
+                } \u20BD с баланса`}
           </Button>
         </form>
       </section>

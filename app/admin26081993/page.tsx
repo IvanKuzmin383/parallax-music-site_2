@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null)
   const [storageLoading, setStorageLoading] = useState(false)
   const [downloadingCovers, setDownloadingCovers] = useState(false)
+  const [purgingMastering, setPurgingMastering] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null)
   const router = useRouter()
@@ -208,6 +209,45 @@ export default function AdminPage() {
     }
   }
 
+  const handlePurgeExpiredMastering = async () => {
+    if (
+      !window.confirm(
+        "Удалить с диска и из БД все просроченные WAV онлайн-мастеринга (старше 14 дней)?",
+      )
+    ) {
+      return
+    }
+    setPurgingMastering(true)
+    try {
+      const response = await fetch("/api/admin/tools-mastering/purge-expired", {
+        method: "POST",
+        credentials: "include",
+      })
+      if (response.status === 401) {
+        setIsAuthenticated(false)
+        toast.error("Сессия истекла. Пожалуйста, войдите снова.")
+        return
+      }
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean
+        deleted?: number
+        error?: string
+      }
+      if (!response.ok) {
+        toast.error(data.error ?? "Не удалось очистить просроченные файлы")
+        return
+      }
+      const n = data.deleted ?? 0
+      toast.success(n === 0 ? "Просроченных файлов нет" : `Удалено файлов: ${n}`)
+      void loadStorageUsage()
+    } catch (error) {
+      console.error("Error purging mastering files:", error)
+      toast.error("Ошибка очистки просроченных файлов мастеринга")
+    } finally {
+      setPurgingMastering(false)
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await fetch("/api/admin/auth", { method: "DELETE", credentials: "include" })
@@ -307,7 +347,7 @@ export default function AdminPage() {
                 WAV и обложки в uploads
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
@@ -324,6 +364,15 @@ export default function AdminPage() {
                 <Download className="h-4 w-4 mr-1" />
                 {downloadingCovers ? "Скачиваем по одному…" : "Скачать все обложки по одному"}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePurgeExpiredMastering}
+                disabled={purgingMastering}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                {purgingMastering ? "Очищаем..." : "Очистить просроченный мастеринг"}
+              </Button>
               <Button variant="outline" size="sm" onClick={loadStorageUsage} disabled={storageLoading}>
                 {storageLoading ? "Обновляем..." : "Обновить"}
               </Button>
@@ -335,6 +384,9 @@ export default function AdminPage() {
               <p><strong>Финальные WAV:</strong> {formatBytes(storageUsage.audio.bytes)} ({storageUsage.audio.files} файлов)</p>
               <p><strong>WAV в черновиках:</strong> {formatBytes(storageUsage.draftWav.bytes)} ({storageUsage.draftWav.files} файлов)</p>
               <p><strong>Обложки:</strong> {formatBytes(storageUsage.covers.bytes)} ({storageUsage.covers.files} файлов)</p>
+              <p className="text-xs text-muted-foreground">
+                Просроченные WAV онлайн-мастеринга (14 дней) удаляются с диска кнопкой выше или при открытии списка у пользователя.
+              </p>
               <p className="text-xs text-muted-foreground">Путь uploads: {storageUsage.uploadsBase}</p>
             </div>
           ) : (

@@ -94,6 +94,7 @@ export interface OrderToolsMasteringDownload extends OrderBase {
   userId: string
   tracksCount: number
   totalAmount: string
+  serviceDetails?: OrderServiceDetails
 }
 
 /** Покупка кредитов скачивания сниппета в Tools (tracksCount = число кредитов). */
@@ -102,6 +103,7 @@ export interface OrderToolsStoryVideoDownload extends OrderBase {
   userId: string
   tracksCount: number
   totalAmount: string
+  serviceDetails?: OrderServiceDetails
 }
 
 /** Покупка кредитов скачивания Slowed / Reverb / Nightcore (tracksCount = число кредитов). */
@@ -110,6 +112,7 @@ export interface OrderToolsSlowedReverbDownload extends OrderBase {
   userId: string
   tracksCount: number
   totalAmount: string
+  serviceDetails?: OrderServiceDetails
 }
 
 /** Активация standalone-смартлинка в Tools (releaseId = smartlink id). */
@@ -118,6 +121,7 @@ export interface OrderToolsSmartlink extends OrderBase {
   userId: string
   totalAmount: string
   releaseId: string
+  serviceDetails?: OrderServiceDetails
 }
 
 /** Контакты для связи хранятся в user_email / telegram колонках БД */
@@ -303,6 +307,7 @@ function rowToOrder(row: OrderRow): Order {
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       totalAmount: row.total_amount,
+      serviceDetails: parseServiceDetails(row.service_details_json) ?? undefined,
     }
   }
   if (row.order_type === "tools_story_video_download") {
@@ -312,6 +317,7 @@ function rowToOrder(row: OrderRow): Order {
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       totalAmount: row.total_amount,
+      serviceDetails: parseServiceDetails(row.service_details_json) ?? undefined,
     }
   }
   if (row.order_type === "tools_slowed_reverb_download") {
@@ -321,6 +327,7 @@ function rowToOrder(row: OrderRow): Order {
       userId: row.user_id ?? "",
       tracksCount: row.tracks_count ?? 0,
       totalAmount: row.total_amount,
+      serviceDetails: parseServiceDetails(row.service_details_json) ?? undefined,
     }
   }
   if (row.order_type === "tools_smartlink") {
@@ -330,6 +337,7 @@ function rowToOrder(row: OrderRow): Order {
       userId: row.user_id ?? "",
       totalAmount: row.total_amount,
       releaseId: row.release_id ?? "",
+      serviceDetails: parseServiceDetails(row.service_details_json) ?? undefined,
     }
   }
   if (row.order_type === "ai_mastering") {
@@ -545,8 +553,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     const o = order as Omit<OrderToolsMasteringDownload, "id" | "status" | "createdAt">
     await execute(
       `
-      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, service_details_json)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         id,
@@ -562,6 +570,7 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         totalAmount,
         o.userId,
         o.tracksCount,
+        stringifyServiceDetails(o.serviceDetails) ?? null,
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
@@ -570,8 +579,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     const o = order as Omit<OrderToolsStoryVideoDownload, "id" | "status" | "createdAt">
     await execute(
       `
-      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, service_details_json)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         id,
@@ -587,6 +596,7 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         totalAmount,
         o.userId,
         o.tracksCount,
+        stringifyServiceDetails(o.serviceDetails) ?? null,
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
@@ -595,8 +605,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     const o = order as Omit<OrderToolsSlowedReverbDownload, "id" | "status" | "createdAt">
     await execute(
       `
-      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, service_details_json)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         id,
@@ -612,6 +622,7 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         totalAmount,
         o.userId,
         o.tracksCount,
+        stringifyServiceDetails(o.serviceDetails) ?? null,
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)
@@ -620,8 +631,8 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
     const o = order as Omit<OrderToolsSmartlink, "id" | "status" | "createdAt">
     await execute(
       `
-      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, release_id)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, order_type, status, payment_id, created_at, paid_at, user_email, telegram, plan_id, period, periods_count, total_amount, user_id, tracks_count, release_id, service_details_json)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         id,
@@ -638,6 +649,7 @@ export async function createOrder(order: CreateOrderInput): Promise<Order> {
         o.userId,
         null,
         o.releaseId,
+        stringifyServiceDetails(o.serviceDetails) ?? null,
       ]
     )
     return rowToOrder((await queryOne<OrderRow>("SELECT * FROM orders WHERE id = ?", [id])) as OrderRow)

@@ -109,7 +109,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
   const priceLabel = LYRICS_SYNC_PRICE_LABEL
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1180px] space-y-12 pb-12 text-foreground md:space-y-20">
+    <div className="w-full min-w-0 max-w-none space-y-12 pb-12 text-foreground md:space-y-20">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
           <Link href={backHref}>

@@ -103,11 +103,17 @@ export type MasterRenderProgress = {
 export type RenderMasteredOptions = {
   onProgress?: (p: MasterRenderProgress) => void
   signal?: AbortSignal
+  /**
+   * Уже очищенный буфер из превью (AI-clean).
+   * Если передан - спектральный шаг пропускается, скачивание = то же, что слышно в B.
+   */
+  preCleanedBuffer?: AudioBuffer | null
 }
 
 /**
  * Браузерный offline-мастеринг.
  * Для режима очистки AI-трека: спектральная очистка (Worker) -> цепочка мастера -> лимитер -1 dBFS.
+ * Если очистка уже сделана для превью - передайте preCleanedBuffer.
  */
 export async function renderMasteredWav(
   file: File,
@@ -115,28 +121,36 @@ export async function renderMasteredWav(
   options: RenderMasteredOptions = {}
 ): Promise<{ blob: Blob; fileName: string }> {
   const report = (p: MasterRenderProgress) => options.onProgress?.(p)
+  const aiClean = isAiCleanPreset(params.presetId)
+  const preCleaned = options.preCleanedBuffer ?? null
 
-  report({ phase: "decode", ratio: 0.02, label: "Декодирование…" })
-  let input = await decodeAudioFile(file)
-  if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError")
+  let input: AudioBuffer
+  if (aiClean && preCleaned) {
+    report({ phase: "spectral", ratio: 0.55, label: "Очистка из превью…" })
+    input = preCleaned
+  } else {
+    report({ phase: "decode", ratio: 0.02, label: "Декодирование…" })
+    input = await decodeAudioFile(file)
+    if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError")
 
-  if (isAiCleanPreset(params.presetId)) {
-    report({ phase: "spectral", ratio: 0.05, label: "Спектральная очистка…" })
-    input = await runSpectralCleanOnBuffer(input, {
-      signal: options.signal,
-      onProgress: (sp) => {
-        report({
-          phase: "spectral",
-          ratio: 0.05 + sp.ratio * 0.55,
-          label:
-            sp.phase === "profile"
-              ? "Оценка шума…"
-              : sp.phase === "mask"
-                ? "Построение маски…"
-                : "Сборка сигнала…",
-        })
-      },
-    })
+    if (aiClean) {
+      report({ phase: "spectral", ratio: 0.05, label: "Спектральная очистка…" })
+      input = await runSpectralCleanOnBuffer(input, {
+        signal: options.signal,
+        onProgress: (sp) => {
+          report({
+            phase: "spectral",
+            ratio: 0.05 + sp.ratio * 0.55,
+            label:
+              sp.phase === "profile"
+                ? "Оценка шума…"
+                : sp.phase === "mask"
+                  ? "Построение маски…"
+                  : "Сборка сигнала…",
+          })
+        },
+      })
+    }
   }
 
   report({ phase: "master", ratio: 0.65, label: "Мастеринг…" })

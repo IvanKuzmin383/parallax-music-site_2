@@ -6,9 +6,15 @@ import { getSmartlinkById, isSmartlinkPubliclyActive } from "@/lib/cabinet-smart
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { getServicePriceRub } from "@/lib/service-prices"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
 
 const bodySchema = z.object({
   smartlinkId: z.string().trim().min(1),
+  applyCoupon: z.boolean().optional(),
+  couponCode: z.string().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -46,11 +52,22 @@ export async function POST(request: NextRequest) {
   }
 
   const priceRub = await getServicePriceRub("tools_smartlink")
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "tools_smartlink",
+    amountRub: priceRub,
+    body: body as Record<string, unknown>,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+
   const order = await createOrder({
     orderType: "tools_smartlink",
     userId: user.id,
-    totalAmount: priceRub.toFixed(2),
+    totalAmount: priced.amountRub.toFixed(2),
     releaseId: link.id,
+    serviceDetails: couponServiceDetailsFromPricing(priced),
   })
 
   return respondWithWalletPayment(order)

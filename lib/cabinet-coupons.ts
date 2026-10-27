@@ -196,3 +196,83 @@ export async function markCouponUsed(params: {
     [new Date().toISOString(), params.orderId, params.couponId]
   )
 }
+
+const ORDER_TYPE_LABELS: Record<string, string> = {
+  ai_mastering: "AI-мастеринг",
+  tools_mastering_download: "Онлайн-мастеринг",
+  tools_story_video_download: "Сниппет",
+  tools_slowed_reverb_download: "Slowed / Reverb / Nightcore",
+  tools_smartlink: "Смартлинк",
+  vertical_video: "Вертикальное видео",
+  track_cover: "Обложка трека",
+  ai_cover: "AI-обложка",
+  yandex_videoshot: "Яндекс Видеошот",
+  yandex_videoshot_creation: "Создание видеошота",
+  yandex_videoavatar: "Видео-аватар",
+  spotify_videoshot: "Spotify Video Shot",
+  business_music: "Музыка для бизнеса",
+  music_video: "Загрузка видеоклипа",
+  lyrics_sync: "Синхронизация текста",
+}
+
+export function orderTypeLabel(orderType: string | null | undefined): string | null {
+  if (!orderType) return null
+  return ORDER_TYPE_LABELS[orderType] ?? orderType
+}
+
+export type UsedCouponView = {
+  id: string
+  code: string
+  title: string
+  usedAt: string
+  orderId: string | null
+  orderType: string | null
+  orderTypeLabel: string | null
+  discountRub: number | null
+}
+
+/** История потраченных купонов с привязкой к заказу/услуге. */
+export async function listUsedCouponsForUser(userId: string): Promise<UsedCouponView[]> {
+  const rows = await query<
+    CouponRow & {
+      order_type: string | null
+      service_details_json: string | null
+    }
+  >(
+    `
+    SELECT c.*, o.order_type, o.service_details_json
+    FROM cabinet_coupons c
+    LEFT JOIN orders o ON o.id = c.used_order_id
+    WHERE c.user_id = ?
+      AND c.used_at IS NOT NULL
+    ORDER BY c.used_at DESC
+    LIMIT 50
+    `,
+    [userId]
+  )
+
+  return rows.map((row) => {
+    const coupon = rowToCoupon(row)
+    let discountRub: number | null = null
+    const raw = row.service_details_json?.trim()
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { couponDiscountRub?: unknown }
+        const n = Number(parsed.couponDiscountRub)
+        if (Number.isFinite(n) && n > 0) discountRub = roundMoney(n)
+      } catch {
+        /* ignore */
+      }
+    }
+    return {
+      id: coupon.id,
+      code: coupon.code,
+      title: coupon.title,
+      usedAt: coupon.usedAt!,
+      orderId: coupon.usedOrderId,
+      orderType: row.order_type,
+      orderTypeLabel: orderTypeLabel(row.order_type),
+      discountRub,
+    }
+  })
+}

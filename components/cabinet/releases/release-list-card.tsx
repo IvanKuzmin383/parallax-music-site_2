@@ -24,6 +24,8 @@ import {
   formatReleaseKindMeta,
   releaseContinueHref,
   releaseContinueLabel,
+  releaseIsRejected,
+  releaseNeedsRevision,
   releaseStatusHint,
 } from "@/lib/cabinet/adapters/map-track-to-release"
 import { releaseDetailHref } from "@/lib/cabinet/release-presenters"
@@ -32,6 +34,13 @@ import {
   AiAnalysisDialog,
   hasAiAnalysisText,
 } from "@/components/cabinet/releases/release-ai-analysis"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
 import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
 import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
@@ -116,9 +125,13 @@ export function ReleaseListCard({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [recallConfirmOpen, setRecallConfirmOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
+  const [moderationOpen, setModerationOpen] = useState(false)
   const [continueBusy, setContinueBusy] = useState(false)
 
   const kindParts = kindMeta?.split(" · ") ?? []
+  const showModerationStatusClick =
+    releaseNeedsRevision(release) || releaseIsRejected(release)
+  const moderationNote = release.moderationNote?.trim() || ""
 
   const goWizardOrBlock = async () => {
     if (continueBusy) return
@@ -288,7 +301,23 @@ export function ReleaseListCard({
             </p>
           ) : null}
           <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge status={release.status} kind="generic" withIcon className="text-[11px]" />
+            {showModerationStatusClick ? (
+              <button
+                type="button"
+                onClick={() => setModerationOpen(true)}
+                className="inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Показать комментарий модерации"
+              >
+                <StatusBadge
+                  status={release.status}
+                  kind="generic"
+                  withIcon
+                  className="cursor-pointer text-[11px] hover:opacity-90"
+                />
+              </button>
+            ) : (
+              <StatusBadge status={release.status} kind="generic" withIcon className="text-[11px]" />
+            )}
           </div>
         </div>
         <p className="text-xs text-muted-foreground leading-snug line-clamp-1">
@@ -303,6 +332,24 @@ export function ReleaseListCard({
           title={release.title || undefined}
           text={aiAnalysis}
         />
+      ) : null}
+
+      {showModerationStatusClick ? (
+        <Dialog open={moderationOpen} onOpenChange={setModerationOpen}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Комментарий модерации</DialogTitle>
+              <DialogDescription className="text-left">
+                {release.title
+                  ? `По релизу "${release.title}"`
+                  : "Комментарий по релизу"}
+              </DialogDescription>
+            </DialogHeader>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {moderationNote || "Модератор пока не оставил комментарий."}
+            </p>
+          </DialogContent>
+        </Dialog>
       ) : null}
 
       <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-1.5 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2">

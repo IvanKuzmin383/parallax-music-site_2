@@ -56,6 +56,11 @@ import {
   VERTICAL_VIDEO_TIERS,
 } from "@/lib/vertical-video-pricing"
 import { cn } from "@/lib/utils"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 /** Статичный кадр «как открыто в приложении» - без видеоплеера. */
 const EXAMPLE_STILL_SRC = "/videoshot/example2-poster.jpg"
@@ -253,14 +258,10 @@ function PhoneShell({
   return (
     <div
       className={cn(
-        "relative shrink-0",
-        isMobile
-          ? "mx-auto w-[min(100%,17.5rem)]"
-          : isCenter
-            ? "z-10 w-[42%] max-w-[11.5rem]"
-            : "z-0 w-[30%] max-w-[8.25rem] opacity-95",
-        !isMobile && tilt === "left" && "origin-bottom -rotate-[7deg] translate-y-3",
-        !isMobile && tilt === "right" && "origin-bottom rotate-[7deg] translate-y-3",
+        "relative flex shrink-0 flex-col items-center",
+        isMobile ? "mx-auto" : isCenter ? "z-10" : "z-0 opacity-95",
+        !isMobile && tilt === "left" && "origin-bottom -rotate-[6deg] translate-y-4",
+        !isMobile && tilt === "right" && "origin-bottom rotate-[6deg] translate-y-4",
       )}
     >
       <p
@@ -271,34 +272,37 @@ function PhoneShell({
       >
         {label}
       </p>
+      {/* Высота фиксирована → ширина из aspect 9/19.5 (узкий высокий смартфон, не «кирпич») */}
       <div
         className={cn(
-          "relative overflow-hidden border-[6px] border-[#1A181E]",
+          "relative w-auto overflow-hidden border-[5px] border-[#1A181E]",
+          "aspect-[9/19.5]",
+          isMobile
+            ? "h-[min(68vh,32rem)]"
+            : isCenter
+              ? "h-[24rem] sm:h-[26rem] lg:h-[28rem]"
+              : "h-[18.5rem] sm:h-[20rem] lg:h-[22rem]",
           "bg-[#0B0A0E] shadow-[0_22px_48px_-22px_rgba(0,0,0,0.85),inset_0_0_0_1px_rgba(255,255,255,0.06)]",
           "before:pointer-events-none before:absolute before:inset-0 before:z-30 before:rounded-[inherit]",
           "before:bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_0%,transparent_28%,transparent_72%,rgba(255,255,255,0.04)_100%)]",
-          isMobile
-            ? "rounded-[34px]"
-            : isCenter
-              ? "rounded-[32px]"
-              : "rounded-[30px]",
+          isMobile ? "rounded-[1.65rem]" : isCenter ? "rounded-[1.5rem]" : "rounded-[1.35rem]",
         )}
       >
         <div
           className={cn(
-            "absolute left-1/2 top-[7px] z-40 h-[18px] -translate-x-1/2 rounded-full bg-[#050506]",
-            isCenter || isMobile ? "w-16" : "w-12",
+            "absolute left-1/2 top-[6px] z-40 h-[14px] -translate-x-1/2 rounded-full bg-[#050506]",
+            isCenter || isMobile ? "w-[3.25rem]" : "w-10",
           )}
           aria-hidden
         />
         <div
           className={cn(
-            "relative overflow-hidden bg-muted",
-            isMobile ? "rounded-[28px]" : isCenter ? "rounded-[26px]" : "rounded-[24px]",
+            "absolute inset-[3px] overflow-hidden bg-muted",
+            isMobile ? "rounded-[1.35rem]" : isCenter ? "rounded-[1.25rem]" : "rounded-[1.1rem]",
           )}
         >
-          <div className="relative aspect-[9/16] w-full">
-            <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-3.5 pt-2.5 text-[10px] font-medium text-white/90">
+          <div className="relative h-full w-full">
+            <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-3 pt-2 text-[9px] font-medium text-white/90">
               <span>9:41</span>
               <span className="flex gap-1" aria-hidden>
                 <span className="h-1.5 w-3 rounded-sm bg-white/80" />
@@ -311,7 +315,7 @@ function PhoneShell({
               className="pointer-events-none absolute inset-x-0 bottom-1.5 z-30 flex justify-center"
               aria-hidden
             >
-              <span className="h-1 w-20 rounded-full bg-white/55" />
+              <span className="h-1 w-16 rounded-full bg-white/55" />
             </div>
           </div>
         </div>
@@ -353,8 +357,8 @@ function PhonesComposition({
         Ваш ролик в TikTok, Reels и Shorts
       </p>
 
-      {/* Desktop / tablet: three phones */}
-      <div className="hidden max-w-full items-end justify-center gap-1 overflow-x-clip px-2 md:flex lg:gap-2">
+      {/* Desktop / tablet: three phones - высота фиксирована, ширина из aspect 9/19.5 */}
+      <div className="hidden max-w-full items-end justify-center gap-3 overflow-x-clip px-1 md:flex lg:gap-5">
         <PhoneShell platform="tiktok" size="side" tilt="left">
           <ExamplePlatformStill label="Как выглядит ролик в TikTok" />
         </PhoneShell>
@@ -425,6 +429,15 @@ function VerticalVideoLandingInner() {
   const [contactType, setContactType] = useState<"telegram" | "vk" | "max">("telegram")
   const [contactValue, setContactValue] = useState("")
   const [loading, setLoading] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [error, setError] = useState<string | null>(null)
   const paymentSuccessHandledRef = useRef(false)
   const initialTrackPickedRef = useRef(false)
@@ -540,6 +553,7 @@ function VerticalVideoLandingInner() {
           comment: comment.trim(),
           contactType,
           contactValue: contactValue.trim(),
+          ...couponPaymentPayload(applyCoupon),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as {
@@ -565,7 +579,7 @@ function VerticalVideoLandingInner() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1120px] space-y-10 pb-10 md:space-y-12">
+    <div className="w-full min-w-0 max-w-none space-y-10 pb-10 md:space-y-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
           <Link href={backHref}>
@@ -901,6 +915,15 @@ function VerticalVideoLandingInner() {
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
+            {validCount && total > 0 ? (
+              <CabinetApplyCouponControl
+                orderType="vertical_video"
+                amountRub={total}
+                applied={applyCoupon}
+                onAppliedChange={onCouponAppliedChange}
+              />
+            ) : null}
+
             <Button
               type="submit"
               className="h-11 min-h-11 w-full bg-[#F21D43] text-white hover:bg-[#F21D43]/90"
@@ -909,7 +932,9 @@ function VerticalVideoLandingInner() {
               {loading
                 ? "Оплата…"
                 : validCount
-                  ? `Оплатить ${formatVerticalVideoRub(total)} с баланса`
+                  ? `Оплатить ${formatVerticalVideoRub(
+                      applyCoupon && couponPreview ? couponPreview.finalAmountRub : total
+                    )} с баланса`
                   : "Оплатить с баланса"}
             </Button>
           </form>

@@ -126,8 +126,12 @@ function Calendar({
           'text-muted-foreground opacity-50',
           defaultClassNames.disabled,
         ),
-        // display:none - пустые недели/дни вне месяца не оставляют дыр; grid держит ячейки 1/7
-        hidden: cn('hidden', defaultClassNames.hidden),
+        // visibility, не display:none: иначе flex-неделя схлопывает дни влево
+        // (1 дек = вт уезжал под пн). Слот размера сохраняем, клики выключаем.
+        hidden: cn(
+          'invisible pointer-events-none',
+          defaultClassNames.hidden,
+        ),
         ...classNames,
       }}
       components={{

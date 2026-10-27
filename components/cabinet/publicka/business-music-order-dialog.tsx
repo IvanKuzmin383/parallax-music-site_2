@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { Send } from "lucide-react"
@@ -23,6 +23,11 @@ import {
 } from "@/components/ui/select"
 import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
 import { useCabinetReleases } from "@/lib/cabinet/hooks/use-cabinet-releases"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 
 const PRICE_LABEL = `${BUSINESS_MUSIC_PRICE_RUB.toLocaleString("ru-RU")} ₽ / трек`
 
@@ -43,7 +48,18 @@ export function BusinessMusicOrderDialog({
   const [releaseId, setReleaseId] = useState("")
   const [comment, setComment] = useState("")
   const [submitting, setSubmitting] = useState<"card" | "balance" | null>(null)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const { releases, loading: releasesLoading } = useCabinetReleases()
+  const dueRub =
+    applyCoupon && couponPreview ? couponPreview.finalAmountRub : BUSINESS_MUSIC_PRICE_RUB
 
   const selectableReleases = useMemo(
     () => releases.filter((r) => r.kind !== "draft"),
@@ -84,6 +100,7 @@ export function BusinessMusicOrderDialog({
           contactValue: "@artist",
           returnPath: "/cabinet/publicka",
           payFromBalance: true,
+          ...couponPaymentPayload(applyCoupon),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -167,13 +184,27 @@ export function BusinessMusicOrderDialog({
               rows={3}
             />
           </div>
-          <p className="font-semibold">Итого: {PRICE_LABEL}</p>
+          <CabinetApplyCouponControl
+            orderType="business_music"
+            amountRub={BUSINESS_MUSIC_PRICE_RUB}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+            compact
+          />
+          <p className="font-semibold">
+            Итого: {dueRub.toLocaleString("ru-RU")} ₽ / трек
+            {!applyCoupon ? ` (${PRICE_LABEL})` : null}
+          </p>
           <Button
             onClick={() => void handlePay()}
             disabled={Boolean(submitting) || selectableReleases.length === 0}
             className="w-full"
           >
-            {submitting === "balance" ? "Оплата..." : "Оплатить с баланса"}
+            {submitting === "balance"
+              ? "Оплата..."
+              : dueRub <= 0
+                ? "Оформить бесплатно"
+                : "Оплатить с баланса"}
           </Button>
         </div>
       </DialogContent>

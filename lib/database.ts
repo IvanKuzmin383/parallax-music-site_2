@@ -24,10 +24,34 @@ export function getPool(): Pool {
   return pool
 }
 
-/** SQLite `?` placeholders → PostgreSQL `$1`, `$2`, … */
+/**
+ * SQLite `?` placeholders → PostgreSQL `$1`, `$2`, …
+ * Не трогаем `?` внутри одинарных кавычек (иначе ломаются литералы вроде
+ * `'??'`, regex `'^https?://'` → «could not determine data type of parameter»).
+ */
 export function convertSql(sql: string): string {
   let index = 0
-  return sql.replace(/\?/g, () => `$${++index}`)
+  let out = ""
+  let inString = false
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i]
+    if (ch === "'") {
+      out += ch
+      if (inString && sql[i + 1] === "'") {
+        out += "'"
+        i += 1
+        continue
+      }
+      inString = !inString
+      continue
+    }
+    if (ch === "?" && !inString) {
+      out += `$${++index}`
+      continue
+    }
+    out += ch
+  }
+  return out
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(

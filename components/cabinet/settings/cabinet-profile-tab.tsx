@@ -153,46 +153,40 @@ export function CabinetProfileTab() {
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:border-l sm:border-border sm:pl-6">
               <div className="min-h-[2.75rem]">
-                <p className="flex h-4 items-center gap-2 text-base font-semibold leading-none">
+                <p className="flex h-4 min-w-0 items-center gap-2 text-base font-semibold leading-none">
                   <Crown className="h-4 w-4 shrink-0 text-primary" />
-                  Тариф
+                  <span className="truncate">
+                    {subscription?.subscriptionName
+                      ? `Тариф ${subscription.subscriptionName}`
+                      : "Тариф не выбран"}
+                  </span>
                 </p>
-                {subscription?.subscriptionName ? (
-                  <div className="mt-1 space-y-0.5">
-                    <div className="text-sm font-semibold leading-snug text-foreground">
-                      {subscription.subscriptionName}
-                    </div>
-                    {subscription.subscriptionName === "Fix" && effectiveLimit != null ? (
-                      <div className="text-sm leading-snug text-muted-foreground">
-                        {fixUsesWalletModel ? (
-                          <>
-                            Оплачено слотов: {effectiveLimit} (доступно для загрузки:{" "}
-                            {fixTracksAvailable})
-                          </>
-                        ) : (
-                          <>
-                            Лимит треков: {effectiveLimit} (доступно: {fixTracksAvailable})
-                          </>
-                        )}
-                      </div>
-                    ) : null}
-                    {subscription.subscriptionName !== "Fix" &&
-                    subscription.subscriptionExpiresAt ? (
-                      <div className="text-sm leading-snug text-muted-foreground">
-                        Действует до:{" "}
-                        {format(
-                          new Date(subscription.subscriptionExpiresAt),
-                          "d MMMM yyyy",
-                          { locale: ru },
-                        )}
-                      </div>
-                    ) : null}
+                {subscription?.subscriptionName === "Fix" && effectiveLimit != null ? (
+                  <div className="mt-1 text-sm leading-snug text-muted-foreground">
+                    {fixUsesWalletModel ? (
+                      <>
+                        Оплачено слотов: {effectiveLimit} (доступно для загрузки:{" "}
+                        {fixTracksAvailable})
+                      </>
+                    ) : (
+                      <>
+                        Лимит треков: {effectiveLimit} (доступно: {fixTracksAvailable})
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <p className="mt-1 text-sm leading-snug text-muted-foreground">
-                    Тариф не выбран
-                  </p>
-                )}
+                ) : null}
+                {subscription?.subscriptionName &&
+                subscription.subscriptionName !== "Fix" &&
+                subscription.subscriptionExpiresAt ? (
+                  <div className="mt-1 text-sm leading-snug text-muted-foreground">
+                    Действует до:{" "}
+                    {format(
+                      new Date(subscription.subscriptionExpiresAt),
+                      "d MMMM yyyy",
+                      { locale: ru },
+                    )}
+                  </div>
+                ) : null}
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
                 {renewPlanId ? (

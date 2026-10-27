@@ -4,6 +4,11 @@ import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { getServicePriceRub } from "@/lib/service-prices"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
+
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const YOOKASSA_PAYMENT_DESCRIPTION = "Создание видеоаватара для Яндекс Музыки"
 
@@ -44,13 +49,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Укажите контакт для связи" }, { status: 400 })
   }
 
-  const totalAmount = (await getServicePriceRub("yandex_videoavatar")).toFixed(2)
+  const priceRub = await getServicePriceRub("yandex_videoavatar")
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "yandex_videoavatar",
+    amountRub: priceRub,
+    body: raw,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "yandex_videoavatar",
     userId: user.id,
     tracksCount: 1,
-    totalAmount,
+    totalAmount: priced.amountRub.toFixed(2),
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
     serviceDetails: {
@@ -58,6 +73,7 @@ export async function POST(request: NextRequest) {
       comment,
       contactType,
       contactValue,
+      ...couponServiceDetailsFromPricing(priced),
     },
   })
   return respondWithWalletPayment(order)

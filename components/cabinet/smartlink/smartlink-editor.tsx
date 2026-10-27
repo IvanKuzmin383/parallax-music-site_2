@@ -17,6 +17,11 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { SmartlinkAnalyticsPanel } from "@/components/cabinet/smartlink/smartlink-analytics-panel"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -618,6 +623,15 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [paying, setPaying] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [data, setData] = useState<SmartlinkApiPayload | null>(null)
   const [theme, setTheme] = useState<SmartlinkTheme>(DEFAULT_SMARTLINK_THEME)
   const [platformLinks, setPlatformLinks] = useState<PlatformLinks>({})
@@ -1056,7 +1070,10 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ smartlinkId }),
+        body: JSON.stringify({
+          smartlinkId,
+          ...couponPaymentPayload(applyCoupon),
+        }),
       })
       const json = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
@@ -1216,19 +1233,41 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
       </div>
 
       {isTools && data.needsPayment ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3">
-          <p className="text-sm text-amber-950 dark:text-amber-100">
-            Чтобы страница стала публичной, оплатите {price.toLocaleString("ru-RU")} ₽ с баланса
-            (год). Баланс: {balance.toLocaleString("ru-RU")} ₽.
-          </p>
-          <Button
-            type="button"
-            onClick={() => void payToolsSmartlink()}
-            disabled={paying || balance < price}
-          >
-            {paying ? <Spinner className="mr-2 h-4 w-4" /> : null}
-            Оплатить {price.toLocaleString("ru-RU")} ₽
-          </Button>
+        <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-amber-950 dark:text-amber-100">
+              Чтобы страница стала публичной, оплатите{" "}
+              {(applyCoupon && couponPreview
+                ? couponPreview.finalAmountRub
+                : price
+              ).toLocaleString("ru-RU")}{" "}
+              ₽ с баланса (год). Баланс: {balance.toLocaleString("ru-RU")} ₽.
+            </p>
+            <Button
+              type="button"
+              onClick={() => void payToolsSmartlink()}
+              disabled={
+                paying ||
+                balance <
+                  (applyCoupon && couponPreview ? couponPreview.finalAmountRub : price)
+              }
+            >
+              {paying ? <Spinner className="mr-2 h-4 w-4" /> : null}
+              Оплатить{" "}
+              {(applyCoupon && couponPreview
+                ? couponPreview.finalAmountRub
+                : price
+              ).toLocaleString("ru-RU")}{" "}
+              ₽
+            </Button>
+          </div>
+          <CabinetApplyCouponControl
+            orderType="tools_smartlink"
+            amountRub={price}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+            compact
+          />
         </div>
       ) : null}
 

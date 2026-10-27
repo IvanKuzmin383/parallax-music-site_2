@@ -9,6 +9,11 @@ import {
   videoDirectionLabel,
   type VideoDirectionValue,
 } from "@/lib/yandex-videoshot-mode"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
+
 const CONTACT_TYPE_VALUES = new Set(["telegram", "vk", "max"])
 const DIRECTION_VALUES = new Set<string>(VIDEO_DIRECTION_OPTIONS.map((o) => o.value))
 const PAYMENT_DESCRIPTION = "Создание видеошота для Яндекс Музыки"
@@ -103,13 +108,23 @@ export async function POST(request: NextRequest) {
   }
 
   const videoDirection = videoDirectionLabel(directionRaw as VideoDirectionValue)
-  const totalAmount = (await getServicePriceRub("yandex_videoshot_creation")).toFixed(2)
+  const priceRub = await getServicePriceRub("yandex_videoshot_creation")
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "yandex_videoshot_creation",
+    amountRub: priceRub,
+    body: raw,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+
   const isTelegram = contactType === "telegram"
   const order = await createOrder({
     orderType: "yandex_videoshot_creation",
     userId: user.id,
     tracksCount: 1,
-    totalAmount,
+    totalAmount: priced.amountRub.toFixed(2),
     contactEmail: isTelegram ? undefined : `${contactType}: ${contactValue}`,
     contactTelegram: isTelegram ? contactValue : undefined,
     serviceDetails: {
@@ -121,9 +136,9 @@ export async function POST(request: NextRequest) {
       referencesUrl: referencesUrl || undefined,
       contactType,
       contactValue,
+      ...couponServiceDetailsFromPricing(priced),
     },
   })
 
-  const returnPath = "/cabinet/promotion/yandex-videoshot-creation"
   return respondWithWalletPayment(order)
 }

@@ -11,6 +11,8 @@ export default function robots(): MetadataRoute.Robots {
         '/api/',
         '/admin26081993/',
         '/cabinet',
+        '/cabinet/ai/press-release',
+        '/cabinet/ai/pitch',
         '/*?etext=',
         '/*&etext=',
         '/*?ybaip=',

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react"
 import Link from "next/link"
-import { ArrowLeft, Download, Loader2, Pause, Play, Upload } from "lucide-react"
+import { ArrowLeft, Check, Download, Loader2, Pause, Play, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -23,6 +23,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 import { useCabinetSession } from "@/lib/cabinet/hooks/cabinet-session-provider"
 import { MAX_CABINET_WAV_BYTES, cabinetWavMaxSizeError } from "@/lib/cabinet-wav-upload-limits"
 import {
@@ -235,6 +240,15 @@ function ToolsSlowedReverbInner() {
   const [busy, setBusy] = useState(false)
   const [paying, setPaying] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [error, setError] = useState<string | null>(null)
 
   const [loadState, setLoadState] = useState<LoadState>("idle")
@@ -404,7 +418,10 @@ function ToolsSlowedReverbInner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ payFromBalance: true }),
+        body: JSON.stringify({
+          payFromBalance: true,
+          ...couponPaymentPayload(applyCoupon),
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as {
         paid?: boolean
@@ -678,15 +695,19 @@ function ToolsSlowedReverbInner() {
                   key={preset.id}
                   type="button"
                   title={preset.hint}
+                  aria-pressed={active}
                   onClick={() => selectPreset(preset.id)}
                   className={cn(
-                    "w-full rounded-lg border px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide transition-all",
+                    "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide transition-all",
                     active
-                      ? "border-primary bg-primary/15 text-foreground shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
-                      : "border-border/70 bg-background/30 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      ? "border-primary bg-primary text-primary-foreground shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
+                      : "border-border/70 bg-background/30 text-muted-foreground hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
                   )}
                 >
-                  {preset.label}
+                  <span>{preset.label}</span>
+                  {active ? (
+                    <Check className="h-3.5 w-3.5 shrink-0 opacity-95" aria-hidden />
+                  ) : null}
                 </button>
               )
             })}
@@ -694,7 +715,16 @@ function ToolsSlowedReverbInner() {
         </aside>
       </div>
 
-      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+      <Dialog
+        open={payDialogOpen}
+        onOpenChange={(open) => {
+          setPayDialogOpen(open)
+          if (!open) {
+            setApplyCoupon(false)
+            setCouponPreview(null)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Скачивание файла</DialogTitle>
@@ -703,34 +733,52 @@ function ToolsSlowedReverbInner() {
               кабинета за одно дополнительное скачивание.
             </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
-            {walletBalance < downloadPriceRub ? (
+          <CabinetApplyCouponControl
+            orderType="tools_slowed_reverb_download"
+            amountRub={downloadPriceRub}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+            compact
+          />
+          {(() => {
+            const due =
+              applyCoupon && couponPreview ? couponPreview.finalAmountRub : downloadPriceRub
+            const needTopup = walletBalance < due
+            return (
               <>
-                {" "}
-                ·{" "}
-                <Link
-                  href="/cabinet/finance/balance"
-                  className="text-primary underline-offset-2 hover:underline"
-                >
-                  Пополнить
-                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
+                  {needTopup ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <Link
+                        href="/cabinet/finance/balance"
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        Пополнить
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={() => setPayDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void startPaymentFromBalance()}
+                    disabled={paying || needTopup}
+                  >
+                    {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {due <= 0
+                      ? "Получить бесплатно"
+                      : `Оплатить ${due.toLocaleString("ru-RU")} ₽ с баланса`}
+                  </Button>
+                </DialogFooter>
               </>
-            ) : null}
-          </p>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setPayDialogOpen(false)}>
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void startPaymentFromBalance()}
-              disabled={paying || walletBalance < downloadPriceRub}
-            >
-              {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Оплатить {downloadPriceRub} ₽ с баланса
-            </Button>
-          </DialogFooter>
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>

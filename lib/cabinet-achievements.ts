@@ -11,6 +11,7 @@ import {
   nextArtistLevel,
   resolveArtistLevel,
   type AchievementDef,
+  type AchievementRarity,
   type ArtistLevel,
 } from "@/lib/cabinet/achievements-catalog"
 import { getCabinetUserById } from "@/lib/cabinet-users"
@@ -21,6 +22,7 @@ export type UserAchievementView = {
   title: string
   description: string
   category: AchievementDef["category"]
+  rarity: AchievementRarity
   xp: number
   /** Текст награды для UI, null если только XP */
   rewardLabel: string | null
@@ -187,11 +189,25 @@ type AchievementCounters = {
   releasedCount: number
   hasDraft: boolean
   hadModeration: boolean
-  hasTopup: boolean
-  hasService: boolean
+  releaseQuarters: number
+  hasRoyalty: boolean
+  totalPlays: number
+  hasPaidArtist: boolean
+  hasSmartlink: boolean
   hasClip: boolean
-  hasPublicka: boolean
+  hasStudioTool: boolean
   referralPaidCount: number
+}
+
+function releaseQuarterKey(releaseDate: string | undefined): string | null {
+  if (!releaseDate) return null
+  const m = /^(\d{4})-(\d{2})/.exec(releaseDate.trim())
+  if (!m) return null
+  const year = Number(m[1])
+  const month = Number(m[2])
+  if (!year || month < 1 || month > 12) return null
+  const q = Math.floor((month - 1) / 3) + 1
+  return `${year}-Q${q}`
 }
 
 async function loadAchievementCounters(userId: string): Promise<AchievementCounters> {
@@ -199,18 +215,24 @@ async function loadAchievementCounters(userId: string): Promise<AchievementCount
     releasedCount: 0,
     hasDraft: false,
     hadModeration: false,
-    hasTopup: false,
-    hasService: false,
+    releaseQuarters: 0,
+    hasRoyalty: false,
+    totalPlays: 0,
+    hasPaidArtist: false,
+    hasSmartlink: false,
     hasClip: false,
-    hasPublicka: false,
+    hasStudioTool: false,
     referralPaidCount: 0,
   }
+
+  let userEmail: string | null = null
   try {
     const user = await getCabinetUserById(userId)
+    userEmail = user?.email?.trim().toLowerCase() || null
     const byId = await listReleasesByUserId(userId, 300)
     const byEmail =
-      user?.email && user.email.toLowerCase() !== userId.toLowerCase()
-        ? await listReleasesByUserId(user.email, 300)
+      userEmail && userEmail !== userId.toLowerCase()
+        ? await listReleasesByUserId(userEmail, 300)
         : []
     const seen = new Set<string>()
     const releases = [...byId, ...byEmail].filter((r) => {
@@ -226,39 +248,81 @@ async function loadAchievementCounters(userId: string): Promise<AchievementCount
         r.status === "approved_by_platforms" ||
         r.status === "released"
     )
-    empty.releasedCount = releases.filter((r) => r.status === "released").length
+    const released = releases.filter((r) => r.status === "released")
+    empty.releasedCount = released.length
+    const quarters = new Set<string>()
+    for (const r of released) {
+      const key = releaseQuarterKey(r.releaseDate)
+      if (key) quarters.add(key)
+    }
+    empty.releaseQuarters = quarters.size
   } catch {
     // keep defaults
   }
 
   try {
-    const topup = await queryOne<{ id: string }>(
-      `SELECT id FROM cabinet_balance_transactions WHERE user_id = ? AND type = 'topup' LIMIT 1`,
-      [userId]
-    )
-    empty.hasTopup = Boolean(topup)
-  } catch {
-    /* ignore */
-  }
-  try {
-    const servicePaid = await queryOne<{ id: string }>(
+    const royalty = await queryOne<{ id: string }>(
       `
-      SELECT id FROM orders
+      SELECT id FROM cabinet_balance_transactions
       WHERE user_id = ?
-        AND status = 'paid'
-        AND order_type IN (
-          'ai_mastering','vertical_video','track_cover','ai_cover',
-          'yandex_videoshot','yandex_videoshot_creation','yandex_videoavatar',
-          'spotify_videoshot','business_music','music_video','lyrics_sync','upload_addon_bundle'
-        )
+        AND type IN ('royalty_credit', 'royalty_to_wallet')
       LIMIT 1
       `,
       [userId]
     )
-    empty.hasService = Boolean(servicePaid)
+    empty.hasRoyalty = Boolean(royalty)
   } catch {
     /* ignore */
   }
+
+  try {
+    const ids = [userId.toLowerCase()]
+    if (userEmail && userEmail !== userId.toLowerCase()) ids.push(userEmail)
+    const placeholders = ids.map(() => "?").join(",")
+    const plays = await queryOne<{ s: number | string | null }>(
+      `
+      SELECT COALESCE(SUM(d.plays), 0) AS s
+      FROM music_platform_track_daily_plays d
+      JOIN cabinet_music_track_map m
+        ON m.platform_key = d.platform_key
+       AND m.track_key = d.track_key
+      WHERE m.user_id IN (${placeholders})
+      `,
+      ids
+    )
+    empty.totalPlays = Math.floor(Number(plays?.s) || 0)
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const topupSum = await queryOne<{ s: number | string | null }>(
+      `
+      SELECT COALESCE(SUM(amount), 0) AS s
+      FROM cabinet_balance_transactions
+      WHERE user_id = ? AND type = 'topup'
+      `,
+      [userId]
+    )
+    empty.hasPaidArtist = roundMoney(Number(topupSum?.s) || 0) >= 5000
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const smartlink = await queryOne<{ id: string }>(
+      `
+      SELECT id FROM smartlinks
+      WHERE user_id = ? AND status = 'active'
+      LIMIT 1
+      `,
+      [userId]
+    )
+    empty.hasSmartlink = Boolean(smartlink)
+  } catch {
+    /* ignore */
+  }
+
   try {
     const clip = await queryOne<{ id: string }>(
       `SELECT id FROM video_clips WHERE user_id = ? LIMIT 1`,
@@ -268,15 +332,31 @@ async function loadAchievementCounters(userId: string): Promise<AchievementCount
   } catch {
     /* ignore */
   }
+
   try {
-    const pub = await queryOne<{ id: string }>(
-      `SELECT id FROM publicka_placements WHERE user_id = ? LIMIT 1`,
+    const studio = await queryOne<{ id: string }>(
+      `
+      SELECT id FROM orders
+      WHERE user_id = ?
+        AND status = 'paid'
+        AND order_type IN ('tools_mastering_download', 'tools_slowed_reverb_download')
+      LIMIT 1
+      `,
       [userId]
     )
-    empty.hasPublicka = Boolean(pub)
+    if (studio) {
+      empty.hasStudioTool = true
+    } else {
+      const masteringFile = await queryOne<{ id: string }>(
+        `SELECT id FROM tools_mastering_files WHERE user_id = ? LIMIT 1`,
+        [userId]
+      )
+      empty.hasStudioTool = Boolean(masteringFile)
+    }
   } catch {
     /* ignore */
   }
+
   try {
     const refCount = await queryOne<{ c: number | string }>(
       `SELECT COUNT(DISTINCT referred_user_id)::int AS c
@@ -301,44 +381,53 @@ function progressForAchievement(
     progressTarget: 1,
   })
   switch (id) {
-    case "welcome":
-      return done(true)
-    case "first_draft":
-      return done(c.hasDraft)
-    case "first_moderation":
-      return done(c.hadModeration)
-    case "first_released":
+    case "first_light": {
+      // Endowed progress: регистрация уже даёт 1/3
+      let step = 1
+      if (c.hasDraft) step = 2
+      if (c.releasedCount >= 1 || unlocked) step = 3
+      else if (c.hadModeration) step = Math.max(step, 2)
+      return { progressCurrent: step, progressTarget: 3 }
+    }
+    case "catalog_5":
       return {
-        progressCurrent: Math.min(1, c.releasedCount),
-        progressTarget: 1,
+        progressCurrent: Math.min(5, c.releasedCount),
+        progressTarget: 5,
       }
-    case "releases_3":
+    case "catalog_25":
       return {
-        progressCurrent: Math.min(3, c.releasedCount),
+        progressCurrent: Math.min(25, c.releasedCount),
+        progressTarget: 25,
+      }
+    case "year_round":
+      return {
+        progressCurrent: Math.min(3, c.releaseQuarters),
         progressTarget: 3,
       }
-    case "releases_10":
+    case "first_royalty":
+      return done(c.hasRoyalty)
+    case "streams_10k":
       return {
-        progressCurrent: Math.min(10, c.releasedCount),
-        progressTarget: 10,
+        progressCurrent: Math.min(10_000, c.totalPlays),
+        progressTarget: 10_000,
       }
-    case "first_wallet_topup":
-      return done(c.hasTopup)
-    case "first_service":
-      return done(c.hasService)
-    case "first_music_video":
+    case "paid_artist":
+      return done(c.hasPaidArtist)
+    case "link_in_bio":
+      return done(c.hasSmartlink)
+    case "visual":
       return done(c.hasClip)
-    case "first_publicka":
-      return done(c.hasPublicka)
-    case "referral_1":
+    case "studio":
+      return done(c.hasStudioTool)
+    case "crew_1":
       return {
         progressCurrent: Math.min(1, c.referralPaidCount),
         progressTarget: 1,
       }
-    case "referral_3":
+    case "crew_5":
       return {
-        progressCurrent: Math.min(3, c.referralPaidCount),
-        progressTarget: 3,
+        progressCurrent: Math.min(5, c.referralPaidCount),
+        progressTarget: 5,
       }
     default:
       return done(unlocked)
@@ -359,6 +448,7 @@ export async function getGamificationProgress(userId: string): Promise<Gamificat
       title: def.title,
       description: def.description,
       category: def.category,
+      rarity: def.rarity,
       xp: def.xp,
       rewardLabel: formatAchievementReward(def.reward),
       unlocked: isUnlocked,
@@ -366,12 +456,13 @@ export async function getGamificationProgress(userId: string): Promise<Gamificat
       ...progress,
     }
   })
+  const unlockedCount = achievements.filter((a) => a.unlocked).length
   return {
     xp,
     level: resolveArtistLevel(xp),
     nextLevel: nextArtistLevel(xp),
     levels: ARTIST_LEVELS,
-    unlockedCount: unlocked.size,
+    unlockedCount,
     totalCount: ACHIEVEMENTS_CATALOG.length,
     achievements,
   }
@@ -385,107 +476,20 @@ export async function evaluateUserAchievements(userId: string): Promise<string[]
     if (r.unlocked) unlockedNow.push(id)
   }
 
-  await tryUnlock("welcome")
+  const c = await loadAchievementCounters(userId)
 
-  try {
-    const user = await getCabinetUserById(userId)
-    const byId = await listReleasesByUserId(userId, 300)
-    const byEmail =
-      user?.email && user.email.toLowerCase() !== userId.toLowerCase()
-        ? await listReleasesByUserId(user.email, 300)
-        : []
-    const seen = new Set<string>()
-    const releases = [...byId, ...byEmail].filter((r) => {
-      if (seen.has(r.id)) return false
-      seen.add(r.id)
-      return true
-    })
-    if (releases.length > 0) await tryUnlock("first_draft")
-    const hadModeration = releases.some(
-      (r) =>
-        r.status === "on_moderation" ||
-        r.status === "sent_to_platforms" ||
-        r.status === "approved_by_platforms" ||
-        r.status === "released"
-    )
-    if (hadModeration) await tryUnlock("first_moderation")
-    const releasedCount = releases.filter((r) => r.status === "released").length
-    if (releasedCount >= 1) await tryUnlock("first_released")
-    if (releasedCount >= 3) await tryUnlock("releases_3")
-    if (releasedCount >= 10) await tryUnlock("releases_10")
-  } catch (e) {
-    console.error("[cabinet-achievements] releases eval failed", { userId, e })
-  }
-
-  try {
-    const topup = await queryOne<{ id: string }>(
-      `
-      SELECT id FROM cabinet_balance_transactions
-      WHERE user_id = ? AND type = 'topup'
-      LIMIT 1
-      `,
-      [userId]
-    )
-    if (topup) await tryUnlock("first_wallet_topup")
-  } catch {
-    // ignore
-  }
-
-  try {
-    const servicePaid = await queryOne<{ id: string }>(
-      `
-      SELECT id FROM orders
-      WHERE user_id = ?
-        AND status = 'paid'
-        AND order_type IN (
-          'ai_mastering','vertical_video','track_cover','ai_cover',
-          'yandex_videoshot','yandex_videoshot_creation','yandex_videoavatar',
-          'spotify_videoshot','business_music','music_video','lyrics_sync','upload_addon_bundle'
-        )
-      LIMIT 1
-      `,
-      [userId]
-    )
-    if (servicePaid) await tryUnlock("first_service")
-  } catch {
-    // ignore
-  }
-
-  try {
-    const clip = await queryOne<{ id: string }>(
-      `SELECT id FROM video_clips WHERE user_id = ? LIMIT 1`,
-      [userId]
-    )
-    if (clip) await tryUnlock("first_music_video")
-  } catch {
-    // ignore
-  }
-
-  try {
-    const pub = await queryOne<{ id: string }>(
-      `SELECT id FROM publicka_placements WHERE user_id = ? LIMIT 1`,
-      [userId]
-    )
-    if (pub) await tryUnlock("first_publicka")
-  } catch {
-    // ignore
-  }
-
-  try {
-    const refCount = await queryOne<{ c: number | string }>(
-      `
-      SELECT COUNT(DISTINCT referred_user_id)::int AS c
-      FROM cabinet_referral_rewards
-      WHERE referrer_user_id = ?
-      `,
-      [userId]
-    )
-    const n = Number(refCount?.c) || 0
-    if (n >= 1) await tryUnlock("referral_1")
-    if (n >= 3) await tryUnlock("referral_3")
-  } catch {
-    // ignore
-  }
+  if (c.releasedCount >= 1) await tryUnlock("first_light")
+  if (c.releasedCount >= 5) await tryUnlock("catalog_5")
+  if (c.releasedCount >= 25) await tryUnlock("catalog_25")
+  if (c.releaseQuarters >= 3) await tryUnlock("year_round")
+  if (c.hasRoyalty) await tryUnlock("first_royalty")
+  if (c.totalPlays >= 10_000) await tryUnlock("streams_10k")
+  if (c.hasPaidArtist) await tryUnlock("paid_artist")
+  if (c.hasSmartlink) await tryUnlock("link_in_bio")
+  if (c.hasClip) await tryUnlock("visual")
+  if (c.hasStudioTool) await tryUnlock("studio")
+  if (c.referralPaidCount >= 1) await tryUnlock("crew_1")
+  if (c.referralPaidCount >= 5) await tryUnlock("crew_5")
 
   return unlockedNow
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -17,6 +17,36 @@ import { PLATFORM_ICON_SRC } from "@/lib/smartlink-platforms"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, CheckCircle2 } from "lucide-react"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
+import { MUSIC_VIDEO_PRICE_RUB } from "@/lib/music-video-pricing"
+import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
+import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
+import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
+import { TRACK_COVER_PRICE_RUB } from "@/lib/track-cover-pricing"
+import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
+
+function couponAmountForOrderType(orderType: string | undefined): number | null {
+  switch (orderType) {
+    case "music_video":
+      return MUSIC_VIDEO_PRICE_RUB
+    case "yandex_videoavatar":
+      return YANDEX_VIDEOAVATAR_PRICE_RUB
+    case "yandex_videoshot":
+      return YANDEX_VIDEOSHOT_PRICE_RUB
+    case "yandex_videoshot_creation":
+      return YANDEX_VIDEOSHOT_CREATION_PRICE_RUB
+    case "track_cover":
+      return TRACK_COVER_PRICE_RUB
+    case "spotify_videoshot":
+      return SPOTIFY_VIDEOSHOT_PRICE_RUB
+    default:
+      return null
+  }
+}
 
 interface ServicePageTemplateProps {
   service: ServiceCatalogEntry
@@ -34,7 +64,22 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
   const [releaseDate, setReleaseDate] = useState("")
   const [previewTimecodeSec, setPreviewTimecodeSec] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const isMusicVideo = service.orderType === "music_video" || service.slug === "music-video"
+  const couponOrderType = service.orderType
+  const couponAmountRub = couponAmountForOrderType(couponOrderType)
+  const dueRub =
+    applyCoupon && couponPreview && couponAmountRub != null
+      ? couponPreview.finalAmountRub
+      : couponAmountRub
 
   useEffect(() => {
     const paymentState = searchParams.get("payment")
@@ -124,6 +169,7 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                 contactType: "telegram",
                 contactValue: "@artist",
                 payFromBalance: true,
+                ...couponPaymentPayload(applyCoupon),
               }
         ),
       })
@@ -271,9 +317,20 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
           />
         </div>
         <div className="space-y-2 pt-1">
+          {couponOrderType && couponAmountRub != null && !service.paymentStub ? (
+            <CabinetApplyCouponControl
+              orderType={couponOrderType}
+              amountRub={couponAmountRub}
+              applied={applyCoupon}
+              onAppliedChange={onCouponAppliedChange}
+              compact
+            />
+          ) : null}
           <p className="font-semibold">
             Итого:{" "}
-            {service.priceKey ? (
+            {dueRub != null && applyCoupon && couponPreview ? (
+              `${dueRub.toLocaleString("ru-RU")} ₽`
+            ) : service.priceKey ? (
               <>
                 {service.pricePrefix ? <span>{service.pricePrefix}</span> : null}
                 <ServicePriceText priceKey={service.priceKey} fallback={service.priceLabel} />
@@ -294,7 +351,9 @@ function ServicePageTemplateInner({ service }: ServicePageTemplateProps) {
                 : "Оплата..."
               : service.paymentStub
                 ? "Оплатить"
-                : "Оплатить с баланса"}
+                : dueRub != null && dueRub <= 0 && applyCoupon
+                  ? "Оформить бесплатно"
+                  : "Оплатить с баланса"}
           </Button>
         </div>
       </div>

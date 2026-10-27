@@ -17,6 +17,10 @@ import {
   readFilePrefix,
 } from "@/lib/node-streaming-multipart"
 import { MAX_CABINET_WAV_BYTES, MAX_CABINET_WAV_MB } from "@/lib/cabinet-wav-upload-limits"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_WAV_BYTES = MAX_CABINET_WAV_BYTES
@@ -128,19 +132,33 @@ export async function POST(request: NextRequest) {
       }
 
       const unitPrice = await getServicePriceRub("ai_mastering")
-      const totalAmount = (tracksCount * unitPrice).toFixed(2)
+      const baseAmount = tracksCount * unitPrice
+      const applyCouponField = String(multipart.getField("applyCoupon") ?? "").trim()
+      const priced = await resolveCouponPricingFromBody({
+        userId: user.id,
+        orderType: "ai_mastering",
+        amountRub: baseAmount,
+        body: {
+          applyCoupon: applyCouponField === "1" || applyCouponField === "true",
+          couponCode: String(multipart.getField("couponCode") ?? "").trim() || undefined,
+        },
+      })
+      if (priced.error) {
+        return NextResponse.json({ error: priced.error }, { status: 400 })
+      }
       const displayNames = wavFiles.map((f) => f.originalFilename.trim() || "track.wav")
 
       const order = await createOrder({
         orderType: "ai_mastering",
         userId: user.id,
         tracksCount,
-        totalAmount,
+        totalAmount: priced.amountRub.toFixed(2),
         contactEmail: contactEmailRaw || undefined,
         contactTelegram: contactTelegramRaw || undefined,
         serviceDetails: {
           trackTitles: displayNames,
           originalFilenames: displayNames,
+          ...couponServiceDetailsFromPricing(priced),
         },
       })
 

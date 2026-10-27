@@ -3,11 +3,8 @@ import { getCabinetToken, getCabinetSession } from "@/lib/cabinet-auth"
 import { getCabinetUserByEmail } from "@/lib/cabinet-users"
 import { notifyStaffInBackground } from "@/lib/form-notifications"
 import { escapeHtml } from "@/lib/telegram"
-import {
-  YANDEX_ADS_PRICE_LABEL,
-  getYandexAdsObject,
-  isYandexAdsObjectId,
-} from "@/lib/yandex-ads-campaign"
+import { getYandexAdsObject, isYandexAdsObjectId } from "@/lib/yandex-ads-campaign"
+import { formatServicePriceCardLabel, getResolvedServicePrice } from "@/lib/service-prices"
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -90,6 +87,7 @@ export async function POST(request: NextRequest) {
 
   const object = getYandexAdsObject(objectRaw)
   const contactLine = contactValue || user.email
+  const workPrice = formatServicePriceCardLabel(await getResolvedServicePrice("yandex_ads"))
 
   const message = [
     "<b>Заявка на услугу: Продвижение в Яндекс Директ</b>",
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest) {
     `<b>Контакт:</b> ${escapeHtml(contactLine)}`,
     comment ? `<b>Комментарий:</b> ${escapeHtml(comment)}` : null,
     "",
-    `<b>Работа Parallax:</b> ${escapeHtml(YANDEX_ADS_PRICE_LABEL)} (точная сумма до оплаты)`,
+    `<b>Работа Parallax:</b> ${escapeHtml(workPrice)} (точная сумма до оплаты)`,
     "",
     "#yandex #директ #заявка #спрос",
   ]

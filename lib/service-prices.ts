@@ -4,13 +4,17 @@ import { AI_MASTERING_PRICE_RUB } from "@/lib/ai-mastering-pricing"
 import { BUSINESS_MUSIC_PRICE_RUB } from "@/lib/business-music-pricing"
 import { LYRICS_SYNC_PRICE_RUB } from "@/lib/lyrics-sync-pricing"
 import { MUSIC_VIDEO_PRICE_RUB } from "@/lib/music-video-pricing"
+import { PLAYLISTHUB_BASE_PRICE_RUB } from "@/lib/playlisthub-landing"
 import { RADIO_PRICE_RUB } from "@/lib/radio-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
+import { TIKTOK_PRICE_FROM_RUB } from "@/lib/tiktok-pricing"
 import { TOOLS_MASTERING_DOWNLOAD_PRICE_RUB } from "@/lib/tools-mastering-pricing"
 import { TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
 import { TOOLS_SLOWED_REVERB_DOWNLOAD_PRICE_RUB } from "@/lib/tools-slowed-reverb-pricing"
 import { TOOLS_STORY_VIDEO_DOWNLOAD_PRICE_RUB } from "@/lib/tools-story-video-pricing"
 import { TRACK_COVER_PRICE_RUB } from "@/lib/track-cover-pricing"
+import { VK_ADS_PRICE_FROM_RUB } from "@/lib/vk-ads-campaign"
+import { YANDEX_ADS_PRICE_FROM_RUB } from "@/lib/yandex-ads-campaign"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
@@ -32,6 +36,10 @@ export const SERVICE_PRICE_KEYS = [
   "music_video",
   "business_music",
   "radio",
+  "vk_ads",
+  "yandex_ads",
+  "playlisthub",
+  "tiktok",
 ] as const
 
 export type ServicePriceKey = (typeof SERVICE_PRICE_KEYS)[number]
@@ -117,6 +125,30 @@ export const SERVICE_PRICE_DEFS: readonly ServicePriceDef[] = [
     title: "Радио (от)",
     unitHint: "от",
     defaultPriceRub: RADIO_PRICE_RUB,
+  },
+  {
+    key: "vk_ads",
+    title: "Продвижение VK Музыка (работа)",
+    unitHint: "от",
+    defaultPriceRub: VK_ADS_PRICE_FROM_RUB,
+  },
+  {
+    key: "yandex_ads",
+    title: "Продвижение Яндекс Директ (работа)",
+    unitHint: "от",
+    defaultPriceRub: YANDEX_ADS_PRICE_FROM_RUB,
+  },
+  {
+    key: "playlisthub",
+    title: "Плейлисты PlaylistHub",
+    unitHint: "/ плейлист",
+    defaultPriceRub: PLAYLISTHUB_BASE_PRICE_RUB,
+  },
+  {
+    key: "tiktok",
+    title: "TikTok / блогеры (от)",
+    unitHint: "от",
+    defaultPriceRub: TIKTOK_PRICE_FROM_RUB,
   },
 ] as const
 

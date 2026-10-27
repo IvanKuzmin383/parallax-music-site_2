@@ -103,23 +103,21 @@ export function CabinetSubscriptionAutopayPanel({
       {variant === "row" ? (
         row
       ) : (
-        <Card>
-          <CardContent className="space-y-3 pt-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-medium">Автопродление</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {info == null
-                    ? "Загрузка…"
-                    : info.autopayEnabled
-                      ? "Карта сохранена, списание по расписанию"
-                      : "Не активно - подключится при следующей оплате с галочкой автопродления"}
-                </p>
-              </div>
-              <Button type="button" size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
-                Управление
-              </Button>
+        <Card className="gap-0 py-0">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-none">Автопродление</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {info == null
+                  ? "Загрузка…"
+                  : info.autopayEnabled
+                    ? "Карта сохранена, списание по расписанию"
+                    : "Не активно - подключится при следующей оплате с галочкой автопродления"}
+              </p>
             </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+              Управление
+            </Button>
           </CardContent>
         </Card>
       )}

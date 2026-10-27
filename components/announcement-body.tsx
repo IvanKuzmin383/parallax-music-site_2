@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment, type MouseEvent, type ReactNode } from "react"
 import type { Components } from "react-markdown"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -26,6 +27,59 @@ function autolinkBareUrls(text: string): string {
   })
 }
 
+function stopRowNavigation(e: MouseEvent) {
+  e.stopPropagation()
+}
+
+/** Простой текст с кликабельными http(s)/www ссылками (без markdown). */
+export function LinkifiedText({
+  text,
+  className,
+}: {
+  text: string
+  className?: string
+}): ReactNode {
+  const parts: ReactNode[] = []
+  const re = new RegExp(URL_PATTERN.source, URL_PATTERN.flags)
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  let key = 0
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(
+        <Fragment key={`t-${key++}`}>{text.slice(lastIndex, match.index)}</Fragment>
+      )
+    }
+    const { href, display } = trimTrailingUrlPunctuation(match[0])
+    const trailing = match[0].slice(display.length)
+    parts.push(
+      <a
+        key={`a-${key++}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 hover:text-primary/80 break-all"
+        onClick={stopRowNavigation}
+      >
+        {display}
+      </a>
+    )
+    if (trailing) {
+      parts.push(<Fragment key={`p-${key++}`}>{trailing}</Fragment>)
+    }
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < text.length) {
+    parts.push(<Fragment key={`t-${key++}`}>{text.slice(lastIndex)}</Fragment>)
+  }
+  return <span className={className}>{parts.length > 0 ? parts : text}</span>
+}
+
+/** true, если клик по ссылке внутри строки уведомления (не навигировать строкой). */
+export function isClickOnLink(e: MouseEvent): boolean {
+  return Boolean((e.target as HTMLElement | null)?.closest?.("a"))
+}
+
 const markdownComponents: Components = {
   a: ({ href, children }) => {
     if (!href || !/^https?:\/\//i.test(href)) {
@@ -37,6 +91,7 @@ const markdownComponents: Components = {
         target="_blank"
         rel="noopener noreferrer"
         className="text-primary underline underline-offset-2 hover:text-primary/80 break-all"
+        onClick={stopRowNavigation}
       >
         {children}
       </a>

@@ -2,6 +2,7 @@ import type { ReleaseView } from "../types"
 import type { Track } from "@/lib/tracks"
 import type { Release } from "@/lib/releases"
 import type { Album } from "@/lib/albums"
+import { shouldShowModerationNoteToArtist } from "@/lib/moderation-note-history"
 
 const TRACK_STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
@@ -63,7 +64,7 @@ export function trackSummaries(tracks: Track[]): Array<{ id: string; name: strin
   }))
 }
 
-function pickGroupStatus(tracks: Track[]): string {
+function pickGroupTrack(tracks: Track[]): Track | null {
   let best: Track | null = null
   let bestPri = Number.POSITIVE_INFINITY
   for (const t of tracks) {
@@ -73,8 +74,25 @@ function pickGroupStatus(tracks: Track[]): string {
       best = t
     }
   }
+  return best
+}
+
+function pickGroupStatus(tracks: Track[]): string {
+  const best = pickGroupTrack(tracks)
   if (!best) return "На модерации"
   return TRACK_STATUS_LABELS[best.status] ?? best.status
+}
+
+function pickArtistModerationNote(
+  status: string | null | undefined,
+  tracks: Track[]
+): string | null {
+  if (!shouldShowModerationNoteToArtist(status)) return null
+  for (const track of tracks) {
+    const note = track.moderationNote?.trim()
+    if (note) return note
+  }
+  return null
 }
 
 function mergePlatforms(tracks: Track[]): string[] {
@@ -125,6 +143,8 @@ export function mapTrackToRelease(track: Track, trackCount = 1): ReleaseView {
     format: "single",
     trackCount: 1,
     tracks: [{ id: track.id, name: track.trackName.trim() || "Без названия" }],
+    releaseStatus: track.status,
+    moderationNote: pickArtistModerationNote(track.status, [track]),
     aiAnalysisText,
     smartlinkSlug: track.smartlinkSlug?.trim() || null,
     smartlinkPublic: track.smartlinkPublic === true,
@@ -154,6 +174,7 @@ export function mapReleaseEntityToView(
     tracks: summaries,
     wizardStep: release.wizardStep,
     releaseStatus: release.status,
+    moderationNote: pickArtistModerationNote(release.status, tracks),
     platforms: mergePlatforms(tracks),
     aiAnalysisText: release.aiAnalysisText?.trim() || null,
     smartlinkSlug:
@@ -170,9 +191,11 @@ export function mapAlbumTracksToRelease(
 ): ReleaseView {
   const ordered = sortTracks(tracks)
   const first = ordered[0]
+  const groupTrack = pickGroupTrack(ordered)
   const summaries = trackSummaries(ordered)
   const aiAnalysisText =
     ordered.map((t) => t.aiAnalysisText?.trim()).find(Boolean) || null
+  const releaseStatus = groupTrack?.status
 
   return {
     id: albumId,
@@ -186,6 +209,8 @@ export function mapAlbumTracksToRelease(
     format: "album",
     trackCount: summaries.length,
     tracks: summaries,
+    releaseStatus,
+    moderationNote: pickArtistModerationNote(releaseStatus, ordered),
     aiAnalysisText,
     smartlinkSlug:
       ordered.map((t) => t.smartlinkSlug?.trim()).find(Boolean) || null,
@@ -265,12 +290,24 @@ export function isReleaseInProgress(release: ReleaseView): boolean {
   )
 }
 
-export function releaseContinueHref(release: ReleaseView): string {
-  if (
+export function releaseNeedsRevision(release: ReleaseView): boolean {
+  return (
     release.releaseStatus === "upload_pending" ||
-    release.releaseStatus === "rejected"
-  ) {
-    return `/cabinet/upload/${release.id}?step=${release.wizardStep ?? 1}`
+    release.status.includes("доработ")
+  )
+}
+
+export function releaseIsRejected(release: ReleaseView): boolean {
+  return (
+    release.releaseStatus === "rejected" ||
+    release.status.includes("Отклон")
+  )
+}
+
+export function releaseContinueHref(release: ReleaseView): string {
+  // Доработка / отклонение: сразу вкладка "Проверка", где комментарий модерации.
+  if (releaseNeedsRevision(release) || releaseIsRejected(release)) {
+    return `/cabinet/upload/${release.id}?step=6`
   }
   if (release.kind !== "draft") return "/cabinet/distribution/music"
   const step = release.wizardStep ?? 1
@@ -282,10 +319,7 @@ export function releaseContinueHref(release: ReleaseView): string {
 
 /** Подпись CTA для черновика / доработки. */
 export function releaseContinueLabel(release: ReleaseView): string {
-  if (
-    release.releaseStatus === "upload_pending" ||
-    release.status.includes("доработ")
-  ) {
+  if (releaseNeedsRevision(release)) {
     return "Исправить"
   }
   if (

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import {
   BarChart3,
+  Bell,
   Building2,
   ChevronDown,
   ClipboardList,
@@ -35,6 +36,7 @@ export type AdminSectionNavActive =
   | "articles"
   | "cabinet-users"
   | "cabinet-announcements"
+  | "cabinet-notifications"
   | "tracks"
   | "reports"
   | "music-stats"
@@ -90,6 +92,12 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         label: "Новости",
         href: "/admin26081993/cabinet-announcements",
         icon: Megaphone,
+      },
+      {
+        id: "cabinet-notifications",
+        label: "Колокольчик",
+        href: "/admin26081993/cabinet-notifications",
+        icon: Bell,
       },
       { id: "support", label: "Поддержка", href: "/admin26081993/support", icon: Headset },
       {

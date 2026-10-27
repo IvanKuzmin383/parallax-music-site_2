@@ -28,6 +28,7 @@ import {
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
+import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
 import {
   VK_ADS_DEFAULT_GOAL,
   VK_ADS_GOALS,
@@ -176,7 +177,11 @@ export function VkAdsLanding({ service }: { service: ServiceCatalogEntry }) {
   const contactRef = useRef<HTMLInputElement>(null)
 
   const goal = getVkAdsGoal(goalId)
-  const priceLabel = service.priceLabel || VK_ADS_PRICE_LABEL
+  const { byKey } = useServicePrices()
+  const priceLabel =
+    (service.priceKey ? byKey(service.priceKey)?.cardLabel : null) ||
+    service.priceLabel ||
+    VK_ADS_PRICE_LABEL
   const contactFromProfile = Boolean(accountEmail)
   const budgetDisplay = formatBudgetDisplay(budget)
 

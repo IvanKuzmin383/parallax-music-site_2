@@ -4,6 +4,9 @@ export const TOOLS_MASTERING_DOWNLOAD_PRICE_RUB = 100
 /** Сколько скачиваний даёт одна оплата. */
 export const TOOLS_MASTERING_CREDITS_PER_PURCHASE = 1
 
+/** Сколько дней сохранённый мастер доступен для повторного скачивания. */
+export const TOOLS_MASTERING_FILE_TTL_DAYS = 14
+
 export type ToolsMasteringEntitlement = {
   freeUsed: boolean
   freeAvailable: boolean

@@ -5,7 +5,10 @@ import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
 import { validateAiCoverOrder } from "@/lib/ai-cover-order"
 import { getServicePriceRub } from "@/lib/service-prices"
-const YOOKASSA_PAYMENT_DESCRIPTION = "AI обложка для трека"
+import {
+  couponServiceDetailsFromPricing,
+  resolveCouponPricingFromBody,
+} from "@/lib/cabinet-coupon-apply"
 
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
@@ -13,7 +16,6 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Необходима авторизация" }, { status: 401 })
   }
-
 
   const user = await getCabinetUserByEmail(session.email)
   if (!user) {
@@ -44,14 +46,27 @@ export async function POST(request: NextRequest) {
 
   const isTelegramContact = validated.contactType === "telegram"
   const priceRub = await getServicePriceRub("ai_cover")
+  const priced = await resolveCouponPricingFromBody({
+    userId: user.id,
+    orderType: "ai_cover",
+    amountRub: priceRub,
+    body: raw,
+  })
+  if (priced.error) {
+    return NextResponse.json({ error: priced.error }, { status: 400 })
+  }
+
   const order = await createOrder({
     orderType: "ai_cover",
     userId: user.id,
     tracksCount: 1,
-    totalAmount: priceRub.toFixed(2),
+    totalAmount: priced.amountRub.toFixed(2),
     contactEmail: isTelegramContact ? undefined : `${validated.contactType}: ${validated.contactValue}`,
     contactTelegram: isTelegramContact ? validated.contactValue : undefined,
-    serviceDetails: validated.serviceDetails,
+    serviceDetails: {
+      ...validated.serviceDetails,
+      ...couponServiceDetailsFromPricing(priced),
+    },
   })
 
   return respondWithWalletPayment(order)

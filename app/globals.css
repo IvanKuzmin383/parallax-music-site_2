@@ -1569,9 +1569,10 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
     auto;
 }
 
+/* Раньше была «карточка» поверх фона - больше не используем */
 .sl-arcade-card {
-  background: color-mix(in srgb, var(--sl-accent) 12%, #12121a);
-  box-shadow: 4px 4px 0 #111;
+  background: transparent;
+  box-shadow: none;
 }
 
 .sl-vhs-bg {
@@ -1751,9 +1752,10 @@ audio.admin-audio-compact::-webkit-media-controls-enclosure {
   );
 }
 
+/* Раньше была «карточка» поверх линованного фона - больше не используем */
 .sl-diary-card {
-  background: rgba(255, 252, 245, 0.72);
-  box-shadow: 0 8px 24px rgba(40, 30, 10, 0.08);
+  background: transparent;
+  box-shadow: none;
 }
 
 .sl-diary-clip {

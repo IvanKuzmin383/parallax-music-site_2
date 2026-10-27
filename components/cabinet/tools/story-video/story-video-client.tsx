@@ -25,6 +25,11 @@ import {
 import { toast } from "sonner"
 import { StoryVideoPreview } from "@/components/cabinet/tools/story-video/story-video-preview"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
+import {
+  CabinetApplyCouponControl,
+  couponPaymentPayload,
+  type ApplicableCouponPreview,
+} from "@/components/cabinet/shared/cabinet-apply-coupon"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
@@ -264,6 +269,15 @@ export function StoryVideoClient({ draftId }: { draftId: string }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [paying, setPaying] = useState(false)
+  const [applyCoupon, setApplyCoupon] = useState(false)
+  const [couponPreview, setCouponPreview] = useState<ApplicableCouponPreview | null>(null)
+  const onCouponAppliedChange = useCallback(
+    (next: boolean, preview: ApplicableCouponPreview | null) => {
+      setApplyCoupon(next)
+      setCouponPreview(preview)
+    },
+    []
+  )
   const [openPanels, setOpenPanels] = useState<Record<PanelKey, boolean>>({
     source: true,
     hook: true,
@@ -818,7 +832,10 @@ export function StoryVideoClient({ draftId }: { draftId: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ payFromBalance: true }),
+        body: JSON.stringify({
+          payFromBalance: true,
+          ...couponPaymentPayload(applyCoupon),
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as {
         paid?: boolean
@@ -1694,7 +1711,16 @@ export function StoryVideoClient({ draftId }: { draftId: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+      <Dialog
+        open={payDialogOpen}
+        onOpenChange={(open) => {
+          setPayDialogOpen(open)
+          if (!open) {
+            setApplyCoupon(false)
+            setCouponPreview(null)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Скачивание сторис</DialogTitle>
@@ -1704,34 +1730,52 @@ export function StoryVideoClient({ draftId }: { draftId: string }) {
               скачивание.
             </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
-            {walletBalance < downloadPriceRub ? (
+          <CabinetApplyCouponControl
+            orderType="tools_story_video_download"
+            amountRub={downloadPriceRub}
+            applied={applyCoupon}
+            onAppliedChange={onCouponAppliedChange}
+            compact
+          />
+          {(() => {
+            const due =
+              applyCoupon && couponPreview ? couponPreview.finalAmountRub : downloadPriceRub
+            const needTopup = walletBalance < due
+            return (
               <>
-                {" "}
-                ·{" "}
-                <Link
-                  href="/cabinet/finance/balance"
-                  className="text-primary underline-offset-2 hover:underline"
-                >
-                  Пополнить
-                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Баланс: {walletBalance.toLocaleString("ru-RU")} ₽
+                  {needTopup ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <Link
+                        href="/cabinet/finance/balance"
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        Пополнить
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={() => setPayDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void startPaymentFromBalance()}
+                    disabled={paying || needTopup}
+                  >
+                    {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {due <= 0
+                      ? "Получить бесплатно"
+                      : `Оплатить ${due.toLocaleString("ru-RU")} ₽ с баланса`}
+                  </Button>
+                </DialogFooter>
               </>
-            ) : null}
-          </p>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setPayDialogOpen(false)}>
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void startPaymentFromBalance()}
-              disabled={paying || walletBalance < downloadPriceRub}
-            >
-              {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Оплатить {downloadPriceRub} ₽ с баланса
-            </Button>
-          </DialogFooter>
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>
