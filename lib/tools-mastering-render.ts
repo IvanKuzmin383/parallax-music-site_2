@@ -1,10 +1,12 @@
 import {
   densityCompTweaks,
+  isAiCleanPreset,
   smoothSettings,
   targetRmsDb,
   type MasteringParams,
 } from "@/lib/tools-mastering-params"
 import {
+  applyLookaheadPeakLimiter,
   applyMonoBass,
   applySoftClipAndCeiling,
   applySoftNoiseGate,
@@ -13,6 +15,8 @@ import {
   softClipCurve,
   linearCurve,
 } from "@/lib/tools-mastering-dsp"
+import { AI_CLEAN_LIMITS } from "@/lib/tools-mastering-spectral-clean"
+import { runSpectralCleanOnBuffer } from "@/lib/tools-mastering-spectral-clean-run"
 
 function dbToLinear(db: number): number {
   return Math.pow(10, db / 20)
@@ -89,18 +93,78 @@ async function decodeAudioFile(file: File): Promise<AudioBuffer> {
   }
 }
 
+export type MasterRenderProgress = {
+  phase: "decode" | "spectral" | "master" | "encode"
+  /** 0…1 overall */
+  ratio: number
+  label: string
+}
+
+export type RenderMasteredOptions = {
+  onProgress?: (p: MasterRenderProgress) => void
+  signal?: AbortSignal
+}
+
 /**
- * Браузерный offline-мастеринг: EQ → компрессор → makeup → soft-clip → width → mono-bass → ceiling.
- * Работает только в браузере (Web Audio OfflineAudioContext).
+ * Браузерный offline-мастеринг.
+ * Для режима очистки AI-трека: спектральная очистка (Worker) -> цепочка мастера -> лимитер -1 dBFS.
  */
 export async function renderMasteredWav(
   file: File,
-  params: MasteringParams
+  params: MasteringParams,
+  options: RenderMasteredOptions = {}
 ): Promise<{ blob: Blob; fileName: string }> {
-  const input = await decodeAudioFile(file)
+  const report = (p: MasterRenderProgress) => options.onProgress?.(p)
+
+  report({ phase: "decode", ratio: 0.02, label: "Декодирование…" })
+  let input = await decodeAudioFile(file)
+  if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError")
+
+  if (isAiCleanPreset(params.presetId)) {
+    report({ phase: "spectral", ratio: 0.05, label: "Спектральная очистка…" })
+    input = await runSpectralCleanOnBuffer(input, {
+      signal: options.signal,
+      onProgress: (sp) => {
+        report({
+          phase: "spectral",
+          ratio: 0.05 + sp.ratio * 0.55,
+          label:
+            sp.phase === "profile"
+              ? "Оценка шума…"
+              : sp.phase === "mask"
+                ? "Построение маски…"
+                : "Сборка сигнала…",
+        })
+      },
+    })
+  }
+
+  report({ phase: "master", ratio: 0.65, label: "Мастеринг…" })
+  const rendered = await renderMasterChain(input, params)
+  if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError")
+
+  report({ phase: "encode", ratio: 0.92, label: "Кодирование WAV…" })
+  const baseName = file.name
+    .replace(/\.wav$/i, "")
+    .replace(/[^\w\-а-яА-ЯёЁ ]+/gi, "_")
+    .slice(0, 80)
+  const suffix = isAiCleanPreset(params.presetId) ? "ai_clean" : "mastered"
+  const blob = encodeWav(rendered)
+  report({ phase: "encode", ratio: 1, label: "Готово" })
+  return {
+    blob,
+    fileName: `${baseName || "track"}_${suffix}.wav`,
+  }
+}
+
+async function renderMasterChain(
+  input: AudioBuffer,
+  params: MasteringParams
+): Promise<AudioBuffer> {
   const density = densityCompTweaks(params.density)
   const thresholdDb = params.thresholdDb + density.thresholdAdd
   const ratio = Math.max(1.1, params.ratio * density.ratioMul)
+  const aiClean = isAiCleanPreset(params.presetId)
 
   let makeupGain = dbToLinear(params.outputGainDb)
   if (params.magicMakeup) {
@@ -147,7 +211,7 @@ export async function renderMasteredWav(
 
   const comp = offline.createDynamicsCompressor()
   comp.threshold.value = Math.max(-60, Math.min(0, thresholdDb))
-  comp.knee.value = 8
+  comp.knee.value = aiClean ? 12 : 8
   comp.ratio.value = Math.min(20, ratio)
   comp.attack.value = Math.max(0.001, params.attackMs / 1000)
   comp.release.value = Math.max(0.01, params.releaseMs / 1000)
@@ -178,19 +242,22 @@ export async function renderMasteredWav(
 
   applyStereoWidth(rendered, params.stereoWidth)
   if (params.monoBass) {
-    applyMonoBass(rendered, rendered.sampleRate)
+    applyMonoBass(
+      rendered,
+      rendered.sampleRate,
+      aiClean ? AI_CLEAN_LIMITS.monoBassHz : 120
+    )
   }
   const smooth = smoothSettings(params.smooth)
   if (smooth.enabled) {
     applySoftNoiseGate(rendered, smooth.gateThresholdDb, smooth.gateRatio)
   }
-  // Сатурация уже в WaveShaper; здесь только ceiling (как gain+hard limit в live).
-  applySoftClipAndCeiling(rendered, params.ceilingDb, false, params.saturation)
 
-  const baseName = file.name.replace(/\.wav$/i, "").replace(/[^\w\-а-яА-ЯёЁ ]+/gi, "_").slice(0, 80)
-  const blob = encodeWav(rendered)
-  return {
-    blob,
-    fileName: `${baseName || "track"}_mastered.wav`,
+  if (aiClean) {
+    applyLookaheadPeakLimiter(rendered, params.ceilingDb, 3, 55)
+  } else {
+    applySoftClipAndCeiling(rendered, params.ceilingDb, false, params.saturation)
   }
+
+  return rendered
 }

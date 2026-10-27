@@ -1,3 +1,10 @@
+import {
+  AI_CLEAN_PRESET_ID,
+  isAiCleanPreset,
+} from "@/lib/tools-mastering-spectral-clean"
+
+export { AI_CLEAN_PRESET_ID, isAiCleanPreset }
+
 export type LoudnessLevel = "low" | "med" | "high"
 export type DensityLevel = "low" | "med" | "high"
 /** Сглаживание: EQ-срезы резкости/воздуха + мягкий gate в скачивании */
@@ -75,6 +82,27 @@ export const MASTERING_PRESETS: MasteringPreset[] = [
     label: "Без характера",
     hint: "Без готового стиля: почти исходный звук. Дальше доводите крутилками в тонкой настройке или уровнями выше.",
     params: { ...PRESET_NEUTRAL },
+  },
+  {
+    id: AI_CLEAN_PRESET_ID,
+    label: "Очистка AI-трека",
+    hint:
+      "Смягчает типичный цифровой шум и песок у нейросетевых фонограмм, уплотняет низ и мягко ограничивает пики. Спектральный шаг тяжелый - считается при скачивании, не в realtime.",
+    params: {
+      hpfHz: 25,
+      lfShelfDb: 0.35,
+      mfPeakDb: 0,
+      hfShelfDb: 0.15,
+      thresholdDb: -22,
+      ratio: 1.5,
+      attackMs: 18,
+      releaseMs: 160,
+      ceilingDb: -1,
+      softClip: true,
+      saturation: 1.35,
+      stereoWidth: 1,
+      monoBass: true,
+    },
   },
   {
     id: "universal",
@@ -363,6 +391,15 @@ export function applyPreset(
       presetId: MANUAL_PRESET_ID,
       presetAmount: 0,
       ...PRESET_NEUTRAL,
+    }
+  }
+  // Режим очистки AI: фиксированный характер, без «половинчатой» интенсивности.
+  if (isAiCleanPreset(preset.id)) {
+    return {
+      ...current,
+      presetId: preset.id,
+      presetAmount: 100,
+      ...preset.params,
     }
   }
   const amount = Math.min(100, Math.max(0, amountPct))

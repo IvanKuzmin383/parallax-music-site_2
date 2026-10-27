@@ -95,6 +95,80 @@ export function applySoftClipAndCeiling(
 }
 
 /**
+ * Sample-peak лимитер с коротким lookahead (не true-peak). O(n) через deque max.
+ * ceilingDb - потолок по сэмплам, например -1.
+ */
+export function applyLookaheadPeakLimiter(
+  buffer: AudioBuffer,
+  ceilingDb: number,
+  lookaheadMs = 3,
+  releaseMs = 50
+): void {
+  const ceiling = dbToLinear(Math.min(0, ceilingDb))
+  if (ceiling <= 0) return
+  const channels = buffer.numberOfChannels
+  const sr = buffer.sampleRate
+  const look = Math.max(1, Math.round((lookaheadMs / 1000) * sr))
+  const releaseCoef = Math.exp(-1 / Math.max(1, (releaseMs / 1000) * sr))
+  const length = buffer.length
+  if (length === 0) return
+
+  const chData: Float32Array[] = []
+  for (let c = 0; c < channels; c++) chData.push(buffer.getChannelData(c))
+
+  // Linked peak per sample
+  const peak = new Float32Array(length)
+  for (let i = 0; i < length; i++) {
+    let p = 0
+    for (let c = 0; c < channels; c++) {
+      const a = Math.abs(chData[c][i])
+      if (a > p) p = a
+    }
+    peak[i] = p
+  }
+
+  // Sliding-window max over [i, i+look): env[i] = max(peak[i..i+look))
+  const env = new Float32Array(length)
+  const cap = look + 2
+  const dq = new Int32Array(cap)
+  let head = 0
+  let size = 0
+  const at = (k: number) => dq[(head + k) % cap]
+  const push = (idx: number) => {
+    while (size > 0 && peak[at(size - 1)] <= peak[idx]) size--
+    dq[(head + size) % cap] = idx
+    size++
+  }
+  const popFrontBefore = (minIdx: number) => {
+    while (size > 0 && at(0) < minIdx) {
+      head = (head + 1) % cap
+      size--
+    }
+  }
+
+  for (let i = 0; i < Math.min(look, length); i++) push(i)
+  for (let i = 0; i < length; i++) {
+    const winEnd = i + look
+    if (winEnd < length) push(winEnd)
+    popFrontBefore(i)
+    env[i] = size > 0 ? peak[at(0)] : peak[i]
+  }
+
+  let gain = 1
+  for (let i = 0; i < length; i++) {
+    const needed = env[i] > ceiling ? ceiling / env[i] : 1
+    if (needed < gain) gain = needed
+    else gain = needed + (gain - needed) * releaseCoef
+    for (let c = 0; c < channels; c++) {
+      let s = chData[c][i] * gain
+      if (s > ceiling) s = ceiling
+      if (s < -ceiling) s = -ceiling
+      chData[c][i] = s
+    }
+  }
+}
+
+/**
  * Мягкий downward-expander: тише паузы и шипение ниже порога.
  * Для offline (и при желании post-process); в live - через multiband.
  */

@@ -43,6 +43,7 @@ import {
   applyPreset,
   applyPresetAmount,
   DEFAULT_MASTERING_PARAMS,
+  isAiCleanPreset,
   isManualPreset,
   MANUAL_PRESET_ID,
   MASTERING_PRESETS,
@@ -52,6 +53,7 @@ import {
   type MasteringParams,
   type SmoothLevel,
 } from "@/lib/tools-mastering-params"
+import { AI_CLEAN_LIMITS } from "@/lib/tools-mastering-spectral-clean"
 import {
   TOOLS_MASTERING_DOWNLOAD_PRICE_RUB,
   type ToolsMasteringEntitlement,
@@ -442,6 +444,9 @@ function ToolsMasteringInner() {
   const [paying, setPaying] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [renderPercent, setRenderPercent] = useState(0)
+  const [renderLabel, setRenderLabel] = useState("")
+  const renderAbortRef = useRef<AbortController | null>(null)
 
   const [loadState, setLoadState] = useState<LoadState>("idle")
   const [loadPercent, setLoadPercent] = useState(0)
@@ -480,6 +485,7 @@ function ToolsMasteringInner() {
     const engine = new LiveMasteringEngine()
     engineRef.current = engine
     return () => {
+      renderAbortRef.current?.abort()
       void engine.dispose()
       engineRef.current = null
     }
@@ -683,10 +689,28 @@ function ToolsMasteringInner() {
       return
     }
 
+    if (isAiCleanPreset(params.presetId) && duration > AI_CLEAN_LIMITS.maxDurationSec) {
+      const maxMin = Math.round(AI_CLEAN_LIMITS.maxDurationSec / 60)
+      toast.error(`Для очистки AI-трека максимум ${maxMin} мин. Обрежьте файл или выберите другой характер.`)
+      return
+    }
+
+    renderAbortRef.current?.abort()
+    const abort = new AbortController()
+    renderAbortRef.current = abort
+
     setBusy(true)
     setError(null)
+    setRenderPercent(0)
+    setRenderLabel(isAiCleanPreset(params.presetId) ? "Подготовка очистки…" : "Рендер…")
     try {
-      const rendered = await renderMasteredWav(file, params)
+      const rendered = await renderMasteredWav(file, params, {
+        signal: abort.signal,
+        onProgress: (p) => {
+          setRenderPercent(Math.round(p.ratio * 100))
+          setRenderLabel(p.label)
+        },
+      })
 
       const consumeRes = await fetch("/api/cabinet/tools/mastering/consume", {
         method: "POST",
@@ -713,26 +737,38 @@ function ToolsMasteringInner() {
       toast.success(
         consumeData.used === "free"
           ? "Скачано (бесплатное скачивание использовано)"
-          : "Мастер скачан"
+          : isAiCleanPreset(params.presetId)
+            ? "Очищенный мастер скачан"
+            : "Мастер скачан"
       )
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        toast.message("Рендер отменён")
+        return
+      }
       const message = e instanceof Error ? e.message : "Ошибка обработки"
       setError(message)
       toast.error(message)
     } finally {
       setBusy(false)
+      setRenderPercent(0)
+      setRenderLabel("")
+      if (renderAbortRef.current === abort) renderAbortRef.current = null
     }
   }
+
+  const aiCleanActive = isAiCleanPreset(params.presetId)
 
   const needsPurchase = Boolean(entitlement && !entitlement.canDownload)
   const downloadPriceRub = entitlement?.priceRub ?? TOOLS_MASTERING_DOWNLOAD_PRICE_RUB
   const downloadLabel = (() => {
-    if (!entitlement) return "Скачать master WAV"
-    if (entitlement.freeAvailable) return "Скачать master WAV бесплатно"
+    const base = aiCleanActive ? "Скачать очищенный WAV" : "Скачать master WAV"
+    if (!entitlement) return base
+    if (entitlement.freeAvailable) return `${base} бесплатно`
     if (needsPurchase) {
       return `Скачать (${downloadPriceRub} р)`
     }
-    return "Скачать master WAV"
+    return base
   })()
 
   return (
@@ -860,6 +896,15 @@ function ToolsMasteringInner() {
             <CompactLoudnessMeters reading={meter} live={playing && loadState === "ready"} />
 
             <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
+              {busy && renderLabel ? (
+                <div className="w-full min-w-[10rem] space-y-1 sm:w-44">
+                  <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span className="truncate">{renderLabel}</span>
+                    <span className="tabular-nums">{renderPercent}%</span>
+                  </div>
+                  <Progress value={renderPercent} className="h-1.5" />
+                </div>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -968,6 +1013,7 @@ function ToolsMasteringInner() {
                           {MASTERING_PRESETS.map((preset) => {
                             const active = params.presetId === preset.id
                             const manual = isManualPreset(preset.id)
+                            const aiClean = isAiCleanPreset(preset.id)
                             return (
                               <div
                                 key={preset.id}
@@ -976,7 +1022,7 @@ function ToolsMasteringInner() {
                                   active
                                     ? "border-primary bg-primary/15 shadow-[0_0_0_1px_color-mix(in_oklab,var(--primary)_40%,transparent),0_10px_24px_-14px_var(--primary)]"
                                     : "border-border/70 bg-background/35 hover:border-primary/40 hover:bg-muted/30",
-                                  manual && "col-span-2 sm:col-span-1"
+                                  (manual || aiClean) && "col-span-2"
                                 )}
                               >
                                 <button
@@ -1026,7 +1072,7 @@ function ToolsMasteringInner() {
                             max={100}
                             step={1}
                             unit="%"
-                            disabled={isManualPreset(params.presetId)}
+                            disabled={isManualPreset(params.presetId) || aiCleanActive}
                             onChange={(presetAmount) =>
                               setParams((prev) => applyPresetAmount(prev, presetAmount))
                             }
@@ -1034,9 +1080,23 @@ function ToolsMasteringInner() {
                           <p className="max-w-[12rem] text-[11px] leading-snug text-muted-foreground">
                             {isManualPreset(params.presetId)
                               ? "Характер выключен. Настраивайте EQ, компрессор и окрас вручную ниже."
-                              : "Подмешивание характера к нейтральной обработке."}
+                              : aiCleanActive
+                                ? "В этом режиме характер фиксирован: спектр + мягкий лимит при скачивании."
+                                : "Подмешивание характера к нейтральной обработке."}
                           </p>
                         </div>
+                        {aiCleanActive ? (
+                          <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-[12px] leading-snug text-foreground/90">
+                            <p className="font-medium">Очистка AI-фонограмм</p>
+                            <p className="mt-1 text-muted-foreground">
+                              Спектральный шаг выполняется в фоне при скачивании (до{" "}
+                              {Math.round(AI_CLEAN_LIMITS.maxDurationSec / 60)} мин), чтобы вкладка
+                              не зависала. В плеере сейчас слышна только цепочка мастеринга без
+                              спектральной очистки. Автоматика может чуть задеть тихие детали -
+                              перед релизом послушайте файл.
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
                     </KnobGroup>
 
