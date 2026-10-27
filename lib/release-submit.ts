@@ -97,7 +97,8 @@ export async function submitReleaseToModeration(
   const occupying = await findUserReleaseOccupyingDate(
     release.userId,
     release.releaseDate,
-    release.id
+    release.id,
+    artistName
   )
   if (occupying) {
     return { ok: false, error: RELEASE_DATE_OCCUPIED_MESSAGE, status: 400 }

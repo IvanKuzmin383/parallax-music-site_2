@@ -24,6 +24,12 @@ export interface OrderView {
   /** Состав доп. услуг (для upload_addon_bundle и подобных). */
   addonLines?: string[]
   isMock?: boolean
+  /** Мгновенный результат инструмента (например WAV онлайн-мастеринга). */
+  kind?: "service" | "mastering_file"
+  /** Повторное скачивание результата. */
+  downloadHref?: string
+  /** До какой даты файл лежит на сервере. */
+  expiresAt?: string
 }
 
 export type TransactionType =

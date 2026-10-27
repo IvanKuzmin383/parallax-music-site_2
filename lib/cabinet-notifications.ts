@@ -364,7 +364,7 @@ export function paymentSuccessNotificationHref(orderType: string, orderId: strin
   if (orderType === "fix_pack" || orderType === "tracks_topup") {
     return "/cabinet/settings?tab=profile"
   }
-  if (orderType === "tools_mastering_download") return "/cabinet/tools/mastering"
+  if (orderType === "tools_mastering_download") return "/cabinet/orders"
   if (orderType === "tools_story_video_download") return "/cabinet/tools/story-video"
   if (orderType === "tools_slowed_reverb_download") return "/cabinet/tools/slowed-reverb"
   if (orderType === "tools_smartlink") return "/cabinet/tools/smartlinks"

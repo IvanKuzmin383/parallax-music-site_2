@@ -5,6 +5,7 @@ import { query, queryOne, execute } from "./database"
 import { getUploadsBasePath } from "./tracks"
 import type { UploadDraftPayload } from "./upload-drafts"
 import { parseCoverAiLevel, type CoverAiLevel } from "./cover-ai-level"
+import { normalizeArtistForPolicy } from "./artist-name-normalize"
 import {
   isReleaseDateOccupyingStatus,
   toReleaseDateYyyyMmDd,
@@ -162,18 +163,22 @@ export async function listReleasesByUserId(userId: string, limit = 100): Promise
   return rows.map(rowToRelease)
 }
 
-/** Есть ли у пользователя другой релиз на эту дату в статусе "модерация и выше". */
+/** Есть ли у того же артиста другой релиз на эту дату в статусе "модерация и выше". */
 export async function findUserReleaseOccupyingDate(
   userId: string,
   releaseDateYmd: string,
-  excludeReleaseId?: string
+  excludeReleaseId?: string,
+  artistName?: string | null
 ): Promise<Release | null> {
   const target = toReleaseDateYyyyMmDd(releaseDateYmd)
   if (!target) return null
+  const artistNorm = normalizeArtistForPolicy(artistName ?? "")
+  if (!artistNorm) return null
   const releases = await listReleasesByUserId(userId, 300)
   for (const r of releases) {
     if (excludeReleaseId && r.id === excludeReleaseId) continue
     if (!isReleaseDateOccupyingStatus(r.status)) continue
+    if (normalizeArtistForPolicy(r.artistName) !== artistNorm) continue
     if (toReleaseDateYyyyMmDd(r.releaseDate) === target) return r
   }
   return null

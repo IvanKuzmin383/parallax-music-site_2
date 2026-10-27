@@ -97,7 +97,11 @@ function progressUnitSuffix(id: string): string {
   return ""
 }
 
-export function CabinetAchievementsTab() {
+export function CabinetAchievementsTab({
+  onAvailableBonusesChange,
+}: {
+  onAvailableBonusesChange?: (count: number) => void
+} = {}) {
   const [progress, setProgress] = useState<GamificationProgress | null>(null)
   const [coupons, setCoupons] = useState<CabinetCoupon[]>([])
   const [usedCoupons, setUsedCoupons] = useState<UsedCouponView[]>([])
@@ -131,6 +135,14 @@ export function CabinetAchievementsTab() {
   useEffect(() => {
     void load().finally(() => setLoading(false))
   }, [load])
+
+  useEffect(() => {
+    onAvailableBonusesChange?.(coupons.length)
+  }, [coupons.length, onAvailableBonusesChange])
+
+  useEffect(() => {
+    return () => onAvailableBonusesChange?.(0)
+  }, [onAvailableBonusesChange])
 
   const nextRewardAchievement = useMemo(() => {
     if (!progress) return null
@@ -178,32 +190,10 @@ export function CabinetAchievementsTab() {
       : 100
   const levelNum = levelIndex(progress.level.id) + 1
   const nextLevelNum = next ? levelIndex(next.id) + 1 : null
-  const availableBonuses = coupons.length
   const levels = progress.levels?.length ? progress.levels : ARTIST_LEVELS
 
   return (
     <div className="w-full max-w-none space-y-5 md:space-y-6">
-      {availableBonuses > 0 ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              const el = document.getElementById("achievements-coupons")
-              el?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }}
-            className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/15 px-3.5 py-1.5 text-sm font-medium text-primary shadow-[0_0_24px_rgba(240,31,67,0.2)] transition-colors hover:bg-primary/25"
-          >
-            <Gift className="h-4 w-4" />
-            {availableBonuses}{" "}
-            {availableBonuses === 1
-              ? "бонус доступен"
-              : availableBonuses < 5
-                ? "бонуса доступно"
-                : "бонусов доступно"}
-          </button>
-        </div>
-      ) : null}
-
       <div className="grid gap-4 lg:grid-cols-2">
         <section
           className={cn(

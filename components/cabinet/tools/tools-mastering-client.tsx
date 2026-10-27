@@ -80,16 +80,6 @@ import { cn } from "@/lib/utils"
 type EntitlementState = ToolsMasteringEntitlement | null
 type LoadState = "idle" | "loading" | "ready" | "error"
 
-type SavedMasterFile = {
-  id: string
-  fileName: string
-  sizeBytes: number
-  used: "free" | "credit"
-  createdAt: string
-  expiresAt: string
-  downloadPath: string
-}
-
 function HintIcon({ label, tip }: { label: string; tip: string }) {
   return (
     <Tooltip>
@@ -487,8 +477,6 @@ function ToolsMasteringInner() {
   const [meter, setMeter] = useState<MeterReading>(() => silentMeterReading())
   const [presetsOpen, setPresetsOpen] = useState(true)
   const [fineTuneOpen, setFineTuneOpen] = useState(true)
-  const [savedFiles, setSavedFiles] = useState<SavedMasterFile[]>([])
-  const [savedLoading, setSavedLoading] = useState(true)
   const meterFrameRef = useRef(0)
   const fileGenRef = useRef(0)
   const cleanAbortRef = useRef<AbortController | null>(null)
@@ -513,24 +501,9 @@ function ToolsMasteringInner() {
     }
   }, [])
 
-  const refreshSavedFiles = useCallback(async () => {
-    setSavedLoading(true)
-    try {
-      const res = await fetch("/api/cabinet/tools/mastering/files", { credentials: "include" })
-      if (!res.ok) return
-      const data = (await res.json()) as { items?: SavedMasterFile[] }
-      setSavedFiles(data.items ?? [])
-    } catch {
-      // ignore
-    } finally {
-      setSavedLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
     void refreshEntitlement()
-    void refreshSavedFiles()
-  }, [refreshEntitlement, refreshSavedFiles])
+  }, [refreshEntitlement])
 
   useEffect(() => {
     const engine = new LiveMasteringEngine()
@@ -900,7 +873,7 @@ function ToolsMasteringInner() {
         code?: string
         entitlement?: ToolsMasteringEntitlement
         used?: string
-        file?: SavedMasterFile
+        file?: { id: string }
         ttlDays?: number
       }
 
@@ -914,14 +887,13 @@ function ToolsMasteringInner() {
       }
       if (saveData.entitlement) setEntitlement(saveData.entitlement)
 
-      setSavedFiles((prev) => [saveData.file!, ...prev.filter((f) => f.id !== saveData.file!.id)])
       triggerBlobDownload(rendered.blob, rendered.fileName)
 
       const ttl = saveData.ttlDays ?? TOOLS_MASTERING_FILE_TTL_DAYS
       toast.success(
         saveData.used === "free"
-          ? `Скачано. Копия на сервере ${ttl} дн. - можно скачать снова`
-          : `Мастер сохранён на ${ttl} дн. - повторное скачивание без оплаты`,
+          ? `Скачано. Копия ${ttl} дн. в разделе «Заказы»`
+          : `Мастер сохранён на ${ttl} дн. - повторно скачать в «Заказах»`,
       )
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
@@ -936,20 +908,6 @@ function ToolsMasteringInner() {
       setRenderPercent(0)
       setRenderLabel("")
       if (renderAbortRef.current === abort) renderAbortRef.current = null
-    }
-  }
-
-  const formatExpiresAt = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleString("ru-RU", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    } catch {
-      return iso
     }
   }
 
@@ -999,8 +957,12 @@ function ToolsMasteringInner() {
             Хранение {TOOLS_MASTERING_FILE_TTL_DAYS} дней
           </span>
           <p className="text-xs text-muted-foreground">
-            После скачивания мастер сохраняется на сервере {TOOLS_MASTERING_FILE_TTL_DAYS} дней -
-            можно скачать снова без повторной оплаты, если вкладка закрылась.
+            После скачивания копия {TOOLS_MASTERING_FILE_TTL_DAYS} дней лежит в{" "}
+            <Link href="/cabinet/orders" className="text-foreground underline underline-offset-2 hover:text-primary">
+              Заказах
+            </Link>
+            {" "}
+            - оттуда можно скачать снова без оплаты.
           </p>
         </div>
       </div>
@@ -1207,59 +1169,6 @@ function ToolsMasteringInner() {
           </p>
         </div>
       </div>
-
-      <section className="rounded-lg border border-border/70 bg-card/30 px-4 py-3">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-medium">Сохранённые мастера</h2>
-            <span className="inline-flex items-center rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-100/95">
-              {TOOLS_MASTERING_FILE_TTL_DAYS} дней
-            </span>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            disabled={savedLoading}
-            onClick={() => void refreshSavedFiles()}
-          >
-            {savedLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Обновить"}
-          </Button>
-        </div>
-        <p className="mb-3 text-xs text-muted-foreground">
-          Файлы после оплаты/бесплатного скачивания хранятся {TOOLS_MASTERING_FILE_TTL_DAYS} дней.
-          Потом удаляются автоматически. Повторное скачивание из списка - без новой оплаты.
-        </p>
-        {savedLoading && savedFiles.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Загрузка…</p>
-        ) : savedFiles.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Пока нет сохранённых файлов.</p>
-        ) : (
-          <ul className="space-y-2">
-            {savedFiles.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{item.fileName}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Доступно до {formatExpiresAt(item.expiresAt)}
-                    {item.used === "free" ? " · бесплатное" : " · кредит"}
-                  </p>
-                </div>
-                <Button type="button" size="sm" variant="outline" className="h-8 shrink-0" asChild>
-                  <a href={item.downloadPath} download={item.fileName}>
-                    <Download className="mr-1.5 h-3.5 w-3.5" />
-                    Скачать
-                  </a>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       <div className="min-w-0 space-y-3">
           <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>

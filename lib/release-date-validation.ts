@@ -127,7 +127,7 @@ export function isReleaseDateOccupyingStatus(status: string | null | undefined):
 }
 
 export const RELEASE_DATE_OCCUPIED_MESSAGE =
-  "Эта дата уже занята другим вашим релизом (на модерации или дальше). В один день можно отправить только один релиз - укажите другую дату."
+  "Эта дата уже занята другим релизом этого артиста (на модерации или дальше). В один день у одного артиста можно отправить только один релиз - укажите другую дату."
 
 /** Нормализация даты к YYYY-MM-DD. */
 export function toReleaseDateYyyyMmDd(value: string | Date | null | undefined): string | null {

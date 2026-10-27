@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,6 +32,7 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
   const router = useRouter()
   const { order, loading } = useCabinetOrderById(orderId)
   const activeStep = order ? timelineActiveIndex(order.status) : 0
+  const isMasteringFile = order?.kind === "mastering_file"
 
   useEffect(() => {
     if (loading || order) return
@@ -78,13 +79,47 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
         </Card>
         <Card className="gap-0 py-0">
           <CardContent className="space-y-0.5 px-3 py-2.5">
-            <p className="text-xs text-muted-foreground">ID заказа</p>
-            <p className="break-all font-mono text-xs leading-snug">{order.id}</p>
+            <p className="text-xs text-muted-foreground">
+              {isMasteringFile ? "Файл" : "ID заказа"}
+            </p>
+            <p className="break-all font-mono text-xs leading-snug">
+              {isMasteringFile ? order.trackName || order.id : order.id}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {order.trackName || order.artistName || (order.addonLines && order.addonLines.length > 0) ? (
+      {isMasteringFile ? (
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-3 px-3 py-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Готовый мастер</p>
+              <p className="text-sm text-muted-foreground">
+                {order.trackName || "master.wav"}
+                {order.expiresAt
+                  ? ` · доступен до ${format(new Date(order.expiresAt), "d MMMM yyyy HH:mm", { locale: ru })}`
+                  : ""}
+              </p>
+              {order.description ? (
+                <p className="text-xs text-muted-foreground">{order.description}</p>
+              ) : null}
+            </div>
+            {order.downloadHref ? (
+              <Button type="button" asChild>
+                <a href={order.downloadHref} download={order.trackName || "master.wav"}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Скачать WAV
+                </a>
+              </Button>
+            ) : (
+              <p className="text-sm text-destructive">Ссылка на скачивание недоступна</p>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!isMasteringFile &&
+      (order.trackName || order.artistName || (order.addonLines && order.addonLines.length > 0)) ? (
         <Card className="gap-0 py-0">
           <CardContent className="space-y-3 px-3 py-2.5">
             <p className="text-sm font-medium">Состав заказа</p>
@@ -111,7 +146,7 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
             ) : null}
           </CardContent>
         </Card>
-      ) : order.description ? (
+      ) : !isMasteringFile && order.description ? (
         <Card className="gap-0 py-0">
           <CardContent className="space-y-1.5 px-3 py-2.5">
             <p className="text-sm font-medium">Описание</p>
@@ -120,35 +155,37 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
         </Card>
       ) : null}
 
-      <Card className="gap-0 py-0">
-        <CardContent className="space-y-2 px-3 py-2.5">
-          <p className="text-sm font-medium">Таймлайн статусов</p>
-          <ol className="space-y-1.5">
-            {ORDER_TIMELINE_STEPS.map((step, index) => (
-              <li key={step.key} className="flex items-center gap-2.5">
-                <div
-                  className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium",
-                    index <= activeStep
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground"
-                  )}
-                >
-                  {index + 1}
-                </div>
-                <p
-                  className={cn(
-                    "text-sm leading-none",
-                    index <= activeStep ? "font-medium text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  {step.label}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </CardContent>
-      </Card>
+      {!isMasteringFile ? (
+        <Card className="gap-0 py-0">
+          <CardContent className="space-y-2 px-3 py-2.5">
+            <p className="text-sm font-medium">Таймлайн статусов</p>
+            <ol className="space-y-1.5">
+              {ORDER_TIMELINE_STEPS.map((step, index) => (
+                <li key={step.key} className="flex items-center gap-2.5">
+                  <div
+                    className={cn(
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium",
+                      index <= activeStep
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground"
+                    )}
+                  >
+                    {index + 1}
+                  </div>
+                  <p
+                    className={cn(
+                      "text-sm leading-none",
+                      index <= activeStep ? "font-medium text-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    {step.label}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }

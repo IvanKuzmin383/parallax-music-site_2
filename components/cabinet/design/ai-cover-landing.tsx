@@ -62,8 +62,8 @@ const GALLERY_INITIAL = 8
 const PROCESS_BRIEF =
   "Обложка к треку про разбитую любовь и тишину между людьми"
 const PROCESS_BRIEF_TAGS = ["тишина", "дистанция", "разлом"] as const
-const PROCESS_MOODBOARD = PORTFOLIO.slice(0, 9)
-/** Индекс выбранного кадра в мудборде (0-based). */
+const PROCESS_MOODBOARD_SRC = "/aicover/process-moodboard.jpg"
+/** Выбранный кадр в сетке 3×3 мудборда (0-based): 2 = статуя с золотыми трещинами. */
 const PROCESS_SELECTED_INDEX = 2
 
 const PROCESS_STEPS = [
@@ -122,10 +122,37 @@ function contactPlaceholder(type: AiCoverContactType): string {
   return "Номер или ссылка Max"
 }
 
-function CoverProcessExample() {
-  const selected =
-    PROCESS_MOODBOARD[PROCESS_SELECTED_INDEX] ?? PROCESS_MOODBOARD[0]!
+/** Вырезает один кадр из сетки 3×3 мудборда. */
+function MoodboardCell({
+  src,
+  index,
+  className,
+  alt,
+}: {
+  src: string
+  index: number
+  className?: string
+  alt: string
+}) {
+  const col = index % 3
+  const row = Math.floor(index / 3)
+  return (
+    <div className={cn("relative overflow-hidden bg-muted", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className="pointer-events-none absolute left-0 top-0 h-[300%] w-[300%] max-w-none object-cover"
+        style={{
+          transform: `translate(-${(col * 100) / 3}%, -${(row * 100) / 3}%)`,
+        }}
+        draggable={false}
+      />
+    </div>
+  )
+}
 
+function CoverProcessExample() {
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch lg:gap-2">
       {/* 01 Идея */}
@@ -160,8 +187,8 @@ function CoverProcessExample() {
         <ArrowRight className="h-4 w-4 text-muted-foreground/45" />
       </div>
 
-      {/* 02 Мудборд */}
-      <div className="flex min-w-0 flex-[1.25] flex-col gap-3">
+      {/* 02 Мудборд - твоя картинка */}
+      <div className="flex min-w-0 flex-[1.35] flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold tabular-nums text-[#F21D43]">02</span>
@@ -171,35 +198,38 @@ function CoverProcessExample() {
           </div>
           <span className="text-[11px] text-muted-foreground">9 образов на выбор</span>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          {PROCESS_MOODBOARD.map((item, index) => {
-            const selectedCell = index === PROCESS_SELECTED_INDEX
-            return (
-              <div
-                key={item.src}
-                className={cn(
-                  "relative aspect-square overflow-hidden rounded-[8px] bg-muted",
-                  selectedCell && "ring-2 ring-[#F21D43] ring-offset-2 ring-offset-background",
-                )}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.src}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  draggable={false}
-                />
-                <span className="absolute left-1 top-1 flex h-5 min-w-5 items-center justify-center rounded bg-black/55 px-1 text-[10px] font-semibold tabular-nums text-white">
-                  {index + 1}
-                </span>
-                {selectedCell ? (
-                  <span className="absolute bottom-1 right-1 rounded bg-[#F21D43] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                    Выбрано
-                  </span>
-                ) : null}
-              </div>
-            )
-          })}
+        <div className="relative overflow-hidden rounded-[12px] bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={PROCESS_MOODBOARD_SRC}
+            alt="Мудборд вариантов обложки"
+            className="block h-auto w-full"
+            draggable={false}
+          />
+          {/* Подсветка выбранного кадра поверх сетки 3×3 */}
+          <div
+            className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 gap-0"
+            aria-hidden
+          >
+            {Array.from({ length: 9 }, (_, index) => {
+              const selected = index === PROCESS_SELECTED_INDEX
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "relative",
+                    selected && "ring-2 ring-inset ring-[#F21D43]",
+                  )}
+                >
+                  {selected ? (
+                    <span className="absolute bottom-1.5 right-1.5 rounded bg-[#F21D43] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm">
+                      Выбрано
+                    </span>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -207,7 +237,7 @@ function CoverProcessExample() {
         <ArrowRight className="h-4 w-4 text-muted-foreground/45" />
       </div>
 
-      {/* 03 Финал */}
+      {/* 03 Финал = выбранный кадр из мудборда */}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold tabular-nums text-[#F21D43]">03</span>
@@ -216,23 +246,20 @@ function CoverProcessExample() {
           </span>
         </div>
         <div className="relative mx-auto w-full max-w-[16rem] overflow-hidden rounded-[12px] bg-muted lg:mx-0 lg:max-w-none">
-          <div className="relative aspect-square w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={selected.src}
-              alt="Выбранная обложка для стримингов"
-              className="h-full w-full object-cover"
-              draggable={false}
-            />
-            <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
-              <span className="rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-white backdrop-blur-[2px]">
-                3000 × 3000
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-[2px]">
-                <Check className="h-3 w-3 text-emerald-400" aria-hidden />
-                Streaming ready
-              </span>
-            </div>
+          <MoodboardCell
+            src={PROCESS_MOODBOARD_SRC}
+            index={PROCESS_SELECTED_INDEX}
+            alt="Выбранная обложка для стримингов"
+            className="aspect-square w-full"
+          />
+          <div className="absolute left-2 top-2 z-[1] flex flex-wrap gap-1.5">
+            <span className="rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold tabular-nums text-white backdrop-blur-[2px]">
+              3000 × 3000
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-[2px]">
+              <Check className="h-3 w-3 text-emerald-400" aria-hidden />
+              Streaming ready
+            </span>
           </div>
           <p className="px-3 py-2 text-[11px] text-muted-foreground">
             Финальный файл для Spotify, Apple Music, Яндекс Музыки

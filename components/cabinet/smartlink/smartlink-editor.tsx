@@ -2189,11 +2189,11 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
         </div>
 
         <aside className="shrink-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch">
-          <div className="overflow-hidden rounded-[1.75rem] border border-border bg-black shadow-2xl ring-1 ring-white/10 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
-            <div className="flex items-center justify-center border-b border-white/10 py-2">
+          <div className="flex min-h-[560px] flex-col overflow-hidden rounded-[1.75rem] border border-border bg-black shadow-2xl ring-1 ring-white/10 lg:min-h-0 lg:flex-1 lg:overscroll-contain">
+            <div className="flex shrink-0 items-center justify-center border-b border-white/10 py-2">
               <span className="h-1.5 w-12 rounded-full bg-white/20" />
             </div>
-            <div className="max-h-[min(680px,calc(100dvh-12rem))] overflow-y-auto lg:max-h-none">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {previewCoverUrl ? (
                 <SmartlinkLanding
                   key={`${previewTheme.animation}-${previewTheme.animationSpeed}-${previewTheme.preset}-${previewTheme.platformLayout}-${coverTick}-${audioTick}-${theme.previewAudioEnabled}`}
@@ -2204,9 +2204,10 @@ export function SmartlinkEditor(props: SmartlinkEditorProps) {
                   theme={previewTheme}
                   preview
                   previewAudioSrc={previewAudioSrc}
+                  className="min-h-full"
                 />
               ) : (
-                <div className="flex min-h-[520px] items-center justify-center bg-[#111] px-6 text-center text-base text-white/60">
+                <div className="flex h-full min-h-[520px] items-center justify-center bg-[#111] px-6 text-center text-base text-white/60">
                   Нужна обложка для превью
                 </div>
               )}

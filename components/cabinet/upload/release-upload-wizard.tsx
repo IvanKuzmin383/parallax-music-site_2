@@ -42,6 +42,7 @@ import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { normalizeArtistForPolicy } from "@/lib/artist-name-normalize"
 import {
   isReleaseDateWeekend,
   RELEASE_DATE_OCCUPIED_MESSAGE,
@@ -173,8 +174,11 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
 
   const occupiedReleaseDates = useMemo(() => {
     const set = new Set<string>()
+    const artistNorm = normalizeArtistForPolicy(artistName)
+    if (!artistNorm) return set
     for (const r of existingReleases) {
       if (releaseId && r.id === releaseId) continue
+      if (normalizeArtistForPolicy(r.artist) !== artistNorm) continue
       const raw = r.releaseStatus
       const occupies =
         (raw ? isReleaseDateOccupyingStatus(raw) : false) ||
@@ -188,7 +192,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
       if (ymd) set.add(ymd)
     }
     return set
-  }, [existingReleases, releaseId])
+  }, [existingReleases, releaseId, artistName])
 
   const releaseDateOccupied = Boolean(
     releaseDate && occupiedReleaseDates.has(format(releaseDate, "yyyy-MM-dd"))
@@ -1873,7 +1877,7 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500" />
-                          <span>Занято другим релизом</span>
+                          <span>Занято другим релизом этого артиста</span>
                         </div>
                       </div>
                     </PopoverContent>

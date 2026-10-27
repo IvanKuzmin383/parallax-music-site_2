@@ -37,7 +37,8 @@ export async function POST(
     const occupying = await findUserReleaseOccupyingDate(
       release.userId,
       release.releaseDate,
-      release.id
+      release.id,
+      release.artistName
     )
     if (occupying) {
       return NextResponse.json({ error: RELEASE_DATE_OCCUPIED_MESSAGE }, { status: 400 })

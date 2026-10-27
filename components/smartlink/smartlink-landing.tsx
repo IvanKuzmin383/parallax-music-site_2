@@ -212,7 +212,10 @@ export function SmartlinkLanding({
   const shellClass = cn(
     // overflow-y-auto: длинный список площадок должен скроллиться, не обрезаться
     "relative flex min-h-full w-full flex-col items-center overflow-x-hidden overflow-y-auto",
-    preview ? "min-h-[520px] px-3 pt-6 pb-3" : "min-h-screen px-4 pt-6 pb-3 sm:px-6 sm:pt-8 sm:pb-4",
+    // preview: h-full - фон на всю высоту «телефона», не чёрная дыра снизу
+    preview
+      ? "h-full min-h-[520px] px-3 pt-6 pb-3"
+      : "min-h-screen px-4 pt-6 pb-3 sm:px-6 sm:pt-8 sm:pb-4",
     shellLight ? "bg-[#F3EFE6] text-[#161616]" : "bg-[#0B0B0C] text-[#F5F5F5]",
     bgCarbon && "sl-carbon-bg",
     bgGraffiti && "sl-graffiti-bg",

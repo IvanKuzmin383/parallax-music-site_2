@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import { EmptyState } from "@/components/cabinet/shared/empty-state"
 import { useCabinetOrders } from "@/lib/cabinet/hooks/use-cabinet-orders"
 import type { OrderFilterKey } from "@/lib/cabinet/order-status-map"
-import { ClipboardList } from "lucide-react"
+import { ClipboardList, Download } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 
 const FILTERS: { key: OrderFilterKey; label: string }[] = [
@@ -97,9 +97,19 @@ export function OrdersPageContent() {
                       <TableCell>{order.amount.toLocaleString("ru-RU")} ₽</TableCell>
                       <TableCell><StatusBadge status={order.status} /></TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/cabinet/orders/${order.id}`}>Открыть</Link>
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          {order.kind === "mastering_file" && order.downloadHref ? (
+                            <Button size="sm" variant="secondary" asChild>
+                              <a href={order.downloadHref} download={order.trackName || "master.wav"}>
+                                <Download className="mr-1.5 h-3.5 w-3.5" />
+                                Скачать
+                              </a>
+                            </Button>
+                          ) : null}
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/cabinet/orders/${order.id}`}>Открыть</Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -132,9 +142,19 @@ export function OrdersPageContent() {
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(order.createdAt), "d MMM yyyy", { locale: ru })} · {order.amount.toLocaleString("ru-RU")} ₽
                   </p>
-                  <Button size="sm" className="w-full" variant="outline" asChild>
-                    <Link href={`/cabinet/orders/${order.id}`}>Открыть</Link>
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    {order.kind === "mastering_file" && order.downloadHref ? (
+                      <Button size="sm" className="w-full" variant="secondary" asChild>
+                        <a href={order.downloadHref} download={order.trackName || "master.wav"}>
+                          <Download className="mr-1.5 h-3.5 w-3.5" />
+                          Скачать WAV
+                        </a>
+                      </Button>
+                    ) : null}
+                    <Button size="sm" className="w-full" variant="outline" asChild>
+                      <Link href={`/cabinet/orders/${order.id}`}>Открыть</Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
