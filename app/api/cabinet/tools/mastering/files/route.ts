@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   }
 
   const blob = form.get("file")
-  if (!(blob instanceof File) && !(blob instanceof Blob)) {
+  if (!(blob instanceof File)) {
     return NextResponse.json({ error: "Нужен файл WAV" }, { status: 400 })
   }
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
   const rawName =
     (typeof form.get("fileName") === "string" ? String(form.get("fileName")) : "") ||
-    (blob instanceof File ? blob.name : "") ||
+    blob.name ||
     "master.wav"
   const fileName = sanitizeMasteringDownloadName(rawName)
   const storageName = `${randomUUID()}.wav`
