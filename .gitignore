@@ -22,7 +22,7 @@ yarn-error.log*
 .env.*
 .env*
 
-# Локальный Bandlink UPC tool (не для прода)
+# ÐÐ¾ÐºÐ°Ð»ÑÐ½ÑÐ¹ Bandlink UPC tool (Ð½Ðµ Ð´Ð»Ñ Ð¿ÑÐ¾Ð´Ð°)
 bandlink-tool.bat
 bandlink-fill-links.bat
 bandlink-upc-lookup.bat
@@ -38,20 +38,20 @@ lib/parallax-admin-api.ts
 lib/parallax-admin-playwright.ts
 scripts/_tmp-*.ts
 
-# Локальные выгрузки стримингов (Excel/CSV)
+# ÐÐ¾ÐºÐ°Ð»ÑÐ½ÑÐµ Ð²ÑÐ³ÑÑÐ·ÐºÐ¸ ÑÑÑÐ¸Ð¼Ð¸Ð½Ð³Ð¾Ð² (Excel/CSV)
 streaming-releases*
 streaming-tracks*
 
-# Локальные выгрузки из админ-БД (временные / одноразовые)
+# ÐÐ¾ÐºÐ°Ð»ÑÐ½ÑÐµ Ð²ÑÐ³ÑÑÐ·ÐºÐ¸ Ð¸Ð· Ð°Ð´Ð¼Ð¸Ð½-ÐÐ (Ð²ÑÐµÐ¼ÐµÐ½Ð½ÑÐµ / Ð¾Ð´Ð½Ð¾ÑÐ°Ð·Ð¾Ð²ÑÐµ)
 _tmp_*
 _tmp_query_result.md
 sent_to_platforms_releases.csv
 released_missing_vk_or_yandex*.csv
 scripts/export-*-csv.mjs
-# Временные lock-файлы Excel (создаются при открытой книге)
+# ÐÑÐµÐ¼ÐµÐ½Ð½ÑÐµ lock-ÑÐ°Ð¹Ð»Ñ Excel (ÑÐ¾Ð·Ð´Ð°ÑÑÑÑ Ð¿ÑÐ¸ Ð¾ÑÐºÑÑÑÐ¾Ð¹ ÐºÐ½Ð¸Ð³Ðµ)
 ~$*
 
-# SQLite (локальная dev-БД; на VPS - /data/app.db, не в репозитории)
+# SQLite (Ð»Ð¾ÐºÐ°Ð»ÑÐ½Ð°Ñ dev-ÐÐ; Ð½Ð° VPS - /data/app.db, Ð½Ðµ Ð² ÑÐµÐ¿Ð¾Ð·Ð¸ÑÐ¾ÑÐ¸Ð¸)
 data/app.db
 /data/app.db
 /data/reviews.json
@@ -66,6 +66,12 @@ data/app.db
 *.tsbuildinfo
 next-env.d.ts
 
-# Локальные заметки / идеи (не в репозитории)
+# ÐÐ¾ÐºÐ°Ð»ÑÐ½ÑÐµ Ð·Ð°Ð¼ÐµÑÐºÐ¸ / Ð¸Ð´ÐµÐ¸ (Ð½Ðµ Ð² ÑÐµÐ¿Ð¾Ð·Ð¸ÑÐ¾ÑÐ¸Ð¸)
 docs/ideas-addon-services.md
 docs/manual-db-recovery-log.md
+
+# Temporary one-off debug scripts
+tmp-*.py
+tmp-*.ts
+tmp-*.sql
+
