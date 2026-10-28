@@ -1448,6 +1448,39 @@ export default function TracksPageClient() {
     }
   }
 
+  const handleCopyAlbumLyrics = async (albumTracks: Track[]) => {
+    const ordered = sortTracksByUploadOrder(albumTracks)
+    const withLyrics = ordered.filter((t) => !t.isInstrumental && t.lyricsText?.trim())
+    if (withLyrics.length === 0) {
+      toast.error("У треков альбома нет текстов для копирования")
+      return
+    }
+    const payload = ordered
+      .map((track, index) => {
+        const n = index + 1
+        const title = track.trackName?.trim() || "Без названия"
+        if (track.isInstrumental) {
+          return `${n}. ${title}\n(инструментал)`
+        }
+        const text = track.lyricsText?.trim()
+        if (!text) {
+          return `${n}. ${title}\n(текст не заполнен)`
+        }
+        return `${n}. ${title}\n${text}`
+      })
+      .join("\n\n")
+    try {
+      await navigator.clipboard.writeText(payload)
+      toast.success(
+        withLyrics.length === ordered.length
+          ? `Скопированы тексты ${withLyrics.length} треков`
+          : `Скопировано: тексты у ${withLyrics.length} из ${ordered.length} треков`
+      )
+    } catch {
+      toast.error("Не удалось скопировать тексты альбома")
+    }
+  }
+
   const handleCoverUpload = async (trackId: string, file: File) => {
     setUploadingCoverId(trackId)
     try {
@@ -1742,6 +1775,19 @@ export default function TracksPageClient() {
                                     {downloadingAlbumId === albumId
                                       ? "Скачивание…"
                                       : "Скачать все треки"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      !orderedAlbumTracks.some(
+                                        (t) => !t.isInstrumental && !!t.lyricsText?.trim()
+                                      )
+                                    }
+                                    onClick={() => void handleCopyAlbumLyrics(orderedAlbumTracks)}
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    Скопировать все тексты
                                   </Button>
                                   <Button
                                     size="sm"
