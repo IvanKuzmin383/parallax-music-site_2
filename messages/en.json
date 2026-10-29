@@ -145,7 +145,7 @@
           {
             "name": "Vertical videos for social",
             "blurb": "TikTok, Reels, Shorts for your track",
-            "price": "from 99 ₽",
+            "price": "399 ₽",
             "href": "/cabinet/promotion/vertical-video"
           },
           {
@@ -192,8 +192,8 @@
           },
           {
             "name": "TikTok / Shorts / Reels",
-            "blurb": "Short-form video for reach and engagement",
-            "price": "from 199 ₽",
+            "blurb": "Short-form video promotion: reach and new audience",
+            "price": "from 2 000 ₽",
             "href": "/promotion/tiktok-shorts"
           },
           {
@@ -775,7 +775,7 @@
           "id": "tiktok-shorts",
           "slug": "tiktok-shorts",
           "title": "TikTok / Shorts",
-          "description": "Vertical videos for reach and engagement growth"
+          "description": "Short-form video promotion: reach and new audience"
         },
         {
           "id": "yandex-playlists",
@@ -951,25 +951,25 @@
       "tiktok-shorts": {
         "title": "TikTok / Shorts",
         "titleHighlight": "promotion",
-        "subtitle": "Use short-form video power to promote your music",
+        "subtitle": "Promote your music in short-form video: reach, awareness and new listeners",
         "ctaCaption": "For fast reach, awareness and listener growth",
         "mockupType": "tiktok",
         "badge": "Viral reach",
-        "price": "from 199 ₽ / video",
+        "price": "from 2 000 ₽",
         "orderPrefill": "Hello! I'd like TikTok / Shorts promotion.\nPage: parallaxmusic.ru/promotion/tiktok-shorts",
         "features": [
-          { "id": "hook", "icon": "video", "title": "Videos that hook", "description": "Vertical videos adapted for platform algorithms" },
-          { "id": "audience", "icon": "users", "title": "New audience", "description": "Reach millions beyond streaming platforms" },
+          { "id": "hook", "icon": "video", "title": "Short-form format", "description": "Promotion on TikTok, Reels and Shorts for platform algorithms" },
+          { "id": "audience", "icon": "users", "title": "New audience", "description": "Reach listeners beyond streaming platforms" },
           { "id": "awareness", "icon": "chart", "title": "Awareness growth", "description": "More reach, mentions and interest in your music" },
           { "id": "viral", "icon": "flame", "title": "Viral potential", "description": "A chance to hit recommendations and go viral" }
         ],
         "steps": {
           "title": "How it works",
-          "description": "From track to vertical content with reach",
+          "description": "From brief to campaign launch and growth",
           "items": [
-            { "id": "brief", "title": "Brief", "description": "We discuss track, style and reach goals" },
-            { "id": "video", "title": "Video", "description": "Vertical videos for TikTok, Reels and Shorts" },
-            { "id": "publish", "title": "Publishing", "description": "We publish content and run promotion if needed" },
+            { "id": "brief", "title": "Brief", "description": "We discuss the track, reach goals and campaign format" },
+            { "id": "setup", "title": "Setup", "description": "We align creatives and promotion settings" },
+            { "id": "publish", "title": "Launch", "description": "We launch short-form video promotion" },
             { "id": "growth", "title": "Growth", "description": "We track views, reach and engagement" }
           ]
         },
@@ -978,11 +978,11 @@
           "description": "About short-form video promotion",
           "items": [
             { "id": "platforms", "question": "Which platforms?", "answer": "TikTok, Instagram Reels, YouTube Shorts and VK Clips" },
-            { "id": "need-video", "question": "Do I need to send video?", "answer": "No - we create vertical videos for your track" },
+            { "id": "need-video", "question": "Is this video creation or promotion?", "answer": "This is a promotion service. Vertical video creation is ordered separately under Services" },
             { "id": "order", "question": "How to order?", "answer": "Click Viral reach and send your track link" }
           ]
         },
-        "finalCta": { "title": "Launch viral reach", "description": "Submit a request - we'll create content and attract a new audience", "cta": "Viral reach" }
+        "finalCta": { "title": "Launch viral reach", "description": "Submit a request - we'll discuss promotion and attract a new audience", "cta": "Viral reach" }
       }
     }
   },
@@ -1049,7 +1049,7 @@
       "verticalVideo": {
         "title": "Vertical videos",
         "description": "Vertical videos for TikTok, Reels and Shorts",
-        "price": "from 99₽/ea",
+        "price": "399₽/ea",
         "serviceDescriptionTitle": "Description",
         "serviceDescription": "We create professional vertical videos for your tracks using modern visuals, typography and animation.",
         "processFlowTitle": "How it works",
@@ -1360,8 +1360,8 @@
           "id": "tiktok-shorts",
           "slug": "tiktok-shorts",
           "title": "TikTok / Shorts",
-          "description": "Vertical video for reach, awareness, and a new audience",
-          "price": "from 1 500₽",
+          "description": "Short-form video promotion: reach, awareness, and a new audience",
+          "price": "from 2 000₽",
           "cta": "Order",
           "orderPrefill": "Hi! I'd like to discuss TikTok / Shorts promotion.\nFrom: cabinet → Promotion"
         }

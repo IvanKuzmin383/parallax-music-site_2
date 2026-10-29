@@ -214,28 +214,14 @@ function VerticalVideoPageInner() {
 
             <div>
               <h2 className="text-lg font-semibold mb-4">{vv.priceTitle}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex flex-col p-4 bg-muted rounded-lg border border-border">
-                  <span className="text-sm text-muted-foreground mb-1">{vv.priceRange1}</span>
-                  <span className="font-bold text-primary text-xl mb-3">199₽/шт</span>
-                  <Button type="button" className="mt-auto" onClick={() => setOrderOpen(true)}>
-                    {vv.orderButton}
-                  </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-muted rounded-lg border border-border">
+                <div>
+                  <span className="text-sm text-muted-foreground block mb-1">За любое количество</span>
+                  <span className="font-bold text-primary text-2xl">399₽/шт</span>
                 </div>
-                <div className="flex flex-col p-4 bg-muted rounded-lg border border-border">
-                  <span className="text-sm text-muted-foreground mb-1">{vv.priceRange2}</span>
-                  <span className="font-bold text-primary text-xl mb-3">149₽/шт</span>
-                  <Button type="button" className="mt-auto" onClick={() => setOrderOpen(true)}>
-                    {vv.orderButton}
-                  </Button>
-                </div>
-                <div className="flex flex-col p-4 bg-muted rounded-lg border border-border">
-                  <span className="text-sm text-muted-foreground mb-1">{vv.priceRange3}</span>
-                  <span className="font-bold text-primary text-xl mb-3">99₽/шт</span>
-                  <Button type="button" className="mt-auto" onClick={() => setOrderOpen(true)}>
-                    {vv.orderButton}
-                  </Button>
-                </div>
+                <Button type="button" onClick={() => setOrderOpen(true)}>
+                  {vv.orderButton}
+                </Button>
               </div>
             </div>
 

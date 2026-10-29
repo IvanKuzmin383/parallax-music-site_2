@@ -360,7 +360,7 @@ export function CabinetUploadAdditionalServicesSection({
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
                 <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
-                  от 99 руб. / шт.
+                  399 руб. / шт.
                 </span>
                 <Button type="button" variant="outline" size="sm" onClick={() => openAddonInfo("verticalVideo")}>
                   Подробнее
@@ -771,19 +771,10 @@ export function CabinetUploadAdditionalServicesSection({
               </div>
             ) : null}
             {addonInfoKey === "verticalVideo" ? (
-              <div className="rounded-md bg-green-500/5 p-3 space-y-2 text-lg">
-                <p className="font-semibold text-white">Стоимость:</p>
-                <p className="font-medium">
-                  <span className="text-white">до 10 видео - </span>
-                  <span className="text-red-500">199 руб. / шт.</span>
-                </p>
-                <p className="font-medium">
-                  <span className="text-white">до 50 видео - </span>
-                  <span className="text-red-500">149 руб. / шт.</span>
-                </p>
-                <p className="font-medium">
-                  <span className="text-white">свыше 50 видео - </span>
-                  <span className="text-red-500">99 руб. / шт.</span>
+              <div className="rounded-md bg-green-500/5 p-3">
+                <p className="text-lg font-semibold">
+                  <span className="text-white">Стоимость: </span>
+                  <span className="text-red-500">399 руб. / шт.</span>
                 </p>
               </div>
             ) : null}
