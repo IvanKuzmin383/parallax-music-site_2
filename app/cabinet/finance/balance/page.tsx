@@ -404,10 +404,10 @@ export default function FinanceBalancePage() {
                   <StatusBadge
                     status={
                       w.status === "completed"
-                        ? "completed"
+                        ? "Исполнено"
                         : w.status === "pending"
-                          ? "in_progress"
-                          : "cancelled"
+                          ? "В процессе"
+                          : "Отклонено"
                     }
                     kind="generic"
                   />

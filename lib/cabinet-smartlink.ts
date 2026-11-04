@@ -1,3 +1,4 @@
+import { getAlbumById } from "@/lib/albums"
 import { getReleaseById } from "@/lib/releases"
 import {
   generateUniqueSmartlinkSlug,
@@ -104,6 +105,31 @@ export async function resolveCabinetSmartlinkContext(
       status: release.status,
       theme: parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME),
       platformLinks: resolveEditablePlatformLinks(track, tracks),
+      smartlinkSlug: track.smartlinkSlug?.trim() || null,
+      smartlinkPublic: track.smartlinkPublic === true,
+      canEnablePromo: canEnableTrackSmartlinkPromo(track),
+    }
+  }
+
+  // Карточка альбома в списке релизов использует albumId как release.id
+  const album = await getAlbumById(id)
+  if (album && album.userId.toLowerCase() === email) {
+    const albumTracks = (await getTracksByAlbumId(album.id)).sort(
+      (a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0),
+    )
+    const track = pickSmartlinkTrack(albumTracks)
+    if (!track) return null
+    const releaseId = track.releaseId ?? null
+    return {
+      releaseId,
+      track,
+      tracks: albumTracks,
+      title: album.title?.trim() || track.trackName,
+      artist: album.artistName?.trim() || track.artistName,
+      coverUrl: coverUrlFor(track, releaseId),
+      status: track.status,
+      theme: parseSmartlinkTheme(track.smartlinkTheme ?? DEFAULT_SMARTLINK_THEME),
+      platformLinks: resolveEditablePlatformLinks(track, albumTracks),
       smartlinkSlug: track.smartlinkSlug?.trim() || null,
       smartlinkPublic: track.smartlinkPublic === true,
       canEnablePromo: canEnableTrackSmartlinkPromo(track),

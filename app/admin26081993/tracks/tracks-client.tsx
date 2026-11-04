@@ -38,6 +38,8 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  MessageSquare,
+  Tags,
 } from "lucide-react"
 import { AdminSectionNav } from "@/components/admin-section-nav"
 import {
@@ -1172,17 +1174,36 @@ export default function TracksPageClient() {
     }
     window.open(getSmartlinkUrl(slug), "_blank", "noopener,noreferrer")
   }
-  const handleOpenCabinetUser = (userId: string | null | undefined) => {
-    const id = userId?.trim()
-    if (!id) {
+  const handleOpenCabinetUser = async (userId: string | null | undefined) => {
+    const key = userId?.trim()
+    if (!key) {
       toast.error("У трека нет пользователя")
       return
     }
-    window.open(
-      `/admin26081993/cabinet-users/${encodeURIComponent(id)}`,
-      "_blank",
-      "noopener,noreferrer"
-    )
+    // В tracks.user_id часто email; путь с @/.com ломает роут - сначала резолвим UUID.
+    try {
+      const qs = key.includes("@")
+        ? `email=${encodeURIComponent(key)}`
+        : `id=${encodeURIComponent(key)}`
+      const res = await fetch(`/api/admin/cabinet-users/resolve?${qs}`, {
+        credentials: "include",
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        id?: string
+        error?: string
+      }
+      if (!res.ok || !data.id) {
+        toast.error(typeof data.error === "string" ? data.error : "Пользователь не найден")
+        return
+      }
+      window.open(
+        `/admin26081993/cabinet-users/${encodeURIComponent(data.id)}`,
+        "_blank",
+        "noopener,noreferrer"
+      )
+    } catch {
+      toast.error("Не удалось открыть карточку пользователя")
+    }
   }
   const resolveLinksByUpc = async (upc: string): Promise<PlatformLinks | null> => {
     const trimmed = upc.trim()
@@ -1768,38 +1789,47 @@ export default function TracksPageClient() {
                                     </span>
                                   </span>
                                 </button>
-                                <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex shrink-0 items-center gap-1.5">
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="secondary"
+                                    className="h-8 w-8"
                                     disabled={downloadingAlbumId === albumId}
+                                    title="Скачать все треки"
+                                    aria-label="Скачать все треки"
                                     onClick={() =>
                                       void handleDownloadAllAlbumTracks(orderedAlbumTracks)
                                     }
                                   >
-                                    <Download className="h-4 w-4 mr-1" />
-                                    {downloadingAlbumId === albumId
-                                      ? "Скачивание…"
-                                      : "Скачать все треки"}
+                                    {downloadingAlbumId === albumId ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
                                   </Button>
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="outline"
+                                    className="h-8 w-8"
+                                    title="Статус и комментарий"
+                                    aria-label="Статус и комментарий"
                                     onClick={() =>
                                       openAlbumModDialog(albumId, orderedAlbumTracks)
                                     }
                                   >
-                                    Статус и комментарий
+                                    <MessageSquare className="h-4 w-4" />
                                   </Button>
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="outline"
+                                    className="h-8 w-8"
+                                    title="Артикул, UPC и ссылки"
+                                    aria-label="Артикул, UPC и ссылки"
                                     onClick={() =>
                                       openAlbumBulkDialog(albumId, orderedAlbumTracks)
                                     }
                                   >
-                                    <Link2 className="h-4 w-4 mr-1" />
-                                    Артикул, UPC и ссылки
+                                    <Tags className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </div>
@@ -1992,7 +2022,7 @@ export default function TracksPageClient() {
                                     title="Карточка пользователя"
                                     aria-label="Карточка пользователя"
                                     disabled={!track.userId?.trim()}
-                                    onClick={() => handleOpenCabinetUser(track.userId)}
+                                    onClick={() => void handleOpenCabinetUser(track.userId)}
                                   >
                                     <Users className="h-4 w-4" />
                                   </Button>
@@ -2708,7 +2738,7 @@ export default function TracksPageClient() {
                                   title="Карточка пользователя"
                                   aria-label="Карточка пользователя"
                                   disabled={!track.userId?.trim()}
-                                  onClick={() => handleOpenCabinetUser(track.userId)}
+                                  onClick={() => void handleOpenCabinetUser(track.userId)}
                                 >
                                   <Users className="h-4 w-4" />
                                 </Button>
@@ -3913,7 +3943,7 @@ export default function TracksPageClient() {
                         variant="outline"
                         className="shrink-0"
                         disabled={!trackDraft.userId.trim()}
-                        onClick={() => handleOpenCabinetUser(trackDraft.userId)}
+                        onClick={() => void handleOpenCabinetUser(trackDraft.userId)}
                       >
                         <Users className="h-4 w-4 mr-1" />
                         Карточка пользователя

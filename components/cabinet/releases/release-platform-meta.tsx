@@ -59,22 +59,12 @@ function CopyField({
   )
 }
 
-/** Фирменные знаки. Со ссылкой - цветные; без - grayscale. */
-function PlatformGlyph({
-  platformKey,
-  active,
-}: {
-  platformKey: PlatformLinkKey
-  active: boolean
-}) {
+function PlatformGlyph({ platformKey }: { platformKey: PlatformLinkKey }) {
   return (
     <img
       src={PLATFORM_ICON_SRC[platformKey]}
       alt=""
-      className={cn(
-        "h-8 w-8 shrink-0 rounded-[22%] object-contain",
-        !active && "grayscale opacity-45",
-      )}
+      className="h-8 w-8 shrink-0 rounded-[22%] object-contain"
       draggable={false}
     />
   )
@@ -112,6 +102,10 @@ export function ReleasePlatformMeta({
     }
     setSmartlinkUrl(smartlinkPublicUrl(slug))
   }, [smartlinkSlug])
+
+  const linkedPlatforms = SMARTLINK_PLATFORMS.filter((platform) =>
+    Boolean(platformLinks?.[platform.key]?.trim())
+  )
 
   return (
     <div className={cn("space-y-5", className)}>
@@ -178,39 +172,28 @@ export function ReleasePlatformMeta({
 
       <div className="space-y-3">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Площадки</p>
-        <div className="flex flex-wrap gap-5 sm:gap-6">
-          {SMARTLINK_PLATFORMS.map((platform) => {
-            const url = platformLinks?.[platform.key]?.trim() || ""
-            const active = url.length > 0
-            const content = (
-              <span
-                className="inline-flex h-10 w-10 items-center justify-center"
-                title={active ? platform.label : `${platform.label} - ссылки пока нет`}
-              >
-                <PlatformGlyph platformKey={platform.key} active={active} />
-              </span>
-            )
-            if (!active) {
+        {linkedPlatforms.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Ссылок на площадки пока нет</p>
+        ) : (
+          <div className="flex flex-wrap gap-5 sm:gap-6">
+            {linkedPlatforms.map((platform) => {
+              const url = platformLinks?.[platform.key]?.trim() || ""
               return (
-                <span key={platform.key} className="cursor-default">
-                  {content}
-                </span>
+                <a
+                  key={platform.key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 w-10 items-center justify-center transition-transform hover:scale-110"
+                  aria-label={platform.label}
+                  title={platform.label}
+                >
+                  <PlatformGlyph platformKey={platform.key} />
+                </a>
               )
-            }
-            return (
-              <a
-                key={platform.key}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:scale-110 transition-transform"
-                aria-label={platform.label}
-              >
-                {content}
-              </a>
-            )
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

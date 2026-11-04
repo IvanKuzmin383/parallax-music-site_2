@@ -21,17 +21,18 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { id } = await params
+  const { id: rawId } = await params
+  const idParam = decodeURIComponent(rawId).trim()
 
   // Треки часто хранят email в user_id - принимаем и UUID, и email.
   let user = await queryOne<Record<string, unknown>>(
     "SELECT * FROM cabinet_users WHERE id = ?",
-    [id]
+    [idParam]
   )
   if (!user) {
     user = await queryOne<Record<string, unknown>>(
       "SELECT * FROM cabinet_users WHERE LOWER(email) = LOWER(?)",
-      [id]
+      [idParam]
     )
   }
   if (!user) {
@@ -39,6 +40,7 @@ export async function GET(
   }
 
   const email = String(user.email ?? "")
+  const id = String(user.id ?? idParam)
 
   const tracks = await query<Record<string, unknown>>(
     `

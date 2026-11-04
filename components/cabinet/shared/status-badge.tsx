@@ -79,7 +79,8 @@ export function resolveStatusTone(status: string): StatusTone {
     raw === "completed" ||
     raw === "answered" ||
     raw === "active" ||
-    status === "Выпущен"
+    status === "Выпущен" ||
+    status === "Исполнено"
   ) {
     return "emerald"
   }
@@ -113,7 +114,8 @@ export function resolveStatusTone(status: string): StatusTone {
   if (
     raw === "awaiting_payment" ||
     status.includes("оплат") ||
-    raw === "pending"
+    raw === "pending" ||
+    status === "В процессе"
   ) {
     return "amber"
   }

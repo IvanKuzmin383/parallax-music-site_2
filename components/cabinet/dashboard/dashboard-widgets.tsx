@@ -722,7 +722,12 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 })
     const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 })
-    return eachDayOfInterval({ start, end })
+    const all = eachDayOfInterval({ start, end })
+    // Ровно 4 недели: если месяц даёт 5–6 строк, берём окно по центру сетки
+    if (all.length <= 28) return all
+    const offset = Math.floor((all.length - 28) / 2)
+    const aligned = offset - (offset % 7)
+    return all.slice(aligned, aligned + 28)
   }, [month])
 
   const weekdays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
@@ -801,7 +806,7 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
           const cell = (
             <div
               className={cn(
-                "relative flex aspect-square flex-col items-center justify-start rounded-lg p-1 text-xs",
+                "relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-lg p-1 text-xs",
                 inMonth ? "bg-muted/15" : "opacity-35",
                 today && "ring-1 ring-primary/50",
                 items.length > 0 && "bg-muted/30",
@@ -810,23 +815,23 @@ export function DashboardReleaseCalendar({ releases }: { releases: ReleaseView[]
             >
               <span
                 className={cn(
-                  "tabular-nums",
+                  "absolute right-1 top-0.5 z-[1] tabular-nums drop-shadow-sm",
                   today ? "font-semibold text-primary" : "text-muted-foreground"
                 )}
               >
                 {format(day, "d")}
               </span>
               {cover ? (
-                <span className="relative mt-0.5 h-6 w-6 overflow-hidden rounded-full ring-1 ring-border">
-                  <Image src={cover} alt="" fill className="object-cover" unoptimized sizes="24px" />
+                <span className="relative h-[78%] w-[78%] overflow-hidden rounded-md ring-1 ring-border/80">
+                  <Image src={cover} alt="" fill className="object-cover" unoptimized sizes="72px" />
                 </span>
               ) : items.length > 0 ? (
-                <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary/20">
-                  <Music className="h-3 w-3 text-primary" />
+                <span className="flex h-[78%] w-[78%] items-center justify-center rounded-md bg-primary/20">
+                  <Music className="h-5 w-5 text-primary" />
                 </span>
               ) : null}
               {items.length > 1 ? (
-                <span className="absolute bottom-0.5 right-0.5 text-[9px] text-muted-foreground">
+                <span className="absolute bottom-0.5 right-0.5 z-[1] rounded bg-background/80 px-0.5 text-[9px] text-muted-foreground">
                   +{items.length - 1}
                 </span>
               ) : null}
