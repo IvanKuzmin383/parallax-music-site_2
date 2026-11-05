@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useEffect, useRef } from "react"
+import Link from "next/link"
 import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,111 +10,68 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { HeroBackgroundImage } from "@/components/hero-background-image"
 import { useI18n } from "@/lib/i18n-context"
 
 const PartnerMarquee = dynamic(
   () => import("@/components/partner-marquee").then((m) => m.PartnerMarquee),
-  { ssr: false, loading: () => <div className="mt-20 h-20" aria-hidden /> }
+  { ssr: false, loading: () => <div className="mt-16 h-20" aria-hidden /> }
 )
 
 export function Hero() {
-  const containerRef = useRef<HTMLDivElement>(null)
   const { t } = useI18n()
-  const bullets = (t.hero.bullets ?? []) as string[]
   const stats = (t.hero.stats ?? []) as Array<{ value: string; label: string }>
   const telegramUrl = t.hero.telegramUrl || "https://t.me/parallaxmusic_rt"
   const vkUrl = t.hero.vkUrl || "https://vk.com/parallaxmusic_releaseteam"
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!containerRef.current) return
-
-      const scrolled = window.scrollY
-      const elements = containerRef.current.querySelectorAll(".parallax-layer")
-
-      elements.forEach((element, index) => {
-        const speed = (index + 1) * 0.15
-        const yPos = -(scrolled * speed)
-        ;(element as HTMLElement).style.transform = `translateY(${yPos}px)`
-      })
-    }
-
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  const scrollToPricing = () => {
-    const pricingSection = document.getElementById("pricing")
-    if (pricingSection) {
-      pricingSection.scrollIntoView({ behavior: "smooth", block: "start" })
-      return
-    }
-    window.location.hash = "pricing"
-  }
+  const exploreLabel = t.hero.ctaExplore ?? "Смотреть возможности"
+  const cabinetCta = t.hero.ctaCabinet ?? "Создать кабинет"
 
   return (
-    <section id="about" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <HeroBackgroundImage alt={t.hero.imageAlt || t.hero.partnerLogoAlt} />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
-      </div>
+    <section
+      id="about"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden pt-24 pb-12"
+    >
+      <div className="container z-10 mx-auto px-4 text-center">
+        <div className="mx-auto max-w-4xl space-y-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/90 sm:text-sm">
+            Parallax Music
+          </p>
 
-      <div className="container mx-auto px-4 z-10 text-center pt-24 pb-12">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div ref={containerRef} className="relative">
-            <div className="relative inline-block">
-              <div
-                className="parallax-layer text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-bold tracking-tight leading-tight text-pretty whitespace-pre-line"
-                aria-hidden="true"
-              >
-                <span className="absolute inset-0 text-primary/20 blur-sm">{t.hero.title}</span>
-              </div>
-              <div
-                className="parallax-layer text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-bold tracking-tight leading-tight text-pretty whitespace-pre-line"
-                aria-hidden="true"
-              >
-                <span className="absolute inset-0 text-primary/40 blur-[2px] translate-x-1 translate-y-1">
-                  {t.hero.title}
-                </span>
-              </div>
-              <h1 className="parallax-layer text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-bold tracking-tight leading-tight text-pretty relative whitespace-pre-line">
-                <span className="bg-gradient-to-r from-primary via-foreground to-primary bg-clip-text text-transparent">
-                  {t.hero.title}
-                </span>
-              </h1>
-            </div>
-          </div>
+          <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+            <span className="bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent whitespace-pre-line">
+              {t.hero.title}
+            </span>
+          </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty whitespace-pre-line">
+          <p className="mx-auto max-w-2xl text-pretty text-lg text-muted-foreground md:text-xl whitespace-pre-line">
             {t.hero.description}
           </p>
 
-          {bullets.length > 0 && (
-            <ul className="max-w-2xl mx-auto space-y-2 text-left text-sm md:text-base text-foreground/90">
-              {bullets.map((bullet) => (
-                <li key={bullet} className="flex gap-3">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Button
               size="lg"
-              className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-8 w-full sm:w-auto"
-              onClick={scrollToPricing}
+              className="w-full bg-primary px-8 uppercase tracking-wider text-primary-foreground hover:bg-primary/90 sm:w-auto"
+              asChild
             >
-              {t.hero.workWithUs}
+              <Link href="/cabinet?tab=register" prefetch={false}>
+                {cabinetCta}
+              </Link>
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full border-border/70 bg-background/20 px-8 uppercase tracking-wider backdrop-blur-sm sm:w-auto"
+              asChild
+            >
+              <Link href="/#paths">{exploreLabel}</Link>
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="lg"
-                  className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90 px-8 w-full sm:w-auto gap-2"
+                  variant="ghost"
+                  className="w-full gap-2 uppercase tracking-wider text-muted-foreground hover:text-foreground sm:w-auto"
                 >
                   {t.hero.ctaSecondary}
                   <ChevronDown className="h-4 w-4 opacity-90" aria-hidden />
@@ -135,16 +92,18 @@ export function Hero() {
             </DropdownMenu>
           </div>
 
-          {stats.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 md:gap-6 max-w-2xl mx-auto pt-4">
+          {stats.length > 0 ? (
+            <div className="mx-auto grid max-w-2xl grid-cols-3 gap-3 pt-2 md:gap-6">
               {stats.map((stat) => (
                 <div key={stat.label} className="space-y-1">
-                  <div className="text-2xl md:text-3xl font-bold text-primary">{stat.value}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground leading-snug">{stat.label}</div>
+                  <div className="text-2xl font-bold text-primary md:text-3xl">{stat.value}</div>
+                  <div className="text-xs leading-snug text-muted-foreground md:text-sm">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         <PartnerMarquee />

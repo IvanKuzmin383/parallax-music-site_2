@@ -9,7 +9,12 @@ import {
   Rocket,
   ShieldCheck,
 } from "lucide-react"
+import {
+  marketingGlassHoverClass,
+  marketingGlassPanelClass,
+} from "@/components/marketing/marketing-glass"
 import { useI18n } from "@/lib/i18n-context"
+import { cn } from "@/lib/utils"
 
 export function Advantages() {
   const { t } = useI18n()
@@ -17,7 +22,7 @@ export function Advantages() {
   const fallbackItems = useMemo(
     () => [
       "Персональная и быстрая поддержка без долгих ожиданий",
-      "Лояльная модерация и оперативная работа с AI-релизами. Ваш трек на площадках за 5 дней!*",
+      "Лояльная модерация и оперативная работа с AI-релизами",
       "Релизы не удаляются даже после завершения подписки",
       "Аналитика со всех популярных площадок в одном личном кабинете",
       "Продвижение, питчинг, монетизация и дополнительные сервисы",
@@ -26,44 +31,45 @@ export function Advantages() {
     []
   )
 
-  const advantages = (t as {
-    advantages?: { title?: string; titleHighlight?: string; highlightText?: string; items?: string[] }
-  }).advantages
-  const items = useMemo(() => advantages?.items ?? fallbackItems, [advantages, fallbackItems])
-  const title = advantages?.title ?? "Наши"
-  const titleHighlight = advantages?.titleHighlight ?? "Преимущества"
+  const advantages = t.advantages
+  const items = advantages?.items ?? fallbackItems
+  const title = advantages?.title ?? "Почему"
+  const titleHighlight = advantages?.titleHighlight ?? "мы"
   const highlightText =
     advantages?.highlightText ??
     "Доставляем треки на более чем 50 стриминговых платформ: Яндекс Музыка, VK Music, СберЗвук, КИОН, Apple Music, Spotify, TikTok, YouTube и другие"
   const icons = useMemo(() => [Headset, Rocket, ShieldCheck, BarChart3, Handshake, DollarSign], [])
 
   return (
-    <section id="advantages" className="py-24 bg-background/60">
+    <section id="advantages" className="border-t border-border/40 py-20 md:py-24">
       <div className="container mx-auto px-4">
-        <div className="max-w-3xl mb-16">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6">
+        <div className="mb-10 max-w-3xl md:mb-14">
+          <h2 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
             <span className="text-foreground">{title}</span>{" "}
             <span className="text-primary">{titleHighlight}</span>
           </h2>
         </div>
 
-        <div className="mb-10 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-violet-500/10 p-6 md:p-8">
+        <div
+          className={cn(
+            marketingGlassPanelClass,
+            "mb-8 border-primary/25 bg-primary/[0.07] p-6 md:mb-10 md:p-8"
+          )}
+        >
           <p className="text-base leading-relaxed text-foreground md:text-lg">{highlightText}</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((item, index) => {
             const Icon = icons[index % icons.length]
 
             return (
               <article
                 key={item}
-                className="group rounded-2xl border border-border/60 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md"
+                className={cn(marketingGlassPanelClass, marketingGlassHoverClass, "p-5 md:p-6")}
               >
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="inline-flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-background/60 text-primary transition-colors group-hover:border-primary/40 group-hover:bg-primary/10">
-                    <Icon className="h-10 w-10" />
-                  </div>
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/25 text-primary">
+                  <Icon className="h-5 w-5" aria-hidden />
                 </div>
                 <p className="text-base leading-relaxed text-muted-foreground">{item}</p>
               </article>

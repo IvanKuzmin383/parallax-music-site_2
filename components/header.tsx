@@ -1,19 +1,32 @@
- "use client"
- 
- import Link from "next/link"
- import { usePathname } from "next/navigation"
- import { useState, useEffect } from "react"
- import { Button } from "@/components/ui/button"
- import { Menu, X } from "lucide-react"
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Menu, X } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
- import { useI18n } from "@/lib/i18n-context"
- 
- export function Header() {
+import { useI18n } from "@/lib/i18n-context"
+import { readReferralCodeFromCookie } from "@/components/referral-capture"
+
+export function Header() {
   const pathname = usePathname()
-  const hideLogin = pathname === "/stihi" || pathname?.startsWith("/promotion")
+  const hideLogin = pathname === "/stihi"
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [cabinetHref, setCabinetHref] = useState("/cabinet")
+  const [registerHref, setRegisterHref] = useState("/cabinet?tab=register")
   const { t } = useI18n()
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("ref")?.trim()
+    const fromCookie = readReferralCodeFromCookie()
+    const ref = fromUrl || fromCookie
+    setCabinetHref(ref ? `/cabinet?tab=register&ref=${encodeURIComponent(ref)}` : "/cabinet")
+    setRegisterHref(
+      ref ? `/cabinet?tab=register&ref=${encodeURIComponent(ref)}` : "/cabinet?tab=register"
+    )
+  }, [pathname])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,63 +36,65 @@ import { LanguageSwitcher } from "@/components/language-switcher"
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  const nav = [
+    { href: "/distribution", label: t.header.distribution },
+    { href: "/tools", label: t.header.tools },
+    { href: "/services", label: t.header.servicesHub },
+    { href: "/promotion", label: t.header.promotion },
+    { href: "/pricing", label: t.header.pricing },
+    { href: "/blog", label: t.header.blog },
+  ]
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/95 backdrop-blur-sm border-b border-border" : "bg-transparent"
+        isScrolled ? "bg-background/90 backdrop-blur-md border-b border-border/60" : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-4 lg:gap-6">
-        <Link
-          href="/"
-          className="text-xl md:text-2xl font-black tracking-tighter flex-shrink-0"
-        >
+      <div className="container mx-auto flex items-center justify-between px-4 py-4 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-4 lg:gap-6">
+        <Link href="/" className="flex-shrink-0 text-xl font-black tracking-tighter md:text-2xl">
           <span className="text-foreground">PARALLAX</span>
-          <span className="text-primary ml-1">MUSIC</span>
+          <span className="ml-1 text-primary">MUSIC</span>
         </Link>
 
-        {/* Desktop Navigation - средняя колонка растягивается (не 1/3 экрана), иначе пункты наезжают на блок справа и теряют клики */}
-        <nav className="hidden md:flex min-w-0 items-center justify-center gap-x-4 gap-y-2 lg:gap-x-8 flex-wrap">
-          <Link href="/#advantages" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.services}
-          </Link>
-          <Link href="/#process" className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
-            {t.header.process}
-          </Link>
-          <Link href="/#pricing" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.pricing}
-          </Link>
-          <Link href="/#extras" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.extras}
-          </Link>
-          <Link href="/promotion" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap">
-            {t.header.promotion}
-          </Link>
-          <Link href="/blog" prefetch={false} className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.blog}
-          </Link>
-          <Link href="/#contact" className="text-sm uppercase tracking-wider hover:text-primary transition-colors">
-            {t.header.contact}
-          </Link>
+        <nav className="hidden min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-2 md:flex lg:gap-x-6">
+          {nav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={false}
+              className="whitespace-nowrap text-sm uppercase tracking-wider transition-colors hover:text-primary"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-4 justify-end flex-shrink-0">
+        <div className="hidden flex-shrink-0 items-center justify-end gap-3 md:flex">
           <LanguageSwitcher />
           {!hideLogin && (
-            <Button
-              size="sm"
-              className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
-              asChild
-            >
-              <Link href="/cabinet" prefetch={false}>{t.header.login}</Link>
-            </Button>
+            <>
+              <Button size="sm" variant="ghost" className="uppercase tracking-wider" asChild>
+                <Link href={cabinetHref} prefetch={false}>
+                  {t.header.login}
+                </Link>
+              </Button>
+              <Button
+                size="sm"
+                className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
+                asChild
+              >
+                <Link href={registerHref} prefetch={false}>
+                  {t.header.register}
+                </Link>
+              </Button>
+            </>
           )}
         </div>
 
-        {/* Mobile Menu Button */}
         <button
           type="button"
-          className="md:hidden text-foreground flex-shrink-0 ml-2 inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-muted/50"
+          className="ml-2 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-foreground hover:bg-muted/50 md:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
           aria-expanded={isMobileMenuOpen}
@@ -89,79 +104,52 @@ import { LanguageSwitcher } from "@/components/language-switcher"
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div id="mobile-menu" className="md:hidden bg-card border-t border-border" role="menu">
-          <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
-            <Link
-              href="/#advantages"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.services}
-            </Link>
-            <Link
-              href="/#process"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.process}
-            </Link>
-            <Link
-              href="/#pricing"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.pricing}
-            </Link>
-            <Link
-              href="/#extras"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.extras}
-            </Link>
-            <Link
-              href="/promotion"
-              prefetch={false}
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors whitespace-nowrap"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.promotion}
-            </Link>
-            <Link
-              href="/blog"
-              prefetch={false}
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.blog}
-            </Link>
-            <Link
-              href="/#contact"
-              className="text-sm uppercase tracking-wider hover:text-primary transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {t.header.contact}
-            </Link>
-            <div className="flex items-center gap-4">
+        <div id="mobile-menu" className="border-t border-border bg-card/95 backdrop-blur-md md:hidden" role="menu">
+          <nav className="container mx-auto flex flex-col gap-4 px-4 py-6">
+            {nav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={false}
+                className="text-sm uppercase tracking-wider transition-colors hover:text-primary"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <div className="flex items-center gap-3">
               <LanguageSwitcher />
               {!hideLogin && (
-                <Button
-                  size="sm"
-                  className="uppercase tracking-wider bg-primary text-primary-foreground flex-1"
-                  asChild
-                >
-                  <Link href="/cabinet" prefetch={false} onClick={() => setIsMobileMenuOpen(false)}>
-                    {t.header.login}
-                  </Link>
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" className="flex-1 uppercase tracking-wider" asChild>
+                    <Link
+                      href={cabinetHref}
+                      prefetch={false}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {t.header.login}
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 uppercase tracking-wider bg-primary text-primary-foreground"
+                    asChild
+                  >
+                    <Link
+                      href={registerHref}
+                      prefetch={false}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {t.header.register}
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
           </nav>
         </div>
       )}
-
     </header>
   )
 }

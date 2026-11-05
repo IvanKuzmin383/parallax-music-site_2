@@ -67,7 +67,13 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
   }, [])
 
   useEffect(() => {
-    if (searchParams.get("tab") === "register") setAuthTab("register")
+    const tab = searchParams.get("tab")
+    const refFromUrl = searchParams.get("ref")?.trim()
+    const refFromCookie = readReferralCodeFromCookie()
+    // Партнёрская ссылка - сразу на регистрацию (логин существующего аккаунта реферала не даёт)
+    if (tab === "register" || refFromUrl || refFromCookie) {
+      setAuthTab("register")
+    }
     const qEmail = searchParams.get("email")?.trim()
     if (qEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(qEmail)) {
       setRegisterEmail(qEmail)

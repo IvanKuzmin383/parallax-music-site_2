@@ -1,6 +1,9 @@
 {
   "header": {
     "services": "What you get",
+    "distribution": "Distribution",
+    "tools": "Tools",
+    "servicesHub": "Services",
     "process": "How it works",
     "blog": "Blog",
     "aiMusic": "AI Music",
@@ -8,12 +11,15 @@
     "pricing": "Pricing",
     "extras": "Ecosystem",
     "contact": "Contact",
-    "login": "Sign in"
+    "login": "Sign in",
+    "register": "Create account"
   },
   "hero": {
-    "title": "Release AI music\nto streaming platforms",
-    "description": "Distribution and promotion for AI-generated tracks. Legal, royalty-based, with lower blocking risk.",
+    "title": "Release music\nto every platform",
+    "description": "One dashboard: distribution, tools, and promotion. 100% royalties - no cut from your earnings.",
     "workWithUs": "Choose a plan",
+    "ctaCabinet": "Create account",
+    "ctaExplore": "Explore product",
     "ctaSecondary": "Consultation",
     "consultTelegram": "Telegram",
     "consultVk": "VK",
@@ -31,6 +37,31 @@
     ],
     "partnerLogoAlt": "Parallax Music partner",
     "imageAlt": "Music producer working on a release in the studio"
+  },
+  "productPaths": {
+    "title": "Three",
+    "titleHighlight": "paths",
+    "description": "Pick a goal - we take you from upload to audience growth in one dashboard",
+    "items": [
+      {
+        "title": "Release a track",
+        "description": "Distribution to 50+ platforms, AI-friendly moderation, and 100% royalties",
+        "href": "/distribution",
+        "cta": "Distribution"
+      },
+      {
+        "title": "Do it yourself",
+        "description": "Mastering, smartlinks, snippets, and covers - some with a free first download",
+        "href": "/tools",
+        "cta": "Tools"
+      },
+      {
+        "title": "Promote a release",
+        "description": "Playlists, VK and Yandex ads, TikTok - even if you released elsewhere",
+        "href": "/promotion",
+        "cta": "Promotion"
+      }
+    ]
   },
   "services": {
     "title": "What",
@@ -93,7 +124,10 @@
   "proofResults": {
     "title": "Artist",
     "titleHighlight": "results",
-    "description": "Yandex Music playlists, BandLink index, and hundreds of thousands of monthly listeners - real outcomes from Parallax Music artists."
+    "description": "Yandex Music playlists, BandLink index, and hundreds of thousands of monthly listeners - real outcomes from Parallax Music artists.",
+    "ctaPromotion": "Order promotion",
+    "ctaDistribution": "Release a track",
+    "ctaCases": "View case studies"
   },
   "serviceCatalog": {
     "title": "Parallax Music",

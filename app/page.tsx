@@ -3,16 +3,13 @@ import type { Metadata } from "next"
 import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { Hero } from "@/components/hero"
-import { Services } from "@/components/services"
+import { ProductPaths } from "@/components/marketing/product-paths"
 import { Process } from "@/components/process"
 import { Advantages } from "@/components/advantages"
 
 const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Pricing))
 const ProofResults = dynamic(() =>
   import("@/components/proof-results").then((m) => m.ProofResults)
-)
-const ServiceCatalog = dynamic(() =>
-  import("@/components/service-catalog").then((m) => m.ServiceCatalog)
 )
 const FaqSection = dynamic(() => import("@/components/faq-section").then((m) => m.FaqSection))
 const Reviews = dynamic(() => import("@/components/reviews").then((m) => m.Reviews))
@@ -22,7 +19,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
 
 const homeDescription =
-  "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. 100% роялти, треки не удаляем, лояльная модерация нейросетевых релизов."
+  "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. Инструменты, продвижение и 100% роялти в одном кабинете."
 
 export const metadata: Metadata = {
   title: "Дистрибуция и продвижение музыки | Parallax Music",
@@ -101,15 +98,15 @@ export default function HomePage() {
     hasPart: [
       {
         "@type": "SiteNavigationElement",
-        name: "Возможности",
-        url: `${siteUrl}/#services`,
-        description: "Дистрибуция ИИ-музыки, защита релизов и продвижение",
+        name: "Дистрибуция",
+        url: `${siteUrl}/distribution`,
+        description: "Выпуск треков на 50+ площадок",
       },
       {
         "@type": "SiteNavigationElement",
-        name: "Тарифы",
-        url: `${siteUrl}/#pricing`,
-        description: "Тарифы дистрибуции музыки",
+        name: "Инструменты",
+        url: `${siteUrl}/tools`,
+        description: "Мастеринг, смартлинки, обложки и сниппеты",
       },
       {
         "@type": "SiteNavigationElement",
@@ -119,9 +116,9 @@ export default function HomePage() {
       },
       {
         "@type": "SiteNavigationElement",
-        name: "Контакты",
-        url: `${siteUrl}/#contact`,
-        description: "Свяжитесь с нами",
+        name: "Тарифы",
+        url: `${siteUrl}/pricing`,
+        description: "Тарифы дистрибуции музыки",
       },
     ],
   }
@@ -140,14 +137,13 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(navigationLd) }}
       />
-      <main id="main-content" className="min-h-screen bg-background">
+      <main id="main-content" className="min-h-screen bg-transparent">
         <Hero />
+        <ProductPaths />
         <Advantages />
-        <Services />
         <Process />
         <ProofResults />
         <Pricing />
-        <ServiceCatalog />
         <FaqSection />
         <Reviews />
         <Contact />

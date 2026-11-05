@@ -33,10 +33,10 @@ export function Process() {
   )
 
   return (
-    <section id="process" className="py-24 bg-background">
+    <section id="process" className="border-t border-border/40 py-20 md:py-24">
       <div className="container mx-auto px-4">
-        <div className="max-w-3xl mb-16">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6">
+        <div className="mb-12 max-w-3xl md:mb-16">
+          <h2 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
             <span className="text-foreground">{t.process.title}</span>{" "}
             <span className="text-primary">{t.process.titleHighlight}</span>
           </h2>

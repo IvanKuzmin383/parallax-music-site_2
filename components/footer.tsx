@@ -47,29 +47,34 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{t.footer.services}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="/#advantages" className="transition-colors hover:text-primary">
-                  {t.services.labelServices.title}
-                </a>
+                <Link href="/distribution" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.header.distribution}
+                </Link>
               </li>
               <li>
-                <a href="/#pricing" className="transition-colors hover:text-primary">
+                <Link href="/tools" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.header.tools}
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.header.servicesHub}
+                </Link>
+              </li>
+              <li>
+                <Link href="/promotion" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.header.promotion}
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" prefetch={false} className="transition-colors hover:text-primary">
                   {t.header.pricing}
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/promotion" className="transition-colors hover:text-primary">
-                  {t.services.radioPromotion.title}
-                </a>
-              </li>
-              <li>
-                <a href="/smartlinks" className="transition-colors hover:text-primary">
+                <Link href="/tools/smartlinks" prefetch={false} className="transition-colors hover:text-primary">
                   Смартлинки
-                </a>
-              </li>
-              <li>
-                <a href="/#contact" className="transition-colors hover:text-primary">
-                  {t.header.contact}
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -78,19 +83,24 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{t.footer.company}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="/#about" className="transition-colors hover:text-primary">
-                  {t.footer.aboutUs}
-                </a>
+                <Link href="/cases" prefetch={false} className="transition-colors hover:text-primary">
+                  Кейсы
+                </Link>
               </li>
               <li>
-                <a href="/#contact" className="transition-colors hover:text-primary">
-                  {t.footer.careers}
-                </a>
+                <Link href="/blog" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.header.blog}
+                </Link>
               </li>
               <li>
-                <a href="/#follow-us" className="transition-colors hover:text-primary">
+                <Link href="/#contact" className="transition-colors hover:text-primary">
                   {t.header.contact}
-                </a>
+                </Link>
+              </li>
+              <li>
+                <Link href="/#follow-us" className="transition-colors hover:text-primary">
+                  {t.footer.followUs}
+                </Link>
               </li>
             </ul>
           </div>

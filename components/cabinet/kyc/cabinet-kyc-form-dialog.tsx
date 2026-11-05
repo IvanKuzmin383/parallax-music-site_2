@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -278,7 +279,16 @@ export function CabinetKycFormDialog({
               onChange={(e) => setConsent(e.target.checked)}
             />
             <span>
-              Соглашаюсь на обработку персональных данных
+              Соглашаюсь на{" "}
+              <Link
+                href="/personal-data-consent"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                обработку персональных данных
+              </Link>
             </span>
           </label>
 
