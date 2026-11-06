@@ -136,7 +136,13 @@ export function PromotionHubLanding() {
         </div>
       </section>
 
-      <PromotionOrderDialog open={orderOpen} onOpenChange={setOrderOpen} />
+      <PromotionOrderDialog
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        prefillMessage={hub.orderPrefill}
+        title={shared.orderDialog.title}
+        description={shared.orderDialog.description}
+      />
     </>
   )
 }
