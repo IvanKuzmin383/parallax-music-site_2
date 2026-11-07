@@ -124,12 +124,21 @@ export async function DELETE(
     return NextResponse.json({ error: "Релиз не найден" }, { status: 404 })
   }
 
+  if (!isReleaseEditableStatus(release.status)) {
+    return NextResponse.json({ error: "Релиз нельзя редактировать" }, { status: 400 })
+  }
+
   const track = await getTrackById(trackId)
-  if (!track || track.releaseId !== releaseId || track.status !== "draft") {
+  if (!track || track.releaseId !== releaseId) {
     return NextResponse.json({ error: "Трек не найден" }, { status: 404 })
   }
 
-  const { deleteTrack } = await import("@/lib/tracks")
-  await deleteTrack(trackId)
-  return NextResponse.json({ ok: true })
+  try {
+    const { deleteTrack } = await import("@/lib/tracks")
+    await deleteTrack(trackId)
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("[releases/tracks DELETE]", error)
+    return NextResponse.json({ error: "Не удалось удалить трек" }, { status: 500 })
+  }
 }

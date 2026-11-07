@@ -895,14 +895,40 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
   }
 
   const deleteTrack = async (trackId: string) => {
-    if (!releaseId) return
+    if (!releaseId) {
+      toast.error("Сначала создайте черновик релиза")
+      return
+    }
+    if (formDisabled) return
     if (playingTrackId === trackId) stopAudio()
-    const res = await fetch(`/api/cabinet/releases/${releaseId}/tracks/${trackId}`, {
-      method: "DELETE",
-      credentials: "include",
-    })
-    if (res.ok) {
-      setTracks((prev) => prev.filter((t) => t.id !== trackId))
+
+    if (trackSaveTimersRef.current[trackId]) {
+      clearTimeout(trackSaveTimersRef.current[trackId])
+      delete trackSaveTimersRef.current[trackId]
+    }
+
+    const prevTracks = tracksRef.current
+    const nextTracks = prevTracks.filter((t) => t.id !== trackId)
+    tracksRef.current = nextTracks
+    setTracks(nextTracks)
+
+    try {
+      const res = await fetch(`/api/cabinet/releases/${releaseId}/tracks/${trackId}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      const data = await parseCabinetApiJson<{ error?: string }>(res)
+      if (!res.ok) {
+        tracksRef.current = prevTracks
+        setTracks(prevTracks)
+        toast.error(data.error ?? "Не удалось удалить аудиофайл")
+        return
+      }
+      toast.success("Аудиофайл удалён")
+    } catch {
+      tracksRef.current = prevTracks
+      setTracks(prevTracks)
+      toast.error("Не удалось удалить аудиофайл")
     }
   }
 
@@ -2218,7 +2244,15 @@ export function ReleaseUploadWizard({ releaseId: initialReleaseId }: WizardProps
                     </Button>
                   </>
                 ) : null}
-                <Button type="button" size="icon" variant="ghost" disabled={formDisabled} onClick={() => void deleteTrack(track.id)}>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  disabled={formDisabled}
+                  aria-label="Удалить аудиофайл"
+                  title="Удалить"
+                  onClick={() => void deleteTrack(track.id)}
+                >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </li>
