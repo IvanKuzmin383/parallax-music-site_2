@@ -61,19 +61,19 @@ function normalizeCode(value: string): string {
 
 const EXAMPLE_VIDEOS = [
   {
-    src: "/videoshot/example1.MOV",
+    src: "/videoshot/example1.mp4",
     poster: "/videoshot/example1-poster.jpg",
     caption: "Кадры из клипа",
     label: "Пример видеошота 1",
   },
   {
-    src: "/videoshot/example2.MOV",
+    src: "/videoshot/example2.mp4",
     poster: "/videoshot/example2-poster.jpg",
     caption: "Атмосферный визуал",
     label: "Пример видеошота 2",
   },
   {
-    src: "/videoshot/example3.MOV",
+    src: "/videoshot/example3.mp4",
     poster: "/videoshot/example3-poster.jpg",
     caption: "Бэкстейдж и выступление",
     label: "Пример видеошота 3",

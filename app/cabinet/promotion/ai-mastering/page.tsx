@@ -108,8 +108,8 @@ function AiMasteringPageInner() {
   const total = tracksCount * AI_MASTERING_PRICE_RUB
   const dueTotal = applyCoupon && couponPreview ? couponPreview.finalAmountRub : total
   const masteringExampleAudios = [
-    { src: "/aimastering/before.wav", title: "AI мастеринг: До", label: "До" },
-    { src: "/aimastering/after.wav", title: "AI мастеринг: После", label: "После" },
+    { src: "/aimastering/before.mp3", title: "AI мастеринг: До", label: "До" },
+    { src: "/aimastering/after.mp3", title: "AI мастеринг: После", label: "После" },
   ] as const
 
   const handleMasteringAudioPlay = (currentSrc: string) => {

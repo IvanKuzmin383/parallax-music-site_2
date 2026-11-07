@@ -118,8 +118,8 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
       "Автоматическая обработка музыки нейросетью, которая анализирует спектр и динамику трека, после чего применяет оптимальные настройки эквалайзера, компрессора и лимитера. Нейросеть обучена на тысячах треков с mastering'ом от топовых звукоинженеров. В результате вы получаете готовый трек с уровнем громкости и качеством соответствующим стандартам стриминговых сервисов.",
     examples: ["Сравните звучание до и после мастеринга."],
     exampleAudios: [
-      { src: "/aimastering/before.wav", title: "AI мастеринг: До", label: "До" },
-      { src: "/aimastering/after.wav", title: "AI мастеринг: После", label: "После" },
+      { src: "/aimastering/before.mp3", title: "AI мастеринг: До", label: "До" },
+      { src: "/aimastering/after.mp3", title: "AI мастеринг: После", label: "После" },
     ],
   },
   yandexVideoshot: {
@@ -141,9 +141,9 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
       "собирайте короткий законченный сюжет.",
     ],
     exampleVideos: [
-      { src: "/videoshot/example1.MOV", title: "Видеошот пример 1" },
-      { src: "/videoshot/example2.MOV", title: "Видеошот пример 2" },
-      { src: "/videoshot/example3.MOV", title: "Видеошот пример 3" },
+      { src: "/videoshot/example1.mp4", title: "Видеошот пример 1" },
+      { src: "/videoshot/example2.mp4", title: "Видеошот пример 2" },
+      { src: "/videoshot/example3.mp4", title: "Видеошот пример 3" },
     ],
   },
   yandexVideoshotCreation: {
@@ -171,9 +171,9 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
     yandexCreationFooterText:
       "Видеошоты могут быть добавлены как к уже выпущенным трекам, так и к предстоящим релизам.",
     exampleVideos: [
-      { src: "/videoshot/example1.MOV", title: "Видеошот пример 1" },
-      { src: "/videoshot/example2.MOV", title: "Видеошот пример 2" },
-      { src: "/videoshot/example3.MOV", title: "Видеошот пример 3" },
+      { src: "/videoshot/example1.mp4", title: "Видеошот пример 1" },
+      { src: "/videoshot/example2.mp4", title: "Видеошот пример 2" },
+      { src: "/videoshot/example3.mp4", title: "Видеошот пример 3" },
     ],
   },
   yandexVideoavatar: {
@@ -220,9 +220,9 @@ export const CABINET_UPLOAD_ADDON_INFO: Record<CabinetUploadAddonInfoKey, AddonI
     spotifyFooterText:
       "Видеошоты могут быть добавлены как к уже выпущенным трекам, так и к предстоящим релизам.",
     exampleVideos: [
-      { src: "/videoshot/example1.MOV", title: "Spotify видеошот пример 1" },
-      { src: "/videoshot/example2.MOV", title: "Spotify видеошот пример 2" },
-      { src: "/videoshot/example3.MOV", title: "Spotify видеошот пример 3" },
+      { src: "/videoshot/example1.mp4", title: "Spotify видеошот пример 1" },
+      { src: "/videoshot/example2.mp4", title: "Spotify видеошот пример 2" },
+      { src: "/videoshot/example3.mp4", title: "Spotify видеошот пример 3" },
     ],
   },
 }
