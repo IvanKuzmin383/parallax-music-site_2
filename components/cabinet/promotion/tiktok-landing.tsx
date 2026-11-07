@@ -28,6 +28,7 @@ import {
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
+import { CabinetOnly, useOrderAction } from "@/components/cabinet/shared/service-landing-mode"
 import { cn } from "@/lib/utils"
 
 type PlatformId = "tiktok" | "instagram" | "youtube"
@@ -382,17 +383,17 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
     (service.priceKey ? byKey(service.priceKey)?.cardLabel : null) || service.priceLabel
   const features = service.features
 
-  const openOrderForm = useCallback((expandForm: boolean) => {
-    if (expandForm) setFormOpen(true)
-    requestAnimationFrame(() => {
-      scrollToId("tiktok-order")
-      if (expandForm) {
+  const openOrderForm = useOrderAction(
+    useCallback(() => {
+      setFormOpen(true)
+      requestAnimationFrame(() => {
+        scrollToId("tiktok-order")
         window.setTimeout(() => {
           document.getElementById("tiktok-project")?.focus()
         }, 280)
-      }
-    })
-  }, [])
+      })
+    }, []),
+  )
 
   const submitRequest = useCallback(async () => {
     if (!service.paymentEndpoint) {
@@ -452,20 +453,22 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1200px] space-y-10 pb-10 md:space-y-14">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по TikTok / блогерам." />
-          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-            Задать вопрос
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
           </Button>
+          <div className="flex flex-wrap gap-2">
+            <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по TikTok / блогерам." />
+            <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+              Задать вопрос
+            </Button>
+          </div>
         </div>
-      </div>
+      </CabinetOnly>
 
       {/* A. Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10">
@@ -485,7 +488,7 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
             <Button
               size="lg"
               className="h-11 min-h-11 bg-[#F51B40] px-5 text-white hover:bg-[#F51B40]/90"
-              onClick={() => openOrderForm(true)}
+              onClick={openOrderForm}
             >
               Продвинуть трек
             </Button>
@@ -661,7 +664,7 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
               className="h-11 min-h-11 w-full bg-[#F51B40] text-white hover:bg-[#F51B40]/90"
               aria-expanded={formOpen}
               aria-controls={formPanelId}
-              onClick={() => openOrderForm(true)}
+              onClick={openOrderForm}
             >
               Оформить продвижение
             </Button>
@@ -782,14 +785,16 @@ export function TiktokLanding({ service }: { service: ServiceCatalogEntry }) {
             </AccordionItem>
           ))}
         </Accordion>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 min-h-11"
-          onClick={() => openCabinetSupportChat()}
-        >
-          Задать вопрос
-        </Button>
+        <CabinetOnly>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 min-h-11"
+            onClick={() => openCabinetSupportChat()}
+          >
+            Задать вопрос
+          </Button>
+        </CabinetOnly>
       </section>
     </div>
   )

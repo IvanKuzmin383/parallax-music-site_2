@@ -10,7 +10,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { PromotionOrderDialog } from "@/components/promotion-order-dialog"
 import { PartnerMarquee } from "@/components/partner-marquee"
+import { cabinetAuthHref } from "@/components/cabinet/shared/service-landing-mode"
+import { getVisibleServicesCatalog } from "@/lib/cabinet/services-catalog"
 import { useI18n } from "@/lib/i18n-context"
+import { isPromotionLandingSlug, publicPathForCabinetPath } from "@/lib/marketing/public-landings"
 import { cn } from "@/lib/utils"
 
 export function PromotionHubLanding() {
@@ -19,12 +22,25 @@ export function PromotionHubLanding() {
   const shared = t.promotionLanding
   const [orderOpen, setOrderOpen] = useState(false)
 
-  const services = hub.services as Array<{
-    id: string
-    slug: string
-    title: string
-    description: string
-  }>
+  const hubOnlyServices = (
+    hub.services as Array<{ id: string; slug: string; title: string; description: string }>
+  )
+    .filter((service) => !isPromotionLandingSlug(service.slug))
+    .map((service) => ({
+      id: service.id,
+      title: service.title,
+      description: service.description,
+      href: `/promotion/${service.slug}`,
+    }))
+  const catalogServices = getVisibleServicesCatalog()
+    .filter((service) => service.category === "promotion")
+    .map((service) => ({
+      id: service.slug,
+      title: service.title,
+      description: service.shortDescription,
+      href: publicPathForCabinetPath(service.href) ?? cabinetAuthHref(service.href, true),
+    }))
+  const services = [...hubOnlyServices, ...catalogServices]
 
   useEffect(() => {
     if (window.location.hash !== "#promotion-services") return
@@ -70,11 +86,6 @@ export function PromotionHubLanding() {
               >
                 {shared.hero.ctaServices}
               </Button>
-              <Button size="lg" variant="ghost" className="uppercase tracking-wider" asChild>
-                <Link href="/services" prefetch={false}>
-                  Весь каталог услуг
-                </Link>
-              </Button>
             </div>
           </div>
           <PartnerMarquee />
@@ -94,7 +105,7 @@ export function PromotionHubLanding() {
             {services.map((service) => (
               <Link
                 key={service.id}
-                href={`/promotion/${service.slug}`}
+                href={service.href}
                 prefetch={false}
                 className={cn(
                   marketingGlassPanelClass,
@@ -118,18 +129,13 @@ export function PromotionHubLanding() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button variant="outline" asChild>
-              <Link href="/services" prefetch={false}>
-                Все услуги в каталоге
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
               <Link href="/cases" prefetch={false}>
                 Кейсы артистов
               </Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link href="/tools" prefetch={false}>
-                Self-serve инструменты
+              <Link href="/features" prefetch={false}>
+                Все возможности
               </Link>
             </Button>
           </div>

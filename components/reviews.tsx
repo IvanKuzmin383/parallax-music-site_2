@@ -6,7 +6,7 @@ export async function Reviews() {
   if (reviews.length === 0) return null
 
   return (
-    <section id="reviews" className="py-16 border-y border-border bg-muted/20">
+    <section id="reviews" className="py-16 border-y border-border/40 bg-card/20 backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mb-8">
           <h2 className="text-4xl md:text-6xl font-bold mb-3">

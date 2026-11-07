@@ -205,7 +205,7 @@ export function ReleaseListCard({
   }
 
   return (
-    <article className="relative flex items-center gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-3.5">
+    <article className="@container relative flex flex-wrap items-center gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-3.5">
       {showAiAnalysis ? (
         <div className="absolute right-3 top-3 z-10">
           <AiAnalysisBadge onClick={() => setAiOpen(true)} />
@@ -260,10 +260,10 @@ export function ReleaseListCard({
         className={cn(
           "flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5",
           canPromote || canShowSmartlink || canDelete || canRecall
-            ? "pb-11 pr-2 sm:pb-0 sm:pr-[22rem]"
-            : "pr-2 sm:pr-36",
-          showAiAnalysis && "pt-7 sm:pt-0",
-          showAiAnalysis && (canPromote || canShowSmartlink) && "sm:pr-[26rem]",
+            ? "pr-2 @3xl:pr-[22rem]"
+            : "pr-2 @3xl:pr-36",
+          showAiAnalysis && "pt-7 @3xl:pt-0",
+          showAiAnalysis && (canPromote || canShowSmartlink) && "@3xl:pr-[26rem]",
         )}
       >
         <div className="space-y-1">
@@ -352,7 +352,7 @@ export function ReleaseListCard({
         </Dialog>
       ) : null}
 
-      <div className="absolute bottom-3 right-3 flex flex-wrap items-center justify-end gap-1.5 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2">
+      <div className="flex basis-full flex-wrap items-center justify-end gap-1.5 @3xl:absolute @3xl:right-3 @3xl:top-1/2 @3xl:basis-auto @3xl:-translate-y-1/2">
         {canDelete ? (
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger asChild>

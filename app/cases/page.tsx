@@ -59,7 +59,7 @@ export default function CasesPage() {
                   </Link>
                 </Button>
                 <Link
-                  href="/services"
+                  href="/features"
                   prefetch={false}
                   className={cn(
                     marketingGlassPanelClass,
@@ -67,7 +67,7 @@ export default function CasesPage() {
                     "inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold uppercase tracking-wider"
                   )}
                 >
-                  Каталог услуг
+                  Все возможности
                 </Link>
               </div>
             </div>

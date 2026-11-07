@@ -36,6 +36,12 @@ import {
   couponPaymentPayload,
   type ApplicableCouponPreview,
 } from "@/components/cabinet/shared/cabinet-apply-coupon"
+import {
+  CabinetOnly,
+  PublicOrderGate,
+  useIsPublicLanding,
+  useOrderAction,
+} from "@/components/cabinet/shared/service-landing-mode"
 
 type PortfolioItem = {
   src: string
@@ -341,6 +347,8 @@ function AiCoverLandingInner() {
   const backLabel = getCabinetServiceHubBackLabel(backHref, "Назад к услугам")
   const commentHintId = useId()
   const textHintId = useId()
+  const isPublic = useIsPublicLanding()
+  const openOrder = useOrderAction(useCallback(() => scrollToId("ai-cover-order"), []))
 
   const [includeTextOnCover, setIncludeTextOnCover] = useState(false)
   const [artistName, setArtistName] = useState("")
@@ -524,17 +532,19 @@ function AiCoverLandingInner() {
 
   return (
     <div className="w-full min-w-0 max-w-none space-y-10 pb-10 md:space-y-12">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-          Задать вопрос
-        </Button>
-      </div>
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+            Задать вопрос
+          </Button>
+        </div>
+      </CabinetOnly>
 
       <section
         id="ai-cover-hero"
@@ -562,7 +572,7 @@ function AiCoverLandingInner() {
             <Button
               type="button"
               className="h-11 min-h-11 bg-[#F21D43] px-5 text-white hover:bg-[#F21D43]/90"
-              onClick={() => scrollToId("ai-cover-order")}
+              onClick={openOrder}
             >
               Заказать обложку
             </Button>
@@ -717,6 +727,7 @@ function AiCoverLandingInner() {
           </p>
         </div>
 
+        {isPublic ? <PublicOrderGate /> : (
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <h3 className="text-base font-semibold text-foreground">Заказать обложку</h3>
 
@@ -927,6 +938,7 @@ function AiCoverLandingInner() {
                 } \u20BD с баланса`}
           </Button>
         </form>
+        )}
       </section>
 
       <section id="ai-cover-faq" className="scroll-mt-20 max-w-3xl space-y-5">

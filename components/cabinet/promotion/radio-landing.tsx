@@ -24,6 +24,12 @@ import {
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { ServicePriceText } from "@/components/cabinet/shared/service-price-text"
+import {
+  CabinetOnly,
+  PublicOrderGate,
+  useIsPublicLanding,
+  useOrderAction,
+} from "@/components/cabinet/shared/service-landing-mode"
 import { cn } from "@/lib/utils"
 
 const INCLUDE_CARDS = [
@@ -184,14 +190,17 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
   const priceKey = service.priceKey ?? "radio"
   const priceFallback = service.priceLabel
 
-  const openOrderForm = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollToId("radio-order")
-      window.setTimeout(() => {
-        document.getElementById("radio-project")?.focus()
-      }, 280)
-    })
-  }, [])
+  const isPublic = useIsPublicLanding()
+  const openOrderForm = useOrderAction(
+    useCallback(() => {
+      requestAnimationFrame(() => {
+        scrollToId("radio-order")
+        window.setTimeout(() => {
+          document.getElementById("radio-project")?.focus()
+        }, 280)
+      })
+    }, []),
+  )
 
   const submitRequest = useCallback(async () => {
     if (!service.paymentEndpoint) {
@@ -255,20 +264,22 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1200px] space-y-10 pb-10 md:space-y-14">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по размещению на радио." />
-          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-            Задать вопрос
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
           </Button>
+          <div className="flex flex-wrap gap-2">
+            <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по размещению на радио." />
+            <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+              Задать вопрос
+            </Button>
+          </div>
         </div>
-      </div>
+      </CabinetOnly>
 
       {/* A. Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10">
@@ -413,6 +424,7 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             ))}
           </ul>
 
+          {isPublic ? <PublicOrderGate className="mt-5 border-0 bg-transparent p-0 sm:p-0" /> : (
           <div id={formPanelId} className="mt-5 space-y-3 border-t border-border pt-5">
             <h4 className="text-base font-semibold text-foreground">Заявка на услугу</h4>
             <p className="text-xs leading-relaxed text-muted-foreground">
@@ -493,6 +505,7 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
               </p>
             ) : null}
           </div>
+          )}
         </aside>
       </section>
 
@@ -520,14 +533,16 @@ export function RadioLanding({ service }: { service: ServiceCatalogEntry }) {
             </AccordionItem>
           ))}
         </Accordion>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 min-h-11"
-          onClick={() => openCabinetSupportChat()}
-        >
-          Задать вопрос
-        </Button>
+        <CabinetOnly>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 min-h-11"
+            onClick={() => openCabinetSupportChat()}
+          >
+            Задать вопрос
+          </Button>
+        </CabinetOnly>
       </section>
     </div>
   )

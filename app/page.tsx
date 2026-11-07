@@ -2,10 +2,10 @@ import dynamic from "next/dynamic"
 import type { Metadata } from "next"
 import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { Hero } from "@/components/hero"
-import { ProductPaths } from "@/components/marketing/product-paths"
-import { Process } from "@/components/process"
-import { Advantages } from "@/components/advantages"
+import { HomeHero } from "@/components/home/home-hero"
+import { HomeBento } from "@/components/home/home-bento"
+import { HomeFreeTools } from "@/components/home/home-free-tools"
+import { HomeFinalCta } from "@/components/home/home-final-cta"
 
 const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Pricing))
 const ProofResults = dynamic(() =>
@@ -13,7 +13,6 @@ const ProofResults = dynamic(() =>
 )
 const FaqSection = dynamic(() => import("@/components/faq-section").then((m) => m.FaqSection))
 const Reviews = dynamic(() => import("@/components/reviews").then((m) => m.Reviews))
-const Contact = dynamic(() => import("@/components/contact").then((m) => m.Contact))
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
@@ -104,9 +103,9 @@ export default function HomePage() {
       },
       {
         "@type": "SiteNavigationElement",
-        name: "Инструменты",
-        url: `${siteUrl}/tools`,
-        description: "Мастеринг, смартлинки, обложки и сниппеты",
+        name: "Возможности",
+        url: `${siteUrl}/features`,
+        description: "Мастеринг, смартлинки, обложки, видео и сниппеты",
       },
       {
         "@type": "SiteNavigationElement",
@@ -138,15 +137,14 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(navigationLd) }}
       />
       <main id="main-content" className="min-h-screen bg-transparent">
-        <Hero />
-        <ProductPaths />
-        <Advantages />
-        <Process />
+        <HomeHero />
+        <HomeBento />
+        <HomeFreeTools />
         <ProofResults />
         <Pricing />
-        <FaqSection />
         <Reviews />
-        <Contact />
+        <FaqSection />
+        <HomeFinalCta />
       </main>
     </ErrorBoundary>
   )

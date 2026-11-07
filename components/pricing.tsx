@@ -28,7 +28,7 @@ function formatPriceFromOrder(template: string, amount: number, locale: string):
   return template.replace("{amount}", formatted)
 }
 
-function PricingContent() {
+function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
   const { t, locale } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -57,15 +57,16 @@ function PricingContent() {
     priceYear: number
     discount?: string
   }>
+  const HeadingTag = asPageHeader ? "h1" : "h2"
 
   return (
-    <section id="pricing" className="py-24 bg-background">
+    <section id="pricing" className={asPageHeader ? "pb-20 pt-28 md:pt-36" : "py-24"}>
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto mb-16 text-center">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6">
+          <HeadingTag className="text-4xl md:text-6xl font-bold mb-6">
             <span className="text-foreground">{t.pricing.title}</span>{" "}
             <span className="text-primary">{t.pricing.titleHighlight}</span>
-          </h2>
+          </HeadingTag>
           <p className="text-lg text-muted-foreground text-pretty whitespace-pre-line">{t.pricing.description}</p>
         </div>
 
@@ -272,10 +273,10 @@ function PricingContent() {
   )
 }
 
-export function Pricing() {
+export function Pricing({ asPageHeader = false }: { asPageHeader?: boolean }) {
   return (
-    <Suspense fallback={<section id="pricing" className="py-20 bg-muted/30" aria-hidden />}>
-      <PricingContent />
+    <Suspense fallback={<section id="pricing" className="py-20" aria-hidden />}>
+      <PricingContent asPageHeader={asPageHeader} />
     </Suspense>
   )
 }

@@ -5,7 +5,7 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { MarketingHero } from "@/components/marketing/marketing-hero"
 import { marketingGlassPanelClass } from "@/components/marketing/marketing-glass"
 import { Button } from "@/components/ui/button"
-import { DISTRIBUTION_POINTS } from "@/lib/marketing/public-catalog"
+import { DISTRIBUTION_POINTS } from "@/lib/marketing/distribution-points"
 import { cn } from "@/lib/utils"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
@@ -83,8 +83,8 @@ export default function DistributionPage() {
                 <Link href="/pricing">Выбрать тариф</Link>
               </Button>
               <Button size="lg" variant="outline" className="uppercase tracking-wider" asChild>
-                <Link href="/tools" prefetch={false}>
-                  Смотреть инструменты
+                <Link href="/features" prefetch={false}>
+                  Все возможности
                 </Link>
               </Button>
             </div>

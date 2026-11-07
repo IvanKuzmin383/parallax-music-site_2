@@ -18,7 +18,7 @@ import { closePool, getPool } from "../lib/database"
 const STAGING_HOST = "fonozvuk.ru"
 const DEMO_ID_PREFIX = "de305eed-"
 const DEMO_ISRC_PREFIX = "QZDEM26"
-const STATS_END = "2026-11-05"
+const STATS_END = process.env.DEMO_STATS_END ?? new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
 
 const PLATFORM_WEIGHTS: Array<[string, number]> = [
   ["yandex_music", 0.38],

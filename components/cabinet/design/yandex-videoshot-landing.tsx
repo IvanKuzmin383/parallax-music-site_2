@@ -38,6 +38,12 @@ import {
   couponPaymentPayload,
   type ApplicableCouponPreview,
 } from "@/components/cabinet/shared/cabinet-apply-coupon"
+import {
+  CabinetOnly,
+  PublicOrderGate,
+  useIsPublicLanding,
+  useOrderAction,
+} from "@/components/cabinet/shared/service-landing-mode"
 
 type ContactType = "telegram" | "vk" | "max"
 
@@ -256,6 +262,8 @@ function YandexVideoshotLandingInner() {
   )
   const formHintId = useId()
   const modeGroupName = useId()
+  const isPublic = useIsPublicLanding()
+  const openOrder = useOrderAction(useCallback(() => scrollToId("yandex-videoshot-order"), []))
 
   const [mode, setMode] = useState<YandexVideoshotMode>(() =>
     resolveYandexVideoshotMode(pathname, searchParams.get("mode")),
@@ -305,12 +313,13 @@ function YandexVideoshotLandingInner() {
   }, [pathname, searchParams])
 
   useEffect(() => {
+    if (isPublic) return
     fetch("/api/cabinet/tracks", { credentials: "include" }).then(async (res) => {
       if (res.status === 401) {
         router.replace("/cabinet")
       }
     })
-  }, [router])
+  }, [isPublic, router])
 
   useEffect(() => {
     const paymentState = searchParams.get("payment")
@@ -511,19 +520,21 @@ function YandexVideoshotLandingInner() {
 
   return (
     <div className="w-full min-w-0 max-w-none space-y-14 pb-10 text-foreground md:space-y-16">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          asChild
-          className="h-11 w-11 shrink-0 text-foreground hover:bg-card"
-        >
-          <Link href={backHref} aria-label={backLabel}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <p className="text-sm text-muted-foreground">{backLabel}</p>
-      </div>
+      <CabinetOnly>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="h-11 w-11 shrink-0 text-foreground hover:bg-card"
+          >
+            <Link href={backHref} aria-label={backLabel}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <p className="text-sm text-muted-foreground">{backLabel}</p>
+        </div>
+      </CabinetOnly>
 
       <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
         <div className="min-w-0 space-y-6">
@@ -636,7 +647,7 @@ function YandexVideoshotLandingInner() {
           <Button
             type="button"
             className="h-11 min-h-11 bg-[#F21D43] px-5 text-white hover:bg-[#F21D43]/90"
-            onClick={() => scrollToId("yandex-videoshot-order")}
+            onClick={openOrder}
             disabled={loading}
           >
             Оформить за {price} {"\u20BD"}
@@ -775,6 +786,7 @@ function YandexVideoshotLandingInner() {
           )}
         </div>
 
+        {isPublic ? <PublicOrderGate /> : (
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <h3 className="text-base font-semibold">Оформить заказ</h3>
 
@@ -1231,6 +1243,7 @@ function YandexVideoshotLandingInner() {
                 } ₽`}
           </Button>
         </form>
+        )}
       </section>
 
       <section className="space-y-3">

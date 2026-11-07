@@ -38,10 +38,10 @@ export function Header() {
 
   const nav = [
     { href: "/distribution", label: t.header.distribution },
-    { href: "/tools", label: t.header.tools },
-    { href: "/services", label: t.header.servicesHub },
+    { href: "/features", label: t.header.features },
     { href: "/promotion", label: t.header.promotion },
     { href: "/pricing", label: t.header.pricing },
+    { href: "/cases", label: t.header.cases },
     { href: "/blog", label: t.header.blog },
   ]
 

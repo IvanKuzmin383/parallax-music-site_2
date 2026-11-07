@@ -2,8 +2,8 @@
   "header": {
     "services": "What you get",
     "distribution": "Distribution",
-    "tools": "Tools",
-    "servicesHub": "Services",
+    "features": "Features",
+    "cases": "Cases",
     "process": "How it works",
     "blog": "Blog",
     "aiMusic": "AI Music",
@@ -13,6 +13,71 @@
     "contact": "Contact",
     "login": "Sign in",
     "register": "Create account"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Distribution for every artist",
+      "title": "Release music to 50+ platforms.",
+      "titleHighlight": "AI tracks welcome.",
+      "description": "Upload, moderation, stats and royalties in one dashboard. Covers, mastering, video and promotion right next to it, so your release does not get lost after launch.",
+      "ctaPrimary": "Create account",
+      "ctaSecondary": "All features",
+      "points": ["100% royalties", "AI music accepted", "Tracks stay live", "Per-platform stats"],
+      "mockupAlt": "Parallax Music dashboard: releases, royalties, stats and release calendar",
+      "releaseStatus": "Released"
+    },
+    "bento": {
+      "title": "One dashboard",
+      "titleHighlight": "instead of five services",
+      "description": "Everything a release needs before and after launch. Every block below is a dashboard feature you can use right after signing up.",
+      "stats": {
+        "title": "Per-platform stats",
+        "description": "Plays by day, platform, country and track: Yandex Music, VK, Spotify, Apple Music and more.",
+        "cta": "About distribution",
+        "alt": "Streaming stats in the Parallax Music dashboard"
+      },
+      "covers": {
+        "title": "AI covers",
+        "description": "6-9 options based on your release, final file 3000 x 3000.",
+        "cta": "Cover examples"
+      },
+      "mastering": {
+        "title": "AI mastering",
+        "description": "One fragment before and after. Switch and hear the difference.",
+        "before": "Before",
+        "after": "After",
+        "cta": "Learn more"
+      },
+      "videoshot": {
+        "title": "Yandex Music video shot",
+        "description": "A living animation instead of a static cover in the player.",
+        "cta": "Examples"
+      },
+      "smartlink": {
+        "title": "Smartlinks",
+        "description": "One page with links to every platform: pre-release promo or without distribution.",
+        "cta": "Create a smartlink",
+        "listen": "Listen"
+      },
+      "promotion": {
+        "title": "Promotion",
+        "description": "Ads and playlists for your release, even if it was not distributed by us.",
+        "cta": "Promotion services",
+        "chips": ["VK Ads", "Yandex Direct", "Yandex Music playlists", "TikTok and Shorts", "Radio"]
+      }
+    },
+    "free": {
+      "title": "Try it",
+      "titleHighlight": "for free",
+      "description": "The first download in these tools is on us. All you need is an account.",
+      "cta": "Try it"
+    },
+    "final": {
+      "title": "Your first release - today",
+      "description": "Create an account, upload your track and cover. We handle moderation and delivery to platforms.",
+      "ctaPrimary": "Create account",
+      "ctaSecondary": "Choose a plan"
+    }
   },
   "hero": {
     "title": "Release music\nto every platform",
@@ -52,8 +117,8 @@
       {
         "title": "Do it yourself",
         "description": "Mastering, smartlinks, snippets, and covers - some with a free first download",
-        "href": "/tools",
-        "cta": "Tools"
+        "href": "/features",
+        "cta": "Features"
       },
       {
         "title": "Promote a release",

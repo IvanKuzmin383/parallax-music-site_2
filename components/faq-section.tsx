@@ -15,7 +15,7 @@ export function FaqSection() {
   const faqItems = t.aiLanding.faq.items as FaqItem[]
 
   return (
-    <section className="py-20 bg-background">
+    <section className="py-20">
       <div className="container mx-auto px-4 max-w-5xl">
         <h2 className="text-3xl md:text-5xl font-bold mb-6 text-foreground">{t.aiLanding.faq.title}</h2>
         <p className="text-lg text-muted-foreground mb-8 max-w-3xl">{t.aiLanding.faq.description}</p>

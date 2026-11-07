@@ -61,6 +61,11 @@ import {
   couponPaymentPayload,
   type ApplicableCouponPreview,
 } from "@/components/cabinet/shared/cabinet-apply-coupon"
+import {
+  CabinetOnly,
+  PublicOrderGate,
+  useIsPublicLanding,
+} from "@/components/cabinet/shared/service-landing-mode"
 
 /** Статичный кадр «как открыто в приложении» - без видеоплеера. */
 const EXAMPLE_STILL_SRC = "/videoshot/example2-poster.jpg"
@@ -441,8 +446,10 @@ function VerticalVideoLandingInner() {
   const [error, setError] = useState<string | null>(null)
   const paymentSuccessHandledRef = useRef(false)
   const initialTrackPickedRef = useRef(false)
+  const isPublic = useIsPublicLanding()
 
   useEffect(() => {
+    if (isPublic) return
     fetch("/api/cabinet/tracks", { credentials: "include" })
       .then(async (res) => {
         if (res.status === 401) {
@@ -467,7 +474,7 @@ function VerticalVideoLandingInner() {
         }
       })
       .finally(() => setTracksLoading(false))
-  }, [router])
+  }, [isPublic, router])
 
   useEffect(() => {
     const paymentState = searchParams.get("payment")
@@ -580,17 +587,19 @@ function VerticalVideoLandingInner() {
 
   return (
     <div className="w-full min-w-0 max-w-none space-y-10 pb-10 md:space-y-12">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-          Задать вопрос
-        </Button>
-      </div>
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+            Задать вопрос
+          </Button>
+        </div>
+      </CabinetOnly>
 
       {/* Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10">
@@ -801,6 +810,7 @@ function VerticalVideoLandingInner() {
             </p>
           </div>
 
+          {isPublic ? <PublicOrderGate /> : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <h3 className="text-base font-semibold text-foreground">Оформление заказа</h3>
 
@@ -938,6 +948,7 @@ function VerticalVideoLandingInner() {
                   : "Оплатить с баланса"}
             </Button>
           </form>
+          )}
         </div>
       </section>
 

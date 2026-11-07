@@ -14,7 +14,7 @@ interface CabinetRouteShellProps {
 /**
  * Оборачивает authenticated-страницы кабинета в AppShell.
  * Auth-пути и гостевой /cabinet - без sidebar.
- * Остальные пути без сессии - редирект на /cabinet (логин).
+ * Остальные пути без сессии - редирект на /cabinet?next=<путь> (логин с возвратом).
  */
 export function CabinetRouteShell({ children }: CabinetRouteShellProps) {
   const pathname = usePathname() ?? ""
@@ -25,8 +25,9 @@ export function CabinetRouteShell({ children }: CabinetRouteShellProps) {
 
   useEffect(() => {
     if (loading || authenticated || isAuthPath || isGuestCabinetHome) return
-    router.replace("/cabinet")
-  }, [loading, authenticated, isAuthPath, isGuestCabinetHome, router])
+    const back = `${pathname}${window.location.search}`
+    router.replace(`/cabinet?next=${encodeURIComponent(back)}`)
+  }, [loading, authenticated, isAuthPath, isGuestCabinetHome, pathname, router])
 
   if (isAuthPath) {
     return <>{children}</>

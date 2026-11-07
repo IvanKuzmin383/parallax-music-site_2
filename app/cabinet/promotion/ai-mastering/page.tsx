@@ -30,6 +30,11 @@ import {
   CabinetApplyCouponControl,
   type ApplicableCouponPreview,
 } from "@/components/cabinet/shared/cabinet-apply-coupon"
+import {
+  CabinetOnly,
+  PublicOrderGate,
+  useIsPublicLanding,
+} from "@/components/cabinet/shared/service-landing-mode"
 
 const TRACKS_MIN = 1
 const MAX_WAV_BYTES = MAX_CABINET_WAV_BYTES
@@ -42,6 +47,7 @@ function AiMasteringPageInner() {
   const { t } = useI18n()
   const backLabel = getCabinetServiceHubBackLabel(backHref, t.cabinet.promotion.backToServices)
   const am = t.cabinet.promotion.aiMastering
+  const isPublic = useIsPublicLanding()
 
   const [tracksCount, setTracksCount] = useState(1)
   const [audioFiles, setAudioFiles] = useState<(File | null)[]>([])
@@ -234,11 +240,13 @@ function AiMasteringPageInner() {
   return (
     <div className="w-full min-w-0 max-w-none space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+        <CabinetOnly>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+        </CabinetOnly>
         <div>
           <h1 className="text-2xl font-bold">{am.title}</h1>
           <p className="text-muted-foreground">{am.description}</p>
@@ -284,6 +292,7 @@ function AiMasteringPageInner() {
             <p className="text-xs text-muted-foreground">{am.orderDialogDescription}</p>
           </div>
 
+          {isPublic ? <PublicOrderGate /> : (
           <form onSubmit={handleSubmit} className="space-y-3.5">
             <div className="space-y-2">
               <Label htmlFor="ai-mastering-tracks">{am.tracksCountLabel}</Label>
@@ -407,14 +416,17 @@ function AiMasteringPageInner() {
               {loading ? am.payLoading : am.pay}
             </Button>
           </form>
+          )}
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" asChild>
-          <Link href={backHref}>{backLabel}</Link>
-        </Button>
-      </div>
+      <CabinetOnly>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" asChild>
+            <Link href={backHref}>{backLabel}</Link>
+          </Button>
+        </div>
+      </CabinetOnly>
 
       <Dialog
         open={paymentSuccessOpen}

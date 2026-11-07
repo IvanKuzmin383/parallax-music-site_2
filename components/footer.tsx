@@ -52,13 +52,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/tools" prefetch={false} className="transition-colors hover:text-primary">
-                  {t.header.tools}
-                </Link>
-              </li>
-              <li>
-                <Link href="/services" prefetch={false} className="transition-colors hover:text-primary">
-                  {t.header.servicesHub}
+                <Link href="/features" prefetch={false} className="transition-colors hover:text-primary">
+                  {t.header.features}
                 </Link>
               </li>
               <li>
@@ -69,11 +64,6 @@ export function Footer() {
               <li>
                 <Link href="/pricing" prefetch={false} className="transition-colors hover:text-primary">
                   {t.header.pricing}
-                </Link>
-              </li>
-              <li>
-                <Link href="/tools/smartlinks" prefetch={false} className="transition-colors hover:text-primary">
-                  Смартлинки
                 </Link>
               </li>
             </ul>

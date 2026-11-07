@@ -22,6 +22,7 @@ import {
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { LYRICS_SYNC_PRICE_LABEL } from "@/lib/lyrics-sync-pricing"
+import { CabinetOnly } from "@/components/cabinet/shared/service-landing-mode"
 
 const BENEFIT_CARDS = [
   {
@@ -110,17 +111,19 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
 
   return (
     <div className="w-full min-w-0 max-w-none space-y-12 pb-12 text-foreground md:space-y-20">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-          Задать вопрос
-        </Button>
-      </div>
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+            Задать вопрос
+          </Button>
+        </div>
+      </CabinetOnly>
 
       <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12">
         <div className="order-1 min-w-0 space-y-5">
@@ -314,14 +317,16 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             </AccordionItem>
           ))}
         </Accordion>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 min-h-11"
-          onClick={() => openCabinetSupportChat()}
-        >
-          Задать вопрос
-        </Button>
+        <CabinetOnly>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 min-h-11"
+            onClick={() => openCabinetSupportChat()}
+          >
+            Задать вопрос
+          </Button>
+        </CabinetOnly>
       </section>
     </div>
   )

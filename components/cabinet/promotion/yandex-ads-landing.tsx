@@ -35,6 +35,12 @@ import {
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
 import {
+  CabinetOnly,
+  PublicOrderGate,
+  useIsPublicLanding,
+  useOrderAction,
+} from "@/components/cabinet/shared/service-landing-mode"
+import {
   YANDEX_ADS_DEFAULT_OBJECT,
   YANDEX_ADS_OBJECTS,
   YANDEX_ADS_PRICE_LABEL,
@@ -194,8 +200,10 @@ export function YandexAdsLanding({ service }: { service: ServiceCatalogEntry }) 
     YANDEX_ADS_PRICE_LABEL
   const contactFromProfile = Boolean(accountEmail)
   const budgetDisplay = formatBudgetDisplay(budget)
+  const isPublic = useIsPublicLanding()
 
   useEffect(() => {
+    if (isPublic) return
     let cancelled = false
     void (async () => {
       try {
@@ -217,16 +225,18 @@ export function YandexAdsLanding({ service }: { service: ServiceCatalogEntry }) 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isPublic])
 
-  const openOrderForm = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollToId("yandex-order")
-      window.setTimeout(() => {
-        projectRef.current?.focus()
-      }, 280)
-    })
-  }, [])
+  const openOrderForm = useOrderAction(
+    useCallback(() => {
+      requestAnimationFrame(() => {
+        scrollToId("yandex-order")
+        window.setTimeout(() => {
+          projectRef.current?.focus()
+        }, 280)
+      })
+    }, []),
+  )
 
   const selectObject = useCallback((id: YandexAdsObjectId) => {
     setObjectId(id)
@@ -365,20 +375,22 @@ export function YandexAdsLanding({ service }: { service: ServiceCatalogEntry }) 
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1140px] space-y-12 pb-12 text-foreground md:space-y-16">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по Яндекс Директ." />
-          <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
-            Задать вопрос
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
           </Button>
+          <div className="flex flex-wrap gap-2">
+            <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по Яндекс Директ." />
+            <Button type="button" variant="outline" size="sm" onClick={() => openCabinetSupportChat()}>
+              Задать вопрос
+            </Button>
+          </div>
         </div>
-      </div>
+      </CabinetOnly>
 
       {/* 1. Hero */}
       <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:items-center lg:gap-12">
@@ -652,6 +664,7 @@ export function YandexAdsLanding({ service }: { service: ServiceCatalogEntry }) 
           </ul>
         </div>
 
+        {isPublic ? <PublicOrderGate /> : (
         <div className="min-w-0 space-y-4 rounded-[12px] border border-border bg-card p-4 sm:p-5">
           <h3 className="text-lg font-semibold tracking-tight text-foreground">
             Заявка на продвижение
@@ -852,6 +865,7 @@ export function YandexAdsLanding({ service }: { service: ServiceCatalogEntry }) 
             {statusMessage || ""}
           </p>
         </div>
+        )}
       </section>
 
       {/* 7. FAQ */}

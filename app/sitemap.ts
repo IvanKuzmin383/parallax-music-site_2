@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { getPublishedArticles } from '@/lib/articles'
 import { getAllCaseStudies } from '@/data/cases'
 import { PROMOTION_SLUGS } from '@/lib/promotion-pages'
-import { PUBLIC_SERVICE_SLUGS, TOOLS_PRODUCT_PAGES } from '@/lib/marketing/public-catalog'
+import { PUBLIC_LANDINGS } from '@/lib/marketing/public-landings'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parallaxmusic.ru'
@@ -26,8 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const hubUrls = [
     '/distribution',
-    '/tools',
-    '/services',
+    '/features',
     '/pricing',
     '/promotion',
   ].map((path) => ({
@@ -37,15 +36,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9,
   }))
 
-  const toolUrls = TOOLS_PRODUCT_PAGES.map((p) => ({
-    url: `${baseUrl}${p.href}`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly' as const,
-    priority: 0.85,
-  }))
-
-  const serviceUrls = PUBLIC_SERVICE_SLUGS.map((slug) => ({
-    url: `${baseUrl}/services/${slug}`,
+  const landingPaths = new Set([
+    ...PROMOTION_SLUGS.map((slug) => `/promotion/${slug}`),
+    ...Object.values(PUBLIC_LANDINGS).map((landing) => landing.path),
+  ])
+  const landingUrls = [...landingPaths].map((path) => ({
+    url: `${baseUrl}${path}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.85,
@@ -65,14 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     ...hubUrls,
-    ...toolUrls,
-    ...serviceUrls,
-    ...PROMOTION_SLUGS.map((slug) => ({
-      url: `${baseUrl}/promotion/${slug}`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.85,
-    })),
+    ...landingUrls,
     {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),

@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation"
+import { permanentRedirect } from "next/navigation"
 
-/** Legacy URL - canonical page is /tools/smartlinks */
-export default function SmartlinksMarketingPage() {
-  redirect("/tools/smartlinks")
+export default function SmartlinksLegacyPage() {
+  permanentRedirect("/features")
 }

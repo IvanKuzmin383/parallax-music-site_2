@@ -21,6 +21,7 @@ import {
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
 import { useServicePrices } from "@/lib/cabinet/hooks/use-service-prices"
+import { CabinetOnly } from "@/components/cabinet/shared/service-landing-mode"
 import {
   PLAYLISTHUB_BASE_PRICE_LABEL,
   PLAYLISTHUB_CATALOG_URL,
@@ -137,23 +138,25 @@ export function PlaylisthubLanding({ service }: { service: ServiceCatalogEntry }
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1140px] space-y-12 pb-12 text-foreground md:space-y-16">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
-          <Link href={backHref}>
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
-          </Link>
-        </Button>
-        <div className="flex flex-wrap gap-2">
-          <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по плейлистам Яндекс Музыки." />
-          <Button variant="outline" size="sm" className="gap-1.5" asChild>
-            <a href={PLAYLISTHUB_CATALOG_URL} target="_blank" rel="noopener noreferrer">
-              Открыть PlaylistHub
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            </a>
+      <CabinetOnly>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-foreground" asChild>
+            <Link href={backHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
           </Button>
+          <div className="flex flex-wrap gap-2">
+            <PromotionFreeConsultButton prefillMessage="Здравствуйте! Нужна бесплатная консультация по плейлистам Яндекс Музыки." />
+            <Button variant="outline" size="sm" className="gap-1.5" asChild>
+              <a href={PLAYLISTHUB_CATALOG_URL} target="_blank" rel="noopener noreferrer">
+                Открыть PlaylistHub
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            </Button>
+          </div>
         </div>
-      </div>
+      </CabinetOnly>
 
       {/* 1. Hero */}
       <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center lg:gap-12">
