@@ -136,6 +136,19 @@
             "TikTok and Shorts",
             "Radio"
           ]
+        },
+        "aiStudio": {
+          "title": "AI Studio: music generation",
+          "description": "Create songs with vocals or instrumentals from an idea or your own lyrics - right in the cabinet.",
+          "cta": "Open the studio",
+          "priceLabel": "In the cabinet"
+        },
+        "deposit": {
+          "title": "Deposit",
+          "description": "Lock the submission date and keep a copy of the work with a deposit certificate.",
+          "cta": "Learn more",
+          "priceLabel": "from 1,490 ₽",
+          "soon": "Soon"
         }
       }
     },
@@ -370,8 +383,8 @@
             "href": "/cabinet/promotion/ai-mastering"
           },
           {
-            "name": "Synced lyrics",
-            "blurb": "Song lines timed to your final recording for players that support synced lyrics",
+            "name": "Synced lyrics (VK, Apple Music)",
+            "blurb": "Timed lyrics for VK Music and Apple Music only",
             "price": "1,500 ₽",
             "href": "/cabinet/design/lyrics-sync"
           }

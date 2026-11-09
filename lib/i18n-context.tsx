@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import ruMessages from "@/messages/ru.json"
 import enMessages from "@/messages/en.json"
 
-type Locale = "ru" | "en"
+export type Locale = "ru" | "en"
 
 type Messages = typeof ruMessages
 

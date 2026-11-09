@@ -89,7 +89,7 @@ function serviceTitle(orderType: string, t: CabinetMessages): string {
     case "music_video":
       return "Загрузка видеоклипа"
     case "lyrics_sync":
-      return "Синхронизация текста"
+      return "Синхронизация текста (VK, Apple Music)"
     case "upload_addon_bundle":
       return m.uploadAddonBundle
     default:

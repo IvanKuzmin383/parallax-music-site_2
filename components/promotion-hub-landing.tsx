@@ -53,33 +53,30 @@ export function PromotionHubLanding() {
 
   return (
     <>
-      <section className="relative flex min-h-[78vh] items-center overflow-hidden pt-24 pb-16 md:min-h-[86vh]">
-        <div className="container relative z-10 mx-auto px-4 text-center">
-          <div className="mx-auto max-w-4xl space-y-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/90 sm:text-sm">
-              Parallax Music
+      <section className="relative overflow-hidden pt-28 pb-14 md:pt-32 md:pb-16">
+        <div className="mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl space-y-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Продвижение
             </p>
-            <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 className="text-[2.15rem] font-bold leading-[1.1] tracking-tight sm:text-[2.75rem] md:text-[3.25rem]">
               <span className="text-foreground">{hub.title}</span>{" "}
               <span className="text-primary">{hub.titleHighlight}</span>
             </h1>
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl">
+            <p className="text-[15px] leading-relaxed text-muted-foreground md:text-base">
               {hub.subtitle}
             </p>
-            <p className="text-sm uppercase tracking-widest text-muted-foreground">{hub.tagline}</p>
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-              <Button
-                size="lg"
-                className="gap-2 bg-primary px-8 uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
-                onClick={() => setOrderOpen(true)}
-              >
+            {hub.tagline ? (
+              <p className="text-sm text-muted-foreground">{hub.tagline}</p>
+            ) : null}
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Button className="h-11 min-h-11 gap-2 px-5" onClick={() => setOrderOpen(true)}>
                 <Rocket className="h-4 w-4" aria-hidden />
                 {shared.hero.cta}
               </Button>
               <Button
-                size="lg"
                 variant="outline"
-                className="border-border/70 bg-background/20 px-8 uppercase tracking-wider backdrop-blur-sm"
+                className="h-11 min-h-11 px-5"
                 onClick={() =>
                   document.getElementById("promotion-services")?.scrollIntoView({ behavior: "smooth" })
                 }
@@ -88,20 +85,22 @@ export function PromotionHubLanding() {
               </Button>
             </div>
           </div>
-          <PartnerMarquee />
+          <div className="mt-10">
+            <PartnerMarquee />
+          </div>
         </div>
       </section>
 
-      <section id="promotion-services" className="border-t border-border/40 py-20 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto mb-12 max-w-3xl text-center md:mb-16">
-            <h2 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-foreground">
+      <section id="promotion-services" className="border-t border-border/40 pb-20 pt-12 md:pb-24 md:pt-16">
+        <div className="mx-auto w-full max-w-[1180px] space-y-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl space-y-3">
+            <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
               {hub.servicesTitle}
             </h2>
-            <p className="text-lg text-muted-foreground">{hub.servicesDescription}</p>
+            <p className="text-sm text-muted-foreground md:text-base">{hub.servicesDescription}</p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {services.map((service) => (
               <Link
                 key={service.id}
@@ -110,24 +109,24 @@ export function PromotionHubLanding() {
                 className={cn(
                   marketingGlassPanelClass,
                   marketingGlassHoverClass,
-                  "group flex h-full flex-col p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  "group flex h-full flex-col gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                 )}
               >
-                <h3 className="mb-3 text-lg font-bold uppercase tracking-wide group-hover:text-primary">
+                <h3 className="font-medium leading-snug transition-colors group-hover:text-foreground">
                   {service.title}
                 </h3>
-                <p className="mb-6 flex-1 text-sm leading-relaxed text-muted-foreground">
+                <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
                   {service.description}
                 </p>
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                   {hub.serviceCardLink}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
             ))}
           </div>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="flex flex-wrap gap-3 pt-2">
             <Button variant="outline" asChild>
               <Link href="/cases" prefetch={false}>
                 Кейсы артистов

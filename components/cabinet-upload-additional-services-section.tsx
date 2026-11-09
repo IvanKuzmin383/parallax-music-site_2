@@ -30,7 +30,7 @@ import { YANDEX_VIDEOSHOT_PRICE_RUB } from "@/lib/yandex-videoshot-pricing"
 import { YANDEX_VIDEOSHOT_CREATION_PRICE_RUB } from "@/lib/yandex-videoshot-creation-pricing"
 import { YANDEX_VIDEOAVATAR_PRICE_RUB } from "@/lib/yandex-videoavatar-pricing"
 import { SPOTIFY_VIDEOSHOT_PRICE_RUB } from "@/lib/spotify-videoshot-pricing"
-import { LYRICS_SYNC_PRICE_RUB } from "@/lib/lyrics-sync-pricing"
+import { LYRICS_SYNC_PLATFORMS_SHORT, LYRICS_SYNC_PRICE_RUB } from "@/lib/lyrics-sync-pricing"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { CabinetAudioPlayer } from "@/components/cabinet/shared/cabinet-audio-player"
@@ -620,7 +620,12 @@ export function CabinetUploadAdditionalServicesSection({
                   onCheckedChange={(v) => setAddonLyricsSync(v === true)}
                   disabled={formDisabled}
                 />
-                <span>Синхронизация текста</span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span>Синхронизация текста</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {LYRICS_SYNC_PLATFORMS_SHORT}
+                  </span>
+                </span>
               </label>
               <div className="flex shrink-0 items-center justify-end gap-3 sm:ml-auto">
                 <span className="min-w-[7.5rem] text-right text-sm font-medium tabular-nums text-foreground">
@@ -639,7 +644,7 @@ export function CabinetUploadAdditionalServicesSection({
                 {lyricsSyncTracks > 1
                   ? ` × ${lyricsSyncTracks} = ${lyricsSyncAddonTotal.toLocaleString("ru-RU")} руб.`
                   : null}
-                . Текст берётся из карточки трека.
+                . Текст берётся из карточки трека. {LYRICS_SYNC_PLATFORMS_SHORT}.
               </p>
             ) : null}
             <div className="flex flex-col gap-2 rounded-md bg-green-500/5 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

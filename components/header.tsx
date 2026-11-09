@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Mail, Menu, Send, X } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useI18n } from "@/lib/i18n-context"
 import { readReferralCodeFromCookie } from "@/components/referral-capture"
-import { PARALLAX_TELEGRAM_URL } from "@/lib/parallax-contacts"
+import { PARALLAX_EMAIL, PARALLAX_TELEGRAM_URL } from "@/lib/parallax-contacts"
 
 export function Header() {
   const pathname = usePathname()
@@ -17,6 +18,15 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [cabinetHref, setCabinetHref] = useState("/cabinet")
   const { t } = useI18n()
+
+  const copyEmail = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(PARALLAX_EMAIL)
+      toast.success("Почта скопирована")
+    } catch {
+      toast.error("Не удалось скопировать почту")
+    }
+  }, [])
 
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("ref")?.trim()
@@ -95,16 +105,18 @@ export function Header() {
           >
             <Send className="h-4 w-4" />
           </a>
-          <a
-            href="mailto:parallaxmusiclabel@gmail.com"
+          <button
+            type="button"
+            onClick={() => void copyEmail()}
             className="text-muted-foreground transition-colors hover:text-primary"
-            aria-label="Email"
+            aria-label="Скопировать почту"
+            title={PARALLAX_EMAIL}
           >
             <Mail className="h-4 w-4" />
-          </a>
+          </button>
           <LanguageSwitcher />
           {!hideLogin && (
-            <Button size="sm" variant="ghost" className="uppercase tracking-wider" asChild>
+            <Button size="sm" className="uppercase tracking-wider" asChild>
               <Link href={cabinetHref} prefetch={false}>
                 {t.header.login}
               </Link>
@@ -148,16 +160,18 @@ export function Header() {
               >
                 <Send className="h-5 w-5" />
               </a>
-              <a
-                href="mailto:parallaxmusiclabel@gmail.com"
+              <button
+                type="button"
+                onClick={() => void copyEmail()}
                 className="text-muted-foreground transition-colors hover:text-primary"
-                aria-label="Email"
+                aria-label="Скопировать почту"
+                title={PARALLAX_EMAIL}
               >
                 <Mail className="h-5 w-5" />
-              </a>
+              </button>
               <LanguageSwitcher />
               {!hideLogin && (
-                <Button size="sm" variant="outline" className="ml-auto uppercase tracking-wider" asChild>
+                <Button size="sm" className="ml-auto uppercase tracking-wider" asChild>
                   <Link
                     href={cabinetHref}
                     prefetch={false}

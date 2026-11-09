@@ -212,7 +212,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   spotify_videoshot: "Spotify Video Shot",
   business_music: "Музыка для бизнеса",
   music_video: "Загрузка видеоклипа",
-  lyrics_sync: "Синхронизация текста",
+  lyrics_sync: "Синхронизация текста (VK, Apple Music)",
 }
 
 export function orderTypeLabel(orderType: string | null | undefined): string | null {

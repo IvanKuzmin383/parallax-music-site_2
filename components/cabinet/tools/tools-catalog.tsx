@@ -106,9 +106,9 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
       },
       {
         id: "lyrics-sync",
-        label: "Синхронизация текста",
+        label: "Синхронизация текста (VK, Apple Music)",
         href: "/cabinet/design/lyrics-sync",
-        description: "Строки текста привязаны к моментам исполнения в вашей записи",
+        description: "Строки в такт вокалу - только VK Музыка и Apple Music",
         icon: Captions,
         priceKey: "lyrics_sync",
         priceLabel: "1 500 ₽",

@@ -21,7 +21,7 @@ import {
   getCabinetServiceHubHref,
 } from "@/lib/cabinet/service-back"
 import type { ServiceCatalogEntry } from "@/lib/cabinet/services-catalog"
-import { LYRICS_SYNC_PRICE_LABEL } from "@/lib/lyrics-sync-pricing"
+import { LYRICS_SYNC_PLATFORMS_SHORT, LYRICS_SYNC_PRICE_LABEL } from "@/lib/lyrics-sync-pricing"
 import { CabinetOnly } from "@/components/cabinet/shared/service-landing-mode"
 
 const BENEFIT_CARDS = [
@@ -74,14 +74,18 @@ const PROCESS_STEPS = [
   {
     num: "03",
     title: "Подготовим результат",
-    body: "Оформим синхронизированный текст для дальнейшего размещения.",
+    body: "Оформим синхронизированный текст для VK Музыки и Apple Music.",
   },
 ] as const
 
 const FAQ_ITEMS = [
   {
+    q: "На каких площадках работает синхронизация?",
+    a: "Только на VK Музыке и Apple Music. На других площадках синхронизированный текст через эту услугу не размещается.",
+  },
+  {
     q: "Чем отличается синхронизированный текст?",
-    a: "Строки привязаны к моментам исполнения. Плеер с поддержкой этой функции выделяет нужную строку по мере звучания песни.",
+    a: "Строки привязаны к моментам исполнения. В VK Музыке и Apple Music плеер выделяет нужную строку по мере звучания песни.",
   },
   {
     q: "Нужно прислать готовый текст?",
@@ -136,8 +140,8 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
             Теперь ей подпевают
           </h1>
           <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
-            Синхронизируем строки текста с вокалом. В плеере с поддержкой синхронизации слова
-            появляются в нужный момент - слушателю проще следить за песней и подпевать
+            Синхронизируем строки текста с вокалом для VK Музыки и Apple Music. На этих площадках
+            слова появляются в нужный момент - слушателю проще следить за песней и подпевать
           </p>
 
           <div className="space-y-1">
@@ -154,7 +158,7 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Текст в такт вокалу · Проверка по аудио · Готовая разметка
+            Текст в такт вокалу · {LYRICS_SYNC_PLATFORMS_SHORT} · Готовая разметка
           </p>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
             Оформление доступно в шаге дополнительных услуг при загрузке релиза. Эта страница -
@@ -283,8 +287,9 @@ export function LyricsSyncLanding({ service }: { service: ServiceCatalogEntry })
           При загрузке релиза
         </h2>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Отметьте "Синхронизация текста" в дополнительных услугах при загрузке релиза. Текст песни
-          уже есть в карточке трека - отдельно форму на этой странице заполнять не нужно. Стоимость:{" "}
+          Отметьте "Синхронизация текста" в дополнительных услугах при загрузке релиза. Услуга только
+          для VK Музыки и Apple Music. Текст песни уже есть в карточке трека - отдельно форму на этой
+          странице заполнять не нужно. Стоимость:{" "}
           <span className="font-semibold text-foreground">{priceLabel}</span> за трек
         </p>
         <div className="mt-5">

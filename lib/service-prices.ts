@@ -78,7 +78,7 @@ export const SERVICE_PRICE_DEFS: readonly ServicePriceDef[] = [
   },
   {
     key: "lyrics_sync",
-    title: "Синхронизация текста",
+    title: "Синхронизация текста (VK, Apple Music)",
     unitHint: "/ трек",
     defaultPriceRub: LYRICS_SYNC_PRICE_RUB,
   },

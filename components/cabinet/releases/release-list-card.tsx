@@ -44,7 +44,6 @@ import {
 import { getReleaseUploadStartBlockReason } from "@/lib/cabinet-upload-start-guard"
 import { UPLOAD_ACTIVE_SUBSCRIPTION_REQUIRED } from "@/lib/cabinet-upload-subscription-client"
 import { useCabinetSubscription } from "@/components/cabinet/subscription/cabinet-subscription-provider"
-import { cn } from "@/lib/utils"
 
 function usesWizardAction(release: ReleaseView): boolean {
   return (
@@ -205,9 +204,9 @@ export function ReleaseListCard({
   }
 
   return (
-    <article className="@container relative flex flex-wrap items-center gap-3 sm:gap-4 rounded-xl bg-card/70 p-3 sm:p-3.5">
+    <article className="relative flex items-center gap-3 rounded-xl bg-card/70 p-3 sm:gap-4 sm:p-3.5">
       {showAiAnalysis ? (
-        <div className="absolute right-3 top-3 z-10">
+        <div className="absolute right-3 top-3 z-10 sm:static sm:order-last sm:self-start sm:pt-0.5">
           <AiAnalysisBadge onClick={() => setAiOpen(true)} />
         </div>
       ) : null}
@@ -217,7 +216,7 @@ export function ReleaseListCard({
           type="button"
           disabled={continueBusy}
           onClick={() => void goWizardOrBlock()}
-          className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-lg bg-muted text-left"
+          className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted text-left sm:h-20 sm:w-20"
         >
           {release.coverUrl ? (
             <Image
@@ -226,18 +225,18 @@ export function ReleaseListCard({
               fill
               className="object-cover"
               unoptimized
-              sizes="96px"
+              sizes="80px"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Music className="h-8 w-8 text-muted-foreground" />
+              <Music className="h-7 w-7 text-muted-foreground" />
             </div>
           )}
         </button>
       ) : (
         <Link
           href={href}
-          className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-lg bg-muted"
+          className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-20 sm:w-20"
         >
           {release.coverUrl ? (
             <Image
@@ -246,26 +245,17 @@ export function ReleaseListCard({
               fill
               className="object-cover"
               unoptimized
-              sizes="96px"
+              sizes="80px"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Music className="h-8 w-8 text-muted-foreground" />
+              <Music className="h-7 w-7 text-muted-foreground" />
             </div>
           )}
         </Link>
       )}
 
-      <div
-        className={cn(
-          "flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5",
-          canPromote || canShowSmartlink || canDelete || canRecall
-            ? "pr-2 @3xl:pr-[22rem]"
-            : "pr-2 @3xl:pr-36",
-          showAiAnalysis && "pt-7 @3xl:pt-0",
-          showAiAnalysis && (canPromote || canShowSmartlink) && "@3xl:pr-[26rem]",
-        )}
-      >
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
         <div className="space-y-1">
           <div>
             {wizard ? (
@@ -352,7 +342,7 @@ export function ReleaseListCard({
         </Dialog>
       ) : null}
 
-      <div className="flex basis-full flex-wrap items-center justify-end gap-1.5 @3xl:absolute @3xl:right-3 @3xl:top-1/2 @3xl:basis-auto @3xl:-translate-y-1/2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
         {canDelete ? (
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger asChild>
@@ -364,7 +354,7 @@ export function ReleaseListCard({
                 className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 {deleting ? <Spinner className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                <span className="ml-1.5 hidden sm:inline">Удалить</span>
+                <span className="ml-1.5 hidden lg:inline">Удалить</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -395,7 +385,7 @@ export function ReleaseListCard({
             <AlertDialogTrigger asChild>
               <Button type="button" size="sm" variant="outline" disabled={recalling}>
                 {recalling ? <Spinner className="h-4 w-4" /> : <Undo2 className="h-4 w-4" />}
-                <span className="ml-1.5 hidden sm:inline">На редактирование</span>
+                <span className="ml-1.5 hidden sm:inline">Редактировать</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -415,7 +405,7 @@ export function ReleaseListCard({
                   onClick={() => void handleRecall()}
                 >
                   {recalling ? <Spinner className="h-4 w-4 mr-1" /> : null}
-                  На редактирование
+                  Редактировать
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -425,7 +415,7 @@ export function ReleaseListCard({
           <Button size="sm" variant="default" asChild>
             <Link href="/cabinet/promotion">
               <Megaphone className="h-4 w-4" />
-              <span className="ml-1.5">Продвижение</span>
+              <span className="ml-1.5 hidden lg:inline">Продвижение</span>
             </Link>
           </Button>
         ) : null}
@@ -433,7 +423,7 @@ export function ReleaseListCard({
           <Button size="sm" variant="outline" asChild>
             <Link href={smartlinkEditHref}>
               <Link2 className="h-4 w-4" />
-              <span className="ml-1.5">Смартлинк</span>
+              <span className="ml-1.5 hidden sm:inline">Смартлинк</span>
             </Link>
           </Button>
         ) : null}

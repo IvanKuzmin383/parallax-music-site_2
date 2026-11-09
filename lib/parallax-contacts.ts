@@ -2,6 +2,7 @@
 
 export const PARALLAX_TELEGRAM_URL = "https://t.me/parallaxmusic_rt"
 export const PARALLAX_VK_URL = "https://vk.com/parallaxmusic_releaseteam"
+export const PARALLAX_EMAIL = "parallaxmusiclabel@gmail.com"
 
 /**
  * Ссылка на чат в мессенджере Макс.

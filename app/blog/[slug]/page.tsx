@@ -129,81 +129,76 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-background pt-20">
-      <article className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6 space-y-2">
-            <Link
-              href="/blog"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
-            >
-              <span aria-hidden="true">←</span>
-              <span>Назад к списку статей</span>
+    <main id="main-content" className="min-h-screen">
+      <article className="mx-auto w-full max-w-[860px] px-4 pb-20 pt-28 sm:px-6 md:pt-32 lg:px-8">
+        <div className="mb-8 space-y-2">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Назад к списку статей</span>
+          </Link>
+
+          <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+            <Link href="/blog" className="transition-colors hover:text-primary">
+              Блог
             </Link>
-
-            <nav className="text-sm text-muted-foreground flex flex-wrap items-center gap-1">
-              <Link
-                href="/blog"
-                className="hover:text-primary transition-colors"
-              >
-                Блог
-              </Link>
-              <span className="text-muted-foreground/70">/</span>
-              <span className="text-foreground line-clamp-1">{article.title}</span>
-            </nav>
-          </div>
-
-          {/* Обложка страницы статьи: 16:9 (heroImage), иначе fallback на ogImage */}
-          {(article.heroImage || article.ogImage) && (
-            <div className="relative w-full aspect-video max-h-[420px] rounded-lg overflow-hidden bg-muted mb-8">
-              <img
-                src={article.heroImage || article.ogImage}
-                alt=""
-                className="object-cover w-full h-full"
-                sizes="(max-width: 1024px) 100vw, 896px"
-              />
-            </div>
-          )}
-
-          {/* Header */}
-          <header className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded">
-                {article.category}
-              </span>
-              <time className="text-sm text-muted-foreground">
-                {format(new Date(getDisplayDate(article)), "d MMMM yyyy", { locale: ru })}
-              </time>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{article.title}</h1>
-            {article.excerpt && (
-              <p className="text-xl text-muted-foreground mb-6">{article.excerpt}</p>
-            )}
-            {article.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {article.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-sm text-muted-foreground bg-muted/50 px-3 py-1 rounded"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </header>
-
-          {/* Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground">
-            <ArticleContent content={article.content} />
-          </div>
-
-          {/* Structured Data */}
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-          />
+            <span className="text-muted-foreground/70">/</span>
+            <span className="line-clamp-1 text-foreground">{article.title}</span>
+          </nav>
         </div>
+
+        {(article.heroImage || article.ogImage) && (
+          <div className="relative mb-8 aspect-video max-h-[420px] w-full overflow-hidden rounded-2xl border border-border/40 bg-muted/30">
+            <img
+              src={article.heroImage || article.ogImage}
+              alt=""
+              className="h-full w-full object-cover"
+              sizes="(max-width: 1024px) 100vw, 860px"
+            />
+          </div>
+        )}
+
+        <header className="mb-8 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {article.category}
+            </span>
+            <time className="text-sm text-muted-foreground">
+              {format(new Date(getDisplayDate(article)), "d MMMM yyyy", { locale: ru })}
+            </time>
+          </div>
+          <h1 className="text-[2rem] font-bold leading-[1.1] tracking-tight sm:text-4xl md:text-5xl">
+            {article.title}
+          </h1>
+          {article.excerpt ? (
+            <p className="text-lg leading-relaxed text-muted-foreground md:text-xl">
+              {article.excerpt}
+            </p>
+          ) : null}
+          {article.tags.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {article.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-md bg-white/5 px-3 py-1 text-sm text-muted-foreground"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </header>
+
+        <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground">
+          <ArticleContent content={article.content} />
+        </div>
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </article>
     </main>
   )

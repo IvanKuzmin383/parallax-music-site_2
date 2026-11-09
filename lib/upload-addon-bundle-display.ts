@@ -23,7 +23,7 @@ export function promotionTitleForUploadAddonType(
     case "spotify_videoshot":
       return p.spotifyVideoshot.title
     case "lyrics_sync":
-      return "Синхронизация текста"
+      return "Синхронизация текста (VK, Apple Music)"
     default:
       return type
   }

@@ -8,7 +8,6 @@ import { ru } from "date-fns/locale"
 import { ArrowLeft, Check, Download, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { PageHeader } from "@/components/cabinet/shared/page-header"
 import { StatusBadge } from "@/components/cabinet/shared/status-badge"
 import { ORDER_TIMELINE_STEPS } from "@/lib/cabinet/order-status-map"
 import { useCabinetOrderById } from "@/lib/cabinet/hooks/use-cabinet-orders"
@@ -67,9 +66,12 @@ export function OrderDetailPageContent({ orderId }: OrderDetailPageContentProps)
         </Link>
       </Button>
 
-      <PageHeader title={order.serviceName} className="mb-0 sm:mb-0">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[1.75rem] md:leading-tight">
+          {order.serviceName}
+        </h1>
         <StatusBadge status={order.status} />
-      </PageHeader>
+      </div>
 
       <dl className="grid gap-6 sm:grid-cols-3">
         <div className="space-y-1">

@@ -30,7 +30,7 @@ export default function PromotionHubPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceLd) }}
       />
-      <main id="main-content" className="min-h-screen bg-background">
+      <main id="main-content" className="min-h-screen">
         <PromotionHubLanding />
       </main>
     </ErrorBoundary>

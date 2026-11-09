@@ -8,7 +8,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 
 const title = "Возможности кабинета - обложки, мастеринг, видео, смартлинки, продвижение | Parallax Music"
 const description =
-  "Всё для релиза в одном кабинете: AI-обложки, мастеринг, slowed / reverb, сниппеты, видеошоты, смартлинки, синхронизация текста и продвижение."
+  "Всё для релиза в одном кабинете: AI-обложки, мастеринг, slowed / reverb, сниппеты, видеошоты, смартлинки, синхронизация текста (VK и Apple Music) и продвижение."
 
 export const metadata: Metadata = {
   title: { absolute: title },

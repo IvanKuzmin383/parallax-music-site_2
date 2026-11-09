@@ -323,15 +323,13 @@ export function DashboardStatsPanel() {
 
   return (
     <section className={cn(dashboardGlassPanelClass, "flex h-full flex-col p-5")}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="text-lg font-semibold">Статистика</h2>
-          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-primary animate-cabinet-dot-pulse" />
-              Прослушивания
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-primary animate-cabinet-dot-pulse" />
+            Прослушивания
+          </span>
         </div>
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
           <Link href="/cabinet/music-stats">

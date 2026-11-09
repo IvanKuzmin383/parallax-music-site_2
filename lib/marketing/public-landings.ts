@@ -56,9 +56,9 @@ export const PUBLIC_LANDINGS: Record<PublicLandingKey, PublicLanding> = {
   "lyrics-sync": {
     path: "/features/lyrics-sync",
     cabinetPath: "/cabinet/design/lyrics-sync",
-    title: "Синхронизация текста песни с вокалом | Parallax Music",
+    title: "Синхронизация текста песни - только VK Музыка и Apple Music | Parallax Music",
     description:
-      "Свяжем строки текста с моментами их исполнения в записи. В плеерах с поддержкой синхронизации слова появляются в нужный момент.",
+      "Свяжем строки текста с вокалом для VK Музыки и Apple Music. На этих площадках слова появляются в нужный момент прослушивания.",
   },
   "ai-mastering": {
     path: "/features/ai-mastering",

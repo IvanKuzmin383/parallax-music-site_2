@@ -57,8 +57,11 @@ function themeForPreset(preset: SmartlinkPreset, animation: SmartlinkTheme["anim
 }
 
 type SmartlinkLivePreviewProps = {
-  /** Компактная врезка для карточки на главной. */
-  compact?: boolean
+  /**
+   * Компактная врезка для карточки на главной.
+   * `lg` - высокий телефон (карточка на 2 ряда в мастерской).
+   */
+  compact?: boolean | "sm" | "lg"
   /** Чипы пресетов под превью (на лендинге prllx). */
   showPresetPicker?: boolean
   className?: string
@@ -67,15 +70,18 @@ type SmartlinkLivePreviewProps = {
 
 export function SmartlinkLivePreview({
   compact = false,
-  showPresetPicker = !compact,
+  showPresetPicker,
   className,
   label = "Live preview",
 }: SmartlinkLivePreviewProps) {
+  const compactMode = compact === true ? "sm" : compact === false ? false : compact
+  const isCompact = Boolean(compactMode)
+  const showPresets = showPresetPicker ?? !isCompact
   const site = getSiteOrigin()
   const rootRef = useRef<HTMLDivElement>(null)
   const [preset, setPreset] = useState<SmartlinkPreset>("inkblot")
   const [autoRotate, setAutoRotate] = useState(true)
-  const [inView, setInView] = useState(!compact)
+  const [inView, setInView] = useState(!isCompact)
 
   useEffect(() => {
     const node = rootRef.current
@@ -108,15 +114,29 @@ export function SmartlinkLivePreview({
     setPreset(next)
   }
 
+  const compactViewport =
+    compactMode === "lg"
+      ? { height: "h-[460px]", scale: 0.72, widthPct: "138.9%", marginLeft: "-19.45%", landingMin: "!min-h-[640px]" }
+      : compactMode === "sm"
+        ? { height: "h-[220px]", scale: 0.52, widthPct: "192.3%", marginLeft: "-46.15%", landingMin: "!min-h-[480px]" }
+        : null
+
   return (
-    <div ref={rootRef} className={cn("relative mx-auto w-full", compact ? "max-w-[300px]" : "max-w-[340px] lg:max-w-none", className)}>
-      {!compact ? (
+    <div
+      ref={rootRef}
+      className={cn(
+        "relative mx-auto w-full",
+        isCompact ? (compactMode === "lg" ? "max-w-[260px]" : "max-w-[300px]") : "max-w-[340px] lg:max-w-none",
+        className,
+      )}
+    >
+      {!isCompact ? (
         <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent opacity-60 blur-xl" />
       ) : null}
       <div
         className={cn(
           "relative overflow-hidden border border-white/15 bg-black/40 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md",
-          compact ? "rounded-2xl" : "rounded-[1.75rem]",
+          isCompact ? "rounded-2xl" : "rounded-[1.75rem]",
         )}
       >
         <div className="border-b border-white/10 px-4 py-2.5">
@@ -125,14 +145,22 @@ export function SmartlinkLivePreview({
         <div
           className={cn(
             "[&_a]:pointer-events-none",
-            compact
-              ? "relative h-[220px] overflow-hidden"
+            compactViewport
+              ? cn("relative overflow-hidden", compactViewport.height)
               : "prllx-preview-scroll max-h-[720px] overflow-y-auto sm:max-h-[780px]",
           )}
         >
           <div
-            className={cn(compact && "origin-top scale-[0.52]")}
-            style={compact ? { width: "192.3%", marginLeft: "-46.15%" } : undefined}
+            className={cn(compactViewport && "origin-top")}
+            style={
+              compactViewport
+                ? {
+                    transform: `scale(${compactViewport.scale})`,
+                    width: compactViewport.widthPct,
+                    marginLeft: compactViewport.marginLeft,
+                  }
+                : undefined
+            }
           >
             <SmartlinkLanding
               key={preset}
@@ -144,12 +172,12 @@ export function SmartlinkLivePreview({
               preview
               brandHref={site}
               brandLabel="Powered by Parallax"
-              className={compact ? "!min-h-[480px]" : "!min-h-[680px]"}
+              className={compactViewport ? compactViewport.landingMin : "!min-h-[680px]"}
             />
           </div>
         </div>
       </div>
-      {showPresetPicker ? (
+      {showPresets ? (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {SMARTLINK_LIVE_PRESETS.map((p) => (
             <button

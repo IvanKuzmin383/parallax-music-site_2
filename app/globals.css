@@ -251,6 +251,20 @@
     animation: shine 0.8s ease-in-out;
   }
 
+  @keyframes path-step-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .animate-path-step-progress {
+    animation: path-step-progress 4.5s linear forwards;
+    transform-origin: left center;
+  }
+
   /* Button shine effect */
   button[data-slot="button"]:hover.before {
     animation: shine 0.8s ease-in-out;

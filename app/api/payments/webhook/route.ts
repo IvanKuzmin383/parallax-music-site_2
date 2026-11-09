@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
         spotify_videoshot: { title: "Видеошот для Spotify", hashtag: "#spotify_videoshot" },
         business_music: { title: "Музыка для бизнеса", hashtag: "#business_music" },
         music_video: { title: "Загрузка видеоклипа", hashtag: "#music_video" },
-        lyrics_sync: { title: "Синхронизация текста", hashtag: "#lyrics_sync" },
+        lyrics_sync: { title: "Синхронизация текста (VK, Apple Music)", hashtag: "#lyrics_sync" },
       }[order.orderType]
 
       const details = order.serviceDetails
