@@ -99,42 +99,46 @@ export function CabinetSubscriptionHub() {
       if (!paymentState || paymentHandledRef.current) return
       paymentHandledRef.current = true
 
-      if (paymentState === "fail") {
-        toast.error("Оплата не завершена. Деньги не списаны или платёж отклонён банком.")
+      if (paymentState !== "return" && paymentState !== "fail") return
+
+      if (!orderId) {
+        if (paymentState === "fail") {
+          toast.error("Оплата не завершена. Деньги не списаны или платёж отклонён банком.")
+        }
         window.history.replaceState({}, "", "/cabinet/subscription")
         return
       }
 
-      if (paymentState === "return" && orderId) {
-        void (async () => {
-          toast.message("Проверяем оплату…")
-          const result = await pollOrderPaid(orderId)
-          if (result.state === "paid") {
-            toast.success(
-              result.orderType === "fix_pack"
-                ? "Оплата подтверждена. Треки Fix добавлены в кабинет."
-                : "Оплата подтверждена. Подписка активна."
-            )
-            trackGoalOnce(orderId, "purchase_success", {
-              order_type:
-                result.orderType && /^[a-z0-9_]+$/i.test(result.orderType) ? result.orderType : undefined,
-              method: "card",
-            })
-            await refreshSession({ silent: true })
-            setLoading(true)
-            await loadUser()
-          } else if (result.state === "failed") {
-            toast.error("Оплата не завершена. Попробуйте ещё раз.")
-          } else {
-            toast.message(
-              "Банк ещё не подтвердил платёж. Если деньги списаны, статус обновится в течение нескольких минут. Страницу можно обновить."
-            )
-            await refreshSession({ silent: true })
-            await loadUser()
-          }
-          window.history.replaceState({}, "", "/cabinet/subscription")
-        })()
-      }
+      void (async () => {
+        toast.message("Проверяем оплату…")
+        const result = await pollOrderPaid(orderId)
+        if (result.state === "paid") {
+          toast.success(
+            result.orderType === "fix_pack"
+              ? "Оплата подтверждена. Треки Fix добавлены в кабинет."
+              : "Оплата подтверждена. Подписка активна."
+          )
+          trackGoalOnce(orderId, "purchase_success", {
+            order_type:
+              result.orderType && /^[a-z0-9_]+$/i.test(result.orderType) ? result.orderType : undefined,
+            method: "card",
+          })
+          await refreshSession({ silent: true })
+          setLoading(true)
+          await loadUser()
+        } else if (result.state === "failed") {
+          toast.error("Оплата не завершена. Попробуйте ещё раз.")
+        } else if (paymentState === "fail") {
+          toast.error("Оплата не завершена. Деньги не списаны или платёж отклонён банком.")
+        } else {
+          toast.message(
+            "Банк ещё не подтвердил платёж. Если деньги списаны, статус обновится в течение нескольких минут. Страницу можно обновить."
+          )
+          await refreshSession({ silent: true })
+          await loadUser()
+        }
+        window.history.replaceState({}, "", "/cabinet/subscription")
+      })()
     } catch {
       // ignore
     }

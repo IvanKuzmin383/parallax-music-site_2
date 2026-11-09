@@ -3,6 +3,7 @@
 import { useI18n } from "@/lib/i18n-context"
 import Link from "next/link"
 import Image from "next/image"
+import { PARALLAX_TELEGRAM_URL } from "@/lib/parallax-contacts"
 
 // Custom Telegram icon SVG
 const TelegramIcon = ({ size = 20 }: { size?: number }) => (
@@ -74,7 +75,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link href="/cases" prefetch={false} className="transition-colors hover:text-primary">
-                  Кейсы
+                  {t.header.cases}
                 </Link>
               </li>
               <li>
@@ -83,9 +84,14 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#contact" className="transition-colors hover:text-primary">
+                <a
+                  href={PARALLAX_TELEGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-primary"
+                >
                   {t.header.contact}
-                </Link>
+                </a>
               </li>
               <li>
                 <Link href="/#follow-us" className="transition-colors hover:text-primary">

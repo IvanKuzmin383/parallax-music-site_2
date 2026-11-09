@@ -10,7 +10,7 @@ import { useI18n } from "@/lib/i18n-context"
 import { calculateFixPackTotalRub } from "@/lib/fix-pack-pricing"
 import { cabinetAuthHref } from "@/components/cabinet/shared/service-landing-mode"
 import { trackGoal } from "@/lib/analytics"
-import { Percent, CreditCard, Disc3 } from "lucide-react"
+import { Check, Disc3 } from "lucide-react"
 
 type Period = "month" | "year"
 type BillingMode = "onetime" | "subscription"
@@ -137,24 +137,6 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
                             <p className="text-muted-foreground text-xs">{t.pricing.fixPlanHint}</p>
                           </div>
                         </div>
-                        <div className="flex items-start gap-3 p-2 rounded-lg bg-background/50 border border-border">
-                          <Percent className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h3 className="font-semibold mb-1 text-sm">{t.pricing.fixRoyaltyTitle}</h3>
-                            <p className="text-muted-foreground text-xs">
-                              {t.pricing.fixRoyaltyDescription}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-2 rounded-lg bg-background/50 border border-border">
-                          <CreditCard className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h3 className="font-semibold mb-1 text-sm">{t.pricing.paymentTitle}</h3>
-                            <p className="text-muted-foreground text-xs">
-                              {t.pricing.paymentDescription}
-                            </p>
-                          </div>
-                        </div>
                       </div>
 
                       <Button
@@ -196,6 +178,9 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
                 const currentPrice = period === "month" ? plan.priceMonth : plan.priceYear
                 const originalPrice = period === "year" ? plan.priceMonth : undefined
                 const showDiscount = period === "year"
+                // Скидка считается из цен, а не хранится строкой: подпись всегда совпадает с суммами.
+                const discountPercent = Math.max(0, Math.round((1 - plan.priceYear / plan.priceMonth) * 100))
+                const yearTotal = plan.priceYear * 12
 
                 return (
                   <Card
@@ -218,10 +203,10 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
                       <p className="text-sm text-muted-foreground mt-1">{plan.subtitle}</p>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col px-0">
-                      <div className="flex items-baseline gap-2 mb-6">
-                        {showDiscount && (
+                      <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                        {showDiscount && discountPercent > 0 && (
                           <span className="text-sm font-medium text-green-600 dark:text-green-500">
-                            {plan.discount ?? t.pricing.discount}
+                            -{discountPercent}%
                           </span>
                         )}
                         {originalPrice && showDiscount && (
@@ -232,30 +217,17 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
                         <span className="text-3xl font-bold">{currentPrice}</span>
                         <span className="text-muted-foreground text-sm">{t.pricing.perMonth}</span>
                       </div>
+                      <p className="mb-6 min-h-[1.25rem] text-xs text-muted-foreground">
+                        {period === "year"
+                          ? formatPriceFromOrder(t.pricing.yearTotal as string, yearTotal, locale)
+                          : t.pricing.monthNote}
+                      </p>
 
                       <div className="space-y-3 mb-6 flex-1">
                         <div className="flex items-start gap-3 p-2 rounded-lg bg-background/50 border border-border">
                           <Disc3 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                           <div>
                             <h3 className="font-semibold text-sm">{plan.releasesLimit}</h3>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-2 rounded-lg bg-background/50 border border-border">
-                          <Percent className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h3 className="font-semibold mb-1 text-sm">{t.pricing.royaltyTitle}</h3>
-                            <p className="text-muted-foreground text-xs">
-                              {t.pricing.royaltyDescription}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-2 rounded-lg bg-background/50 border border-border">
-                          <CreditCard className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h3 className="font-semibold mb-1 text-sm">{t.pricing.paymentTitle}</h3>
-                            <p className="text-muted-foreground text-xs">
-                              {t.pricing.paymentDescription}
-                            </p>
                           </div>
                         </div>
                       </div>
@@ -273,8 +245,35 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
                 )
               })}
             </div>
+
+            <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-muted-foreground">
+              {t.pricing.activeTrackNote}
+            </p>
+
+            <div className="mx-auto mt-10 flex max-w-3xl flex-col items-start justify-between gap-4 rounded-2xl border border-border bg-card/60 p-5 sm:flex-row sm:items-center">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold">{t.pricing.fixStrip.title}</h3>
+                <p className="text-sm text-muted-foreground">{t.pricing.fixStrip.description}</p>
+              </div>
+              <Button type="button" variant="outline" className="shrink-0" onClick={() => setBillingMode("onetime")}>
+                {t.pricing.fixStrip.cta}
+              </Button>
+            </div>
           </>
         )}
+
+        <div className="mx-auto mt-12 max-w-4xl">
+          <h3 className="mb-4 text-center text-lg font-semibold">{t.pricing.sharedTitle}</h3>
+          <ul className="grid gap-3 text-sm sm:grid-cols-2">
+            {(t.pricing.sharedItems as string[]).map((item) => (
+              <li key={item} className="flex items-start gap-3 rounded-lg border border-border bg-background/50 p-3">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-center text-xs text-muted-foreground">{t.pricing.royaltyFootnote}</p>
+        </div>
       </div>
     </section>
   )

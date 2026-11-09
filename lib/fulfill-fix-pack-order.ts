@@ -15,7 +15,7 @@ export type FulfillFixPackOrderParams = {
   paymentId: string
   paidAt: string
   amountRub?: string
-  provider?: "tbank" | "yookassa"
+  provider?: "tbank" | "yookassa" | "wallet"
 }
 
 export async function fulfillFixPackOrder(params: FulfillFixPackOrderParams): Promise<void> {

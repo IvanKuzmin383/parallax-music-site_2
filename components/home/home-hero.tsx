@@ -1,17 +1,12 @@
 "use client"
 
-import dynamic from "next/dynamic"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PartnerMarquee } from "@/components/partner-marquee"
 import { useI18n } from "@/lib/i18n-context"
 import { trackGoal } from "@/lib/analytics"
-
-const PartnerMarquee = dynamic(
-  () => import("@/components/partner-marquee").then((m) => m.PartnerMarquee),
-  { ssr: false, loading: () => <div className="mt-20 h-20" aria-hidden /> },
-)
 
 export function HomeHero() {
   const { t } = useI18n()
@@ -104,9 +99,9 @@ export function HomeHero() {
             </span>
           </div>
         </div>
-
-        <PartnerMarquee />
       </div>
+
+      <PartnerMarquee />
     </section>
   )
 }

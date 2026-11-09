@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils"
 
 /** Реальные скриншоты демо-аккаунта (public/marketing). Размеры - после кадрирования. */
 const STEP_IMAGES: Record<string, { src: string; width: number; height: number }> = {
+  cabinet: { src: "/marketing/cabinet-dashboard.webp", width: 1600, height: 1000 },
   upload: { src: "/marketing/path-upload.webp", width: 1600, height: 864 },
   moderation: { src: "/marketing/path-moderation.webp", width: 1600, height: 864 },
   stats: { src: "/marketing/cabinet-stats.webp", width: 1600, height: 1000 },
-  royalty: { src: "/marketing/path-royalty.webp", width: 1600, height: 446 },
 }
 
 export function HomeReleasePath() {
@@ -23,7 +23,7 @@ export function HomeReleasePath() {
   const [active, setActive] = useState(0)
   const steps = copy.steps
   const current = steps[active] ?? steps[0]
-  const image = STEP_IMAGES[current.id]
+  const image = STEP_IMAGES[current.id] ?? STEP_IMAGES.cabinet
 
   return (
     <section id="path" className="scroll-mt-20 py-16 md:py-24">
@@ -33,6 +33,7 @@ export function HomeReleasePath() {
             {copy.title} <span className="text-primary">{copy.titleHighlight}</span>
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground md:text-lg">{copy.description}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{copy.planNote}</p>
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-10">
@@ -103,6 +104,9 @@ export function HomeReleasePath() {
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
           <p className="text-xs text-muted-foreground">{copy.ctaNote}</p>
+          <Link href="/distribution" className="text-sm text-primary underline-offset-4 hover:underline">
+            {copy.moreLink}
+          </Link>
         </div>
       </div>
     </section>

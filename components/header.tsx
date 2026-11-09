@@ -37,6 +37,24 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileMenuOpen(false)
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", onKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener("keydown", onKey)
+    }
+  }, [isMobileMenuOpen])
+
   const nav = [
     { href: "/distribution", label: t.header.distribution },
     { href: "/features", label: t.header.features },
@@ -110,7 +128,7 @@ export function Header() {
       </div>
 
       {isMobileMenuOpen && (
-        <div id="mobile-menu" className="border-t border-border bg-card/95 backdrop-blur-md xl:hidden" role="menu">
+        <div id="mobile-menu" className="border-t border-border bg-card/95 backdrop-blur-md xl:hidden">
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-6">
             {nav.map((item) => (
               <Link

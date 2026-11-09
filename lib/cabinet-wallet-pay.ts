@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { debitWalletForServicePayment } from "@/lib/cabinet-balance"
-import { fulfillPaidOrder } from "@/lib/fulfill-paid-order"
+import { fulfillWalletPaidOrder } from "@/lib/wallet-fulfillment"
 import { updateOrderStatus, type Order } from "@/lib/orders"
 
 export function isPayFromBalance(body: Record<string, unknown>): boolean {
@@ -8,8 +8,8 @@ export function isPayFromBalance(body: Record<string, unknown>): boolean {
 }
 
 /**
- * Кабинет: услуги оплачиваются только с баланса.
- * Карта (T-Bank) - только для пополнения баланса (wallet_topup).
+ * Кабинет: услуги и пакет Fix можно оплатить с баланса.
+ * Карта (T-Bank) - пополнение баланса, подписка и Fix при нулевом балансе.
  */
 export async function respondWithWalletPayment(order: Order) {
   const paid = await payOrderFromWallet(order)
@@ -53,12 +53,11 @@ export async function payOrderFromWallet(order: Order): Promise<PayOrderFromWall
   if (amount === 0) {
     const paymentId = `wallet:coupon:${order.id}`
     try {
-      await fulfillPaidOrder({
+      await fulfillWalletPaidOrder({
         order,
         paymentId,
         paidAt,
         amountRub: "0.00",
-        provider: "wallet",
       })
     } catch (error) {
       console.error("[cabinet-wallet-pay] free coupon fulfill failed", {
@@ -99,15 +98,14 @@ export async function payOrderFromWallet(order: Order): Promise<PayOrderFromWall
   const paymentId = `wallet:${debit.transaction.id}`
 
   try {
-    await fulfillPaidOrder({
+    await fulfillWalletPaidOrder({
       order,
       paymentId,
       paidAt,
       amountRub: order.totalAmount,
-      provider: "wallet",
     })
   } catch (error) {
-    console.error("[cabinet-wallet-pay] fulfillPaidOrder failed after debit", {
+    console.error("[cabinet-wallet-pay] fulfill after debit failed", {
       orderId: order.id,
       error,
     })

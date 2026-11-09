@@ -36,16 +36,24 @@
     "path": {
       "title": "The release",
       "titleHighlight": "journey",
-      "description": "From upload to payout - four steps, all inside the cabinet.",
+      "description": "First a free cabinet, then a plan and upload. Every step stays inside the service.",
+      "planNote": "To release a track you need a plan and account verification, usually 1-2 business days. Creating a cabinet is free.",
       "stepLabel": "Step",
       "demoNote": "Screenshots of a demo account. Data is for demonstration.",
       "cta": "Create a free cabinet",
       "ctaNote": "Sign-up is free, releasing is paid by plan",
+      "moreLink": "More about distribution and platforms",
       "steps": [
+        {
+          "id": "cabinet",
+          "title": "Free cabinet",
+          "description": "Create an account, confirm your email and go inside. You can try the free tools right away.",
+          "alt": "Parallax Music dashboard: releases, royalties, stats and release calendar"
+        },
         {
           "id": "upload",
           "title": "Upload",
-          "description": "Track, cover, metadata and AI labeling. The wizard guides you step by step and tells you what to fill in.",
+          "description": "After the plan and verification: track, 3000 x 3000 cover, metadata and required AI labeling. The standard release date is 14+ days, faster dates are paid.",
           "alt": "Release upload wizard in the cabinet: steps from basics to review"
         },
         {
@@ -56,69 +64,161 @@
         },
         {
           "id": "stats",
-          "title": "Statistics",
-          "description": "Streams by day, platform, country and track in one place.",
+          "title": "Statistics and royalties",
+          "description": "Streams by day, platform, country and track. Royalties with no distributor commission, paid out quarterly.",
           "alt": "Streaming statistics in the Parallax Music cabinet"
-        },
-        {
-          "id": "royalty",
-          "title": "Royalties and payout",
-          "description": "Earnings, cabinet balance and withdrawals. Taxes and mandatory payments are withheld by law at payout.",
-          "alt": "Finance in the cabinet: balance, royalties and withdraw buttons"
         }
       ]
     },
-    "bento": {
-      "title": "One dashboard",
-      "titleHighlight": "instead of five services",
-      "description": "Everything a release needs before and after launch. Every block below is a dashboard feature you can use right after signing up.",
-      "stats": {
-        "title": "Per-platform stats",
-        "description": "Plays by day, platform, country and track: Yandex Music, VK, Spotify, Apple Music and more.",
-        "cta": "About distribution",
-        "alt": "Streaming stats in the Parallax Music dashboard"
+    "workshop": {
+      "title": "The workshop",
+      "titleHighlight": "for your release",
+      "description": "Free tools to try, and done-for-you services when you need a result. Prices are the same as in the cabinet.",
+      "free": {
+        "title": "Try it for free",
+        "description": "Your first download in each of these tools is on us. You only need a cabinet.",
+        "badge": "1 free download",
+        "then": "then",
+        "cta": "Open tool",
+        "items": [
+          {
+            "id": "mastering",
+            "label": "Online mastering",
+            "description": "Presets, loudness and tone. Listen to the result before downloading.",
+            "href": "/cabinet/tools/mastering"
+          },
+          {
+            "id": "slowed-reverb",
+            "label": "Slowed / Reverb / Nightcore",
+            "description": "Speed, bass, reverb and ready-made presets.",
+            "href": "/cabinet/tools/slowed-reverb"
+          },
+          {
+            "id": "snippet",
+            "label": "Snippet for Reels and Shorts",
+            "description": "5-30 seconds: cover, hook and templates for vertical video.",
+            "href": "/cabinet/tools/story-video"
+          }
+        ]
       },
-      "covers": {
-        "title": "AI covers",
-        "description": "6-9 options based on your release, final file 3000 x 3000.",
-        "cta": "Cover examples"
-      },
-      "mastering": {
-        "title": "AI mastering",
-        "description": "One fragment before and after. Switch and hear the difference.",
-        "before": "Before",
-        "after": "After",
-        "cta": "Learn more"
-      },
-      "videoshot": {
-        "title": "Yandex Music video shot",
-        "description": "A living animation instead of a static cover in the player.",
-        "cta": "Examples"
-      },
-      "smartlink": {
-        "title": "Smartlinks",
-        "description": "One page with links to every platform: pre-release promo or without distribution.",
-        "cta": "Create a smartlink",
-        "listen": "Listen"
-      },
-      "promotion": {
-        "title": "Promotion",
-        "description": "Ads and playlists for your release, even if it was not distributed by us.",
-        "cta": "Promotion services",
-        "chips": ["VK Ads", "Yandex Direct", "Yandex Music playlists", "TikTok and Shorts", "Radio"]
+      "paid": {
+        "title": "Done-for-you services",
+        "description": "Ordered in the cabinet, the result arrives in the Orders section.",
+        "order": "Order",
+        "covers": {
+          "title": "AI covers",
+          "description": "6-9 options based on your release materials, final file 3000 x 3000.",
+          "cta": "Cover examples"
+        },
+        "mastering": {
+          "title": "AI mastering",
+          "description": "Mastering is done by our specialist to streaming standards. Ordered in the cabinet, unlike the free online mastering above.",
+          "before": "Before",
+          "after": "After",
+          "cta": "Learn more"
+        },
+        "videoshot": {
+          "title": "Video shot in Yandex Music",
+          "description": "Live animation instead of a static cover in the player.",
+          "cta": "Examples"
+        },
+        "smartlink": {
+          "title": "Smartlinks",
+          "description": "A page with links to platforms: pre-release promo or without distribution.",
+          "cta": "Create a smartlink",
+          "listen": "Listen"
+        },
+        "promotion": {
+          "title": "Promotion",
+          "description": "Ads and playlists for your release, even if it was not released through us.",
+          "cta": "Promotion services",
+          "priceNote": "Price is shown in each service description",
+          "chips": [
+            "VK Ads",
+            "Yandex Direct",
+            "Yandex Music playlists",
+            "TikTok and Shorts",
+            "Radio"
+          ]
+        }
       }
-    },
-    "free": {
-      "title": "Try it",
-      "titleHighlight": "for free",
-      "description": "The first download in these tools is on us. All you need is an account.",
-      "cta": "Try it"
     },
     "final": {
       "title": "Start with a free cabinet",
       "description": "Create an account, upload your track and cover. We handle moderation and delivery to platforms.",
       "ctaPrimary": "Create account",
       "ctaSecondary": "Choose a plan"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "description": "Short answers on sign-up, plans, AI music and payouts",
+      "groups": [
+        {
+          "title": "Getting started",
+          "items": [
+            {
+              "id": "how-to-release",
+              "question": "How do I release music to Spotify, Yandex Music and other platforms?",
+              "answer": "Create a cabinet for free, complete verification and choose a plan inside the cabinet. Then upload the track, cover and metadata. We review the materials and deliver them to platforms. The standard release date is 14+ calendar days, faster dates are paid."
+            },
+            {
+              "id": "what-is-free",
+              "question": "What is free after sign-up?",
+              "answer": "The cabinet is free. In online mastering, Slowed/Reverb and the snippet tool the first download in each tool is free, previews have no limit. Distribution and releasing a track are paid by plan."
+            },
+            {
+              "id": "when-to-pay",
+              "question": "When do I need to pay for a plan?",
+              "answer": "When you are ready to release music. A subscription or Fix pack is chosen and paid inside the cabinet. You cannot upload a release without a plan and verification."
+            }
+          ]
+        },
+        {
+          "title": "AI music",
+          "items": [
+            {
+              "id": "upload-ai",
+              "question": "Do you accept AI music?",
+              "answer": "Yes. We deliver AI tracks to popular platforms. AI labeling is required at upload. Platform policies can change: they may hide or remove such content."
+            },
+            {
+              "id": "monetization",
+              "question": "Can I monetize AI-generated music and receive royalties?",
+              "answer": "In most cases yes, if rights to the source material are not violated: samples, voices, melodies and lyrics. We help package the release for platform rules."
+            }
+          ]
+        },
+        {
+          "title": "Money and royalties",
+          "items": [
+            {
+              "id": "royalty-100",
+              "question": "What does 100% royalties mean?",
+              "answer": "We take no commission on royalties. Accrual is based on what platforms pay us. Taxes and mandatory payments are withheld by law at payout and depend on your status (individual, self-employed, sole trader or company)."
+            },
+            {
+              "id": "payout",
+              "question": "How are royalties paid out?",
+              "answer": "Payouts are quarterly. The minimum amount to transfer is 1,000 RUB. Withdrawal is available after verification."
+            },
+            {
+              "id": "subscription-expired",
+              "question": "What happens to tracks when a subscription ends?",
+              "answer": "Releases stay in distribution under catalog maintenance terms, and royalties keep accruing. Details are in clause 11.3 of the offer."
+            }
+          ]
+        },
+        {
+          "title": "Platforms",
+          "items": [
+            {
+              "id": "platforms",
+              "question": "Which platforms do you deliver to?",
+              "answer": "More than 50 platforms, including Yandex Music, VK, Zvuk, KION, Apple Music, Spotify, TikTok and YouTube Music."
+            }
+          ]
+        }
+      ]
     }
   },
   "hero": {
@@ -234,7 +334,22 @@
     "description": "Yandex Music playlists, BandLink index, and hundreds of thousands of monthly listeners - real outcomes from Parallax Music artists.",
     "ctaPromotion": "Order promotion",
     "ctaDistribution": "Release a track",
-    "ctaCases": "View case studies"
+    "ctaCases": "View case studies",
+    "featuredCase": {
+      "label": "Case",
+      "title": "Dmitry Krukov - promoting an orchestral release",
+      "description": "VK Ads, Yandex Direct and BandLink: how an original orchestral piece reached a mass audience in one week of advertising.",
+      "periodLabel": "Period",
+      "period": "29.05.2026 - 04.06.2026",
+      "servicesLabel": "Services",
+      "metrics": [
+        { "value": "8,355", "label": "ad clicks" },
+        { "value": "302", "label": "VK Music listeners in 7 days" }
+      ],
+      "cta": "Read the case"
+    },
+    "screenshotsTitle": "Screenshots from Yandex Music and artist analytics",
+    "disclaimer": "Results depend on the release, budget and audience and are not guaranteed."
   },
   "serviceCatalog": {
     "title": "Parallax Music",
@@ -267,7 +382,7 @@
         "items": [
           {
             "name": "AI mastering",
-            "blurb": "Order neural mastering for streaming standards",
+            "blurb": "Specialist mastering for streaming standards",
             "price": "500 ₽ per track",
             "href": "/cabinet/promotion/ai-mastering"
           },
@@ -385,7 +500,23 @@
     "royaltyDescription": "We take no commission on royalties. Taxes and mandatory payments are withheld by law at payout.",
     "paymentTitle": "Support",
     "paymentDescription": "Full release cycle support: distribution and oversight, consulting support, playlist pitching and analytics.",
-    "ctaButton": "Get Started",
+    "ctaButton": "Choose in the cabinet",
+    "yearTotal": "Billed yearly: {amount} ₽",
+    "monthNote": "Billed monthly",
+    "activeTrackNote": "An active track is a release that is not rejected or postponed: it takes up a plan slot.",
+    "fixStrip": {
+      "title": "Do not need a subscription?",
+      "description": "Fix plan: pay only for the number of tracks you need, from 350 ₽ per track, with no auto-renewal.",
+      "cta": "See Fix"
+    },
+    "sharedTitle": "In every plan",
+    "sharedItems": [
+      "Royalties with no distributor commission*",
+      "Distribution to 50+ platforms",
+      "Release support and help",
+      "Statistics and tools in the cabinet"
+    ],
+    "royaltyFootnote": "* No commission on royalties. Taxes and mandatory payments are withheld by law at payout and depend on the recipient's status.",
     "plans": [
       {
         "id": "start",
@@ -462,7 +593,7 @@
   },
   "payFix": {
     "title": "Fix plan - pay per track",
-    "description": "No subscription: pay for a track pack and register in the dashboard with the same email to upload releases.",
+    "description": "A track pack without a calendar subscription. If you do not have an account yet, create one after payment with the same email - the tracks will appear automatically.",
     "backToPricing": "Back to pricing",
     "planInfo": "Fix plan",
     "planSubtitle": "One-time payment, no auto-renewal",
@@ -475,7 +606,7 @@
   },
   "pay": {
   "title": "Checkout",
-  "description": "Fill in the form to complete your subscription payment. After successful payment, you will get access to your personal dashboard where you can upload releases.",
+  "description": "Pay for the selected plan. If you do not have an account yet, create one after payment with the same email - the plan will appear automatically. It is usually easier to pay inside the cabinet.",
     "backToPricing": "Back to pricing",
     "planInfo": "Plan details",
     "yourData": "Contact details",
@@ -489,7 +620,7 @@
     "periodsCount": "Number of periods",
     "total": "Total amount",
     "enableAutopay": "Enable auto-renewal",
-    "enableAutopayHintOn": "Your subscription will renew automatically: once per selected period (month or year) the plan price is charged to your card. You can turn this off in the cabinet (Subscription) at any time, no later than 3 business days before the charge. Terms - section 5 of the offer. SberPay and other wallets may be unavailable on the payment form.",
+    "enableAutopayHintOn": "Your subscription will renew automatically: once per selected period (month or year) the plan price is charged to your card. You can turn this off in the cabinet (Subscription) at any time, no later than 3 business days before the charge. If the subscription is not renewed, released tracks stay in distribution under the offer (clauses 4.13 and 11.3). Auto-renewal terms are in section 5 of the offer. SberPay and other wallets may be unavailable on the payment form. Payments are processed by T-Bank.",
     "enableAutopayHintOff": "You pay only for the selected period. Auto-renewal will not be set up, and all payment methods including SberPay will be available.",
     "agreeOffer": "I agree with the",
     "offerLink": "public offer and license terms",
@@ -1312,11 +1443,11 @@
       },
       "aiMastering": {
         "title": "AI mastering",
-        "description": "Automatic track mastering with AI trained on top engineers' work",
+        "description": "Track mastering is done by our specialist to streaming platform standards",
         "price": "500₽/track",
         "serviceDescriptionTitle": "Description",
         "priceTitle": "Pricing",
-        "serviceDescription": "AI mastering analyzes spectrum and dynamics, then applies EQ, compression and limiting. You get a release-ready loudness level for streaming platforms.",
+        "serviceDescription": "AI mastering is a specialist order: you get a finished WAV with loudness and dynamics for streaming platforms. Order it in the cabinet, the result arrives in Orders.",
         "orderButton": "Order",
         "moreDetails": "Learn more",
         "orderDialogTitle": "Order AI mastering",

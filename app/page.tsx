@@ -4,8 +4,7 @@ import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { HomeHero } from "@/components/home/home-hero"
 import { HomeReleasePath } from "@/components/home/home-release-path"
-import { HomeBento } from "@/components/home/home-bento"
-import { HomeFreeTools } from "@/components/home/home-free-tools"
+import { HomeWorkshop } from "@/components/home/home-workshop"
 import { HomeFinalCta } from "@/components/home/home-final-cta"
 
 const Pricing = dynamic(() => import("@/components/pricing").then((m) => m.Pricing))
@@ -140,8 +139,7 @@ export default function HomePage() {
       <main id="main-content" className="min-h-screen bg-transparent">
         <HomeHero />
         <HomeReleasePath />
-        <HomeBento />
-        <HomeFreeTools />
+        <HomeWorkshop />
         <ProofResults />
         <Pricing />
         <Reviews />

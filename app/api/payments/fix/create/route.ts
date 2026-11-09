@@ -97,7 +97,9 @@ export async function POST(request: NextRequest) {
   const returnUrl = existingUser
     ? `${siteBase}/cabinet/subscription?payment=return&orderId=${orderQuery}&fix=1`
     : `${siteBase}/pay/fix?payment=return&orderId=${orderQuery}`
-  const failUrl = `${siteBase}/pay/fix?payment=fail&orderId=${orderQuery}`
+  const failUrl = existingUser
+    ? `${siteBase}/cabinet/subscription?payment=fail&orderId=${orderQuery}&fix=1`
+    : `${siteBase}/pay/fix?payment=fail&orderId=${orderQuery}`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,
