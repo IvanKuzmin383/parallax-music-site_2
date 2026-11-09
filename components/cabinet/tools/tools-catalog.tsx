@@ -62,11 +62,9 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
         id: "slowed-reverb",
         label: "Slowed / Reverb / Nightcore",
         href: "/cabinet/tools/slowed-reverb",
-        description: "Скорость, басы, реверб и пресеты. 1 скачивание бесплатно",
+        description: "Скорость, басы, реверб и пресеты. Полностью бесплатно",
         icon: Gauge,
-        priceKey: "tools_slowed_reverb",
-        pricePrefix: "далее ",
-        priceLabel: "далее 100 ₽",
+        priceLabel: "Бесплатно",
       },
       {
         id: "smartlinks",

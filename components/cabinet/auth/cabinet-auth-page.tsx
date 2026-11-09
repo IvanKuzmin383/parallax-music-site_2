@@ -298,7 +298,7 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
           <CardTitle className="text-2xl">Личный кабинет</CardTitle>
           <CardDescription>
             {authTab === "register"
-              ? "Создайте аккаунт бесплатно. Тариф и дистрибуцию можно подключить уже в кабинете после верификации."
+              ? "Создайте аккаунт. Тариф и дистрибуцию можно подключить уже в кабинете после верификации"
               : "Войдите в аккаунт артиста"}
           </CardDescription>
         </CardHeader>

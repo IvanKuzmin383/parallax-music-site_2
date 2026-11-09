@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { getPublishedArticles } from '@/lib/articles'
 import { getAllCaseStudies } from '@/data/cases'
 import { PROMOTION_SLUGS } from '@/lib/promotion-pages'
-import { PUBLIC_LANDINGS } from '@/lib/marketing/public-landings'
+import { PUBLIC_LANDINGS, SLOWED_REVERB_PUBLIC } from '@/lib/marketing/public-landings'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parallaxmusic.ru'
@@ -59,6 +59,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.9,
+    },
+    {
+      url: `${baseUrl}${SLOWED_REVERB_PUBLIC.path}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.95,
     },
     ...hubUrls,
     ...landingUrls,

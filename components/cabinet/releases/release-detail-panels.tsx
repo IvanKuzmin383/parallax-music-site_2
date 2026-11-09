@@ -43,6 +43,19 @@ function formatAudioClock(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`
 }
 
+function readAudioDuration(audio: HTMLAudioElement): number {
+  if (Number.isFinite(audio.duration) && audio.duration > 0) return audio.duration
+  try {
+    if (audio.seekable.length > 0) {
+      const end = audio.seekable.end(audio.seekable.length - 1)
+      if (Number.isFinite(end) && end > 0) return end
+    }
+  } catch {
+    // ignore
+  }
+  return 0
+}
+
 function formatMetaDate(raw?: string | null): string | null {
   if (!raw?.trim()) return null
   try {
@@ -278,6 +291,7 @@ export function ReleaseTrackListPlayer({
   const [isPlaying, setIsPlaying] = useState(false)
   const [audioTime, setAudioTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
+  const [trackDurations, setTrackDurations] = useState<Record<string, number>>({})
   const [infoTrack, setInfoTrack] = useState<Track | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const seekingRef = useRef(false)
@@ -290,18 +304,14 @@ export function ReleaseTrackListPlayer({
     [releaseId],
   )
 
-  const readDuration = (audio: HTMLAudioElement): number => {
-    if (Number.isFinite(audio.duration) && audio.duration > 0) return audio.duration
-    try {
-      if (audio.seekable.length > 0) {
-        const end = audio.seekable.end(audio.seekable.length - 1)
-        if (Number.isFinite(end) && end > 0) return end
-      }
-    } catch {
-      // ignore
-    }
-    return 0
-  }
+  const rememberDuration = useCallback((trackId: string, seconds: number) => {
+    if (!(seconds > 0)) return
+    setTrackDurations((prev) =>
+      prev[trackId] != null && Math.abs(prev[trackId] - seconds) < 0.05
+        ? prev
+        : { ...prev, [trackId]: seconds },
+    )
+  }, [])
 
   const stopAudio = useCallback(() => {
     if (audioRef.current) {
@@ -342,8 +352,11 @@ export function ReleaseTrackListPlayer({
     setAudioDuration(0)
 
     const sync = () => {
-      const next = readDuration(audio)
-      if (next > 0) setAudioDuration(next)
+      const next = readAudioDuration(audio)
+      if (next > 0) {
+        setAudioDuration(next)
+        rememberDuration(trackId, next)
+      }
     }
 
     audio.ontimeupdate = () => {
@@ -369,7 +382,7 @@ export function ReleaseTrackListPlayer({
   const seekTo = (nextTime: number) => {
     const audio = audioRef.current
     if (!audio || !Number.isFinite(nextTime)) return
-    const duration = readDuration(audio)
+    const duration = readAudioDuration(audio)
     const capped = duration > 0 ? Math.min(Math.max(0, nextTime), duration) : Math.max(0, nextTime)
     try {
       audio.currentTime = capped
@@ -383,6 +396,25 @@ export function ReleaseTrackListPlayer({
     () => [...tracks].sort((a, b) => (a.trackOrder ?? 0) - (b.trackOrder ?? 0)),
     [tracks],
   )
+
+  useEffect(() => {
+    const loaders: HTMLAudioElement[] = []
+    for (const track of ordered) {
+      const audio = new Audio()
+      audio.preload = "metadata"
+      const apply = () => rememberDuration(track.id, readAudioDuration(audio))
+      audio.addEventListener("loadedmetadata", apply)
+      audio.addEventListener("durationchange", apply)
+      audio.src = audioSrcFor(track.id)
+      loaders.push(audio)
+    }
+    return () => {
+      for (const audio of loaders) {
+        audio.removeAttribute("src")
+        audio.load()
+      }
+    }
+  }, [ordered, audioSrcFor, rememberDuration])
 
   if (ordered.length === 0) return null
 
@@ -421,6 +453,11 @@ export function ReleaseTrackListPlayer({
                     ) : null}
                   </p>
                 </div>
+                {trackDurations[track.id] ? (
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {formatAudioClock(trackDurations[track.id])}
+                  </span>
+                ) : null}
                 {isAlbum ? (
                   <Button
                     type="button"

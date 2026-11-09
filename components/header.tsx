@@ -4,11 +4,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Mail, Menu, Send, X } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useI18n } from "@/lib/i18n-context"
 import { readReferralCodeFromCookie } from "@/components/referral-capture"
-import { trackGoal } from "@/lib/analytics"
+import { PARALLAX_TELEGRAM_URL } from "@/lib/parallax-contacts"
 
 export function Header() {
   const pathname = usePathname()
@@ -16,7 +16,6 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [cabinetHref, setCabinetHref] = useState("/cabinet")
-  const [registerHref, setRegisterHref] = useState("/cabinet?tab=register")
   const { t } = useI18n()
 
   useEffect(() => {
@@ -24,9 +23,6 @@ export function Header() {
     const fromCookie = readReferralCodeFromCookie()
     const ref = fromUrl || fromCookie
     setCabinetHref(ref ? `/cabinet?tab=register&ref=${encodeURIComponent(ref)}` : "/cabinet")
-    setRegisterHref(
-      ref ? `/cabinet?tab=register&ref=${encodeURIComponent(ref)}` : "/cabinet?tab=register"
-    )
   }, [pathname])
 
   useEffect(() => {
@@ -90,28 +86,29 @@ export function Header() {
         </nav>
 
         <div className="hidden flex-shrink-0 items-center justify-end gap-3 xl:flex">
+          <a
+            href={PARALLAX_TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground transition-colors hover:text-primary"
+            aria-label="Telegram"
+          >
+            <Send className="h-4 w-4" />
+          </a>
+          <a
+            href="mailto:parallaxmusiclabel@gmail.com"
+            className="text-muted-foreground transition-colors hover:text-primary"
+            aria-label="Email"
+          >
+            <Mail className="h-4 w-4" />
+          </a>
           <LanguageSwitcher />
           {!hideLogin && (
-            <>
-              <Button size="sm" variant="ghost" className="uppercase tracking-wider" asChild>
-                <Link href={cabinetHref} prefetch={false}>
-                  {t.header.login}
-                </Link>
-              </Button>
-              <Button
-                size="sm"
-                className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
-                asChild
-              >
-                <Link
-                  href={registerHref}
-                  prefetch={false}
-                  onClick={() => trackGoal("cta_register_click", { location: "header" })}
-                >
-                  {t.header.register}
-                </Link>
-              </Button>
-            </>
+            <Button size="sm" variant="ghost" className="uppercase tracking-wider" asChild>
+              <Link href={cabinetHref} prefetch={false}>
+                {t.header.login}
+              </Link>
+            </Button>
           )}
         </div>
 
@@ -142,35 +139,33 @@ export function Header() {
               </Link>
             ))}
             <div className="flex items-center gap-3">
+              <a
+                href={PARALLAX_TELEGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground transition-colors hover:text-primary"
+                aria-label="Telegram"
+              >
+                <Send className="h-5 w-5" />
+              </a>
+              <a
+                href="mailto:parallaxmusiclabel@gmail.com"
+                className="text-muted-foreground transition-colors hover:text-primary"
+                aria-label="Email"
+              >
+                <Mail className="h-5 w-5" />
+              </a>
               <LanguageSwitcher />
               {!hideLogin && (
-                <>
-                  <Button size="sm" variant="outline" className="flex-1 uppercase tracking-wider" asChild>
-                    <Link
-                      href={cabinetHref}
-                      prefetch={false}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {t.header.login}
-                    </Link>
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 uppercase tracking-wider bg-primary text-primary-foreground"
-                    asChild
+                <Button size="sm" variant="outline" className="ml-auto uppercase tracking-wider" asChild>
+                  <Link
+                    href={cabinetHref}
+                    prefetch={false}
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Link
-                      href={registerHref}
-                      prefetch={false}
-                      onClick={() => {
-                        trackGoal("cta_register_click", { location: "header_mobile" })
-                        setIsMobileMenuOpen(false)
-                      }}
-                    >
-                      {t.header.register}
-                    </Link>
-                  </Button>
-                </>
+                    {t.header.login}
+                  </Link>
+                </Button>
               )}
             </div>
           </nav>

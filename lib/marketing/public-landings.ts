@@ -100,6 +100,15 @@ export const PUBLIC_LANDINGS: Record<PublicLandingKey, PublicLanding> = {
   },
 }
 
+/** Бесплатный SEO-инструмент с рабочим редактором (не услуга из /features). */
+export const SLOWED_REVERB_PUBLIC: PublicLanding = {
+  path: "/tools/slowed-reverb",
+  cabinetPath: "/cabinet/tools/slowed-reverb",
+  title: "Создать Slowed / Reverb / Nightcore онлайн бесплатно | Parallax Music",
+  description:
+    "Бесплатный Slowed Reverb Nightcore maker в браузере: загрузите трек, выберите пресет, скачайте WAV. Без регистрации - файл не хранится на сервере. Потом можно выпустить версию на стриминги.",
+}
+
 export function isFeatureLandingSlug(value: string): value is FeatureLandingSlug {
   return (FEATURE_LANDING_SLUGS as readonly string[]).includes(value)
 }
@@ -110,6 +119,7 @@ export function isPromotionLandingSlug(value: string): value is PromotionLanding
 
 /** Публичная страница услуги по её пути в кабинете (для каталога и ссылок с главной). */
 export function publicPathForCabinetPath(cabinetPath: string): string | null {
+  if (cabinetPath === SLOWED_REVERB_PUBLIC.cabinetPath) return SLOWED_REVERB_PUBLIC.path
   for (const landing of Object.values(PUBLIC_LANDINGS)) {
     if (landing.cabinetPath === cabinetPath) return landing.path
   }

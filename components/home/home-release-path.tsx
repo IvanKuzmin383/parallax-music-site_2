@@ -33,11 +33,13 @@ export function HomeReleasePath() {
             {copy.title} <span className="text-primary">{copy.titleHighlight}</span>
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground md:text-lg">{copy.description}</p>
-          <p className="mt-2 text-sm text-muted-foreground">{copy.planNote}</p>
         </div>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-10">
-          <ol className="order-2 grid gap-3 sm:grid-cols-2 lg:order-1 lg:grid-cols-1" aria-label={copy.title}>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-8">
+          <ol
+            className="order-2 grid gap-2 sm:grid-cols-2 lg:order-1 lg:grid-cols-1"
+            aria-label={`${copy.title} ${copy.titleHighlight}`}
+          >
             {steps.map((step, index) => {
               const isActive = index === active
               return (
@@ -48,25 +50,24 @@ export function HomeReleasePath() {
                     aria-current={isActive ? "step" : undefined}
                     className={cn(
                       marketingGlassPanelClass,
-                      "flex w-full items-start gap-4 p-4 text-left transition-colors",
+                      "flex w-full items-center gap-3 p-3 text-left transition-colors sm:p-3.5",
                       isActive ? "border-primary/60 bg-primary/10" : "hover:border-primary/30",
                     )}
                   >
                     <span
                       className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
                         isActive ? "bg-primary text-primary-foreground" : "bg-white/10 text-muted-foreground",
                       )}
                       aria-hidden
                     >
                       {index + 1}
                     </span>
-                    <span className="min-w-0 space-y-1">
-                      <span className="block text-base font-semibold">
-                        <span className="sr-only">{copy.stepLabel} {index + 1}: </span>
-                        {step.title}
+                    <span className="min-w-0 text-sm font-semibold sm:text-base">
+                      <span className="sr-only">
+                        {copy.stepLabel} {index + 1}:{" "}
                       </span>
-                      <span className="block text-sm text-muted-foreground">{step.description}</span>
+                      {step.title}
                     </span>
                   </button>
                 </li>
@@ -89,11 +90,10 @@ export function HomeReleasePath() {
                 {t.home.hero.demoBadge}
               </span>
             </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground lg:text-left">{copy.demoNote}</p>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center gap-2 text-center">
+        <div className="mt-10 flex justify-center">
           <Link
             href="/cabinet?tab=register"
             prefetch={false}
@@ -102,9 +102,6 @@ export function HomeReleasePath() {
           >
             {copy.cta}
             <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-          <Link href="/distribution" className="text-sm text-primary underline-offset-4 hover:underline">
-            {copy.moreLink}
           </Link>
         </div>
       </div>

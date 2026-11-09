@@ -1,47 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { SmartlinkLanding } from "@/components/smartlink/smartlink-landing"
-import { type PlatformLinks } from "@/lib/smartlink-platforms"
+import { type ReactNode } from "react"
+import { SmartlinkLivePreview } from "@/components/smartlink/smartlink-live-preview"
 import { getSiteOrigin } from "@/lib/smartlink-public-origin"
-import {
-  DEFAULT_SMARTLINK_THEME,
-  SMARTLINK_PRESET_LOOK,
-  SMARTLINK_PRESET_META,
-  SMARTLINK_ANIMATION_META,
-  SMARTLINK_BUTTON_STYLES,
-  getOrderedSmartlinkLinks,
-  type SmartlinkPreset,
-  type SmartlinkTheme,
-} from "@/lib/smartlink-theme"
+import { SMARTLINK_ANIMATION_META, SMARTLINK_BUTTON_STYLES } from "@/lib/smartlink-theme"
 import { TOOLS_SMARTLINK_ACTIVE_DAYS, TOOLS_SMARTLINK_PRICE_RUB } from "@/lib/tools-smartlink-pricing"
 import { cn } from "@/lib/utils"
-
-const DEMO_COVER = "/aicover/example-03.webp"
-const DEMO_TITLE = "Midnight Signal"
-const DEMO_ARTIST = "PRLLX Demo"
-
-const DEMO_LINKS: PlatformLinks = {
-  spotify: "https://open.spotify.com",
-  appleMusic: "https://music.apple.com",
-  yandex: "https://music.yandex.ru",
-  youtubeMusic: "https://music.youtube.com",
-  vk: "https://vk.com/music",
-  deezer: "https://www.deezer.com",
-  tidal: "https://tidal.com",
-}
-
-/** Пресеты, которые крутим в живом демо на первом экране. */
-const HERO_ROTATE: SmartlinkPreset[] = [
-  "inkblot",
-  "cassette",
-  "graffiti",
-  "holo",
-  "ticket",
-  "vinyl",
-  "rave",
-  "chrome",
-]
 
 const FEATURES = [
   {
@@ -58,27 +22,14 @@ const FEATURES = [
   },
   {
     title: "Живые анимации",
-    text: Object.values(SMARTLINK_ANIMATION_META)
-      .map((m) => m.label)
-      .filter((l) => l !== "Без анимации")
-      .slice(0, 5)
-      .join(", ") + " и другие.",
+    text:
+      Object.values(SMARTLINK_ANIMATION_META)
+        .map((m) => m.label)
+        .filter((l) => l !== "Без анимации")
+        .slice(0, 5)
+        .join(", ") + " и другие.",
   },
 ] as const
-
-function themeForPreset(preset: SmartlinkPreset, animation: SmartlinkTheme["animation"] = "rise"): SmartlinkTheme {
-  const look = SMARTLINK_PRESET_LOOK[preset]
-  return {
-    ...DEFAULT_SMARTLINK_THEME,
-    ...look,
-    preset,
-    accent: DEFAULT_SMARTLINK_THEME.accent,
-    animation,
-    animationSpeed: 100,
-    previewAudioEnabled: false,
-    previewAudioStartSec: 0,
-  }
-}
 
 function CtaLink({
   href,
@@ -115,35 +66,10 @@ export function PrllxLanding() {
   const loginHref = `${site}/cabinet?next=${encodeURIComponent(afterAuth)}`
   const registerHref = `${site}/cabinet?tab=register&next=${encodeURIComponent(afterAuth)}`
 
-  const [preset, setPreset] = useState<SmartlinkPreset>("inkblot")
-  const [autoRotate, setAutoRotate] = useState(true)
-
-  useEffect(() => {
-    if (!autoRotate) return
-    const id = window.setInterval(() => {
-      setPreset((prev) => {
-        const i = HERO_ROTATE.indexOf(prev)
-        return HERO_ROTATE[(i + 1) % HERO_ROTATE.length] ?? HERO_ROTATE[0]
-      })
-    }, 4200)
-    return () => window.clearInterval(id)
-  }, [autoRotate])
-
-  const theme = useMemo(() => themeForPreset(preset, "cascade"), [preset])
-  const links = useMemo(() => getOrderedSmartlinkLinks(DEMO_LINKS, theme), [theme])
-
-  const pickPreset = (next: SmartlinkPreset) => {
-    setAutoRotate(false)
-    setPreset(next)
-  }
-
   return (
     <div className="min-h-screen bg-[#070708] text-[#F5F5F5] antialiased">
       {/* Atmosphere */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 overflow-hidden"
-      >
+      <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-1/4 top-0 h-[55vh] w-[70vw] rounded-full bg-[#E2532F]/18 blur-[120px]" />
         <div className="absolute -right-1/4 top-1/3 h-[45vh] w-[55vw] rounded-full bg-[#4F8CFF]/12 blur-[100px]" />
         <div className="absolute bottom-0 left-1/3 h-[40vh] w-[40vw] rounded-full bg-[#C8F542]/08 blur-[90px]" />
@@ -153,9 +79,7 @@ export function PrllxLanding() {
       <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <div className="flex items-baseline gap-2">
           <span className="text-2xl font-black tracking-tighter sm:text-3xl">prllx</span>
-          <span className="hidden text-xs uppercase tracking-[0.2em] text-white/40 sm:inline">
-            .link
-          </span>
+          <span className="hidden text-xs uppercase tracking-[0.2em] text-white/40 sm:inline">.link</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <CtaLink href={loginHref} variant="ghost" className="px-4 py-2 text-xs sm:text-sm">
@@ -170,9 +94,7 @@ export function PrllxLanding() {
       {/* Hero */}
       <section className="relative z-10 mx-auto grid max-w-6xl gap-10 px-4 pb-16 pt-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12 lg:pb-24 lg:pt-8">
         <div className="sl-anim-rise space-y-6" style={{ ["--sl-anim-ms" as string]: "900ms" }}>
-          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#E2532F]">
-            Smartlink by Parallax
-          </p>
+          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#E2532F]">Smartlink by Parallax</p>
           <h1 className="max-w-xl text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
             Музыка заслуживает
             <span className="block bg-gradient-to-r from-white via-white to-white/50 bg-clip-text text-transparent">
@@ -180,8 +102,8 @@ export function PrllxLanding() {
             </span>
           </h1>
           <p className="max-w-md text-base leading-relaxed text-white/65 sm:text-lg">
-            Один адрес - все площадки. Стиль как у релиза: чернила, кассета, граффити, голо и ещё
-            десятки оформлений из конструктора.
+            Один адрес - все площадки. Стиль как у релиза: чернила, кассета, граффити, голо и ещё десятки оформлений из
+            конструктора.
           </p>
           <div className="flex flex-wrap gap-3">
             <CtaLink href={registerHref}>Собрать свой prllx.link</CtaLink>
@@ -195,56 +117,16 @@ export function PrllxLanding() {
           </p>
         </div>
 
-        <div className="relative mx-auto w-full max-w-[340px] lg:max-w-none">
-          <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent opacity-60 blur-xl" />
-          <div className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-black/40 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
-            <div className="border-b border-white/10 px-4 py-2.5">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">Live preview</span>
-            </div>
-            <div className="prllx-preview-scroll max-h-[720px] overflow-y-auto sm:max-h-[780px] [&_a]:pointer-events-none">
-              <SmartlinkLanding
-                title={DEMO_TITLE}
-                artist={DEMO_ARTIST}
-                coverUrl={DEMO_COVER}
-                links={links}
-                theme={theme}
-                preview
-                brandHref={site}
-                brandLabel="Powered by Parallax"
-                className="!min-h-[680px]"
-              />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            {HERO_ROTATE.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => pickPreset(p)}
-                className={cn(
-                  "rounded-full px-3 py-1 text-[11px] font-medium transition",
-                  preset === p
-                    ? "bg-[#E2532F] text-white"
-                    : "bg-white/8 text-white/60 hover:bg-white/14 hover:text-white",
-                )}
-              >
-                {SMARTLINK_PRESET_META[p].label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <SmartlinkLivePreview />
       </section>
 
       {/* Features */}
       <section className="relative z-10 border-t border-white/10 bg-black/30 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-10 max-w-2xl">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Весь конструктор - в одной ссылке
-            </h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Весь конструктор - в одной ссылке</h2>
             <p className="mt-3 text-white/55">
-              Те же пресеты, кнопки, шрифты и анимации, что в кабинете Parallax. Слушатель видит
-              готовую сцену релиза.
+              Те же пресеты, кнопки, шрифты и анимации, что в кабинете Parallax. Слушатель видит готовую сцену релиза.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -274,8 +156,7 @@ export function PrllxLanding() {
                   style === "solid" && "bg-[#E2532F] text-white",
                   style === "outline" && "border border-white/30 text-white/80",
                   style === "soft" && "bg-white/15 text-white/90",
-                  style === "glass" &&
-                    "border border-white/20 bg-white/10 text-white backdrop-blur-md",
+                  style === "glass" && "border border-white/20 bg-white/10 text-white backdrop-blur-md",
                   style === "bare" && "text-white/50 underline-offset-2",
                 )}
               >
@@ -290,12 +171,9 @@ export function PrllxLanding() {
       <section className="relative z-10 border-y border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-4 py-16 sm:px-6 lg:flex-row lg:items-center">
           <div className="max-w-xl">
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
-              Ваш линк - prllx.link/…
-            </h2>
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Ваш линк - prllx.link/…</h2>
             <p className="mt-3 text-white/55">
-              Создайте смартлинк в кабинете Parallax Music. Короткий домен, полный контроль над
-              сценой и площадками.
+              Создайте смартлинк в кабинете Parallax Music. Короткий домен, полный контроль над сценой и площадками.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">

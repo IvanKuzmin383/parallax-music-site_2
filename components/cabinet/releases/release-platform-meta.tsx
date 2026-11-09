@@ -108,8 +108,8 @@ export function ReleasePlatformMeta({
   )
 
   return (
-    <div className={cn("space-y-5", className)}>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={cn("min-w-0 space-y-4", className)}>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <CopyField label="UPC" value={upc} />
         <CopyField label="ISRC" value={isrc} />
         <div className="min-w-0 space-y-1">
@@ -124,9 +124,9 @@ export function ReleasePlatformMeta({
             {territory?.trim() || "-"}
           </p>
         </div>
-        <div className="min-w-0 space-y-1">
+        <div className="col-span-2 min-w-0 space-y-1">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Смартлинк</p>
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             {smartlinkUrl ? (
               <>
                 <a
@@ -162,7 +162,7 @@ export function ReleasePlatformMeta({
               <Button type="button" variant="outline" size="sm" className="h-7 shrink-0 gap-1 px-2" asChild>
                 <Link href={smartlinkEditHref}>
                   <Pencil className="h-3.5 w-3.5" />
-                  Оформить
+                  {smartlinkUrl ? "Редактировать" : "Создать смартлинк"}
                 </Link>
               </Button>
             ) : null}
@@ -170,12 +170,12 @@ export function ReleasePlatformMeta({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Площадки</p>
         {linkedPlatforms.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ссылок на площадки пока нет</p>
         ) : (
-          <div className="flex flex-wrap gap-5 sm:gap-6">
+          <div className="flex flex-wrap gap-3">
             {linkedPlatforms.map((platform) => {
               const url = platformLinks?.[platform.key]?.trim() || ""
               return (
@@ -184,7 +184,7 @@ export function ReleasePlatformMeta({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 w-10 items-center justify-center transition-transform hover:scale-110"
+                  className="inline-flex h-9 w-9 items-center justify-center transition-transform hover:scale-110"
                   aria-label={platform.label}
                   title={platform.label}
                 >

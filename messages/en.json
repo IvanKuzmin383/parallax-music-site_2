@@ -37,37 +37,30 @@
       ]
     },
     "path": {
-      "title": "The release",
-      "titleHighlight": "journey",
-      "description": "First the cabinet, then a plan and upload. Every step stays inside the service.",
-      "planNote": "To release a track you need a plan and account verification, usually 1-2 business days. Creating a cabinet is free.",
+      "title": "Releasing music is",
+      "titleHighlight": "easier than it looks",
+      "description": "From uploading a track to publishing on platforms - the whole process in one cabinet",
       "stepLabel": "Step",
-      "demoNote": "Screenshots of a demo account. Data is for demonstration.",
       "cta": "Create a cabinet",
-      "moreLink": "More about distribution and platforms",
       "steps": [
         {
           "id": "cabinet",
-          "title": "Cabinet",
-          "description": "Create an account, confirm your email and go inside. You can try the free tools right away.",
+          "title": "Create a cabinet",
           "alt": "Parallax Music dashboard: releases, royalties, stats and release calendar"
         },
         {
           "id": "upload",
-          "title": "Upload",
-          "description": "After the plan and verification: track, 3000 x 3000 cover, metadata and required AI labeling. The standard release date is 14+ days, faster dates are paid.",
+          "title": "Upload a release",
           "alt": "Release upload wizard in the cabinet: steps from basics to review"
         },
         {
           "id": "moderation",
-          "title": "Moderation and delivery",
-          "description": "We review the release, ask for fixes if needed and deliver it to platforms. Each release status is visible in the cabinet.",
+          "title": "We send the music",
           "alt": "Release list in the cabinet with statuses: in moderation, sent to platforms, released"
         },
         {
           "id": "stats",
-          "title": "Statistics and royalties",
-          "description": "Streams by day, platform, country and track. Royalties with no distributor commission, paid out quarterly.",
+          "title": "Stats and royalties",
           "alt": "Streaming statistics in the Parallax Music cabinet"
         }
       ]
@@ -78,8 +71,9 @@
       "description": "Free tools to try, and done-for-you services when you need a result. Prices are the same as in the cabinet.",
       "free": {
         "title": "Try it for free",
-        "description": "Your first download in each of these tools is on us. You only need a cabinet.",
+        "description": "Slowed / Reverb / Nightcore is fully free with no sign-up. Mastering and snippet give you one free download.",
         "badge": "1 free download",
+        "badgeFree": "Fully free",
         "then": "then",
         "cta": "Open tool",
         "items": [
@@ -92,8 +86,8 @@
           {
             "id": "slowed-reverb",
             "label": "Slowed / Reverb / Nightcore",
-            "description": "Speed, bass, reverb and ready-made presets.",
-            "href": "/cabinet/tools/slowed-reverb"
+            "description": "Speed, bass, reverb and ready-made presets. No sign-up - the file stays in your browser.",
+            "href": "/tools/slowed-reverb"
           },
           {
             "id": "snippet",

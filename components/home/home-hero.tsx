@@ -78,20 +78,21 @@ export function HomeHero() {
                 <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
                 <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
               </div>
-              <Image
-                src="/marketing/cabinet-dashboard.webp"
-                alt={copy.mockupAlt}
-                width={1600}
-                height={1000}
-                priority
-                sizes="(min-width: 1024px) 640px, 100vw"
-                className="h-auto w-full rounded-xl"
-              />
+              <div className="relative">
+                <Image
+                  src="/marketing/cabinet-dashboard.webp"
+                  alt={copy.mockupAlt}
+                  width={1600}
+                  height={1000}
+                  priority
+                  sizes="(min-width: 1024px) 640px, 100vw"
+                  className="h-auto w-full rounded-xl"
+                />
+                <span className="absolute bottom-3 right-3 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+                  {copy.demoBadge}
+                </span>
+              </div>
             </div>
-
-            <span className="absolute bottom-5 right-5 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
-              {copy.demoBadge}
-            </span>
 
             <ul className="mt-6 grid grid-cols-3 gap-3 text-center">
               {copy.stats.map((stat) => (
@@ -107,9 +108,9 @@ export function HomeHero() {
             </ul>
           </div>
         </div>
-      </div>
 
-      <PartnerMarquee />
+        <PartnerMarquee />
+      </div>
     </section>
   )
 }
