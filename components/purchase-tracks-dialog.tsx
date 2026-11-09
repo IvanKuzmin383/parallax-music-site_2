@@ -21,6 +21,9 @@ import {
 } from "@/lib/fix-pack-pricing"
 import { TRACK_PRICE_RUB, MAX_TRACKS_TOPUP } from "@/lib/track-pricing"
 import { useI18n } from "@/lib/i18n-context"
+import { useCabinetSession } from "@/lib/cabinet/hooks/use-cabinet-session"
+import { trackGoal } from "@/lib/analytics"
+import { toast } from "sonner"
 
 const TRACKS_MIN = 1
 
@@ -32,6 +35,10 @@ type PurchaseTracksDialogProps = {
   unitPriceRub?: number
   title?: string
   description?: string
+  /** Вызывается после подтверждённой оплаты с баланса (оплата картой подтверждается на возврате из банка). */
+  onPaid?: () => void
+  /** Предзаполненное количество треков (например, с публичной страницы тарифов). */
+  initialTracks?: number
 }
 
 export function PurchaseTracksDialog({
@@ -41,8 +48,14 @@ export function PurchaseTracksDialog({
   unitPriceRub,
   title = "Лимит треков исчерпан",
   description,
+  onPaid,
+  initialTracks,
 }: PurchaseTracksDialogProps) {
   const { t } = useI18n()
+  const { user, refresh: refreshSession } = useCabinetSession()
+  const walletBalance = user?.walletBalance ?? 0
+  /** Fix: баланс или карта. Дозаказ треков по старому тарифу: только баланс. */
+  const [chosenMethod, setChosenMethod] = useState<"wallet" | "card" | null>(null)
   const [tracksCount, setTracksCount] = useState(5)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +69,16 @@ export function PurchaseTracksDialog({
     ? calculateFixPackTotalRub(tracksCount)
     : tracksCount * trackPriceRub
   const validCount = tracksCount >= TRACKS_MIN && tracksCount <= maxTracks
+  const walletEnough = walletBalance >= total
+  const payMethod: "wallet" | "card" = !useFixPackPricing
+    ? "wallet"
+    : chosenMethod === "wallet" && walletEnough
+      ? "wallet"
+      : chosenMethod === "card"
+        ? "card"
+        : walletEnough
+          ? "wallet"
+          : "card"
   const resolvedDescription =
     description ??
     (useFixPackPricing
@@ -63,9 +86,16 @@ export function PurchaseTracksDialog({
       : `Чтобы загрузить больше треков, оплатите дополнительные. Цена за один трек - ${trackPriceRub} ₽.`)
 
   useEffect(() => {
+    if (open && initialTracks && initialTracks >= TRACKS_MIN && initialTracks <= maxTracks) {
+      setTracksCount(initialTracks)
+    }
+  }, [open, initialTracks, maxTracks])
+
+  useEffect(() => {
     if (!open) {
       setConsentOfferLicense(false)
       setError(null)
+      setChosenMethod(null)
     }
   }, [open])
 
@@ -89,15 +119,30 @@ export function PurchaseTracksDialog({
         body: JSON.stringify({
           tracksCount,
           consentOfferLicense: true,
+          ...(useFixPackPricing ? { payMethod } : {}),
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as { confirmationUrl?: string; error?: string }
+      const data = (await res.json().catch(() => ({}))) as {
+        confirmationUrl?: string
+        paid?: boolean
+        error?: string
+      }
       if (!res.ok) {
         setError(data.error || "Не удалось создать платёж")
         return
       }
       if (data.confirmationUrl) {
+        trackGoal("plan_checkout_start", { order_type: useFixPackPricing ? "fix_pack" : "tracks", method: "card" })
         window.location.href = data.confirmationUrl
+        return
+      }
+      if (data.paid) {
+        // Оплата с баланса: сервер уже списал деньги и начислил треки.
+        toast.success(`Оплачено с баланса: ${total.toLocaleString("ru-RU")} ₽. Треки добавлены.`)
+        trackGoal("purchase_success", { order_type: useFixPackPricing ? "fix_pack" : "tracks", method: "wallet" })
+        await refreshSession({ silent: true })
+        onPaid?.()
+        onOpenChange(false)
         return
       }
       setError("Неверный ответ сервера")
@@ -152,6 +197,50 @@ export function PurchaseTracksDialog({
               *
             </label>
           </div>
+          {useFixPackPricing ? (
+            <fieldset className="space-y-2" disabled={loading}>
+              <legend className="text-sm font-medium">Способ оплаты</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label
+                  className={`flex cursor-pointer flex-col gap-0.5 rounded-md border p-3 text-sm ${
+                    payMethod === "card" ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <input
+                      type="radio"
+                      name="fix-pay-method"
+                      checked={payMethod === "card"}
+                      onChange={() => setChosenMethod("card")}
+                    />
+                    Банковская карта
+                  </span>
+                  <span className="text-xs text-muted-foreground">Оплата на странице ТБанка</span>
+                </label>
+                <label
+                  className={`flex flex-col gap-0.5 rounded-md border p-3 text-sm ${
+                    walletEnough ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                  } ${payMethod === "wallet" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <input
+                      type="radio"
+                      name="fix-pay-method"
+                      checked={payMethod === "wallet"}
+                      disabled={!walletEnough}
+                      onChange={() => setChosenMethod("wallet")}
+                    />
+                    С баланса кабинета
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {walletEnough
+                      ? `Доступно ${walletBalance.toLocaleString("ru-RU")} ₽`
+                      : `Не хватает: на балансе ${walletBalance.toLocaleString("ru-RU")} ₽`}
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+          ) : null}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button
@@ -163,7 +252,11 @@ export function PurchaseTracksDialog({
               Отмена
             </Button>
             <Button type="submit" disabled={!validCount || loading || !consentOfferLicense}>
-              {loading ? "Создание платежа…" : "Оплатить"}
+              {loading
+                ? "Создание платежа…"
+                : payMethod === "card"
+                  ? `Оплатить картой ${total.toLocaleString("ru-RU")} ₽`
+                  : `Оплатить с баланса ${total.toLocaleString("ru-RU")} ₽`}
             </Button>
           </DialogFooter>
         </form>

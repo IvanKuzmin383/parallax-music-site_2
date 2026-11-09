@@ -32,7 +32,7 @@ export function Footer() {
   const { t } = useI18n()
 
   return (
-    <footer className="bg-background border-t border-border py-12">
+    <footer id="contact" className="bg-background border-t border-border py-12 scroll-mt-20">
       <div className="container mx-auto px-4">
         <div className="mb-8 grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div>
@@ -152,6 +152,12 @@ export function Footer() {
                 <VkIcon size={20} />
               </a>
             </div>
+            <a
+              href="mailto:parallaxmusiclabel@gmail.com"
+              className="mt-3 inline-block text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              parallaxmusiclabel@gmail.com
+            </a>
           </div>
         </div>
 

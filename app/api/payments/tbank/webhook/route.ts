@@ -98,12 +98,11 @@ export async function POST(request: NextRequest) {
   const failedStatuses = new Set(["REJECTED", "CANCELED", "REVERSED", "DEADLINE_EXPIRED"])
   if (failedStatuses.has(status) && orderIdRaw) {
     const order = await getOrderById(orderIdRaw)
-    if (
-      order &&
-      order.orderType === "subscription" &&
-      order.isRecurringRenewal &&
-      order.status === "pending"
-    ) {
+    // Страница возврата показывает "ошибка" только по статусу заказа из БД.
+    // Если банк позже пришлёт CONFIRMED (повторная попытка оплаты), заказ всё равно исполнится ниже.
+    const isReturnFlowOrder =
+      order && (order.orderType === "fix_pack" || order.orderType === "subscription")
+    if (order && isReturnFlowOrder && order.status === "pending") {
       await updateOrderStatus(order.id, "failed")
     }
     return new NextResponse("OK", { status: 200 })

@@ -14,6 +14,7 @@ import {
   isValidFixPackTracksCount,
   MAX_FIX_PACK_ORDER,
 } from "@/lib/fix-pack-pricing"
+import { PaymentReturnStatus } from "@/components/payments/payment-return-status"
 import { Disc3, ChevronLeft } from "lucide-react"
 import { toast } from "sonner"
 
@@ -98,6 +99,25 @@ function PayFixPageContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Возврат из банка: статус заказа подтверждаем на сервере, а не по параметру URL.
+  const returnPaymentParam = searchParams.get("payment")
+  const returnOrderId = searchParams.get("orderId")
+  if (returnPaymentParam && returnOrderId) {
+    return (
+      <main className="min-h-screen bg-background pt-20">
+        <div className="container mx-auto px-4 py-12">
+          <div className="mx-auto max-w-xl space-y-6">
+            <PaymentReturnStatus
+              orderId={returnOrderId}
+              hint={returnPaymentParam === "fail" ? "fail" : "return"}
+              guest
+            />
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (

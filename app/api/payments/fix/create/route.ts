@@ -91,8 +91,13 @@ export async function POST(request: NextRequest) {
   })
 
   const siteBase = getSiteBaseUrl()
-  const returnUrl = `${siteBase}/cabinet?payment=return&orderId=${encodeURIComponent(order.id)}&fix=1`
-  const failUrl = `${siteBase}/pay/fix?payment=fail&orderId=${encodeURIComponent(order.id)}`
+  // Гость: страница возврата /pay/fix сама проверяет статус заказа на сервере.
+  // Владелец кабинета: хаб подписки (после входа вернёт на него через ?next=) проверяет статус по своей сессии.
+  const orderQuery = encodeURIComponent(order.id)
+  const returnUrl = existingUser
+    ? `${siteBase}/cabinet/subscription?payment=return&orderId=${orderQuery}&fix=1`
+    : `${siteBase}/pay/fix?payment=return&orderId=${orderQuery}`
+  const failUrl = `${siteBase}/pay/fix?payment=fail&orderId=${orderQuery}`
 
   const pay = await createCabinetTbankPayment({
     orderId: order.id,

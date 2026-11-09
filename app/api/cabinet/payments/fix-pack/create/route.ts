@@ -9,6 +9,12 @@ import {
 } from "@/lib/fix-pack-pricing"
 import { respondWithWalletPayment } from "@/lib/cabinet-wallet-pay"
 import { createOrder } from "@/lib/orders"
+import {
+  assertTbankConfigured,
+  createCabinetTbankPayment,
+  getSiteBaseUrl,
+} from "@/lib/tbank-cabinet-payment"
+
 export async function POST(request: NextRequest) {
   const token = getCabinetToken(request)
   const session = getCabinetSession(token)
@@ -73,6 +79,15 @@ export async function POST(request: NextRequest) {
 
   const totalAmount = formatFixPackTotalAmount(tracksCount)
   const description = `Тариф Fix: ${tracksCount} трек(ов), ${user.email}`
+  const payMethod = raw.payMethod === "card" ? "card" : "wallet"
+
+  if (payMethod === "card") {
+    const tbankCfg = assertTbankConfigured()
+    if (!tbankCfg.ok) {
+      console.error("[cabinet/fix-pack/create] Missing TBANK env")
+      return NextResponse.json({ error: tbankCfg.error }, { status: 500 })
+    }
+  }
 
   const order = await createOrder({
     orderType: "fix_pack",
@@ -82,5 +97,27 @@ export async function POST(request: NextRequest) {
     userId: user.id,
   })
 
-  return respondWithWalletPayment(order)
+  if (payMethod === "wallet") {
+    return respondWithWalletPayment(order)
+  }
+
+  // Оплата картой через T-Bank: возврат в хаб тарифов, статус проверяется на сервере.
+  const siteBase = getSiteBaseUrl()
+  const pay = await createCabinetTbankPayment({
+    orderId: order.id,
+    totalAmount,
+    description,
+    successUrl: `${siteBase}/cabinet/subscription?payment=return&orderId=${encodeURIComponent(order.id)}&fix=1`,
+    failUrl: `${siteBase}/cabinet/subscription?payment=fail&orderId=${encodeURIComponent(order.id)}&fix=1`,
+    orderType: "fix_pack",
+    receiptEmail: user.email,
+    receiptItemName: `Дистрибуция треков Fix (${tracksCount} шт.)`,
+    logPrefix: "cabinet/fix-pack/create",
+  })
+
+  if (!pay.ok) {
+    return NextResponse.json({ error: pay.error }, { status: 500 })
+  }
+
+  return NextResponse.json({ confirmationUrl: pay.confirmationUrl, paymentId: pay.paymentId, orderId: order.id })
 }

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n-context"
+import { trackGoal } from "@/lib/analytics"
 
 export function HomeFinalCta() {
   const { t } = useI18n()
@@ -19,7 +20,11 @@ export function HomeFinalCta() {
             <p className="text-muted-foreground md:text-lg">{copy.description}</p>
             <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
               <Button size="lg" className="w-full gap-2 px-8 sm:w-auto" asChild>
-                <Link href="/cabinet?tab=register" prefetch={false}>
+                <Link
+                  href="/cabinet?tab=register"
+                  prefetch={false}
+                  onClick={() => trackGoal("cta_register_click", { location: "final_cta" })}
+                >
                   {copy.ctaPrimary}
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>

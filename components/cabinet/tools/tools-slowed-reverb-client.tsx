@@ -11,6 +11,7 @@ import {
 import Link from "next/link"
 import { ArrowLeft, Check, Download, Loader2, Pause, Play, Upload } from "lucide-react"
 import { toast } from "sonner"
+import { trackGoal } from "@/lib/analytics"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
@@ -480,6 +481,7 @@ function ToolsSlowedReverbInner() {
       if (consumeData.entitlement) setEntitlement(consumeData.entitlement)
 
       triggerBlobDownload(rendered.blob, rendered.fileName)
+      trackGoal(consumeData.used === "free" ? "tool_free_used" : "tool_paid_used", { tool: "slowed_reverb" })
       toast.success(
         consumeData.used === "free"
           ? "Скачано (бесплатное скачивание использовано)"

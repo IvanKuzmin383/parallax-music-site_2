@@ -85,7 +85,8 @@ const TOOL_SECTIONS: Array<{ title: string; items: ToolItem[] }> = [
         description: "5-30 сек для Reels / Shorts / TikTok: обложка, хук, шаблоны. 1 скачивание бесплатно",
         icon: Clapperboard,
         priceKey: "tools_story_video",
-        priceLabel: "100 ₽",
+        pricePrefix: "далее ",
+        priceLabel: "далее 100 ₽",
       },
       {
         id: "vertical-videos",
@@ -226,7 +227,14 @@ function ToolCard({ item, href }: { item: ToolItem; href: string }) {
         {item.priceKey ? (
           <p className="text-sm font-medium text-primary transition-colors group-hover:text-primary">
             {item.pricePrefix ? <span>{item.pricePrefix}</span> : null}
-            <ServicePriceText priceKey={item.priceKey} fallback={item.priceLabel ?? ""} />
+            <ServicePriceText
+              priceKey={item.priceKey}
+              fallback={
+                item.pricePrefix && item.priceLabel?.startsWith(item.pricePrefix)
+                  ? item.priceLabel.slice(item.pricePrefix.length)
+                  : (item.priceLabel ?? "")
+              }
+            />
           </p>
         ) : item.priceLabel ? (
           <p className="text-sm font-medium text-primary">{item.priceLabel}</p>

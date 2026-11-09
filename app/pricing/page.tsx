@@ -8,7 +8,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 export const metadata: Metadata = {
   title: "Тарифы дистрибуции музыки | Parallax Music",
   description:
-    "Подписка или тариф Fix за трек. Оплатите, создайте кабинет и загрузите релиз на 50+ площадок с 100% роялти.",
+    "Подписка или тариф Fix за трек. Создайте кабинет бесплатно, выберите тариф и выпустите релиз на 50+ площадок без комиссии с роялти.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Тарифы дистрибуции музыки | Parallax Music",

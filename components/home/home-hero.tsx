@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowRight, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n-context"
+import { trackGoal } from "@/lib/analytics"
 
 const PartnerMarquee = dynamic(
   () => import("@/components/partner-marquee").then((m) => m.PartnerMarquee),
@@ -51,7 +52,11 @@ export function HomeHero() {
 
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <Button size="lg" className="w-full gap-2 px-7 sm:w-auto" asChild>
-                <Link href="/cabinet?tab=register" prefetch={false}>
+                <Link
+                  href="/cabinet?tab=register"
+                  prefetch={false}
+                  onClick={() => trackGoal("cta_register_click", { location: "hero" })}
+                >
                   {copy.ctaPrimary}
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
@@ -62,7 +67,9 @@ export function HomeHero() {
                 className="w-full border-border/70 bg-background/20 px-7 backdrop-blur-sm sm:w-auto"
                 asChild
               >
-                <Link href="/features">{copy.ctaSecondary}</Link>
+                <Link href="/features" onClick={() => trackGoal("cta_features_click", { location: "hero" })}>
+                  {copy.ctaSecondary}
+                </Link>
               </Button>
             </div>
           </div>

@@ -22,7 +22,7 @@
       "description": "Upload, moderation, stats and royalties in one dashboard. Covers, mastering, video and promotion right next to it, so your release does not get lost after launch.",
       "ctaPrimary": "Create account",
       "ctaSecondary": "All features",
-      "points": ["100% royalties", "AI music accepted", "Tracks stay live", "Per-platform stats"],
+      "points": ["100% royalties", "AI music accepted", "Releases stay live after subscription", "Per-platform stats"],
       "mockupAlt": "Parallax Music dashboard: releases, royalties, stats and release calendar",
       "releaseStatus": "Released"
     },
@@ -73,7 +73,7 @@
       "cta": "Try it"
     },
     "final": {
-      "title": "Your first release - today",
+      "title": "Start with a free cabinet",
       "description": "Create an account, upload your track and cover. We handle moderation and delivery to platforms.",
       "ctaPrimary": "Create account",
       "ctaSecondary": "Choose a plan"
@@ -81,7 +81,7 @@
   },
   "hero": {
     "title": "Release music\nto every platform",
-    "description": "One dashboard: distribution, tools, and promotion. 100% royalties - no cut from your earnings.",
+    "description": "One dashboard: distribution, tools, and promotion. Royalties with no distributor commission.",
     "workWithUs": "Choose a plan",
     "ctaCabinet": "Create account",
     "ctaExplore": "Explore product",
@@ -91,7 +91,7 @@
     "telegramUrl": "https://t.me/parallaxmusic_rt",
     "vkUrl": "https://vk.com/parallaxmusic_releaseteam",
     "bullets": [
-      "100% royalties to the artist - no cut from your earnings",
+      "Royalties with no distributor commission",
       "Tracks stay live even after the subscription ends",
       "AI releases welcome: flexible moderation and real support"
     ],
@@ -110,7 +110,7 @@
     "items": [
       {
         "title": "Release a track",
-        "description": "Distribution to 50+ platforms, AI-friendly moderation, and 100% royalties",
+        "description": "Distribution to 50+ platforms, AI releases accepted, and royalties with no distributor commission",
         "href": "/distribution",
         "cta": "Distribution"
       },
@@ -157,7 +157,7 @@
     "steps": {
       "discovery": {
         "title": "Plan",
-        "description": "Pick a subscription or one-time Fix pack. Pay, then create your cabinet with the same email."
+        "description": "Create your cabinet for free and pick a subscription or Fix pack. You pay for the plan inside the cabinet."
       },
       "strategy": {
         "title": "Upload",
@@ -225,8 +225,8 @@
         "items": [
           {
             "name": "AI mastering",
-            "blurb": "Neural mastering for streaming standards",
-            "price": "from 100 ₽",
+            "blurb": "Order neural mastering for streaming standards",
+            "price": "500 ₽ per track",
             "href": "/cabinet/promotion/ai-mastering"
           },
           {
@@ -329,7 +329,7 @@
   "pricing": {
     "title": "Our",
     "titleHighlight": "Pricing",
-    "description": "1. Choose a plan → 2. Pay → 3. Register with the same email → 4. Upload your track.\nQuestions before paying? Message us on Telegram.",
+    "description": "1. Create your cabinet for free → 2. Choose a plan in the cabinet → 3. Upload your track.\nQuestions before paying? Message us on Telegram.",
     "modeOnetime": "One-time payment",
     "modeSubscription": "Subscription",
     "onetimeIntro": "Fix plan - pay only for the tracks you need, no subscription or auto-renewal",
@@ -339,8 +339,8 @@
     "perMonth": "₽/mo",
     "discount": "-40%",
     "popularBadge": "Popular",
-    "royaltyTitle": "100% Royalties",
-    "royaltyDescription": "All royalties remain with the artist. We take zero commission from your earnings.",
+    "royaltyTitle": "No commission on royalties",
+    "royaltyDescription": "We take no commission on royalties. Taxes and mandatory payments are withheld by law at payout.",
     "paymentTitle": "Support",
     "paymentDescription": "Full release cycle support: distribution and oversight, consulting support, playlist pitching and analytics.",
     "ctaButton": "Get Started",
@@ -385,8 +385,8 @@
     ],
     "fixPlanHint": "1 track = 1 upload slot",
     "priceFromOrder": "from ₽{amount} per order",
-    "fixRoyaltyTitle": "100% Royalties",
-    "fixRoyaltyDescription": "All royalties remain with the artist. We take zero commission from your earnings.",
+    "fixRoyaltyTitle": "No commission on royalties",
+    "fixRoyaltyDescription": "We take no commission on royalties. Taxes and mandatory payments are withheld by law at payout.",
     "fixCtaButton": "Buy",
     "fixTiers": [
       {
@@ -429,7 +429,7 @@
     "tier3": "11+ tracks - 350 ₽ per track (−30%)",
     "tracksCountLabel": "Number of tracks",
     "tracksCountHint": "From 1 to {max} tracks per payment",
-    "royaltyNote": "100% royalties to the artist. We take zero commission from your earnings."
+    "royaltyNote": "We take no commission on royalties. Taxes and mandatory payments are withheld by law at payout."
   },
   "pay": {
   "title": "Checkout",
@@ -447,7 +447,7 @@
     "periodsCount": "Number of periods",
     "total": "Total amount",
     "enableAutopay": "Enable auto-renewal",
-    "enableAutopayHintOn": "Your card will be saved for future charges. SberPay and other wallets may be unavailable on the payment form.",
+    "enableAutopayHintOn": "Your subscription will renew automatically: once per selected period (month or year) the plan price is charged to your card. You can turn this off in the cabinet (Subscription) at any time, no later than 3 business days before the charge. Terms - section 5 of the offer. SberPay and other wallets may be unavailable on the payment form.",
     "enableAutopayHintOff": "You pay only for the selected period. Auto-renewal will not be set up, and all payment methods including SberPay will be available.",
     "agreeOffer": "I agree with the",
     "offerLink": "public offer and license terms",
@@ -488,7 +488,7 @@
     "errorGeneric": "An error occurred. Please try again later."
   },
   "footer": {
-    "tagline": "AI music distribution: 100% royalties, tracks stay live",
+    "tagline": "AI music distribution: royalties with no distributor commission, releases stay live",
     "services": "Services",
     "company": "Company",
     "documents": "Documents",
@@ -616,7 +616,7 @@
         {
           "id": "how-to-release",
           "question": "How can I release music on Spotify, Yandex Music, and other platforms?",
-          "answer": "Choose a plan on the site and pay. Then create your cabinet with the same email, upload tracks - we review materials and deliver to streaming services (Apple Music, Spotify, YouTube Music, Yandex Music, and others). After release, you earn from streams."
+          "answer": "Create your cabinet for free and choose a plan inside it. Upload tracks - we review materials and deliver to streaming services (Apple Music, Spotify, YouTube Music, Yandex Music, and others). After release, you earn from streams."
         },
         {
           "id": "upload-ai",
@@ -626,7 +626,7 @@
         {
           "id": "subscription-expired",
           "question": "Will my tracks be removed if I stop paying the subscription?",
-          "answer": "No, tracks already delivered to platforms remain live and are not removed."
+          "answer": "No. After a subscription ends, releases stay in distribution under catalog maintenance terms and royalties keep accruing (offer clause 11.3)."
         },
         {
           "id": "platforms",

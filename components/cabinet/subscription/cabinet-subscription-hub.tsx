@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { listCabinetPlanCards } from "@/lib/cabinet-subscription-catalog"
-import { subscriptionNameToPlanId, type PlanId } from "@/lib/plan-pricing"
+import { isPlanId, subscriptionNameToPlanId, type PlanId } from "@/lib/plan-pricing"
 import {
   FIX_PACK_PRICE_TIER_1_RUB,
   FIX_PACK_PRICE_TIER_3_RUB,
@@ -21,6 +21,7 @@ import { CabinetSubscriptionAutopayPanel } from "@/components/cabinet/subscripti
 import { CabinetSubscriptionExpiredBanner } from "@/components/cabinet/subscription/cabinet-subscription-expired-banner"
 import { PurchaseTracksDialog } from "@/components/purchase-tracks-dialog"
 import { getSubscriptionPlanPurchaseBlockReason } from "@/lib/subscription-plan-eligibility"
+import { trackGoal, trackGoalOnce } from "@/lib/analytics"
 
 type UserSub = {
   subscriptionName?: string | null
@@ -28,22 +29,25 @@ type UserSub = {
   email?: string | null
 }
 
-async function pollOrderPaid(orderId: string, attempts = 8): Promise<"paid" | "failed" | "pending"> {
+type PollResult = { state: "paid" | "failed" | "pending"; orderType?: string }
+
+/** Статус заказа подтверждается сервером (вебхук банка), а не параметром URL. */
+async function pollOrderPaid(orderId: string, attempts = 20): Promise<PollResult> {
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(
         `/api/cabinet/payments/order-status?orderId=${encodeURIComponent(orderId)}`,
-        { credentials: "include" }
+        { credentials: "include", cache: "no-store" }
       )
-      const data = (await res.json().catch(() => ({}))) as { status?: string }
-      if (data.status === "paid") return "paid"
-      if (data.status === "failed") return "failed"
+      const data = (await res.json().catch(() => ({}))) as { status?: string; orderType?: string }
+      if (data.status === "paid") return { state: "paid", orderType: data.orderType }
+      if (data.status === "failed") return { state: "failed", orderType: data.orderType }
     } catch {
       // retry
     }
     await new Promise((r) => setTimeout(r, 1500))
   }
-  return "pending"
+  return { state: "pending" }
 }
 
 export function CabinetSubscriptionHub() {
@@ -56,7 +60,9 @@ export function CabinetSubscriptionHub() {
     Array<{ status?: string | null; artistName?: string | null }>
   >([])
   const [fixDialogOpen, setFixDialogOpen] = useState(false)
+  const [fixInitialTracks, setFixInitialTracks] = useState<number | undefined>()
   const paymentHandledRef = useRef(false)
+  const buyHandledRef = useRef(false)
 
   const loadUser = useCallback(async () => {
     try {
@@ -94,7 +100,7 @@ export function CabinetSubscriptionHub() {
       paymentHandledRef.current = true
 
       if (paymentState === "fail") {
-        toast.error("Оплата подписки не завершена")
+        toast.error("Оплата не завершена. Деньги не списаны или платёж отклонён банком.")
         window.history.replaceState({}, "", "/cabinet/subscription")
         return
       }
@@ -103,16 +109,25 @@ export function CabinetSubscriptionHub() {
         void (async () => {
           toast.message("Проверяем оплату…")
           const result = await pollOrderPaid(orderId)
-          if (result === "paid") {
-            toast.success("Подписка оплачена и активна")
+          if (result.state === "paid") {
+            toast.success(
+              result.orderType === "fix_pack"
+                ? "Оплата подтверждена. Треки Fix добавлены в кабинет."
+                : "Оплата подтверждена. Подписка активна."
+            )
+            trackGoalOnce(orderId, "purchase_success", {
+              order_type:
+                result.orderType && /^[a-z0-9_]+$/i.test(result.orderType) ? result.orderType : undefined,
+              method: "card",
+            })
             await refreshSession({ silent: true })
             setLoading(true)
             await loadUser()
-          } else if (result === "failed") {
-            toast.error("Оплата не завершена")
+          } else if (result.state === "failed") {
+            toast.error("Оплата не завершена. Попробуйте ещё раз.")
           } else {
             toast.message(
-              "Платёж ещё обрабатывается - статус обновится через минуту. Можно обновить страницу."
+              "Банк ещё не подтвердил платёж. Если деньги списаны, статус обновится в течение нескольких минут. Страницу можно обновить."
             )
             await refreshSession({ silent: true })
             await loadUser()
@@ -131,13 +146,14 @@ export function CabinetSubscriptionHub() {
       ? format(new Date(user.subscriptionExpiresAt), "d MMMM yyyy", { locale: ru })
       : null
 
-  const startCheckout = (planId: PlanId) => {
+  const startCheckout = (planId: PlanId, period?: "month" | "year") => {
     const block = getSubscriptionPlanPurchaseBlockReason(planId, planTracks)
     if (block) {
       toast.error(block)
       return
     }
-    openCheckout({ planId })
+    trackGoal("plan_checkout_start", { plan: planId, ...(period ? { period } : {}) })
+    openCheckout({ planId, period })
   }
 
   const isOnFix = user?.subscriptionName === "Fix"
@@ -153,6 +169,27 @@ export function CabinetSubscriptionHub() {
     }
     setFixDialogOpen(true)
   }
+
+  // Намерение покупки с публичной страницы тарифов: /cabinet/subscription?buy=<plan|fix>&period=&tracks=
+  // (приходит после регистрации или входа через ?next=). Открываем нужное окно оплаты один раз.
+  useEffect(() => {
+    if (loading || buyHandledRef.current) return
+    const params = new URLSearchParams(window.location.search)
+    const buy = params.get("buy")
+    if (!buy) return
+    buyHandledRef.current = true
+    window.history.replaceState({}, "", "/cabinet/subscription")
+    if (buy === "fix") {
+      const n = parseInt(params.get("tracks") ?? "", 10)
+      if (Number.isInteger(n) && n >= 1) setFixInitialTracks(Math.min(n, 100))
+      onFixSelect()
+      return
+    }
+    if (isPlanId(buy)) {
+      startCheckout(buy, params.get("period") === "month" ? "month" : "year")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
 
   return (
     <div className="w-full max-w-none space-y-6">
@@ -336,6 +373,11 @@ export function CabinetSubscriptionHub() {
         open={fixDialogOpen}
         onOpenChange={setFixDialogOpen}
         useFixPackPricing
+        initialTracks={fixInitialTracks}
+        onPaid={() => {
+          setLoading(true)
+          void loadUser()
+        }}
         title="Пакет Fix"
         description="Оплата пакета треков: 1-5 шт. - 500 ₽/трек, 6-10 - 400 ₽, 11+ - 350 ₽."
       />

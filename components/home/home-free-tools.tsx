@@ -4,6 +4,7 @@ import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { marketingGlassHoverClass, marketingGlassPanelClass } from "@/components/marketing/marketing-glass"
 import { cabinetAuthHref } from "@/components/cabinet/shared/service-landing-mode"
+import { trackGoal } from "@/lib/analytics"
 import { getToolItem, type ToolItem } from "@/components/cabinet/tools/tools-catalog"
 import { useI18n } from "@/lib/i18n-context"
 import { cn } from "@/lib/utils"
@@ -34,6 +35,7 @@ export function HomeFreeTools() {
                 key={tool.id}
                 href={cabinetAuthHref(tool.href, true)}
                 prefetch={false}
+                onClick={() => trackGoal("cta_register_click", { location: "free_tools", tool: tool.id })}
                 className={cn(marketingGlassPanelClass, marketingGlassHoverClass, "group flex flex-col gap-4 p-6")}
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary">

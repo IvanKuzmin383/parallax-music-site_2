@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useI18n } from "@/lib/i18n-context"
 import { formatMonthsCountLabel, formatPayPeriodOptionLabel } from "@/lib/pay-period-labels"
 import { isPlanId } from "@/lib/plan-pricing"
+import { PaymentReturnStatus } from "@/components/payments/payment-return-status"
 import { Disc3, ChevronLeft } from "lucide-react"
 import { toast } from "sonner"
 
@@ -152,6 +153,27 @@ function PayPageContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Возврат из банка (гость): статус заказа подтверждаем на сервере, а не по параметру URL.
+  const returnPaymentParam = searchParams.get("payment")
+  const returnOrderId = searchParams.get("orderId")
+  if (returnPaymentParam && returnOrderId && !fromCabinet && !returnPath) {
+    return (
+      <main className="min-h-screen bg-background pt-20">
+        <div className="container mx-auto px-4 py-12">
+          <div className="mx-auto max-w-xl space-y-6">
+            <PaymentReturnStatus
+              orderId={returnOrderId}
+              hint={returnPaymentParam === "fail" ? "fail" : "return"}
+              guest={!emailLocked}
+              continueHref="/cabinet/subscription"
+              continueLabel="К подписке в кабинете"
+            />
+          </div>
+        </div>
+      </main>
+    )
   }
 
   if (!plan) {

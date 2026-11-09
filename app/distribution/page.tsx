@@ -13,7 +13,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 export const metadata: Metadata = {
   title: "Дистрибуция музыки на 50+ площадок | Parallax Music",
   description:
-    "Выпустите трек на Яндекс Музыку, VK, Spotify, Apple Music и другие площадки. 100% роялти, ИИ-релизы принимаем, треки не снимаем после подписки.",
+    "Выпустите трек на Яндекс Музыку, VK, Spotify, Apple Music и другие площадки. Роялти без комиссии дистрибьютора, ИИ-релизы принимаем, релизы остаются в дистрибуции после окончания подписки.",
   alternates: { canonical: "/distribution" },
   openGraph: {
     title: "Дистрибуция музыки на 50+ площадок | Parallax Music",
@@ -30,7 +30,7 @@ export default function DistributionPage() {
         <MarketingHero
           title="Выпустите музыку"
           titleHighlight="на все площадки"
-          description="Загрузите трек в кабинет - мы проверим материалы и доставим на Яндекс Музыку, VK, Spotify, Apple Music и 50+ сервисов. 100% роялти вам."
+          description="Загрузите трек в кабинет - мы проверим материалы и доставим на Яндекс Музыку, VK, Spotify, Apple Music и 50+ сервисов. Роялти выплачиваются без комиссии дистрибьютора."
           primaryHref="/pricing"
           primaryLabel="Выбрать тариф"
           secondaryHref="/cabinet?tab=register"
@@ -61,10 +61,10 @@ export default function DistributionPage() {
             <h2 className="mb-4 text-3xl font-bold md:text-4xl">Как начать</h2>
             <ol className="mb-10 space-y-3 text-left">
               {[
-                "Выберите подписку или тариф Fix и оплатите",
-                "Создайте кабинет на тот же email",
+                "Создайте кабинет бесплатно",
+                "Выберите подписку или тариф Fix и оплатите в кабинете",
                 "Загрузите трек, обложку и метаданные",
-                "Мы модерируем и отправляем на площадки - вы получаете 100% роялти",
+                "Мы модерируем и отправляем на площадки - роялти выплачиваются без комиссии дистрибьютора",
               ].map((step, index) => (
                 <li key={step} className={cn(marketingGlassPanelClass, "p-4")}>
                   <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">

@@ -22,6 +22,7 @@ import {
   Upload,
 } from "lucide-react"
 import { toast } from "sonner"
+import { trackGoal } from "@/lib/analytics"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
@@ -888,6 +889,7 @@ function ToolsMasteringInner() {
       if (saveData.entitlement) setEntitlement(saveData.entitlement)
 
       triggerBlobDownload(rendered.blob, rendered.fileName)
+      trackGoal(saveData.used === "free" ? "tool_free_used" : "tool_paid_used", { tool: "mastering" })
 
       const ttl = saveData.ttlDays ?? TOOLS_MASTERING_FILE_TTL_DAYS
       toast.success(

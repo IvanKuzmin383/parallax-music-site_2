@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useI18n } from "@/lib/i18n-context"
 import { calculateFixPackTotalRub } from "@/lib/fix-pack-pricing"
+import { cabinetAuthHref } from "@/components/cabinet/shared/service-landing-mode"
+import { trackGoal } from "@/lib/analytics"
 import { Percent, CreditCard, Disc3 } from "lucide-react"
 
 type Period = "month" | "year"
@@ -41,8 +43,10 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
   }, [searchParams])
   const [period, setPeriod] = useState<Period>("year")
 
+  // Покупка тарифа - внутри кабинета: гость сначала бесплатно регистрируется, затем открывается оплата выбранного тарифа.
   const handleStartClick = (planId: string) => {
-    router.push(`/pay/${planId}?period=${period}`)
+    trackGoal("cta_pricing_click", { location: "pricing", plan: planId, period })
+    router.push(cabinetAuthHref(`/cabinet/subscription?buy=${planId}&period=${period}`, true))
   }
 
   const fixTiers = t.pricing.fixTiers as FixTierCard[]
@@ -159,7 +163,10 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
                         className="w-full"
                         asChild
                       >
-                        <Link href={`/pay/fix?tracks=${tier.defaultTracks}`}>
+                        <Link
+                          href={cabinetAuthHref(`/cabinet/subscription?buy=fix&tracks=${tier.defaultTracks}`, true)}
+                          onClick={() => trackGoal("cta_pricing_click", { location: "pricing", plan: "fix" })}
+                        >
                           {t.pricing.fixCtaButton}
                         </Link>
                       </Button>

@@ -23,6 +23,7 @@ import {
   Upload,
 } from "lucide-react"
 import { toast } from "sonner"
+import { trackGoal } from "@/lib/analytics"
 import { StoryVideoPreview } from "@/components/cabinet/tools/story-video/story-video-preview"
 import { PageHeader } from "@/components/cabinet/shared/page-header"
 import {
@@ -929,6 +930,7 @@ export function StoryVideoClient({ draftId }: { draftId: string }) {
       a.remove()
       URL.revokeObjectURL(href)
       setExportProgress(1)
+      trackGoal(consumeData.used === "free" ? "tool_free_used" : "tool_paid_used", { tool: "story_video" })
       toast.success(
         consumeData.used === "free"
           ? "Скачано (бесплатное скачивание использовано)"

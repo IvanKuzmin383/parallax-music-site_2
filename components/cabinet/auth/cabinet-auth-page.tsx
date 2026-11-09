@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { trackGoal } from "@/lib/analytics"
 import { Lock, ShieldCheck } from "lucide-react"
 import { Turnstile } from "@marsidev/react-turnstile"
 import { toast } from "sonner"
@@ -216,6 +217,7 @@ export function CabinetAuthPage({ onAuthenticated }: CabinetAuthPageProps) {
         toast.success("Регистрация выполнена успешно")
         setEmailVerifyOpen(false)
         setEmailVerifyCode("")
+        trackGoal("register_success")
         onAuthenticated()
       } else {
         toast.error(data.error || "Не удалось создать аккаунт")

@@ -18,7 +18,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://parallaxmusic.ru"
 const heroOgImage = getHeroBackgroundOgUrl(siteUrl)
 
 const homeDescription =
-  "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. Инструменты, продвижение и 100% роялти в одном кабинете."
+  "Дистрибуция музыки на Яндекс Музыку, VK, Spotify, Apple Music и 50+ площадок. Инструменты, продвижение и роялти без комиссии дистрибьютора в одном кабинете."
 
 export const metadata: Metadata = {
   title: "Дистрибуция и продвижение музыки | Parallax Music",

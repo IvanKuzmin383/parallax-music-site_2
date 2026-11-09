@@ -30,10 +30,10 @@ export function CookieConsentBanner() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4 sm:px-6 sm:pb-6">
-      <div className="max-w-3xl w-full rounded-2xl border border-border bg-background/95 backdrop-blur shadow-lg shadow-black/10 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6">
-          <div className="flex-1 mb-4 sm:mb-0">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-3 sm:justify-start sm:px-6 sm:pb-6">
+      <div className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-border bg-background/95 p-3 shadow-lg shadow-black/10 backdrop-blur sm:max-w-md sm:p-5">
+        <div className="flex flex-col gap-3">
+          <div className="flex-1">
             <p className="text-sm font-medium text-foreground mb-1">
               Мы используем файлы cookie
             </p>

@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useI18n } from "@/lib/i18n-context"
 import { readReferralCodeFromCookie } from "@/components/referral-capture"
+import { trackGoal } from "@/lib/analytics"
 
 export function Header() {
   const pathname = usePathname()
@@ -51,26 +52,26 @@ export function Header() {
         isScrolled ? "bg-background/90 backdrop-blur-md border-b border-border/60" : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto flex items-center justify-between px-4 py-4 md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-4 lg:gap-6">
-        <Link href="/" className="flex-shrink-0 text-xl font-black tracking-tighter md:text-2xl">
+      <div className="container mx-auto flex items-center justify-between px-4 py-4 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center xl:gap-4 2xl:gap-6">
+        <Link href="/" className="flex-shrink-0 text-xl font-black tracking-tighter xl:text-2xl">
           <span className="text-foreground">PARALLAX</span>
           <span className="ml-1 text-primary">MUSIC</span>
         </Link>
 
-        <nav className="hidden min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-2 md:flex lg:gap-x-6">
+        <nav className="hidden min-w-0 items-center justify-center gap-x-5 xl:flex 2xl:gap-x-6">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               prefetch={false}
-              className="whitespace-nowrap text-sm uppercase tracking-wider transition-colors hover:text-primary"
+              className="whitespace-nowrap text-[13px] uppercase tracking-wider transition-colors hover:text-primary 2xl:text-sm"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden flex-shrink-0 items-center justify-end gap-3 md:flex">
+        <div className="hidden flex-shrink-0 items-center justify-end gap-3 xl:flex">
           <LanguageSwitcher />
           {!hideLogin && (
             <>
@@ -84,7 +85,11 @@ export function Header() {
                 className="uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/90"
                 asChild
               >
-                <Link href={registerHref} prefetch={false}>
+                <Link
+                  href={registerHref}
+                  prefetch={false}
+                  onClick={() => trackGoal("cta_register_click", { location: "header" })}
+                >
                   {t.header.register}
                 </Link>
               </Button>
@@ -94,7 +99,7 @@ export function Header() {
 
         <button
           type="button"
-          className="ml-2 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-foreground hover:bg-muted/50 md:hidden"
+          className="ml-2 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-foreground hover:bg-muted/50 xl:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
           aria-expanded={isMobileMenuOpen}
@@ -105,7 +110,7 @@ export function Header() {
       </div>
 
       {isMobileMenuOpen && (
-        <div id="mobile-menu" className="border-t border-border bg-card/95 backdrop-blur-md md:hidden" role="menu">
+        <div id="mobile-menu" className="border-t border-border bg-card/95 backdrop-blur-md xl:hidden" role="menu">
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-6">
             {nav.map((item) => (
               <Link
@@ -139,7 +144,10 @@ export function Header() {
                     <Link
                       href={registerHref}
                       prefetch={false}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        trackGoal("cta_register_click", { location: "header_mobile" })
+                        setIsMobileMenuOpen(false)
+                      }}
                     >
                       {t.header.register}
                     </Link>
