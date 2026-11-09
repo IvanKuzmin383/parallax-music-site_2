@@ -57,7 +57,7 @@ export function HomeBento() {
   const copy = t.home.bento
 
   return (
-    <section id="paths" className="py-20 md:py-28">
+    <section id="workshop" className="scroll-mt-20 py-20 md:py-28">
       <div className="mx-auto max-w-[1180px] px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-12 max-w-2xl text-center">
           <h2 className="text-balance text-3xl font-bold tracking-tight md:text-5xl">

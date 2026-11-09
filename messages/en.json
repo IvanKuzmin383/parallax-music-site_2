@@ -16,15 +16,57 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Distribution for every artist",
-      "title": "Release music to 50+ platforms.",
-      "titleHighlight": "AI tracks welcome.",
-      "description": "Upload, moderation, stats and royalties in one dashboard. Covers, mastering, video and promotion right next to it, so your release does not get lost after launch.",
-      "ctaPrimary": "Create account",
-      "ctaSecondary": "All features",
-      "points": ["100% royalties", "AI music accepted", "Releases stay live after subscription", "Per-platform stats"],
-      "mockupAlt": "Parallax Music dashboard: releases, royalties, stats and release calendar",
-      "releaseStatus": "Released"
+      "eyebrow": "Distribution for artists",
+      "title": "Release your music on 50+ platforms.",
+      "titleHighlight": "Everything for your release - in one cabinet.",
+      "description": "Distribution of regular and AI music, statistics, royalties, release design and promotion - in one service.",
+      "points": [
+        "100% royalties with no distributor commission*",
+        "AI music accepted",
+        "Per-platform statistics",
+        "Tools for artists"
+      ],
+      "ctaPrimary": "Create a free cabinet",
+      "ctaNote": "Sign-up is free, releasing is paid by plan",
+      "ctaSecondary": "See what you get",
+      "footnote": "* No commission on royalties. Taxes and mandatory payments are withheld by law at payout and depend on the recipient's status.",
+      "demoBadge": "Demo data",
+      "mockupAlt": "Parallax Music dashboard: releases, royalties, stats and release calendar"
+    },
+    "path": {
+      "title": "The release",
+      "titleHighlight": "journey",
+      "description": "From upload to payout - four steps, all inside the cabinet.",
+      "stepLabel": "Step",
+      "demoNote": "Screenshots of a demo account. Data is for demonstration.",
+      "cta": "Create a free cabinet",
+      "ctaNote": "Sign-up is free, releasing is paid by plan",
+      "steps": [
+        {
+          "id": "upload",
+          "title": "Upload",
+          "description": "Track, cover, metadata and AI labeling. The wizard guides you step by step and tells you what to fill in.",
+          "alt": "Release upload wizard in the cabinet: steps from basics to review"
+        },
+        {
+          "id": "moderation",
+          "title": "Moderation and delivery",
+          "description": "We review the release, ask for fixes if needed and deliver it to platforms. Each release status is visible in the cabinet.",
+          "alt": "Release list in the cabinet with statuses: in moderation, sent to platforms, released"
+        },
+        {
+          "id": "stats",
+          "title": "Statistics",
+          "description": "Streams by day, platform, country and track in one place.",
+          "alt": "Streaming statistics in the Parallax Music cabinet"
+        },
+        {
+          "id": "royalty",
+          "title": "Royalties and payout",
+          "description": "Earnings, cabinet balance and withdrawals. Taxes and mandatory payments are withheld by law at payout.",
+          "alt": "Finance in the cabinet: balance, royalties and withdraw buttons"
+        }
+      ]
     },
     "bento": {
       "title": "One dashboard",

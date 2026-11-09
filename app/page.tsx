@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { getHeroBackgroundOgUrl } from "@/lib/hero-background"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { HomeHero } from "@/components/home/home-hero"
+import { HomeReleasePath } from "@/components/home/home-release-path"
 import { HomeBento } from "@/components/home/home-bento"
 import { HomeFreeTools } from "@/components/home/home-free-tools"
 import { HomeFinalCta } from "@/components/home/home-final-cta"
@@ -138,6 +139,7 @@ export default function HomePage() {
       />
       <main id="main-content" className="min-h-screen bg-transparent">
         <HomeHero />
+        <HomeReleasePath />
         <HomeBento />
         <HomeFreeTools />
         <ProofResults />

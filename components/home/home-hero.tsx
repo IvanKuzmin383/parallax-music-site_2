@@ -13,8 +13,6 @@ const PartnerMarquee = dynamic(
   { ssr: false, loading: () => <div className="mt-20 h-20" aria-hidden /> },
 )
 
-const RELEASE_PLATFORMS = ["yandex", "vk", "spotify", "apple-music"] as const
-
 export function HomeHero() {
   const { t } = useI18n()
   const copy = t.home.hero
@@ -50,7 +48,8 @@ export function HomeHero() {
               ))}
             </ul>
 
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start sm:items-start">
+              <div className="flex w-full flex-col items-center gap-1.5 sm:w-auto lg:items-start">
               <Button size="lg" className="w-full gap-2 px-7 sm:w-auto" asChild>
                 <Link
                   href="/cabinet?tab=register"
@@ -61,17 +60,21 @@ export function HomeHero() {
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               </Button>
+              <p className="text-xs text-muted-foreground">{copy.ctaNote}</p>
+              </div>
               <Button
                 size="lg"
                 variant="outline"
                 className="w-full border-border/70 bg-background/20 px-7 backdrop-blur-sm sm:w-auto"
                 asChild
               >
-                <Link href="/features" onClick={() => trackGoal("cta_features_click", { location: "hero" })}>
+                <Link href="#workshop" onClick={() => trackGoal("cta_features_click", { location: "hero" })}>
                   {copy.ctaSecondary}
                 </Link>
               </Button>
             </div>
+
+            <p className="mx-auto max-w-xl text-xs leading-relaxed text-muted-foreground lg:mx-0">{copy.footnote}</p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[640px] lg:max-w-none">
@@ -96,31 +99,9 @@ export function HomeHero() {
               />
             </div>
 
-            <div className="absolute -bottom-6 left-4 flex items-center gap-3 rounded-2xl border border-border/50 bg-card/80 p-2.5 pr-4 shadow-xl backdrop-blur-xl sm:-left-6">
-              <Image
-                src="/aicover/example-05.webp"
-                alt=""
-                width={56}
-                height={56}
-                className="h-14 w-14 rounded-lg object-cover"
-              />
-              <div className="space-y-1.5">
-                <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                  {copy.releaseStatus}
-                </p>
-                <div className="flex items-center gap-1.5">
-                  {RELEASE_PLATFORMS.map((platform) => (
-                    <span
-                      key={platform}
-                      className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 p-1"
-                    >
-                      <img src={`/platforms/${platform}.svg`} alt="" className="h-full w-full object-contain" />
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <span className="absolute bottom-5 right-5 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+              {copy.demoBadge}
+            </span>
           </div>
         </div>
 
