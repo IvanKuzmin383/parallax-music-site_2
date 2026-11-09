@@ -272,7 +272,6 @@ function PricingContent({ asPageHeader }: { asPageHeader: boolean }) {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-center text-xs text-muted-foreground">{t.pricing.royaltyFootnote}</p>
         </div>
       </div>
     </section>

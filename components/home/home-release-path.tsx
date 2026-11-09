@@ -103,7 +103,6 @@ export function HomeReleasePath() {
             {copy.cta}
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
-          <p className="text-xs text-muted-foreground">{copy.ctaNote}</p>
           <Link href="/distribution" className="text-sm text-primary underline-offset-4 hover:underline">
             {copy.moreLink}
           </Link>

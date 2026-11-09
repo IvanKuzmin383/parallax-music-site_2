@@ -43,8 +43,7 @@ export function HomeHero() {
               ))}
             </ul>
 
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start sm:items-start">
-              <div className="flex w-full flex-col items-center gap-1.5 sm:w-auto lg:items-start">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <Button size="lg" className="w-full gap-2 px-7 sm:w-auto" asChild>
                 <Link
                   href="/cabinet?tab=register"
@@ -55,8 +54,6 @@ export function HomeHero() {
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
               </Button>
-              <p className="text-xs text-muted-foreground">{copy.ctaNote}</p>
-              </div>
               <Button
                 size="lg"
                 variant="outline"
@@ -68,8 +65,6 @@ export function HomeHero() {
                 </Link>
               </Button>
             </div>
-
-            <p className="mx-auto max-w-xl text-xs leading-relaxed text-muted-foreground lg:mx-0">{copy.footnote}</p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[640px] lg:max-w-none">
@@ -97,6 +92,19 @@ export function HomeHero() {
             <span className="absolute bottom-5 right-5 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
               {copy.demoBadge}
             </span>
+
+            <ul className="mt-6 grid grid-cols-3 gap-3 text-center">
+              {copy.stats.map((stat) => (
+                <li key={stat.label}>
+                  <p className="text-2xl font-bold tabular-nums text-primary sm:text-3xl lg:text-4xl">
+                    {stat.value}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
+                    {stat.label}
+                  </p>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>

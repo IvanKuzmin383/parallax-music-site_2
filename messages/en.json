@@ -26,27 +26,29 @@
         "Per-platform statistics",
         "Tools for artists"
       ],
-      "ctaPrimary": "Create a free cabinet",
-      "ctaNote": "Sign-up is free, releasing is paid by plan",
+      "ctaPrimary": "Create a cabinet",
       "ctaSecondary": "See what you get",
-      "footnote": "* No commission on royalties. Taxes and mandatory payments are withheld by law at payout and depend on the recipient's status.",
       "demoBadge": "Demo data",
-      "mockupAlt": "Parallax Music dashboard: releases, royalties, stats and release calendar"
+      "mockupAlt": "Parallax Music dashboard: releases, royalties, stats and release calendar",
+      "stats": [
+        { "value": "5000+", "label": "tracks released" },
+        { "value": "50+", "label": "streaming platforms" },
+        { "value": "100%", "label": "royalties to you" }
+      ]
     },
     "path": {
       "title": "The release",
       "titleHighlight": "journey",
-      "description": "First a free cabinet, then a plan and upload. Every step stays inside the service.",
+      "description": "First the cabinet, then a plan and upload. Every step stays inside the service.",
       "planNote": "To release a track you need a plan and account verification, usually 1-2 business days. Creating a cabinet is free.",
       "stepLabel": "Step",
       "demoNote": "Screenshots of a demo account. Data is for demonstration.",
-      "cta": "Create a free cabinet",
-      "ctaNote": "Sign-up is free, releasing is paid by plan",
+      "cta": "Create a cabinet",
       "moreLink": "More about distribution and platforms",
       "steps": [
         {
           "id": "cabinet",
-          "title": "Free cabinet",
+          "title": "Cabinet",
           "description": "Create an account, confirm your email and go inside. You can try the free tools right away.",
           "alt": "Parallax Music dashboard: releases, royalties, stats and release calendar"
         },
@@ -144,7 +146,7 @@
       }
     },
     "final": {
-      "title": "Start with a free cabinet",
+      "title": "Start with a cabinet",
       "description": "Create an account, upload your track and cover. We handle moderation and delivery to platforms.",
       "ctaPrimary": "Create account",
       "ctaSecondary": "Choose a plan"
@@ -159,7 +161,7 @@
             {
               "id": "how-to-release",
               "question": "How do I release music to Spotify, Yandex Music and other platforms?",
-              "answer": "Create a cabinet for free, complete verification and choose a plan inside the cabinet. Then upload the track, cover and metadata. We review the materials and deliver them to platforms. The standard release date is 14+ calendar days, faster dates are paid."
+              "answer": "Create a cabinet, complete verification and choose a plan inside the cabinet. Then upload the track, cover and metadata. We review the materials and deliver them to platforms. The standard release date is 14+ calendar days, faster dates are paid."
             },
             {
               "id": "what-is-free",
@@ -299,7 +301,7 @@
     "steps": {
       "discovery": {
         "title": "Plan",
-        "description": "Create your cabinet for free and pick a subscription or Fix pack. You pay for the plan inside the cabinet."
+        "description": "Create a cabinet and pick a subscription or Fix pack. You pay for the plan inside the cabinet."
       },
       "strategy": {
         "title": "Upload",
@@ -335,19 +337,6 @@
     "ctaPromotion": "Order promotion",
     "ctaDistribution": "Release a track",
     "ctaCases": "View case studies",
-    "featuredCase": {
-      "label": "Case",
-      "title": "Dmitry Krukov - promoting an orchestral release",
-      "description": "VK Ads, Yandex Direct and BandLink: how an original orchestral piece reached a mass audience in one week of advertising.",
-      "periodLabel": "Period",
-      "period": "29.05.2026 - 04.06.2026",
-      "servicesLabel": "Services",
-      "metrics": [
-        { "value": "8,355", "label": "ad clicks" },
-        { "value": "302", "label": "VK Music listeners in 7 days" }
-      ],
-      "cta": "Read the case"
-    },
     "screenshotsTitle": "Screenshots from Yandex Music and artist analytics",
     "disclaimer": "Results depend on the release, budget and audience and are not guaranteed."
   },
@@ -486,7 +475,7 @@
   "pricing": {
     "title": "Our",
     "titleHighlight": "Pricing",
-    "description": "1. Create your cabinet for free → 2. Choose a plan in the cabinet → 3. Upload your track.\nQuestions before paying? Message us on Telegram.",
+    "description": "1. Create a cabinet → 2. Choose a plan in the cabinet → 3. Upload your track.\nQuestions before paying? Message us on Telegram.",
     "modeOnetime": "One-time payment",
     "modeSubscription": "Subscription",
     "onetimeIntro": "Fix plan - pay only for the tracks you need, no subscription or auto-renewal",
@@ -511,12 +500,11 @@
     },
     "sharedTitle": "In every plan",
     "sharedItems": [
-      "Royalties with no distributor commission*",
+      "Royalties with no distributor commission",
       "Distribution to 50+ platforms",
       "Release support and help",
       "Statistics and tools in the cabinet"
     ],
-    "royaltyFootnote": "* No commission on royalties. Taxes and mandatory payments are withheld by law at payout and depend on the recipient's status.",
     "plans": [
       {
         "id": "start",
@@ -789,7 +777,7 @@
         {
           "id": "how-to-release",
           "question": "How can I release music on Spotify, Yandex Music, and other platforms?",
-          "answer": "Create your cabinet for free and choose a plan inside it. Upload tracks - we review materials and deliver to streaming services (Apple Music, Spotify, YouTube Music, Yandex Music, and others). After release, you earn from streams."
+          "answer": "Create a cabinet and choose a plan inside it. Upload tracks - we review materials and deliver to streaming services (Apple Music, Spotify, YouTube Music, Yandex Music, and others). After release, you earn from streams."
         },
         {
           "id": "upload-ai",

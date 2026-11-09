@@ -135,6 +135,22 @@ function taskActionLabel(release: ReleaseView): string {
   return label
 }
 
+function nextReleaseActionLabel(release: ReleaseView): string {
+  if (usesWizardAction(release)) return taskActionLabel(release)
+  return "Смотреть релиз"
+}
+
+function formatReleaseDateLabel(releaseDate?: string): string | null {
+  if (!releaseDate?.trim()) return null
+  try {
+    const d = parseISO(releaseDate)
+    if (Number.isNaN(d.getTime())) return null
+    return format(d, "d MMMM yyyy", { locale: ru })
+  } catch {
+    return null
+  }
+}
+
 function isDashboardTask(release: ReleaseView): boolean {
   return (
     release.kind === "draft" ||
@@ -294,6 +310,11 @@ export function DashboardStatsPanel() {
     }))
   }, [series, period])
 
+  const periodTotal = useMemo(
+    () => chartData.reduce((sum, point) => sum + point.plays, 0),
+    [chartData]
+  )
+
   const periods: Array<{ key: PeriodKey; label: string }> = [
     { key: 7, label: "7 дней" },
     { key: 30, label: "30 дней" },
@@ -320,22 +341,32 @@ export function DashboardStatsPanel() {
         </Button>
       </div>
 
-      <div className="mt-4 flex gap-1 border-b border-border/60">
-        {periods.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            onClick={() => setPeriod(p.key)}
-            className={cn(
-              "px-3 py-2 text-sm transition-colors",
-              period === p.key
-                ? "border-b-2 border-primary text-foreground font-medium -mb-px"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="mt-4 flex items-end justify-between gap-3 border-b border-border/60">
+        <div className="flex min-w-0 gap-1">
+          {periods.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setPeriod(p.key)}
+              className={cn(
+                "px-3 py-2 text-sm transition-colors",
+                period === p.key
+                  ? "border-b-2 border-primary text-foreground font-medium -mb-px"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {!loading ? (
+          <p className="shrink-0 pb-2 text-sm tabular-nums">
+            <span className="text-muted-foreground">Всего </span>
+            <span className="font-semibold text-foreground">
+              {periodTotal.toLocaleString("ru-RU")}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-4 flex-1 min-h-[220px]">
@@ -393,16 +424,10 @@ export function DashboardStatsPanel() {
 export function DashboardNextRelease({ release }: { release: ReleaseView | null }) {
   const router = useRouter()
   const { handleUploadBlock } = useCabinetSubscription()
-  const days = release ? daysUntilRelease(release.releaseDate) : null
-  const href = release
-    ? usesWizardAction(release)
-      ? releaseContinueHref(release)
-      : releaseDetailHref(release)
-    : "/cabinet/upload"
 
   if (!release) {
     return (
-      <section className={cn(dashboardGlassPanelClass, "flex h-full flex-col p-5")}>
+      <section className={cn(dashboardGlassPanelClass, "flex h-full min-h-[280px] flex-col p-5")}>
         <h2 className="text-lg font-semibold">Ближайший релиз</h2>
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-4 rounded-xl bg-muted/20 p-6 text-center">
           <Music className="h-10 w-10 text-muted-foreground" />
@@ -418,52 +443,97 @@ export function DashboardNextRelease({ release }: { release: ReleaseView | null 
     )
   }
 
+  const days = daysUntilRelease(release.releaseDate)
+  const dateLabel = formatReleaseDateLabel(release.releaseDate)
+  const href = usesWizardAction(release)
+    ? releaseContinueHref(release)
+    : releaseDetailHref(release)
+  const actionLabel = nextReleaseActionLabel(release)
+  const title = release.title || "Без названия"
+  const artist = release.artist.trim()
+  const showArtist = artist.length > 0 && artist !== "-"
+
+  const open = () => {
+    if (usesWizardAction(release)) {
+      void goUploadOrToast(router, href, handleUploadBlock)
+      return
+    }
+    router.push(href)
+  }
+
   return (
-    <section className={cn(dashboardGlassPanelClass, "flex items-stretch overflow-hidden")}>
-      <div className="relative aspect-square shrink-0 self-stretch bg-muted">
-        {release.coverUrl ? (
-          <Image
-            src={release.coverUrl}
-            alt=""
-            fill
-            className="object-cover"
-            unoptimized
-            sizes="240px"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Music className="h-10 w-10 text-muted-foreground" />
-          </div>
-        )}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-5">
-        <h2 className="text-lg font-semibold">Ближайший релиз</h2>
-        <div className="space-y-1 min-w-0">
-          <p className="text-lg font-semibold leading-snug line-clamp-2">
-            {release.title || "Без названия"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {days == null
-              ? "Дата выхода не указана"
-              : days === 0
-                ? "Релиз выходит сегодня"
-                : `Релиз выйдет через ${days} ${pluralDays(days)}`}
-          </p>
+    <section className={cn(dashboardGlassPanelClass, "relative h-full min-h-[280px] overflow-hidden p-0")}>
+      <button
+        type="button"
+        onClick={open}
+        aria-label={`Ближайший релиз ${title}. ${actionLabel}`}
+        className="group relative flex h-full min-h-[280px] w-full flex-col overflow-hidden text-left text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+      >
+        <div className="absolute inset-0 bg-muted">
+          {release.coverUrl ? (
+            <Image
+              src={release.coverUrl}
+              alt=""
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              unoptimized
+              sizes="(min-width: 1024px) 360px, 100vw"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Music className="h-12 w-12 text-muted-foreground" />
+            </div>
+          )}
         </div>
-        {usesWizardAction(release) ? (
-          <Button
-            type="button"
-            className="mt-auto w-fit"
-            onClick={() => void goUploadOrToast(router, href, handleUploadBlock)}
-          >
-            Открыть
-          </Button>
-        ) : (
-          <Button asChild className="mt-auto w-fit">
-            <Link href={href}>Открыть</Link>
-          </Button>
-        )}
-      </div>
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20"
+          aria-hidden
+        />
+
+        <div className="relative z-10 flex h-full flex-col justify-between gap-6 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">
+              Ближайший релиз
+            </p>
+            {days != null && days > 0 ? (
+              <div className="text-right leading-none">
+                <p className="text-3xl font-bold tabular-nums">{days}</p>
+                <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-white/70">
+                  {pluralDays(days)}
+                </p>
+              </div>
+            ) : days === 0 ? (
+              <p className="text-sm font-semibold text-white/90">Сегодня</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
+            {showArtist ? (
+              <p className="text-xs font-medium text-white/75 line-clamp-1">{artist}</p>
+            ) : null}
+            <p className="text-xl font-semibold leading-snug line-clamp-2 drop-shadow-sm">{title}</p>
+            <StatusBadge
+              status={release.status}
+              kind="generic"
+              withIcon
+              className="border-white/15 text-[10px] backdrop-blur-sm"
+            />
+            <p className="text-sm text-white/80">
+              {dateLabel
+                ? days != null && days > 0
+                  ? `${dateLabel} · через ${days} ${pluralDays(days)}`
+                  : days === 0
+                    ? `${dateLabel} · сегодня`
+                    : dateLabel
+                : "Дата выхода не указана"}
+            </p>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold">
+              {actionLabel}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </div>
+      </button>
     </section>
   )
 }

@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n-context"
 import { cn } from "@/lib/utils"
-import { getFeaturedCaseStudies } from "@/data/cases"
 
 const PROOFS = [
   {
@@ -49,8 +48,6 @@ export function ProofResults() {
   const ctaCases = copy.ctaCases ?? "Смотреть кейсы"
   const ctaPromotion = copy.ctaPromotion ?? "Заказать продвижение"
   const ctaDistribution = copy.ctaDistribution ?? "Выпустить трек"
-  const featuredCase = getFeaturedCaseStudies(1)[0]
-  const caseCopy = copy.featuredCase
 
   return (
     <section id="proofs" className="border-t border-border/40 py-20 md:py-24">
@@ -62,49 +59,6 @@ export function ProofResults() {
           </h2>
           <p className="text-pretty text-lg text-muted-foreground">{copy.description}</p>
         </div>
-
-        {featuredCase ? (
-          <article
-            className={cn(
-              marketingGlassPanelClass,
-              "mx-auto mb-12 grid max-w-4xl gap-6 p-6 md:grid-cols-[1.2fr_1fr] md:p-8",
-            )}
-          >
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{caseCopy.label}</p>
-              <h3 className="text-2xl font-bold tracking-tight md:text-3xl">{caseCopy.title}</h3>
-              <p className="text-muted-foreground">{caseCopy.description}</p>
-              <dl className="grid gap-1 text-sm text-muted-foreground">
-                <div className="flex flex-wrap gap-x-2">
-                  <dt className="font-medium text-foreground">{caseCopy.periodLabel}:</dt>
-                  <dd>{caseCopy.period}</dd>
-                </div>
-                {featuredCase.services?.length ? (
-                  <div className="flex flex-wrap gap-x-2">
-                    <dt className="font-medium text-foreground">{caseCopy.servicesLabel}:</dt>
-                    <dd>{featuredCase.services.join(", ")}</dd>
-                  </div>
-                ) : null}
-              </dl>
-              <Link
-                href={`/cases/${featuredCase.slug}`}
-                prefetch={false}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-              >
-                {caseCopy.cta}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </div>
-            <ul className="grid grid-cols-2 gap-3 self-center md:grid-cols-1">
-              {caseCopy.metrics.map((metric) => (
-                <li key={metric.label} className="rounded-xl border border-border/50 bg-background/40 p-4">
-                  <p className="text-3xl font-bold tabular-nums text-primary">{metric.value}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{metric.label}</p>
-                </li>
-              ))}
-            </ul>
-          </article>
-        ) : null}
 
         <p className="mx-auto mb-4 max-w-4xl text-sm font-medium text-muted-foreground">{copy.screenshotsTitle}</p>
 

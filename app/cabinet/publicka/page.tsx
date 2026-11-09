@@ -164,11 +164,11 @@ function CabinetPublickaPageInner() {
           {placements.length === 0 ? (
             <EmptyState
               title="Треков в 'Музыка для бизнеса' пока нет"
-              description="Оформите заявку на размещение - после проверки менеджером трек появится здесь."
+              description="Оформите заявку на размещение - после проверки менеджером трек будет добавлен в плейлист и появится здесь"
               icon={Building2}
               action={
                 <BusinessMusicOrderDialog
-                  triggerLabel="Оставить заявку"
+                  triggerLabel="Разместить"
                   onPaidFromBalance={() => void loadData()}
                 />
               }

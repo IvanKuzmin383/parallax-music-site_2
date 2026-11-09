@@ -26,32 +26,7 @@ export type CaseStudyMeta = {
   updatedAt?: string
 }
 
-export const caseStudies: CaseStudyMeta[] = [
-  {
-    slug: "where-mountains-dream",
-    title: "Дмитрий Крюков - продвижение оркестрового релиза",
-    excerpt:
-      "VK Ads, Яндекс Директ и BandLink: как авторское оркестровое произведение вышло на массовую аудиторию за неделю рекламы.",
-    metaDescription:
-      "Кейс продвижения оркестрового релиза 'Where the Mountains Dream': VK Ads, Яндекс Директ, BandLink - 8 355 кликов, 302 слушателя VK Музыки, тест эмоциональных креативов.",
-    keywords: [
-      "продвижение оркестровой музыки",
-      "VK Ads музыка",
-      "Яндекс Директ релиз",
-      "BandLink",
-      "таргет VK",
-      "Parallax Music кейс",
-      "продвижение релиза",
-    ],
-    coverImage: "/hero-studio.webp",
-    artistName: "Дмитрий Крюков",
-    genre: "Оркестровая / cinematic",
-    services: ["VK Ads", "Яндекс Директ", "BandLink"],
-    featured: true,
-    sortOrder: 1,
-    updatedAt: "2026-06-06",
-  },
-]
+export const caseStudies: CaseStudyMeta[] = []
 
 export function getAllCaseStudies(): CaseStudyMeta[] {
   return [...caseStudies].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
