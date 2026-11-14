@@ -30,7 +30,7 @@ function PayPageContent() {
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePersonalData, setAgreePersonalData] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
-  const [enableAutopay, setEnableAutopay] = useState(true)
+  const [enableAutopay, setEnableAutopay] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const plans = t.pricing.plans as Array<{
