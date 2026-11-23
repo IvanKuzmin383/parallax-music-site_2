@@ -1,0 +1,16 @@
+.partner-swagger .swagger-ui {
+  font-family: inherit;
+}
+
+.partner-swagger .swagger-ui .topbar {
+  display: none;
+}
+
+.partner-swagger .swagger-ui .info .title {
+  font-size: 1.75rem;
+}
+
+.partner-swagger .swagger-ui .scheme-container {
+  background: transparent;
+  box-shadow: none;
+}

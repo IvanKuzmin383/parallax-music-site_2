@@ -1,0 +1,759 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Parallax Music Partner API",
+    "description": "API для лейблов и партнёрских сервисов: управление артистами, загрузка релизов, статусы модерации и дистрибуции, статистика прослушиваний.\n\n**Доступ:** выдаётся индивидуально после подключения партнёрского кабинета Label.\n\n**Базовый URL продакшена:** `https://api.parallaxmusic.ru/v1`\n\n**Поддержка:** partners@parallaxmusic.ru",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Parallax Music Partners",
+      "email": "partners@parallaxmusic.ru",
+      "url": "https://parallaxmusic.ru"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://parallaxmusic.ru/offer"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.parallaxmusic.ru/v1",
+      "description": "Production"
+    },
+    {
+      "url": "https://api-sandbox.parallaxmusic.ru/v1",
+      "description": "Sandbox"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Проверка ключа и информация о партнёре"
+    },
+    {
+      "name": "Artists",
+      "description": "Артисты внутри лейбл-кабинета (много артистов в одном аккаунте)"
+    },
+    {
+      "name": "Releases",
+      "description": "Загрузка и статусы релизов (single / album)"
+    },
+    {
+      "name": "Stats",
+      "description": "Статистика стримов по артистам и трекам"
+    },
+    {
+      "name": "Webhooks",
+      "description": "События модерации и дистрибуции"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Партнёрский API-ключ. Выдаётся при подключении Label."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string", "example": "Unauthorized" },
+          "code": { "type": "string", "example": "unauthorized" },
+          "details": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "PartnerMe": {
+        "type": "object",
+        "properties": {
+          "partnerId": { "type": "string", "format": "uuid" },
+          "labelName": { "type": "string", "example": "Your Label" },
+          "plan": { "type": "string", "enum": ["Label", "Partner"] },
+          "artistsLimit": { "type": "integer", "nullable": true, "description": "null = без лимита" },
+          "releasesLimitMonthly": { "type": "integer", "nullable": true },
+          "webhookUrl": { "type": "string", "nullable": true, "format": "uri" }
+        }
+      },
+      "Artist": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "BABY_GIRL" },
+          "externalId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID артиста в вашей системе",
+            "example": "user_12345"
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ArtistCreate": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "externalId": { "type": "string", "maxLength": 128 }
+        }
+      },
+      "ReleaseStatus": {
+        "type": "string",
+        "description": "Статус релиза в пайплайне Parallax Music",
+        "enum": [
+          "draft",
+          "on_moderation",
+          "upload_pending",
+          "sent_to_platforms",
+          "approved_by_platforms",
+          "released",
+          "rejected",
+          "postponed"
+        ]
+      },
+      "TrackInput": {
+        "type": "object",
+        "required": ["trackName", "artistName", "genre", "isAiMade"],
+        "properties": {
+          "trackName": { "type": "string", "example": "Near Bird" },
+          "artistName": { "type": "string", "example": "Яна Соска" },
+          "featuring": { "type": "string", "nullable": true },
+          "genre": { "type": "string", "example": "Pop" },
+          "isInstrumental": { "type": "boolean", "default": false },
+          "isAiMade": {
+            "type": "boolean",
+            "description": "true, если трек полностью или частично создан ИИ (в т.ч. Suno)"
+          },
+          "musicAiService": {
+            "type": "string",
+            "nullable": true,
+            "example": "Suno",
+            "description": "Сервис генерации, если isAiMade=true"
+          },
+          "lyricsText": { "type": "string", "nullable": true },
+          "musicAuthor": { "type": "string", "nullable": true },
+          "lyricsAuthor": { "type": "string", "nullable": true },
+          "explicit": { "type": "boolean", "default": false },
+          "tiktokSoundStartSec": { "type": "integer", "minimum": 0, "nullable": true },
+          "externalTrackId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID трека в вашей системе"
+          }
+        }
+      },
+      "ReleaseCreate": {
+        "type": "object",
+        "required": ["type", "title", "artistName", "labelName", "releaseDate", "tracks"],
+        "properties": {
+          "type": { "type": "string", "enum": ["single", "album", "ep"] },
+          "title": { "type": "string", "example": "Поверхностное суждение" },
+          "artistName": { "type": "string" },
+          "labelName": {
+            "type": "string",
+            "description": "Название вашего лейбла (℗ / Label / Provided by)",
+            "example": "Your Label"
+          },
+          "releaseDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-16",
+            "description": "YYYY-MM-DD, не раньше допустимого окна дистрибуции"
+          },
+          "artistId": { "type": "string", "format": "uuid", "nullable": true },
+          "externalReleaseId": { "type": "string", "nullable": true },
+          "tracks": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/components/schemas/TrackInput" }
+          }
+        }
+      },
+      "Release": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["single", "album", "ep"] },
+          "title": { "type": "string" },
+          "artistName": { "type": "string" },
+          "labelName": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/ReleaseStatus" },
+          "releaseDate": { "type": "string", "format": "date", "nullable": true },
+          "upc": { "type": "string", "nullable": true },
+          "moderationNote": { "type": "string", "nullable": true },
+          "externalReleaseId": { "type": "string", "nullable": true },
+          "tracks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ReleaseTrack" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ReleaseTrack": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "trackName": { "type": "string" },
+          "artistName": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/ReleaseStatus" },
+          "isrc": { "type": "string", "nullable": true },
+          "isAiMade": { "type": "boolean" },
+          "externalTrackId": { "type": "string", "nullable": true }
+        }
+      },
+      "PaginatedReleases": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Release" }
+          },
+          "page": { "type": "integer", "example": 1 },
+          "pageSize": { "type": "integer", "example": 20 },
+          "total": { "type": "integer", "example": 128 }
+        }
+      },
+      "StatsSummary": {
+        "type": "object",
+        "properties": {
+          "periodFrom": { "type": "string", "format": "date" },
+          "periodTo": { "type": "string", "format": "date" },
+          "streams": { "type": "integer", "example": 125000 },
+          "listeners": { "type": "integer", "nullable": true },
+          "byPlatform": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "platform": {
+                  "type": "string",
+                  "example": "yandex_music"
+                },
+                "streams": { "type": "integer" }
+              }
+            }
+          },
+          "byArtist": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "artistId": { "type": "string", "format": "uuid", "nullable": true },
+                "artistName": { "type": "string" },
+                "streams": { "type": "integer" }
+              }
+            }
+          }
+        }
+      },
+      "WebhookEvent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "release.status_changed",
+              "release.released",
+              "release.rejected",
+              "release.needs_changes"
+            ]
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "releaseId": { "type": "string", "format": "uuid" },
+              "status": { "$ref": "#/components/schemas/ReleaseStatus" },
+              "moderationNote": { "type": "string", "nullable": true }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [{ "ApiKeyAuth": [] }],
+  "paths": {
+    "/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Текущий партнёр",
+        "operationId": "getPartnerMe",
+        "responses": {
+          "200": {
+            "description": "Профиль партнёра",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PartnerMe" }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный API-ключ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/artists": {
+      "get": {
+        "tags": ["Artists"],
+        "summary": "Список артистов лейбла",
+        "operationId": "listArtists",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Поиск по имени",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Artist" }
+                    },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Artists"],
+        "summary": "Создать артиста",
+        "operationId": "createArtist",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ArtistCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Создан",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Artist" }
+              }
+            }
+          },
+          "409": {
+            "description": "Артист с таким externalId уже есть",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/artists/{artistId}": {
+      "get": {
+        "tags": ["Artists"],
+        "summary": "Артист по ID",
+        "operationId": "getArtist",
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Artist" }
+              }
+            }
+          },
+          "404": {
+            "description": "Не найден",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releases": {
+      "get": {
+        "tags": ["Releases"],
+        "summary": "Список релизов",
+        "operationId": "listReleases",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/ReleaseStatus" }
+          },
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaginatedReleases" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Releases"],
+        "summary": "Создать релиз (метаданные)",
+        "description": "Создаёт релиз в статусе `draft`. Далее загрузите cover и audio, затем вызовите submit.",
+        "operationId": "createRelease",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ReleaseCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Создан",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Release" }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "402": {
+            "description": "Недостаточно слотов / лимит партнёра",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releases/{releaseId}": {
+      "get": {
+        "tags": ["Releases"],
+        "summary": "Статус и детали релиза",
+        "operationId": "getRelease",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Release" }
+              }
+            }
+          },
+          "404": {
+            "description": "Не найден",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releases/{releaseId}/cover": {
+      "put": {
+        "tags": ["Releases"],
+        "summary": "Загрузить обложку",
+        "description": "JPEG/PNG, квадрат, рекомендуется 3000×3000.",
+        "operationId": "uploadReleaseCover",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Обложка принята",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверный формат/размер",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releases/{releaseId}/tracks/{trackId}/audio": {
+      "put": {
+        "tags": ["Releases"],
+        "summary": "Загрузить аудио трека",
+        "description": "WAV (предпочтительно), 16/24-bit, 44.1/48 kHz.",
+        "operationId": "uploadTrackAudio",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "trackId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Аудио принято",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "durationSec": { "type": "number", "example": 187.4 }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверный WAV",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releases/{releaseId}/submit": {
+      "post": {
+        "tags": ["Releases"],
+        "summary": "Отправить на модерацию",
+        "description": "Переводит релиз в `on_moderation` после проверки обязательных полей, обложки и аудио.",
+        "operationId": "submitRelease",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Отправлено",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Release" }
+              }
+            }
+          },
+          "400": {
+            "description": "Релиз не готов",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats/summary": {
+      "get": {
+        "tags": ["Stats"],
+        "summary": "Сводка стримов",
+        "operationId": "getStatsSummary",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatsSummary" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "put": {
+        "tags": ["Webhooks"],
+        "summary": "Установить URL вебхука",
+        "operationId": "setWebhookUrl",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://your-service.ru/hooks/parallax"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "description": "Секрет для подписи HMAC-SHA256 в заголовке X-Parallax-Signature"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Сохранено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "webhookUrl": { "type": "string", "format": "uri" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
