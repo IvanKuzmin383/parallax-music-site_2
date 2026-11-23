@@ -183,3 +183,64 @@
 .partner-swagger .swagger-ui .loading-container .loading::after {
   border-color: #a1a1aa transparent transparent;
 }
+
+/* Auth / generic modal: white surface → dark readable text */
+.partner-swagger .swagger-ui .dialog-ux .modal-ux {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  color: #18181b;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .modal-ux-header,
+.partner-swagger .swagger-ui .dialog-ux .modal-ux-content {
+  background: #ffffff;
+  color: #18181b;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .modal-ux-header h3,
+.partner-swagger .swagger-ui .dialog-ux .modal-ux-header h4,
+.partner-swagger .swagger-ui .dialog-ux .auth-container h4,
+.partner-swagger .swagger-ui .dialog-ux .auth-container h6,
+.partner-swagger .swagger-ui .dialog-ux label,
+.partner-swagger .swagger-ui .dialog-ux .wrapper,
+.partner-swagger .swagger-ui .dialog-ux p,
+.partner-swagger .swagger-ui .dialog-ux code,
+.partner-swagger .swagger-ui .dialog-ux .markdown p,
+.partner-swagger .swagger-ui .dialog-ux .renderedMarkdown p {
+  color: #18181b !important;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .auth-container .wrapper small,
+.partner-swagger .swagger-ui .dialog-ux .auth-container .wrapper code {
+  color: #3f3f46 !important;
+}
+
+.partner-swagger .swagger-ui .dialog-ux input[type="text"],
+.partner-swagger .swagger-ui .dialog-ux input[type="password"] {
+  background: #ffffff;
+  color: #18181b;
+  border: 1px solid #a1a1aa;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .btn {
+  background: #f4f4f5;
+  border: 1px solid #71717a;
+  color: #18181b !important;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .btn.authorize,
+.partner-swagger .swagger-ui .dialog-ux .btn.modal-btn.authorize {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff !important;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .btn.modal-btn.auth {
+  background: #27272a;
+  border-color: #27272a;
+  color: #ffffff !important;
+}
+
+.partner-swagger .swagger-ui .dialog-ux .close-modal {
+  color: #18181b;
+}
