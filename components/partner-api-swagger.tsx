@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react"
 import "./partner-api-swagger.css"
 
-const SWAGGER_UI_VERSION = "5.18.2"
-
 declare global {
   interface Window {
     SwaggerUIBundle?: (options: Record<string, unknown>) => unknown
   }
 }
+
+const SWAGGER_BUNDLE = "/partner-api/swagger-ui/swagger-ui-bundle.js"
+const SWAGGER_CSS = "/partner-api/swagger-ui/swagger-ui.css"
 
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -45,12 +46,9 @@ export function PartnerApiSwagger() {
 
     async function mount() {
       try {
-        loadStylesheet(
-          `https://unpkg.com/swagger-ui-dist@${SWAGGER_UI_VERSION}/swagger-ui.css`
-        )
-        await loadScript(
-          `https://unpkg.com/swagger-ui-dist@${SWAGGER_UI_VERSION}/swagger-ui-bundle.js`
-        )
+        // Local assets (CSP blocks unpkg/CDN script-src)
+        loadStylesheet(SWAGGER_CSS)
+        await loadScript(SWAGGER_BUNDLE)
         if (cancelled || !containerRef.current || !window.SwaggerUIBundle) return
 
         window.SwaggerUIBundle({
